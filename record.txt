@@ -1,0 +1,7 @@
+codex认为我stage a置信度query box相似的原因是关于“训练出的 bbox 置信度都相似”的常见原因（patch-only 里尤其容易）： pred_logits_patch 本质是 cosine 相似度（normalize 后 dot），没有 temperature/logit scale，数值天然挤在一小段里，sigmoid 后更接近、看起来“都差不多”。 正样本 query 太少（box head 冻住/IoU 阈值偏高/GT 覆盖问题），focal 会把大多数 query 一起往同一个“负常数”推，导致分数塌到一条水平线。 如果你用的是 cfg_patch_stage_a_emb.py（patch encoder 冻结 + 用预计算 embedding），而 embedding 和 query feature space 本来不对齐，也会导致相似度几乎随机但方差很小。
+
+1.加可学习 logit_scale（CLIP 同款）
+2.patch这次不用embedding，直接喂/media/haoyi/T9/data/patches_quality/clean/的图片
+3.喂图片时解冻patch encoder(可以做得轻量级一点，适用于224这种小分辨率图像)
+
+vg不能用STAGE A因为没标全

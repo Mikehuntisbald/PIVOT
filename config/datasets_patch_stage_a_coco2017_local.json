@@ -1,0 +1,39 @@
+{
+  "train": [
+    {
+      "dataset_mode": "patch_episode",
+      "source": "coco",
+      "root": "/",
+      "anno": "${DATA_ROOT}/COCO/coco2017/annotations/instances_train2017.json",
+      "coco_image_root": "${DATA_ROOT}/COCO/coco2017/train2017/train2017",
+      "box_format": "xyxy",
+      "canonical_classes_json": "${DATA_ROOT}/canonical_classes_with_aliases.json",
+      "support_patch_tsv": "${DATA_ROOT}/patches_quality_emb/emb_index_from_quality.tsv",
+      "support_patch_bucket": "clean",
+      "support_patch_use_embedding": false,
+      "support_patch_image_root": "${DATA_ROOT}/patches_quality",
+      "support_patch_max_per_class": 200,
+      "patch_emb_cache_size": 4096,
+      "keep_only_support_gt": true,
+      "support_min_count": 2,
+      "support_patch_size": 224
+    }
+  ],
+  "val": [
+    {
+      "dataset_mode": "patch_episode",
+      "source": "coco",
+      "root": "/",
+      "anno": "${DATA_ROOT}/COCO/coco2017/annotations/instances_val2017.json",
+      "coco_image_root": "${DATA_ROOT}/COCO/coco2017/val2017",
+      "box_format": "xyxy",
+      "canonical_classes_json": "${DATA_ROOT}/canonical_classes_with_aliases.json",
+      "support_patch_tsv": "${DATA_ROOT}/patches_quality_emb/emb_index_from_quality.tsv",
+      "support_patch_bucket": "clean",
+      "support_patch_use_embedding": false,
+      "support_patch_image_root": "${DATA_ROOT}/patches_quality",
+      "support_patch_max_per_class": 200,
+      "patch_emb_cache_size": 4096
+    }
+  ]
+}

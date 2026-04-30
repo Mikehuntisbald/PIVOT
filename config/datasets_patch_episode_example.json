@@ -1,0 +1,38 @@
+{
+  "train": [
+    {
+      "root": "path/to/VG/images",
+      "anno": "path/to/vg_patch_episode_train.jsonl",
+      "dataset_mode": "patch_episode",
+      "box_format": "xyxy",
+      "canonical_classes_json": "path/to/canonical_classes_with_aliases.json",
+      "neg_episode_prob": 0.2,
+      "support_min_count": 2,
+      "support_patch_size": 224,
+      "support_patch_tsv": "path/to/emb_index_from_quality.tsv",
+      "support_patch_bucket": "clean",
+      "support_patch_use_embedding": false
+    },
+    {
+      "root": "path/to/LVIS/images",
+      "anno": "path/to/lvis_patch_episode_train.jsonl",
+      "dataset_mode": "patch_episode",
+      "box_format": "xyxy",
+      "canonical_classes_json": "path/to/canonical_classes_with_aliases.json",
+      "neg_episode_prob": 0.2,
+      "support_min_count": 2,
+      "support_patch_size": 224,
+      "support_patch_tsv": "path/to/emb_index_from_quality.tsv",
+      "support_patch_bucket": "clean",
+      "support_patch_use_embedding": false
+    }
+  ],
+  "val": [
+    {
+      "root": "path/to/optional/val/images",
+      "anno": "path/to/optional/val.jsonl",
+      "dataset_mode": "patch_episode",
+      "box_format": "xyxy"
+    }
+  ]
+}
