@@ -502,6 +502,19 @@ class GroundingDINO(nn.Module):
                 out["phrase_mask"] = text_dict["phrase_mask"]
             if "phrase_to_token_mask" in text_dict:
                 out["phrase_to_token_mask"] = text_dict["phrase_to_token_mask"]
+        for mask_key in (
+            "canonical_to_token_mask",
+            "attr_pos_to_token_mask",
+            "attr_neg_to_token_mask",
+            "phrase_semantic_token_mask",
+        ):
+            mask_value = kw.get(mask_key, None)
+            if mask_value is not None:
+                if torch.is_tensor(mask_value):
+                    mask_value = mask_value.to(samples.device)
+                    if mask_value.dim() == 2 and bs == 1:
+                        mask_value = mask_value.unsqueeze(0)
+                out[mask_key] = mask_value
         if patch_mask_in is not None and isinstance(text_dict, dict) and ("phrase_mask" in text_dict):
             pm = patch_mask_in.to(torch.bool)
             tm = text_dict["phrase_mask"].to(torch.bool)
@@ -919,6 +932,170 @@ class PostProcess(nn.Module):
         return results
 
 
+class PostProcessStageB(nn.Module):
+    """Stage B slot-level patch/text fusion for patch-episode inference."""
+
+    def __init__(
+        self,
+        num_select=100,
+        nms_iou_threshold=-1,
+        *,
+        beta: float = 1.0,
+        canonical_weight: float = 0.15,
+        text_agg: str = "mean",
+        softmin_tau: float = 0.7,
+        output_sigmoid_scores: bool = True,
+    ) -> None:
+        super().__init__()
+        self.num_select = int(num_select)
+        self.nms_iou_threshold = float(nms_iou_threshold)
+        self.beta = float(beta)
+        self.canonical_weight = float(canonical_weight)
+        self.text_agg = str(text_agg).lower().strip()
+        self.softmin_tau = float(softmin_tau)
+        self.output_sigmoid_scores = bool(output_sigmoid_scores)
+
+    def _aggregate_tokens(self, logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        if logits.dim() != 3:
+            raise ValueError(f"pred_logits_text must be (B,Q,T), got {tuple(logits.shape)}")
+        if mask.dim() != 3:
+            raise ValueError(f"token mask must be (B,K,T), got {tuple(mask.shape)}")
+        if logits.shape[0] != mask.shape[0] or logits.shape[-1] != mask.shape[-1]:
+            raise ValueError(
+                f"Token mask/logit shape mismatch: logits={tuple(logits.shape)} mask={tuple(mask.shape)}"
+            )
+
+        mask = mask.to(device=logits.device, dtype=torch.bool)
+        z = logits[:, :, None, :]  # (B,Q,1,T)
+        m = mask[:, None, :, :]  # (B,1,K,T)
+        valid = m.any(dim=-1)  # (B,1,K)
+
+        if self.text_agg == "mean":
+            denom = m.to(logits.dtype).sum(dim=-1).clamp(min=1.0)
+            score = (z.masked_fill(~m, 0.0).sum(dim=-1) / denom)
+        elif self.text_agg == "max":
+            score = z.masked_fill(~m, torch.finfo(logits.dtype).min).max(dim=-1).values
+        elif self.text_agg == "softmin":
+            tau = max(float(self.softmin_tau), 1e-6)
+            score = -tau * torch.logsumexp(z.masked_fill(~m, torch.finfo(logits.dtype).max).neg() / tau, dim=-1)
+        else:
+            raise ValueError(f"Unsupported Stage B text aggregator: {self.text_agg}")
+
+        return score.masked_fill(~valid, 0.0)  # (B,Q,K)
+
+    def compute_slot_logits(self, outputs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        pred_logits_patch = outputs.get("pred_logits_patch", None)
+        pred_logits_text = outputs.get("pred_logits_text", None)
+        phrase_to_token_mask = outputs.get("phrase_to_token_mask", None)
+        if pred_logits_patch is None:
+            raise KeyError("PostProcessStageB requires outputs['pred_logits_patch'].")
+        if pred_logits_text is None:
+            raise KeyError("PostProcessStageB requires outputs['pred_logits_text'].")
+        if phrase_to_token_mask is None:
+            raise KeyError("PostProcessStageB requires outputs['phrase_to_token_mask'].")
+
+        if pred_logits_patch.dim() == 2:
+            pred_logits_patch = pred_logits_patch.unsqueeze(-1)
+        elif pred_logits_patch.dim() != 3:
+            raise ValueError(
+                f"pred_logits_patch must be (B,Q) or (B,Q,K), got {tuple(pred_logits_patch.shape)}"
+            )
+
+        B, Q, K = pred_logits_patch.shape
+        T = pred_logits_text.shape[-1]
+        phrase_to_token_mask = phrase_to_token_mask.to(device=pred_logits_text.device, dtype=torch.bool)
+        if phrase_to_token_mask.shape[0] != B or phrase_to_token_mask.shape[-1] != T:
+            raise ValueError(
+                "phrase_to_token_mask must be shaped (B,K,T) and share B/T with pred_logits_text, "
+                f"got phrase={tuple(phrase_to_token_mask.shape)} text={tuple(pred_logits_text.shape)}"
+            )
+        if phrase_to_token_mask.shape[1] < K:
+            raise ValueError(
+                f"phrase_to_token_mask has fewer slots than patch logits: {phrase_to_token_mask.shape[1]} < {K}"
+            )
+        phrase_to_token_mask = phrase_to_token_mask[:, :K, :]
+
+        canonical_to_token_mask = outputs.get("canonical_to_token_mask", None)
+        if canonical_to_token_mask is None:
+            canonical_to_token_mask = torch.zeros_like(phrase_to_token_mask)
+        else:
+            canonical_to_token_mask = canonical_to_token_mask.to(device=pred_logits_text.device, dtype=torch.bool)
+            if canonical_to_token_mask.shape[0] != B or canonical_to_token_mask.shape[-1] != T:
+                raise ValueError(
+                    "canonical_to_token_mask must be shaped (B,K,T) and share B/T with pred_logits_text, "
+                    f"got canonical={tuple(canonical_to_token_mask.shape)} text={tuple(pred_logits_text.shape)}"
+                )
+            if canonical_to_token_mask.shape[1] < K:
+                raise ValueError(
+                    f"canonical_to_token_mask has fewer slots than patch logits: {canonical_to_token_mask.shape[1]} < {K}"
+                )
+            canonical_to_token_mask = canonical_to_token_mask[:, :K, :] & phrase_to_token_mask
+
+        attr_mask = phrase_to_token_mask & ~canonical_to_token_mask
+        text_attr_score = self._aggregate_tokens(pred_logits_text, attr_mask)
+        text_canon_score = self._aggregate_tokens(pred_logits_text, canonical_to_token_mask)
+        text_score = text_attr_score + self.canonical_weight * text_canon_score
+
+        slot_logits = pred_logits_patch.to(pred_logits_text.device) + self.beta * text_score
+        patch_mask = outputs.get("patch_mask", outputs.get("patch_phrase_mask", None))
+        if patch_mask is not None:
+            patch_mask = patch_mask.to(device=slot_logits.device, dtype=torch.bool)
+            if patch_mask.shape[0] == B and patch_mask.shape[1] >= K:
+                slot_logits = slot_logits.masked_fill(~patch_mask[:, None, :K], -100.0)
+        return slot_logits
+
+    @torch.no_grad()
+    def forward(self, outputs, target_sizes, not_to_xyxy=False, test=False):
+        slot_logits = self.compute_slot_logits(outputs)
+        out_bbox = outputs["pred_boxes"]
+
+        assert len(out_bbox) == len(target_sizes)
+        assert target_sizes.shape[1] == 2
+
+        B, Q, K = slot_logits.shape
+        num_select = min(int(self.num_select), Q * K)
+        topk_logits, topk_indexes = torch.topk(slot_logits.reshape(B, -1), num_select, dim=1)
+        query_ids = torch.div(topk_indexes, K, rounding_mode="trunc")
+        slot_ids = topk_indexes % K
+        scores = topk_logits.sigmoid() if self.output_sigmoid_scores else topk_logits
+
+        if not_to_xyxy:
+            boxes = out_bbox
+        else:
+            boxes = box_ops.box_cxcywh_to_xyxy(out_bbox)
+        boxes = torch.gather(boxes, 1, query_ids.unsqueeze(-1).repeat(1, 1, 4))
+
+        img_h, img_w = target_sizes.unbind(1)
+        scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
+        boxes = boxes * scale_fct[:, None, :]
+
+        results = []
+        dense_scores = slot_logits.sigmoid() if self.output_sigmoid_scores else slot_logits
+        for b in range(B):
+            s = scores[b]
+            q = query_ids[b]
+            l = slot_ids[b]
+            box = boxes[b]
+            if self.nms_iou_threshold > 0:
+                keep = nms(box, s, iou_threshold=self.nms_iou_threshold)
+                s = s[keep]
+                q = q[keep]
+                l = l[keep]
+                box = box[keep]
+            results.append(
+                {
+                    "scores": s,
+                    "labels": l,
+                    "slot_ids": l,
+                    "query_ids": q,
+                    "boxes": box,
+                    "slot_scores": dense_scores[b],
+                    "slot_logits": slot_logits[b],
+                }
+            )
+        return results
+
+
 @MODULE_BUILD_FUNCS.registe_with_name(module_name="groundingdino")
 def build_groundingdino(args):
     device = torch.device(args.device)
@@ -989,6 +1166,11 @@ def build_groundingdino(args):
                 canonical_pos_weight=float(getattr(args, "canonical_pos_weight", 0.15)),
                 attr_pos_weight=float(getattr(args, "attr_pos_weight", 1.0)),
                 attr_neg_weight=float(getattr(args, "attr_neg_weight", 1.0)),
+                tn_shared_attr_pos_weight=float(getattr(args, "tn_shared_attr_pos_weight", 0.75)),
+                use_phrase_tn_loss=bool(getattr(args, "use_phrase_tn_loss", True)),
+                phrase_score_type=str(getattr(args, "phrase_score_type", "softmin")),
+                softmin_tau=float(getattr(args, "softmin_tau", 0.7)),
+                lambda_phrase=float(getattr(args, "lambda_phrase", 0.3)),
             )
         else:
             weight_dict = {
@@ -1022,7 +1204,20 @@ def build_groundingdino(args):
             else:
                 raise ValueError("patch_matching must be 'hungarian' or 'iou'.")
         criterion.to(device)
-        postprocessors = {}
+        if stage_b:
+            postprocessors = {
+                "bbox": PostProcessStageB(
+                    num_select=args.num_select,
+                    nms_iou_threshold=args.nms_iou_threshold,
+                    beta=float(getattr(args, "stage_b_infer_text_beta", 1.0)),
+                    canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 0.15)),
+                    text_agg=str(getattr(args, "stage_b_infer_text_agg", "mean")),
+                    softmin_tau=float(getattr(args, "stage_b_infer_softmin_tau", getattr(args, "softmin_tau", 0.7))),
+                    output_sigmoid_scores=bool(getattr(args, "stage_b_infer_sigmoid_scores", True)),
+                )
+            }
+        else:
+            postprocessors = {}
     else:
         matcher = build_matcher(args)
 

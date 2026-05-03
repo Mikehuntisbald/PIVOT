@@ -183,6 +183,8 @@ The Stage B implementation is intentionally conservative:
 - fused `pred_logits` is **not** used for Stage B supervision
 - only `feat_map` and `class_embed` are trainable in Stage B
 
+Stage B local TN supervision is documented in [docs/stage_b_local_tn.md](docs/stage_b_local_tn.md).
+
 ## Current Local Path Layout
 
 Patch-episode configs now support environment-variable paths.

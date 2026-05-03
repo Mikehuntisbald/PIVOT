@@ -11,6 +11,7 @@ import csv
 import pickle
 import re
 from collections import OrderedDict
+from difflib import SequenceMatcher
 
 import numpy as np
 import torch
@@ -25,6 +26,8 @@ from datasets.coco import make_coco_transforms as make_query_transforms
 
 _WS_RE = re.compile(r"\s+")
 _PUNC_RE = re.compile(r"[^a-z0-9 _-]+")
+_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
+_TN_CATEGORY_SEP_RE = re.compile(r"[_/,\-]+")
 
 
 def _norm_text(s: str) -> str:
@@ -38,6 +41,222 @@ def _norm_text(s: str) -> str:
 def _tokenize_norm(s: str) -> List[str]:
     s = _norm_text(s)
     return s.split() if s else []
+
+
+def _clean_for_alignment(s: Any) -> str:
+    s = str(s or "").replace("_", " ").replace(".", " ").strip()
+    s = _WS_RE.sub(" ", s)
+    return s.strip()
+
+
+def _tokenize_with_offsets(s: Any) -> List[Dict[str, Any]]:
+    text = _clean_for_alignment(s)
+    out: List[Dict[str, Any]] = []
+    for m in _TOKEN_RE.finditer(text):
+        token = m.group(0)
+        norm = _norm_text(token)
+        if not norm:
+            continue
+        out.append({"text": token, "norm": norm, "start": int(m.start()), "end": int(m.end())})
+    return out
+
+
+def _normalize_tn_category(value: Any) -> str:
+    s = str(value or "").strip().lower()
+    s = _TN_CATEGORY_SEP_RE.sub(" ", s)
+    s = re.sub(r"[^a-z0-9 ]+", " ", s)
+    s = _WS_RE.sub(" ", s).strip()
+    return s
+
+
+def _as_list(value: Any) -> List[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+_TN_CATEGORY_WEIGHTS = {
+    # Strong visual attributes.
+    "color": 1.5,
+    "hair color": 1.5,
+    "clothing color": 1.5,
+    "shirt color": 1.5,
+    "pattern color": 1.5,
+    "size color": 1.5,
+    "color pattern": 1.5,
+    "color and pattern": 1.5,
+    "pattern and color": 1.5,
+    "material color": 1.5,
+    "color material": 1.5,
+    "size and color": 1.5,
+    "color and size": 1.5,
+    # Medium visual attributes.
+    "size": 1.3,
+    "height": 1.2,
+    "length": 1.2,
+    "shape": 1.2,
+    "pattern": 1.3,
+    "material": 1.3,
+    "texture": 1.2,
+    "clothing": 1.3,
+    "clothing type": 1.3,
+    "clothing state": 1.0,
+    "sleeve length": 1.0,
+    "accessory": 1.2,
+    "accessory type": 1.2,
+    "state": 1.0,
+    "condition": 1.0,
+}
+
+_TN_SKIP_CATEGORIES = {
+    "spatial",
+    "spatial relation",
+    "spatial position",
+    "position",
+    "location",
+    "distance",
+    "action",
+    "posture",
+    "pose",
+    "object",
+    "object type",
+    "type",
+    "animal type",
+    "vehicle type",
+    "device type",
+    "food type",
+    "quantity",
+    "number",
+    "brand",
+    "flavor",
+    "topping",
+    "content",
+    "sport",
+}
+
+_TEXT_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "has",
+    "have",
+    "in",
+    "is",
+    "it",
+    "its",
+    "of",
+    "on",
+    "or",
+    "our",
+    "that",
+    "the",
+    "their",
+    "these",
+    "this",
+    "those",
+    "to",
+    "with",
+    "without",
+    "you",
+}
+
+_RELATION_ACTION_WORDS = {
+    "above",
+    "across",
+    "behind",
+    "below",
+    "beside",
+    "between",
+    "bottom",
+    "carrying",
+    "center",
+    "close",
+    "closest",
+    "down",
+    "eating",
+    "far",
+    "farthest",
+    "front",
+    "holding",
+    "inside",
+    "left",
+    "looking",
+    "near",
+    "nearest",
+    "next",
+    "outside",
+    "over",
+    "right",
+    "riding",
+    "sitting",
+    "standing",
+    "top",
+    "under",
+    "up",
+    "wearing",
+}
+
+_GENERIC_VISUAL_ATTRIBUTE_WORDS = {
+    "black",
+    "blue",
+    "brown",
+    "clear",
+    "dark",
+    "gray",
+    "green",
+    "grey",
+    "light",
+    "orange",
+    "pink",
+    "purple",
+    "red",
+    "silver",
+    "tan",
+    "white",
+    "yellow",
+    "big",
+    "large",
+    "little",
+    "small",
+    "short",
+    "tall",
+    "long",
+    "wide",
+    "thin",
+    "thick",
+    "striped",
+    "plain",
+    "solid",
+    "spotted",
+    "checked",
+    "floral",
+    "wooden",
+    "metal",
+    "plastic",
+    "glass",
+    "leather",
+    "smooth",
+    "rough",
+    "shiny",
+    "matte",
+    "broken",
+    "whole",
+    "open",
+    "closed",
+    "full",
+    "empty",
+    "wet",
+    "dry",
+}
 
 
 def _path_env_defaults() -> Dict[str, str]:
@@ -436,6 +655,13 @@ class PatchEpisodeConfig:
     text_mask_warn_limit: int = 20
     text_mask_skip_invalid_canonical: bool = False
     text_mask_audit_jsonl: Optional[str] = None
+    use_tn_category_weights: bool = True
+    default_tn_category_weight: float = 0.0
+    skip_tn_if_neg_overlaps_canonical: bool = True
+    skip_ambiguous_tn: bool = True
+    skip_tn_if_changed_span_not_found: bool = True
+    skip_tn_if_changed_span_empty_after_filter: bool = True
+    skip_relation_like_tn_in_v1: bool = True
 
 
 class PatchEpisodeJsonlDataset(VisionDataset):
@@ -517,6 +743,13 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         text_mask_warn_limit: int = 20,
         text_mask_skip_invalid_canonical: bool = False,
         text_mask_audit_jsonl: Optional[str] = None,
+        use_tn_category_weights: bool = True,
+        default_tn_category_weight: float = 0.0,
+        skip_tn_if_neg_overlaps_canonical: bool = True,
+        skip_ambiguous_tn: bool = True,
+        skip_tn_if_changed_span_not_found: bool = True,
+        skip_tn_if_changed_span_empty_after_filter: bool = True,
+        skip_relation_like_tn_in_v1: bool = True,
     ) -> None:
         root = _expand_path_like(root)
         anno = _expand_path_like(anno)
@@ -579,6 +812,13 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             text_mask_warn_limit=int(text_mask_warn_limit),
             text_mask_skip_invalid_canonical=bool(text_mask_skip_invalid_canonical),
             text_mask_audit_jsonl=str(text_mask_audit_jsonl) if text_mask_audit_jsonl else None,
+            use_tn_category_weights=bool(use_tn_category_weights),
+            default_tn_category_weight=float(default_tn_category_weight),
+            skip_tn_if_neg_overlaps_canonical=bool(skip_tn_if_neg_overlaps_canonical),
+            skip_ambiguous_tn=bool(skip_ambiguous_tn),
+            skip_tn_if_changed_span_not_found=bool(skip_tn_if_changed_span_not_found),
+            skip_tn_if_changed_span_empty_after_filter=bool(skip_tn_if_changed_span_empty_after_filter),
+            skip_relation_like_tn_in_v1=bool(skip_relation_like_tn_in_v1),
         )
 
         self.name2cid = _build_name_to_canonical_id(canonical_classes_json)
@@ -909,17 +1149,226 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         mask[beg_pos : end_pos + 1] = True
         return mask
 
+    def _is_relation_like_category(self, category: str) -> bool:
+        return _normalize_tn_category(category) in {
+            "spatial",
+            "spatial relation",
+            "spatial position",
+            "position",
+            "location",
+            "distance",
+            "action",
+            "posture",
+            "pose",
+        }
+
+    def _tn_category_weight(self, category: str, changed_token_norms: List[str]) -> float:
+        category = _normalize_tn_category(category)
+        if not bool(self.cfg.use_tn_category_weights):
+            return float(self.cfg.default_tn_category_weight)
+        if category in _TN_SKIP_CATEGORIES:
+            return 0.0
+        if category in _TN_CATEGORY_WEIGHTS:
+            return float(_TN_CATEGORY_WEIGHTS[category])
+        if category == "attribute":
+            if any(t in _GENERIC_VISUAL_ATTRIBUTE_WORDS for t in changed_token_norms):
+                return 1.0
+            return 0.0
+        return float(self.cfg.default_tn_category_weight)
+
+    def _is_visual_content_token(self, token_norm: str) -> bool:
+        if not token_norm:
+            return False
+        if token_norm in _TEXT_STOPWORDS:
+            return False
+        return True
+
+    def _is_relation_action_token(self, token_norm: str) -> bool:
+        return token_norm in _RELATION_ACTION_WORDS
+
+    def _mask_from_phrase_local_spans(
+        self,
+        tokenized,
+        phrase_span: Tuple[int, int],
+        phrase_mask: torch.Tensor,
+        local_spans: List[Tuple[int, int]],
+        max_text_len: int,
+    ) -> torch.Tensor:
+        out = torch.zeros_like(phrase_mask)
+        span_start = int(phrase_span[0])
+        for local_start, local_end in local_spans:
+            if int(local_end) <= int(local_start):
+                continue
+            out = out | self._char_span_to_token_mask(
+                tokenized,
+                (span_start + int(local_start), span_start + int(local_end)),
+                max_text_len,
+            )
+        return out & phrase_mask
+
+    def _find_token_subsequence_start(
+        self,
+        haystack_tokens: List[Dict[str, Any]],
+        needle_tokens: List[Dict[str, Any]],
+    ) -> Optional[int]:
+        if not needle_tokens or len(needle_tokens) > len(haystack_tokens):
+            return None
+        hay = [t["norm"] for t in haystack_tokens]
+        needle = [t["norm"] for t in needle_tokens]
+        starts: List[int] = []
+        n = len(needle)
+        for i in range(0, len(hay) - n + 1):
+            if hay[i : i + n] == needle:
+                starts.append(i)
+        if not starts:
+            return None
+        if len(starts) > 1 and bool(self.cfg.skip_ambiguous_tn):
+            return None
+        return int(starts[0])
+
+    def _changed_attribute_token_spans(
+        self,
+        phrase_text: str,
+        replace_from: Any,
+        replace_to: Any,
+    ) -> Optional[List[Dict[str, Any]]]:
+        from_text = _clean_for_alignment(replace_from)
+        to_text = _clean_for_alignment(replace_to)
+        from_tokens = _tokenize_with_offsets(from_text)
+        to_tokens = _tokenize_with_offsets(to_text)
+        if not to_tokens:
+            return []
+
+        from_norms = [t["norm"] for t in from_tokens]
+        to_norms = [t["norm"] for t in to_tokens]
+        changed_to_indices: List[int] = []
+        for tag, _i1, _i2, j1, j2 in SequenceMatcher(None, from_norms, to_norms).get_opcodes():
+            if tag in {"replace", "insert"}:
+                changed_to_indices.extend(range(int(j1), int(j2)))
+        if not changed_to_indices:
+            return []
+
+        phrase_text_clean = _clean_for_alignment(phrase_text)
+        to_text_clean = _clean_for_alignment(to_text)
+        local_to_span = self._find_word_span(phrase_text_clean, to_text_clean, ignore_case=False)
+        if local_to_span is None:
+            local_to_span = self._find_word_span(phrase_text_clean, to_text_clean, ignore_case=True)
+
+        out: List[Dict[str, Any]] = []
+        if local_to_span is not None:
+            base = int(local_to_span[0])
+            for idx in changed_to_indices:
+                tok = to_tokens[idx]
+                out.append(
+                    {
+                        "text": tok["text"],
+                        "norm": tok["norm"],
+                        "start": base + int(tok["start"]),
+                        "end": base + int(tok["end"]),
+                    }
+                )
+            return out
+
+        phrase_tokens = _tokenize_with_offsets(phrase_text_clean)
+        start_idx = self._find_token_subsequence_start(phrase_tokens, to_tokens)
+        if start_idx is None:
+            return None
+        for idx in changed_to_indices:
+            tok = phrase_tokens[start_idx + idx]
+            out.append(
+                {
+                    "text": tok["text"],
+                    "norm": tok["norm"],
+                    "start": int(tok["start"]),
+                    "end": int(tok["end"]),
+                }
+            )
+        return out
+
+    def _build_relation_token_mask(
+        self,
+        tokenized,
+        phrase_text: str,
+        phrase_span: Tuple[int, int],
+        phrase_mask: torch.Tensor,
+        max_text_len: int,
+    ) -> torch.Tensor:
+        spans = [
+            (int(t["start"]), int(t["end"]))
+            for t in _tokenize_with_offsets(phrase_text)
+            if self._is_relation_action_token(str(t["norm"]))
+        ]
+        return self._mask_from_phrase_local_spans(tokenized, phrase_span, phrase_mask, spans, max_text_len)
+
+    def _build_content_attr_mask(
+        self,
+        tokenized,
+        phrase_text: str,
+        phrase_span: Tuple[int, int],
+        phrase_mask: torch.Tensor,
+        canonical_mask: torch.Tensor,
+        relation_mask: torch.Tensor,
+        max_text_len: int,
+    ) -> torch.Tensor:
+        spans = []
+        for tok in _tokenize_with_offsets(phrase_text):
+            norm = str(tok["norm"])
+            if not self._is_visual_content_token(norm):
+                continue
+            if self._is_relation_action_token(norm):
+                continue
+            spans.append((int(tok["start"]), int(tok["end"])))
+        mask = self._mask_from_phrase_local_spans(tokenized, phrase_span, phrase_mask, spans, max_text_len)
+        return mask & (~canonical_mask) & (~relation_mask)
+
+    def _build_shared_attr_mask(
+        self,
+        tokenized,
+        phrase_text: str,
+        positive_phrase: Optional[str],
+        phrase_span: Tuple[int, int],
+        phrase_mask: torch.Tensor,
+        canonical_mask: torch.Tensor,
+        relation_mask: torch.Tensor,
+        attr_neg_mask: torch.Tensor,
+        max_text_len: int,
+    ) -> torch.Tensor:
+        if not isinstance(positive_phrase, str) or not positive_phrase.strip():
+            return self._build_content_attr_mask(
+                tokenized, phrase_text, phrase_span, phrase_mask, canonical_mask, relation_mask, max_text_len
+            ) & (~attr_neg_mask)
+
+        pos_tokens = _tokenize_with_offsets(positive_phrase)
+        tn_tokens = _tokenize_with_offsets(phrase_text)
+        pos_norms = [t["norm"] for t in pos_tokens]
+        tn_norms = [t["norm"] for t in tn_tokens]
+        spans: List[Tuple[int, int]] = []
+        for tag, _i1, _i2, j1, j2 in SequenceMatcher(None, pos_norms, tn_norms).get_opcodes():
+            if tag != "equal":
+                continue
+            for tok in tn_tokens[int(j1) : int(j2)]:
+                norm = str(tok["norm"])
+                if not self._is_visual_content_token(norm):
+                    continue
+                if self._is_relation_action_token(norm):
+                    continue
+                spans.append((int(tok["start"]), int(tok["end"])))
+        mask = self._mask_from_phrase_local_spans(tokenized, phrase_span, phrase_mask, spans, max_text_len)
+        return mask & (~canonical_mask) & (~relation_mask) & (~attr_neg_mask)
+
     def _build_slot_text_masks(
         self,
         slot_phrases: List[str],
         slot_canonical_texts: List[str],
         slot_aliases: List[List[str]],
-    ) -> Tuple[str, Optional[torch.Tensor], Optional[torch.Tensor], List[Dict[str, Any]]]:
+        slot_records: Optional[List[Dict[str, Any]]] = None,
+    ):
         slot_phrases = [self._clean_caption_phrase(p) for p in slot_phrases]
         slot_canonical_texts = [self._clean_caption_phrase(p) for p in slot_canonical_texts]
+        slot_records = list(slot_records or [{} for _ in slot_phrases])
         caption, slot_spans = self._build_caption_from_phrases(slot_phrases)
         if not self.cfg.build_text_token_masks:
-            return caption, None, None, []
+            return caption, None, None, None, None, None, None, None, None, []
         if self._text_tokenizer is None:
             raise RuntimeError("build_text_token_masks=True but tokenizer is not initialized.")
 
@@ -932,11 +1381,18 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         T = int(self.cfg.max_text_len)
         phrase_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
         canonical_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        attr_pos_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        attr_neg_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        relation_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        phrase_semantic_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        attr_neg_weight_mask = torch.zeros((K, T), dtype=torch.float32)
+        is_tn = torch.zeros((K,), dtype=torch.bool)
         invalid_records: List[Dict[str, Any]] = []
 
         for k, ((span_start, _span_end), phrase_text, canonical_text, aliases) in enumerate(
             zip(slot_spans, slot_phrases, slot_canonical_texts, slot_aliases)
         ):
+            record = slot_records[k] if k < len(slot_records) and isinstance(slot_records[k], dict) else {}
             phrase_mask = self._char_span_to_token_mask(tokenized, slot_spans[k], T)
             phrase_to_token_mask[k] = phrase_mask
             if not phrase_mask.any():
@@ -1013,7 +1469,176 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 continue
             canonical_to_token_mask[k] = canonical_mask
 
-        return caption, phrase_to_token_mask, canonical_to_token_mask, invalid_records
+            relation_mask = self._build_relation_token_mask(tokenized, phrase_text, slot_spans[k], phrase_mask, T)
+            relation_to_token_mask[k] = relation_mask
+
+            is_text_negative = bool(record.get("text_is_negative", record.get("is_text_negative", False)))
+            is_tn[k] = bool(is_text_negative)
+            if not is_text_negative:
+                attr_pos_mask = self._build_content_attr_mask(
+                    tokenized, phrase_text, slot_spans[k], phrase_mask, canonical_mask, relation_mask, T
+                )
+                attr_pos_to_token_mask[k] = attr_pos_mask
+                phrase_semantic_token_mask[k] = canonical_mask | attr_pos_mask
+                continue
+
+            replace_from_values = _as_list(record.get("replace_from", None))
+            replace_to_values = _as_list(record.get("replace_to", None))
+            replace_category_values = _as_list(record.get("replace_category", None))
+            max_replacements = max(
+                len(replace_from_values),
+                len(replace_to_values),
+                len(replace_category_values),
+            )
+            if max_replacements <= 0:
+                continue
+
+            slot_invalid = False
+            neg_mask = torch.zeros((T,), dtype=torch.bool)
+            neg_weight = torch.zeros((T,), dtype=torch.float32)
+            for ridx in range(max_replacements):
+                replace_from = replace_from_values[ridx] if ridx < len(replace_from_values) else ""
+                replace_to = replace_to_values[ridx] if ridx < len(replace_to_values) else ""
+                category = (
+                    replace_category_values[ridx]
+                    if ridx < len(replace_category_values)
+                    else (replace_category_values[-1] if replace_category_values else "")
+                )
+                category_norm = _normalize_tn_category(category)
+                if bool(self.cfg.skip_relation_like_tn_in_v1) and self._is_relation_like_category(category_norm):
+                    continue
+                if category_norm in _TN_SKIP_CATEGORIES:
+                    continue
+                if (
+                    bool(self.cfg.use_tn_category_weights)
+                    and category_norm not in _TN_CATEGORY_WEIGHTS
+                    and category_norm != "attribute"
+                    and float(self.cfg.default_tn_category_weight) <= 0.0
+                ):
+                    continue
+
+                changed_tokens = self._changed_attribute_token_spans(phrase_text, replace_from, replace_to)
+                if changed_tokens is None:
+                    if bool(self.cfg.skip_tn_if_changed_span_not_found):
+                        slot_invalid = True
+                        invalid_records.append(
+                            {
+                                "reason": "tn_changed_span_not_found",
+                                "slot_idx": int(k),
+                                "phrase": phrase_text,
+                                "canonical": canonical_text,
+                                "caption": caption,
+                                "replace_from": replace_from,
+                                "replace_to": replace_to,
+                                "replace_category": category_norm,
+                            }
+                        )
+                    continue
+
+                filtered_tokens = []
+                for tok in changed_tokens:
+                    norm = str(tok.get("norm", ""))
+                    if not self._is_visual_content_token(norm):
+                        continue
+                    if self._is_relation_action_token(norm):
+                        continue
+                    filtered_tokens.append(tok)
+
+                weight = self._tn_category_weight(category_norm, [str(t.get("norm", "")) for t in filtered_tokens])
+                if weight <= 0.0:
+                    continue
+                if not filtered_tokens:
+                    if bool(self.cfg.skip_tn_if_changed_span_empty_after_filter):
+                        slot_invalid = True
+                        invalid_records.append(
+                            {
+                                "reason": "tn_changed_span_empty_after_filter",
+                                "slot_idx": int(k),
+                                "phrase": phrase_text,
+                                "canonical": canonical_text,
+                                "caption": caption,
+                                "replace_from": replace_from,
+                                "replace_to": replace_to,
+                                "replace_category": category_norm,
+                            }
+                        )
+                    continue
+
+                token_spans = [(int(t["start"]), int(t["end"])) for t in filtered_tokens]
+                changed_mask = self._mask_from_phrase_local_spans(
+                    tokenized, slot_spans[k], phrase_mask, token_spans, T
+                )
+                if not changed_mask.any():
+                    if bool(self.cfg.skip_tn_if_changed_span_empty_after_filter):
+                        slot_invalid = True
+                        invalid_records.append(
+                            {
+                                "reason": "tn_changed_mask_empty_after_tokenization",
+                                "slot_idx": int(k),
+                                "phrase": phrase_text,
+                                "canonical": canonical_text,
+                                "caption": caption,
+                                "replace_from": replace_from,
+                                "replace_to": replace_to,
+                                "replace_category": category_norm,
+                            }
+                        )
+                    continue
+
+                neg_mask = neg_mask | changed_mask
+                neg_weight = torch.maximum(neg_weight, changed_mask.to(torch.float32) * float(weight))
+
+            if slot_invalid:
+                continue
+            if (neg_mask & canonical_mask).any():
+                if bool(self.cfg.skip_tn_if_neg_overlaps_canonical):
+                    invalid_records.append(
+                        {
+                            "reason": "tn_neg_overlaps_canonical",
+                            "slot_idx": int(k),
+                            "phrase": phrase_text,
+                            "canonical": canonical_text,
+                            "caption": caption,
+                        }
+                    )
+                    continue
+                neg_mask = neg_mask & (~canonical_mask)
+                neg_weight = neg_weight * neg_mask.to(torch.float32)
+
+            if not bool((neg_weight > 0).any().item()):
+                # Unknown / relation-like / skipped TN: keep masks empty so the criterion
+                # skips text supervision for this slot.
+                continue
+
+            attr_neg_to_token_mask[k] = neg_mask
+            attr_neg_weight_mask[k] = neg_weight
+            positive_phrase = record.get("positive_phrase", None) or record.get("try_tn_head_phrase", None)
+            attr_pos_mask = self._build_shared_attr_mask(
+                tokenized,
+                phrase_text,
+                positive_phrase,
+                slot_spans[k],
+                phrase_mask,
+                canonical_mask,
+                relation_mask,
+                neg_mask,
+                T,
+            )
+            attr_pos_to_token_mask[k] = attr_pos_mask
+            phrase_semantic_token_mask[k] = canonical_mask | attr_pos_mask | neg_mask
+
+        return (
+            caption,
+            phrase_to_token_mask,
+            canonical_to_token_mask,
+            attr_pos_to_token_mask,
+            attr_neg_to_token_mask,
+            relation_to_token_mask,
+            phrase_semantic_token_mask,
+            is_tn,
+            attr_neg_weight_mask,
+            invalid_records,
+        )
 
     def _load_patch_bank(self, tsv_path: Path) -> Dict[int, List[str]]:
         """
@@ -1594,19 +2219,31 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     cls = self._phrase_to_canonical_id(phrase)
             if cls is None:
                 continue
-            records.append(
-                {
-                    "bbox": obj["bbox"],
-                    "class_id": int(cls),
-                    "phrase": obj.get("raw_phrase", None) or obj.get("phrase", None),
-                    "head_phrase": obj.get("head_phrase", None)
-                    or obj.get("canonical_text", None)
-                    or obj.get("canonical_name", None),
-                    "text_is_negative": bool(
-                        obj.get("text_is_negative", obj.get("is_text_negative", False))
-                    ),
-                }
-            )
+            rec = {
+                "bbox": obj["bbox"],
+                "class_id": int(cls),
+                "phrase": obj.get("raw_phrase", None) or obj.get("phrase", None),
+                "head": obj.get("head", None),
+                "head_phrase": obj.get("head_phrase", None)
+                or obj.get("canonical_text", None)
+                or obj.get("canonical_name", None),
+                "text_is_negative": bool(
+                    obj.get("text_is_negative", obj.get("is_text_negative", False))
+                ),
+            }
+            for key in (
+                "positive_phrase",
+                "replace_from",
+                "replace_to",
+                "replace_category",
+                "try_tn_head",
+                "try_tn_head_phrase",
+                "tn_type",
+                "visual_filter_status",
+            ):
+                if key in obj:
+                    rec[key] = obj.get(key)
+            records.append(rec)
 
         return records
 
@@ -1632,7 +2269,11 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         return boxes_t, labels_t
 
     def _get_slot_text_for_record(self, record: Dict[str, Any], canonical_id: int) -> Tuple[str, str, List[str]]:
-        canonical_text = self._clean_caption_phrase(record.get("head_phrase", None) or self._get_canonical_name(canonical_id))
+        canonical_source = record.get("head", None)
+        if bool(record.get("text_is_negative", record.get("is_text_negative", False))):
+            canonical_source = record.get("try_tn_head", None) or canonical_source
+        canonical_source = canonical_source or record.get("head_phrase", None) or self._get_canonical_name(canonical_id)
+        canonical_text = self._clean_caption_phrase(canonical_source)
         phrase_text = record.get("phrase", None)
         if isinstance(phrase_text, str) and phrase_text.strip():
             phrase_text = self._clean_caption_phrase(phrase_text)
@@ -1641,7 +2282,12 @@ class PatchEpisodeJsonlDataset(VisionDataset):
 
         alias_candidates: List[str] = []
         seen = set()
-        for cand in [canonical_text] + self._get_canonical_aliases(canonical_id):
+        for cand in [
+            canonical_text,
+            record.get("head", None),
+            record.get("try_tn_head", None),
+            record.get("head_phrase", None),
+        ] + self._get_canonical_aliases(canonical_id):
             cleaned = self._clean_caption_phrase(cand)
             if not cleaned:
                 continue
@@ -1878,6 +2524,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             slot_canonical_texts: List[str] = []
             slot_aliases: List[List[str]] = []
             slot_text_is_negative: List[bool] = []
+            slot_records: List[Dict[str, Any]] = []
             support_record: Optional[Dict[str, Any]] = None
 
             if labels.numel() == 0:
@@ -1914,6 +2561,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         slot_canonical_texts.append(canonical_text)
                         slot_aliases.append(alias_candidates)
                         slot_text_is_negative.append(bool(instance_records[support_i].get("text_is_negative", False)))
+                        slot_records.append(instance_records[support_i])
                     if (not ok) or (len(patch_list) != int(support_classes_t.numel())):
                         continue
 
@@ -1982,6 +2630,12 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             phrase_to_token_mask = None
             canonical_to_token_mask = None
             negative_to_token_mask = None
+            attr_pos_to_token_mask = None
+            attr_neg_to_token_mask = None
+            relation_to_token_mask = None
+            phrase_semantic_token_mask = None
+            is_tn = None
+            attr_neg_weight_mask = None
             invalid_text_mask_records: List[Dict[str, Any]] = []
             if int(self.cfg.support_num_patches_max) > 1:
                 support_classes_t, patches_or_emb = support
@@ -1994,22 +2648,26 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         slot_canonical_texts = [self._get_canonical_name(int(cid)) for cid in support_classes_t.tolist()]
                         slot_aliases = [self._get_canonical_aliases(int(cid)) for cid in support_classes_t.tolist()]
                         slot_text_is_negative = [False for _ in support_classes_t.tolist()]
+                        slot_records = [
+                            {"phrase": p, "head_phrase": c, "text_is_negative": False}
+                            for p, c in zip(slot_phrases, slot_canonical_texts)
+                        ]
                     phrases = list(slot_phrases)
-                    caption, phrase_to_token_mask, canonical_to_token_mask, invalid_text_mask_records = self._build_slot_text_masks(
-                        phrases, slot_canonical_texts, slot_aliases
+                    (
+                        caption,
+                        phrase_to_token_mask,
+                        canonical_to_token_mask,
+                        attr_pos_to_token_mask,
+                        attr_neg_to_token_mask,
+                        relation_to_token_mask,
+                        phrase_semantic_token_mask,
+                        is_tn,
+                        attr_neg_weight_mask,
+                        invalid_text_mask_records,
+                    ) = self._build_slot_text_masks(
+                        phrases, slot_canonical_texts, slot_aliases, slot_records=slot_records
                     )
-                    if phrase_to_token_mask is not None and canonical_to_token_mask is not None:
-                        if len(slot_text_is_negative) != K:
-                            slot_text_is_negative = [False] * K
-                        negative_to_token_mask = torch.zeros_like(phrase_to_token_mask)
-                        has_negative_slot = False
-                        for k, is_text_negative in enumerate(slot_text_is_negative):
-                            if not is_text_negative:
-                                continue
-                            negative_to_token_mask[k] = phrase_to_token_mask[k] & (~canonical_to_token_mask[k])
-                            has_negative_slot = has_negative_slot or bool(negative_to_token_mask[k].any().item())
-                        if not has_negative_slot:
-                            negative_to_token_mask = None
+                    negative_to_token_mask = attr_neg_to_token_mask
                 else:
                     phrases = self._sample_text_phrases(K)
                     caption = " ".join([f"{p} ." for p in phrases])
@@ -2028,16 +2686,27 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                             support_record, support_cid
                         )
                     slot_text_is_negative = [bool(support_record.get("text_is_negative", False))] if support_record is not None else [False]
+                    slot_records = [
+                        support_record
+                        if support_record is not None
+                        else {"phrase": phrase_text, "head_phrase": canonical_text, "text_is_negative": False}
+                    ]
                     phrases = [phrase_text]
-                    caption, phrase_to_token_mask, canonical_to_token_mask, invalid_text_mask_records = self._build_slot_text_masks(
-                        phrases, [canonical_text], [alias_candidates]
+                    (
+                        caption,
+                        phrase_to_token_mask,
+                        canonical_to_token_mask,
+                        attr_pos_to_token_mask,
+                        attr_neg_to_token_mask,
+                        relation_to_token_mask,
+                        phrase_semantic_token_mask,
+                        is_tn,
+                        attr_neg_weight_mask,
+                        invalid_text_mask_records,
+                    ) = self._build_slot_text_masks(
+                        phrases, [canonical_text], [alias_candidates], slot_records=slot_records
                     )
-                    if (
-                        phrase_to_token_mask is not None
-                        and canonical_to_token_mask is not None
-                        and slot_text_is_negative[0]
-                    ):
-                        negative_to_token_mask = phrase_to_token_mask & (~canonical_to_token_mask)
+                    negative_to_token_mask = attr_neg_to_token_mask
                 else:
                     phrases = self._sample_text_phrases(1)
                     caption = f"{phrases[0]} ."
@@ -2073,12 +2742,20 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                             "positive_phrase": (
                                 support_record.get("phrase", None)
                                 if support_record is not None
-                                else (slot_phrases[slot_idx] if slot_idx < len(slot_phrases) else None)
+                                else (
+                                    slot_records[slot_idx].get("positive_phrase", slot_records[slot_idx].get("phrase", None))
+                                    if slot_idx < len(slot_records)
+                                    else (slot_phrases[slot_idx] if slot_idx < len(slot_phrases) else None)
+                                )
                             ),
                             "head_phrase": (
                                 support_record.get("head_phrase", None)
                                 if support_record is not None
-                                else (slot_canonical_texts[slot_idx] if slot_idx < len(slot_canonical_texts) else None)
+                                else (
+                                    slot_records[slot_idx].get("head_phrase", None)
+                                    if slot_idx < len(slot_records)
+                                    else (slot_canonical_texts[slot_idx] if slot_idx < len(slot_canonical_texts) else None)
+                                )
                             ),
                         }
                     )
@@ -2097,6 +2774,18 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 target["phrase_to_token_mask"] = phrase_to_token_mask
             if canonical_to_token_mask is not None:
                 target["canonical_to_token_mask"] = canonical_to_token_mask
+            if attr_pos_to_token_mask is not None:
+                target["attr_pos_to_token_mask"] = attr_pos_to_token_mask
+            if attr_neg_to_token_mask is not None:
+                target["attr_neg_to_token_mask"] = attr_neg_to_token_mask
+            if relation_to_token_mask is not None:
+                target["relation_to_token_mask"] = relation_to_token_mask
+            if phrase_semantic_token_mask is not None:
+                target["phrase_semantic_token_mask"] = phrase_semantic_token_mask
+            if is_tn is not None:
+                target["is_tn"] = is_tn
+            if attr_neg_weight_mask is not None:
+                target["attr_neg_weight_mask"] = attr_neg_weight_mask
             if negative_to_token_mask is not None:
                 target["negative_to_token_mask"] = negative_to_token_mask
             if int(self.cfg.support_num_patches_max) > 1:
@@ -2213,6 +2902,36 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         "text_mask_audit_jsonl",
         getattr(args, "text_mask_audit_jsonl", None),
     )
+    use_tn_category_weights = bool(
+        datasetinfo.get("use_tn_category_weights", getattr(args, "use_tn_category_weights", True))
+    )
+    default_tn_category_weight = float(
+        datasetinfo.get("default_tn_category_weight", getattr(args, "default_tn_category_weight", 0.0))
+    )
+    skip_tn_if_neg_overlaps_canonical = bool(
+        datasetinfo.get(
+            "skip_tn_if_neg_overlaps_canonical",
+            getattr(args, "skip_tn_if_neg_overlaps_canonical", True),
+        )
+    )
+    skip_ambiguous_tn = bool(
+        datasetinfo.get("skip_ambiguous_tn", getattr(args, "skip_ambiguous_tn", True))
+    )
+    skip_tn_if_changed_span_not_found = bool(
+        datasetinfo.get(
+            "skip_tn_if_changed_span_not_found",
+            getattr(args, "skip_tn_if_changed_span_not_found", True),
+        )
+    )
+    skip_tn_if_changed_span_empty_after_filter = bool(
+        datasetinfo.get(
+            "skip_tn_if_changed_span_empty_after_filter",
+            getattr(args, "skip_tn_if_changed_span_empty_after_filter", True),
+        )
+    )
+    skip_relation_like_tn_in_v1 = bool(
+        datasetinfo.get("skip_relation_like_tn_in_v1", getattr(args, "skip_relation_like_tn_in_v1", True))
+    )
     if text_mask_audit_jsonl is None and build_text_token_masks:
         output_dir = getattr(args, "output_dir", None)
         if output_dir:
@@ -2275,4 +2994,11 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         text_mask_warn_limit=text_mask_warn_limit,
         text_mask_skip_invalid_canonical=text_mask_skip_invalid_canonical,
         text_mask_audit_jsonl=text_mask_audit_jsonl,
+        use_tn_category_weights=use_tn_category_weights,
+        default_tn_category_weight=default_tn_category_weight,
+        skip_tn_if_neg_overlaps_canonical=skip_tn_if_neg_overlaps_canonical,
+        skip_ambiguous_tn=skip_ambiguous_tn,
+        skip_tn_if_changed_span_not_found=skip_tn_if_changed_span_not_found,
+        skip_tn_if_changed_span_empty_after_filter=skip_tn_if_changed_span_empty_after_filter,
+        skip_relation_like_tn_in_v1=skip_relation_like_tn_in_v1,
     )

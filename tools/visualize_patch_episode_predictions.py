@@ -139,18 +139,18 @@ def _nms_xyxy(boxes: torch.Tensor, scores: torch.Tensor, iou_thr: float) -> torc
         return torch.as_tensor(keep, dtype=torch.int64)
 
 
-def load_model(cfg_path: str, ckpt_path: str, device: str) -> torch.nn.Module:
+def load_model(cfg_path: str, ckpt_path: str, device: str):
     args = SLConfig.fromfile(cfg_path)
     args.device = device
     assert hasattr(args, "modelname"), "Config must define `modelname`."
     build_func = MODULE_BUILD_FUNCS.get(args.modelname)
     if build_func is None:
         raise KeyError(f"Unknown modelname={args.modelname}.")
-    model, _criterion, _post = build_func(args)
+    model, _criterion, postprocessors = build_func(args)
     ckpt = _torch_load_compat(ckpt_path, map_location="cpu")
     model.load_state_dict(clean_state_dict(ckpt["model"]), strict=False)
     model.eval()
-    return model.to(device)
+    return model.to(device), postprocessors
 
 
 @torch.no_grad()
@@ -163,6 +163,7 @@ def run_patch_only(
     topk: int,
     score_thr: float,
     nms_thr: float,
+    postprocessor=None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     caption = _canonical_caption(str(target.get("caption", "object .")))
 
@@ -175,12 +176,27 @@ def run_patch_only(
         patch_global = target["patch_global"].to(device)
         if patch_global.dim() == 1:
             patch_global = patch_global.unsqueeze(0)
+        elif patch_global.dim() == 2:
+            patch_global = patch_global.unsqueeze(0)
+    elif "patches" in target:
+        patches = target["patches"].to(device)
+        if patches.dim() == 4:
+            patches = patches.unsqueeze(0)
     elif "patch" in target:
         patches = target["patch"].to(device)
         if patches.dim() == 3:
             patches = patches.unsqueeze(0)
     else:
-        raise KeyError("target must contain 'patch_global' (embedding) or 'patch' (image tensor).")
+        raise KeyError("target must contain 'patch_global', 'patches', or 'patch'.")
+
+    mask_kwargs = {}
+    for key in ("phrase_to_token_mask", "canonical_to_token_mask"):
+        value = target.get(key, None)
+        if torch.is_tensor(value):
+            value = value.to(device)
+            if value.dim() == 2:
+                value = value.unsqueeze(0)
+            mask_kwargs[key] = value
 
     out = model(
         samples,
@@ -188,15 +204,24 @@ def run_patch_only(
         patches=patches,
         patch_global=patch_global,
         patch_only=True,
+        patch_only_compute_text_logits=postprocessor is not None,
+        **mask_kwargs,
     )
 
-    logits = out["pred_logits_patch"][0]  # (Q,)
-    boxes = out["pred_boxes"][0]  # (Q,4) cxcywh normalized
     H, W = target["size"].tolist()
-    boxes_xyxy = box_ops.box_cxcywh_to_xyxy(boxes) * boxes.new_tensor([W, H, W, H])
+    if postprocessor is not None and {"pred_logits_text", "phrase_to_token_mask"}.issubset(out.keys()):
+        target_sizes = torch.as_tensor([[H, W]], dtype=out["pred_boxes"].dtype, device=out["pred_boxes"].device)
+        result = postprocessor(out, target_sizes)[0]
+        boxes_xyxy = result["boxes"]
+        scores = result["scores"]
+    else:
+        logits = out["pred_logits_patch"][0]
+        if logits.dim() == 2:
+            logits = logits.max(dim=-1).values
+        boxes = out["pred_boxes"][0]  # (Q,4) cxcywh normalized
+        boxes_xyxy = box_ops.box_cxcywh_to_xyxy(boxes) * boxes.new_tensor([W, H, W, H])
+        scores = logits.sigmoid()
 
-    # Visualization scores: sigmoid(logits) in [0,1]
-    scores = logits.sigmoid()
     keep = scores >= float(score_thr)
     boxes_xyxy = boxes_xyxy[keep]
     scores = scores[keep]
@@ -357,7 +382,8 @@ def main():
     ds = build_dataset(image_set=args.split, args=cfg, datasetinfo=datasetinfo)
     id2name = _id_to_name_map(datasetinfo.get("canonical_classes_json", None))
 
-    model = load_model(args.config, args.checkpoint, device=device)
+    model, postprocessors = load_model(args.config, args.checkpoint, device=device)
+    postprocessor = postprocessors.get("bbox", None) if isinstance(postprocessors, dict) else None
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -372,6 +398,7 @@ def main():
             topk=args.topk,
             score_thr=args.score_thr,
             nms_thr=args.nms_thr,
+            postprocessor=postprocessor,
         )
         out_path = out_dir / f"{args.split}_{i:04d}_idx{j}.jpg"
         draw_episode(
