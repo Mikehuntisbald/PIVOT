@@ -376,8 +376,12 @@ def main(args):
         model_without_ddp.detr.load_state_dict(clean_state_dict(checkpoint['model']),strict=False)
 
     output_dir = Path(args.output_dir)
-    if os.path.exists(os.path.join(args.output_dir, 'checkpoint.pth')):
-        args.resume = os.path.join(args.output_dir, 'checkpoint.pth')
+    auto_resume_checkpoint = output_dir / 'checkpoint.pth'
+    if (not args.resume) and auto_resume_checkpoint.exists():
+        logger.info(
+            f"Found existing checkpoint at {auto_resume_checkpoint}, but auto-resume is disabled. "
+            "Pass --resume explicitly to restore model/optimizer/scheduler from it."
+        )
     if args.resume:
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(

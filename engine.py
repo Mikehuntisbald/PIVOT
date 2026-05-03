@@ -261,6 +261,29 @@ def _move_stage_b_drift_batch_to_device(batch, device):
 
 
 @torch.no_grad()
+def _eval_stage_b_drift_batch(args, model, device, batch):
+    cached = _move_stage_b_drift_batch_to_device(batch, device)
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.cuda.amp.autocast(enabled=getattr(args, "amp", False)):
+            eval_outputs = model(
+                cached["samples"],
+                targets=cached["targets"],
+                captions=cached["captions"],
+                patches=cached["patches"],
+                patch_global=cached["patch_global"],
+                patch_mask=cached["patch_mask"],
+                patch_only=True,
+                patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
+            )
+    finally:
+        if was_training:
+            model.train()
+    return cached, eval_outputs
+
+
+@torch.no_grad()
 def _compute_stage_b_patch_metrics(outputs, targets, criterion, topk: int):
     pred_logits_patch = outputs.get("pred_logits_patch", None)
     if pred_logits_patch is None:
@@ -322,13 +345,15 @@ def _maybe_log_stage_b_patch_drift(
     interval = int(getattr(args, "stage_b_patch_drift_interval", 100))
 
     if drift_state is None:
-        baseline_metrics = _compute_stage_b_patch_metrics(outputs, targets, criterion, topk=topk)
+        drift_batch = _clone_stage_b_drift_batch(samples, targets, captions, patches, patch_global, patch_mask)
+        cached, eval_outputs = _eval_stage_b_drift_batch(args, model, device, drift_batch)
+        baseline_metrics = _compute_stage_b_patch_metrics(eval_outputs, cached["targets"], criterion, topk=topk)
         if baseline_metrics is None:
             return None
         drift_state = {
             "baseline_step": int(step),
             "baseline_metrics": baseline_metrics,
-            "batch": _clone_stage_b_drift_batch(samples, targets, captions, patches, patch_global, patch_mask),
+            "batch": drift_batch,
         }
         msg = f"Stage B patch drift baseline @step={step}: {baseline_metrics}"
         if logger is not None:
@@ -340,23 +365,7 @@ def _maybe_log_stage_b_patch_drift(
     if interval <= 0 or step <= 0 or (step % interval) != 0:
         return drift_state
 
-    cached = _move_stage_b_drift_batch_to_device(drift_state["batch"], device)
-    was_training = model.training
-    model.eval()
-    with torch.cuda.amp.autocast(enabled=getattr(args, "amp", False)):
-        eval_outputs = model(
-            cached["samples"],
-            targets=cached["targets"],
-            captions=cached["captions"],
-            patches=cached["patches"],
-            patch_global=cached["patch_global"],
-            patch_mask=cached["patch_mask"],
-            patch_only=True,
-            patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
-        )
-    if was_training:
-        model.train()
-
+    cached, eval_outputs = _eval_stage_b_drift_batch(args, model, device, drift_state["batch"])
     cur_metrics = _compute_stage_b_patch_metrics(eval_outputs, cached["targets"], criterion, topk=topk)
     if cur_metrics is None:
         return drift_state
@@ -471,23 +480,6 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     patch_only=True,
                     patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
                 )
-                if bool(getattr(args, "stage_b", False)):
-                    drift_state = _maybe_log_stage_b_patch_drift(
-                        args=args,
-                        model=model,
-                        criterion=criterion,
-                        device=device,
-                        drift_state=drift_state,
-                        samples=samples,
-                        targets=targets,
-                        captions=captions,
-                        patches=patches,
-                        patch_global=patch_global,
-                        patch_mask=patch_mask,
-                        outputs=outputs,
-                        step=_cnt,
-                        logger=logger,
-                    )
                 loss_dict = criterion(outputs, targets)
             else:
                 outputs = model(samples, captions=captions, patches=patches, patch_global=patch_global)
