@@ -497,7 +497,7 @@ python main.py \
   --amp
 ```
 
-### Continue Stage B after 4 completed epochs, then switch to the mixed LVIS/COCO + RefCOCO+ + RefCOCOg + TN dataset
+### Start Stage B Local TN From The Stage A Foundation
 
 This repo now includes a local mixed Stage B dataset config:
 
@@ -567,9 +567,15 @@ mkdir -p "${DATA_ROOT}/patch_episode_prebuilt"
 cp "${LOCAL_OUT}"/*.jsonl "${DATA_ROOT}/patch_episode_prebuilt/"
 ```
 
-If your existing `outputs/stageB_lvis_coco` run has already finished epochs `0,1,2,3`
-(for example you have `checkpoint0003.pth`), continue from that exact checkpoint and
-write the new mixed-data run into a new output directory:
+For the current Stage B Local TN runs, use the Stage A multipatch foundation checkpoint:
+
+```text
+${GDINO_ROOT}/outputs/stageA_coco_multipatch/checkpoint0004.pth
+```
+
+Do not use `outputs/stageB_lvis_coco/checkpoint0003.pth` as the foundation for new
+Local TN ablations; that checkpoint was an earlier wrong starting point. Start a new
+mixed-data run with `--pretrain_model_path`:
 
 ```bash
 cd "${GDINO_ROOT}"
@@ -577,8 +583,8 @@ cd "${GDINO_ROOT}"
 python main.py \
   -c "${GDINO_ROOT}/config/cfg_patch_stage_b.py" \
   --datasets "${GDINO_ROOT}/config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json" \
-  --output_dir "${GDINO_ROOT}/outputs/stageB_lvis_coco_refexp_tn" \
-  --resume "${GDINO_ROOT}/outputs/stageB_lvis_coco/checkpoint0003.pth" \
+  --output_dir "${GDINO_ROOT}/outputs/stageB_local_tn_v1" \
+  --pretrain_model_path "${GDINO_ROOT}/outputs/stageA_coco_multipatch/checkpoint0004.pth" \
   --num_workers 8 \
   --amp
 ```
