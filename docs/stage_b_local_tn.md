@@ -1,6 +1,6 @@
 # Stage B Local TN Supervision
 
-Stage B treats a true-negative (TN) refexp as a local semantic conflict, not as a fully absent object. The matched query still corresponds to a real object in the image; only the visual attribute that was changed by the TN construction is supervised as false.
+Stage B treats a true-negative (TN) RefCOCO expression as a local text conflict. The matched query still points to the real object; only the changed content tokens are supervised as false.
 
 Example:
 
@@ -9,12 +9,12 @@ positive: blue shirt man
 TN:       white shirt man
 ```
 
-The intended supervision is:
+The current v2 supervision is:
 
 ```text
 white -> target 0
-shirt -> target 1 if it is a verified shared visual token
-man   -> target 1 with weak canonical/head weight
+shirt -> target 1 if it is non-canonical content in the slot
+man   -> target 1 with canonical/head weight
 ```
 
 ## Dataset Masks
@@ -24,152 +24,110 @@ man   -> target 1 with weak canonical/head weight
 ```text
 phrase_to_token_mask
 canonical_to_token_mask
-attr_pos_to_token_mask
-attr_neg_to_token_mask
-relation_to_token_mask
-phrase_semantic_token_mask
+content_to_token_mask
+attr_pos_to_token_mask        # compatibility alias for positive content tokens
+attr_neg_to_token_mask        # compatibility alias for TN negative tokens
+negative_to_token_mask        # same TN negative mask for older callers
+relation_to_token_mask        # audit/debug only
+phrase_semantic_token_mask    # compatibility alias for content_to_token_mask
 is_tn
 attr_neg_weight_mask
+tn_group_ids
 ```
 
-`phrase_to_token_mask` is retained for alignment/debugging. It is not used directly as the text loss mask.
+`content_to_token_mask` is training-only. It marks non-canonical meaningful content tokens inside the phrase slot. It excludes canonical/head tokens, articles `a/an/the`, punctuation, special tokens, and padding.
 
-`attr_neg_to_token_mask` is built only from changed visual attribute tokens in `replace_to`. It is not the full `replace_to` span and it is not `phrase_to_token_mask & ~canonical_to_token_mask`.
+It intentionally keeps relation/spatial prepositions such as:
 
-`relation_to_token_mask` is constructed for audit/v2, but v1 does not use it for token loss or phrase loss.
+```text
+to of in on with from near behind under over above below
+```
 
-## Changed Attribute Alignment
+This preserves phrases such as `next to`, `left of`, `on top of`, and `with a hat`.
 
-TN replacement metadata is aligned with token sequences, preserving character offsets in the normalized `replace_to` text:
+## TN Category Groups
+
+Raw `replace_category` values are normalized and mapped to coarse groups:
+
+```text
+color_like             category contains "color"
+attr_like              attribute, size, clothing, age, state, material, accessory, pattern, etc.
+spatial_like           spatial, position, spatial relation, location
+relation_action_like   action, posture, pose
+other                  everything else
+```
+
+All valid groups currently use TN negative token weight `1.0`. `default_tn_category_weight` is also `1.0`; spatial/relation/action TN tokens are not filtered out.
+
+Dataset loading logs:
+
+```text
+raw_category_counts
+normalized_group_counts
+rows_with_category
+total_edits
+```
+
+The invalid text-mask audit rows include TN group/category when available.
+
+## Balanced TN Sampling
+
+For prebuilt TN datasets, one primary group is taken from the first normalized `replace_category` in the row. Stage B uses capped inverse-sqrt group weights:
 
 ```python
-opcodes = SequenceMatcher(None, from_tokens, to_tokens).get_opcodes()
+weight = min(tn_balance_cap, sqrt(max_group_count / group_count))
 ```
 
-The dataset uses `replace` and `insert` opcodes from the `to_tokens` side as candidate negative tokens. Candidate tokens keep their local char offsets, then map into the TN phrase and finally into tokenizer positions.
-
-This avoids set-difference bugs such as:
-
-```text
-positive: blue shirt with blue logo
-TN:       white shirt with blue logo
-```
-
-Only `white` should become negative. The later `blue` in `blue logo` remains untouched.
-
-After alignment, candidates are filtered:
-
-```text
-drop stopwords
-drop punctuation-only tokens
-drop relation/action/spatial words
-drop tokens overlapping canonical/head
-```
-
-If a configured visual TN cannot find a changed span, or the changed span becomes empty after filtering, the slot is treated as invalid and can be resampled/audited.
-
-## Category Policy
-
-`replace_category` is normalized to one format:
-
-```text
-lowercase
-strip
-replace _, /, comma, and hyphen with spaces
-collapse whitespace
-```
-
-Examples:
-
-```text
-hair_color    -> hair color
-color/pattern -> color pattern
-```
-
-Known visual categories receive final negative weights in `attr_neg_weight_mask`:
-
-```text
-color family              1.5
-size/material/clothing    1.3
-shape/texture/height      1.2
-state/condition           1.0
-```
-
-Unknown categories default to `0.0` and are skipped. Relation-like categories such as spatial, position, location, distance, action, posture, and pose are skipped in v1 and do not receive phrase rejection.
+The per-sample weights are normalized inside each dataset, so dataset-level `mix_weight` stays unchanged. The current default cap is `5.0`.
 
 ## Text Loss
 
-`models/GroundingDINO/stage_b_criterion.py` uses slot-wise group means:
-
-```python
-L_attr_pos = mean_over_slots(mean_bce(pos_attr_tokens, 1))
-L_attr_neg = mean_over_slots(mean_bce(neg_attr_tokens, 0, attr_neg_weight_mask))
-L_canonical = mean_over_slots(mean_bce(canonical_tokens, 1))
-```
-
-The negative weight mask is the final per-token negative weight. It is not multiplied by another global negative scalar.
-
-For TN slots, shared positive attributes use `tn_shared_attr_pos_weight`; canonical/head tokens use `canonical_pos_weight`.
-
-## TN Phrase Rejection
-
-Phrase rejection is TN-only. There is no positive phrase soft-min loss in v1.
-
-A TN slot receives phrase rejection only when:
+`models/GroundingDINO/stage_b_criterion.py` uses token-level BCE only:
 
 ```text
-is_tn == True
-attr_neg_to_token_mask has at least one token
-attr_neg_weight_mask.max() > 0
-category is not relation-like/skipped
+canonical_to_token_mask        target 1, weight canonical_pos_weight
+content_to_token_mask          target 1, weight 1.0
+attr_neg_to_token_mask/TN neg  target 0, weight 1.0
 ```
 
-The phrase score is a soft-min over semantic tokens only:
-
-```python
-s = -tau * torch.logsumexp(-logits / tau, dim=-1)
-L_phrase_tn = BCEWithLogits(s, 0)
-```
-
-The v1 semantic mask is:
+Mask priority is:
 
 ```text
-canonical_to_token_mask | attr_pos_to_token_mask | attr_neg_to_token_mask
+canonical > TN negative > content positive > ignore
 ```
 
-It does not include `relation_to_token_mask`.
+So changed TN tokens are removed from the effective positive content mask before loss is computed.
+
+The total Stage-B text loss is:
+
+```python
+loss_text = content_pos_loss + canonical_loss + tn_neg_loss
+```
+
+There is no softmin phrase rejection loss in v2. The old knobs `attr_pos_weight`, `tn_shared_attr_pos_weight`, `attr_neg_weight`, `use_phrase_tn_loss`, `phrase_score_type`, `softmin_tau`, and `lambda_phrase` are deprecated and ignored by the content-token loss.
+
+## Inference
+
+`PostProcessStageB.compute_slot_logits` does not use `content_to_token_mask` or `phrase_semantic_token_mask`. Inference scoring uses phrase-level token spans from `phrase_to_token_mask`, with the canonical mask only for the configured canonical contribution.
+
+Training-only content masks therefore cannot change demo/postprocess scoring.
 
 ## Default Config
 
 ```python
 tn_loss_profile = "standard"
-
-attr_pos_weight = 1.0
-tn_shared_attr_pos_weight = 0.75
 canonical_pos_weight = 0.15
 
 use_tn_category_weights = True
-default_tn_category_weight = 0.0
-
-use_phrase_tn_loss = True
-phrase_score_type = "softmin"
-softmin_tau = 0.7
-lambda_phrase = 0.3
+default_tn_category_weight = 1.0
+tn_balance_sampling = True
+tn_balance_cap = 5.0
 
 skip_tn_if_neg_overlaps_canonical = True
 skip_ambiguous_tn = True
 skip_tn_if_changed_span_not_found = True
 skip_tn_if_changed_span_empty_after_filter = True
-skip_relation_like_tn_in_v1 = True
+skip_relation_like_tn_in_v1 = False
 ```
 
-## V1 Exclusions
-
-These are intentionally not part of v1 local TN supervision:
-
-```text
-canonical/head replacement TN
-relation/action/spatial TN token negatives
-relation/action/spatial TN phrase rejection
-paired positive-vs-TN ranking loss
-```
+RefCOCO/RefCOCO+/RefCOCOg positive and TN samples remain one annotation/sample. Positive and TN prompts are not merged into one dot-separated caption.
