@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import csv
+import math
 import pickle
 import re
 from collections import OrderedDict
@@ -69,6 +70,58 @@ def _normalize_tn_category(value: Any) -> str:
     return s
 
 
+_TN_GROUP_NAMES = ("color_like", "attr_like", "spatial_like", "relation_action_like", "other")
+_TN_GROUP_TO_ID = {name: idx for idx, name in enumerate(_TN_GROUP_NAMES)}
+_TN_ID_TO_GROUP = {idx: name for name, idx in _TN_GROUP_TO_ID.items()}
+
+_TN_ATTR_LIKE_CATEGORIES = {
+    "attribute",
+    "size",
+    "height",
+    "length",
+    "shape",
+    "clothing",
+    "clothing type",
+    "clothing state",
+    "sleeve length",
+    "age",
+    "state",
+    "condition",
+    "material",
+    "accessory",
+    "accessory type",
+    "pattern",
+    "texture",
+}
+_TN_SPATIAL_LIKE_CATEGORIES = {
+    "spatial",
+    "position",
+    "spatial relation",
+    "spatial position",
+    "location",
+}
+_TN_RELATION_ACTION_LIKE_CATEGORIES = {
+    "action",
+    "posture",
+    "pose",
+}
+
+
+def _tn_category_group(value: Any) -> str:
+    category = _normalize_tn_category(value)
+    if not category:
+        return "other"
+    if "color" in category:
+        return "color_like"
+    if category in _TN_ATTR_LIKE_CATEGORIES:
+        return "attr_like"
+    if category in _TN_SPATIAL_LIKE_CATEGORIES:
+        return "spatial_like"
+    if category in _TN_RELATION_ACTION_LIKE_CATEGORIES:
+        return "relation_action_like"
+    return "other"
+
+
 def _as_list(value: Any) -> List[Any]:
     if value is None:
         return []
@@ -77,96 +130,13 @@ def _as_list(value: Any) -> List[Any]:
     return [value]
 
 
-_TN_CATEGORY_WEIGHTS = {
-    # Strong visual attributes.
-    "color": 1.5,
-    "hair color": 1.5,
-    "clothing color": 1.5,
-    "shirt color": 1.5,
-    "pattern color": 1.5,
-    "size color": 1.5,
-    "color pattern": 1.5,
-    "color and pattern": 1.5,
-    "pattern and color": 1.5,
-    "material color": 1.5,
-    "color material": 1.5,
-    "size and color": 1.5,
-    "color and size": 1.5,
-    # Medium visual attributes.
-    "size": 1.3,
-    "height": 1.2,
-    "length": 1.2,
-    "shape": 1.2,
-    "pattern": 1.3,
-    "material": 1.3,
-    "texture": 1.2,
-    "clothing": 1.3,
-    "clothing type": 1.3,
-    "clothing state": 1.0,
-    "sleeve length": 1.0,
-    "accessory": 1.2,
-    "accessory type": 1.2,
-    "state": 1.0,
-    "condition": 1.0,
-}
+_TN_CATEGORY_WEIGHTS = {name: 1.0 for name in _TN_GROUP_NAMES}
+_TN_SKIP_CATEGORIES = set()
 
-_TN_SKIP_CATEGORIES = {
-    "spatial",
-    "spatial relation",
-    "spatial position",
-    "position",
-    "location",
-    "distance",
-    "action",
-    "posture",
-    "pose",
-    "object",
-    "object type",
-    "type",
-    "animal type",
-    "vehicle type",
-    "device type",
-    "food type",
-    "quantity",
-    "number",
-    "brand",
-    "flavor",
-    "topping",
-    "content",
-    "sport",
-}
-
-_TEXT_STOPWORDS = {
+_CONTENT_EXCLUDED_TOKENS = {
     "a",
     "an",
-    "and",
-    "are",
-    "as",
-    "at",
-    "be",
-    "by",
-    "for",
-    "from",
-    "has",
-    "have",
-    "in",
-    "is",
-    "it",
-    "its",
-    "of",
-    "on",
-    "or",
-    "our",
-    "that",
     "the",
-    "their",
-    "these",
-    "this",
-    "those",
-    "to",
-    "with",
-    "without",
-    "you",
 }
 
 _RELATION_ACTION_WORDS = {
@@ -656,12 +626,14 @@ class PatchEpisodeConfig:
     text_mask_skip_invalid_canonical: bool = False
     text_mask_audit_jsonl: Optional[str] = None
     use_tn_category_weights: bool = True
-    default_tn_category_weight: float = 0.0
+    default_tn_category_weight: float = 1.0
     skip_tn_if_neg_overlaps_canonical: bool = True
     skip_ambiguous_tn: bool = True
     skip_tn_if_changed_span_not_found: bool = True
     skip_tn_if_changed_span_empty_after_filter: bool = True
-    skip_relation_like_tn_in_v1: bool = True
+    skip_relation_like_tn_in_v1: bool = False
+    tn_balance_sampling: bool = True
+    tn_balance_cap: float = 5.0
 
 
 class PatchEpisodeJsonlDataset(VisionDataset):
@@ -744,12 +716,14 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         text_mask_skip_invalid_canonical: bool = False,
         text_mask_audit_jsonl: Optional[str] = None,
         use_tn_category_weights: bool = True,
-        default_tn_category_weight: float = 0.0,
+        default_tn_category_weight: float = 1.0,
         skip_tn_if_neg_overlaps_canonical: bool = True,
         skip_ambiguous_tn: bool = True,
         skip_tn_if_changed_span_not_found: bool = True,
         skip_tn_if_changed_span_empty_after_filter: bool = True,
-        skip_relation_like_tn_in_v1: bool = True,
+        skip_relation_like_tn_in_v1: bool = False,
+        tn_balance_sampling: bool = True,
+        tn_balance_cap: float = 5.0,
     ) -> None:
         root = _expand_path_like(root)
         anno = _expand_path_like(anno)
@@ -819,6 +793,8 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             skip_tn_if_changed_span_not_found=bool(skip_tn_if_changed_span_not_found),
             skip_tn_if_changed_span_empty_after_filter=bool(skip_tn_if_changed_span_empty_after_filter),
             skip_relation_like_tn_in_v1=bool(skip_relation_like_tn_in_v1),
+            tn_balance_sampling=bool(tn_balance_sampling),
+            tn_balance_cap=float(tn_balance_cap),
         )
 
         self.name2cid = _build_name_to_canonical_id(canonical_classes_json)
@@ -915,6 +891,11 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     raise ValueError(f"Unsupported source={src} detected={detected} for anno={anno_path}")
         else:
             raise ValueError(f"Unsupported anno extension: {anno_path.suffix}")
+
+        self.tn_category_stats = self._compute_tn_category_stats()
+        self.sample_weights = self._build_tn_balanced_sample_weights()
+        if self.tn_category_stats["total_edits"] > 0:
+            print("[INFO] TN category stats for {}:\n{}".format(self.anno, json.dumps(self.tn_category_stats, indent=2)))
 
         if (self.cfg.vg_phrase_labeler in {"classifier", "hybrid"}) and (not self.cfg.phrase_classifier_ckpt):
             raise ValueError("vg_phrase_labeler requires phrase_classifier_ckpt when using classifier/hybrid.")
@@ -1018,6 +999,96 @@ class PatchEpisodeJsonlDataset(VisionDataset):
 
     def __len__(self) -> int:
         return len(self.metas)
+
+    def _iter_meta_tn_records(self, meta: Dict[str, Any]) -> List[Dict[str, Any]]:
+        instances = meta.get("instances", None)
+        if instances is None and isinstance(meta.get("detection", None), dict):
+            instances = meta["detection"].get("instances", None)
+        if instances is None and isinstance(meta.get("grounding", None), dict):
+            instances = meta["grounding"].get("regions", None)
+        if not instances:
+            return []
+        out = []
+        for obj in instances:
+            if not isinstance(obj, dict):
+                continue
+            if bool(obj.get("text_is_negative", obj.get("is_text_negative", False))):
+                out.append(obj)
+        return out
+
+    def _meta_primary_tn_group(self, meta: Dict[str, Any]) -> Optional[str]:
+        for obj in self._iter_meta_tn_records(meta):
+            categories = _as_list(obj.get("replace_category", None))
+            if categories:
+                return _tn_category_group(categories[0])
+            return "other"
+        return None
+
+    def _compute_tn_category_stats(self) -> Dict[str, Any]:
+        raw_counts: Counter = Counter()
+        group_counts: Counter = Counter()
+        rows_with_category = 0
+        total_edits = 0
+        tn_rows = 0
+        for meta in self.metas:
+            row_has_category = False
+            for obj in self._iter_meta_tn_records(meta):
+                tn_rows += 1
+                categories = _as_list(obj.get("replace_category", None))
+                replace_from_values = _as_list(obj.get("replace_from", None))
+                replace_to_values = _as_list(obj.get("replace_to", None))
+                num_edits = max(len(replace_from_values), len(replace_to_values), len(categories))
+                if categories:
+                    row_has_category = True
+                for ridx in range(num_edits):
+                    category = (
+                        categories[ridx]
+                        if ridx < len(categories)
+                        else (categories[-1] if categories else "")
+                    )
+                    raw = _normalize_tn_category(category)
+                    group = _tn_category_group(raw)
+                    if raw:
+                        raw_counts[raw] += 1
+                    group_counts[group] += 1
+                total_edits += int(num_edits)
+            if row_has_category:
+                rows_with_category += 1
+        return {
+            "tn_rows": int(tn_rows),
+            "rows_with_category": int(rows_with_category),
+            "total_edits": int(total_edits),
+            "raw_category_counts": dict(raw_counts.most_common()),
+            "normalized_group_counts": {name: int(group_counts.get(name, 0)) for name in _TN_GROUP_NAMES},
+        }
+
+    def _build_tn_balanced_sample_weights(self) -> Optional[List[float]]:
+        if not bool(self.cfg.tn_balance_sampling):
+            return None
+        groups = [self._meta_primary_tn_group(meta) for meta in self.metas]
+        counts = Counter(g for g in groups if g is not None)
+        if not counts:
+            self.tn_balance_stats = {"enabled": False, "reason": "no_tn_rows"}
+            return None
+        max_count = max(counts.values())
+        cap = max(1.0, float(self.cfg.tn_balance_cap))
+        group_weights = {
+            group: min(cap, math.sqrt(float(max_count) / max(1.0, float(count))))
+            for group, count in counts.items()
+        }
+        weights = [float(group_weights.get(group, 1.0)) if group is not None else 1.0 for group in groups]
+        mean_weight = sum(weights) / max(1, len(weights))
+        if mean_weight > 0:
+            weights = [w / mean_weight for w in weights]
+        self.tn_balance_stats = {
+            "enabled": True,
+            "cap": cap,
+            "group_counts": {name: int(counts.get(name, 0)) for name in _TN_GROUP_NAMES},
+            "group_weights": {name: float(group_weights.get(name, 1.0)) for name in _TN_GROUP_NAMES},
+        }
+        if counts:
+            print("[INFO] TN balanced sampling for {}:\n{}".format(self.anno, json.dumps(self.tn_balance_stats, indent=2)))
+        return weights
 
     def _clean_caption_phrase(self, s: str) -> str:
         s = str(s).replace("_", " ").replace(".", " ").strip()
@@ -1163,23 +1234,17 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         }
 
     def _tn_category_weight(self, category: str, changed_token_norms: List[str]) -> float:
-        category = _normalize_tn_category(category)
+        group = _tn_category_group(category)
         if not bool(self.cfg.use_tn_category_weights):
             return float(self.cfg.default_tn_category_weight)
-        if category in _TN_SKIP_CATEGORIES:
-            return 0.0
-        if category in _TN_CATEGORY_WEIGHTS:
-            return float(_TN_CATEGORY_WEIGHTS[category])
-        if category == "attribute":
-            if any(t in _GENERIC_VISUAL_ATTRIBUTE_WORDS for t in changed_token_norms):
-                return 1.0
-            return 0.0
+        if group in _TN_CATEGORY_WEIGHTS:
+            return float(_TN_CATEGORY_WEIGHTS[group])
         return float(self.cfg.default_tn_category_weight)
 
     def _is_visual_content_token(self, token_norm: str) -> bool:
         if not token_norm:
             return False
-        if token_norm in _TEXT_STOPWORDS:
+        if token_norm in _CONTENT_EXCLUDED_TOKENS:
             return False
         return True
 
@@ -1307,7 +1372,6 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         phrase_span: Tuple[int, int],
         phrase_mask: torch.Tensor,
         canonical_mask: torch.Tensor,
-        relation_mask: torch.Tensor,
         max_text_len: int,
     ) -> torch.Tensor:
         spans = []
@@ -1315,11 +1379,9 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             norm = str(tok["norm"])
             if not self._is_visual_content_token(norm):
                 continue
-            if self._is_relation_action_token(norm):
-                continue
             spans.append((int(tok["start"]), int(tok["end"])))
         mask = self._mask_from_phrase_local_spans(tokenized, phrase_span, phrase_mask, spans, max_text_len)
-        return mask & (~canonical_mask) & (~relation_mask)
+        return mask & (~canonical_mask)
 
     def _build_shared_attr_mask(
         self,
@@ -1335,7 +1397,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
     ) -> torch.Tensor:
         if not isinstance(positive_phrase, str) or not positive_phrase.strip():
             return self._build_content_attr_mask(
-                tokenized, phrase_text, phrase_span, phrase_mask, canonical_mask, relation_mask, max_text_len
+                tokenized, phrase_text, phrase_span, phrase_mask, canonical_mask, max_text_len
             ) & (~attr_neg_mask)
 
         pos_tokens = _tokenize_with_offsets(positive_phrase)
@@ -1350,11 +1412,9 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 norm = str(tok["norm"])
                 if not self._is_visual_content_token(norm):
                     continue
-                if self._is_relation_action_token(norm):
-                    continue
                 spans.append((int(tok["start"]), int(tok["end"])))
         mask = self._mask_from_phrase_local_spans(tokenized, phrase_span, phrase_mask, spans, max_text_len)
-        return mask & (~canonical_mask) & (~relation_mask) & (~attr_neg_mask)
+        return mask & (~canonical_mask) & (~attr_neg_mask)
 
     def _build_slot_text_masks(
         self,
@@ -1368,7 +1428,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         slot_records = list(slot_records or [{} for _ in slot_phrases])
         caption, slot_spans = self._build_caption_from_phrases(slot_phrases)
         if not self.cfg.build_text_token_masks:
-            return caption, None, None, None, None, None, None, None, None, []
+            return caption, None, None, None, None, None, None, None, None, None, []
         if self._text_tokenizer is None:
             raise RuntimeError("build_text_token_masks=True but tokenizer is not initialized.")
 
@@ -1384,7 +1444,8 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         attr_pos_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
         attr_neg_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
         relation_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
-        phrase_semantic_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        content_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        tn_group_ids = torch.full((K,), int(_TN_GROUP_TO_ID["other"]), dtype=torch.long)
         attr_neg_weight_mask = torch.zeros((K, T), dtype=torch.float32)
         is_tn = torch.zeros((K,), dtype=torch.bool)
         invalid_records: List[Dict[str, Any]] = []
@@ -1475,11 +1536,11 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             is_text_negative = bool(record.get("text_is_negative", record.get("is_text_negative", False)))
             is_tn[k] = bool(is_text_negative)
             if not is_text_negative:
-                attr_pos_mask = self._build_content_attr_mask(
-                    tokenized, phrase_text, slot_spans[k], phrase_mask, canonical_mask, relation_mask, T
+                content_mask = self._build_content_attr_mask(
+                    tokenized, phrase_text, slot_spans[k], phrase_mask, canonical_mask, T
                 )
-                attr_pos_to_token_mask[k] = attr_pos_mask
-                phrase_semantic_token_mask[k] = canonical_mask | attr_pos_mask
+                content_to_token_mask[k] = content_mask
+                attr_pos_to_token_mask[k] = content_mask
                 continue
 
             replace_from_values = _as_list(record.get("replace_from", None))
@@ -1505,17 +1566,9 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     else (replace_category_values[-1] if replace_category_values else "")
                 )
                 category_norm = _normalize_tn_category(category)
-                if bool(self.cfg.skip_relation_like_tn_in_v1) and self._is_relation_like_category(category_norm):
-                    continue
-                if category_norm in _TN_SKIP_CATEGORIES:
-                    continue
-                if (
-                    bool(self.cfg.use_tn_category_weights)
-                    and category_norm not in _TN_CATEGORY_WEIGHTS
-                    and category_norm != "attribute"
-                    and float(self.cfg.default_tn_category_weight) <= 0.0
-                ):
-                    continue
+                group_name = _tn_category_group(category_norm)
+                if ridx == 0:
+                    tn_group_ids[k] = int(_TN_GROUP_TO_ID[group_name])
 
                 changed_tokens = self._changed_attribute_token_spans(phrase_text, replace_from, replace_to)
                 if changed_tokens is None:
@@ -1524,6 +1577,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         invalid_records.append(
                             {
                                 "reason": "tn_changed_span_not_found",
+                                "tn_group": group_name,
                                 "slot_idx": int(k),
                                 "phrase": phrase_text,
                                 "canonical": canonical_text,
@@ -1540,8 +1594,6 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     norm = str(tok.get("norm", ""))
                     if not self._is_visual_content_token(norm):
                         continue
-                    if self._is_relation_action_token(norm):
-                        continue
                     filtered_tokens.append(tok)
 
                 weight = self._tn_category_weight(category_norm, [str(t.get("norm", "")) for t in filtered_tokens])
@@ -1553,6 +1605,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         invalid_records.append(
                             {
                                 "reason": "tn_changed_span_empty_after_filter",
+                                "tn_group": group_name,
                                 "slot_idx": int(k),
                                 "phrase": phrase_text,
                                 "canonical": canonical_text,
@@ -1574,6 +1627,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         invalid_records.append(
                             {
                                 "reason": "tn_changed_mask_empty_after_tokenization",
+                                "tn_group": group_name,
                                 "slot_idx": int(k),
                                 "phrase": phrase_text,
                                 "canonical": canonical_text,
@@ -1595,6 +1649,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     invalid_records.append(
                         {
                             "reason": "tn_neg_overlaps_canonical",
+                            "tn_group": _TN_ID_TO_GROUP.get(int(tn_group_ids[k].item()), "other"),
                             "slot_idx": int(k),
                             "phrase": phrase_text,
                             "canonical": canonical_text,
@@ -1606,12 +1661,19 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 neg_weight = neg_weight * neg_mask.to(torch.float32)
 
             if not bool((neg_weight > 0).any().item()):
-                # Unknown / relation-like / skipped TN: keep masks empty so the criterion
-                # skips text supervision for this slot.
+                # Keep masks empty when the changed span cannot produce valid content tokens.
                 continue
 
             attr_neg_to_token_mask[k] = neg_mask
             attr_neg_weight_mask[k] = neg_weight
+            content_mask = self._build_content_attr_mask(
+                tokenized,
+                phrase_text,
+                slot_spans[k],
+                phrase_mask,
+                canonical_mask,
+                T,
+            )
             positive_phrase = record.get("positive_phrase", None) or record.get("try_tn_head_phrase", None)
             attr_pos_mask = self._build_shared_attr_mask(
                 tokenized,
@@ -1624,8 +1686,11 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 neg_mask,
                 T,
             )
-            attr_pos_to_token_mask[k] = attr_pos_mask
-            phrase_semantic_token_mask[k] = canonical_mask | attr_pos_mask | neg_mask
+            content_mask = content_mask | attr_pos_mask
+            content_to_token_mask[k] = content_mask
+            # Compatibility alias: attr_pos now means positive content tokens,
+            # not only attribute words. TN negative tokens stay in attr_neg.
+            attr_pos_to_token_mask[k] = content_mask & (~neg_mask)
 
         return (
             caption,
@@ -1634,9 +1699,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             attr_pos_to_token_mask,
             attr_neg_to_token_mask,
             relation_to_token_mask,
-            phrase_semantic_token_mask,
+            content_to_token_mask,
             is_tn,
             attr_neg_weight_mask,
+            tn_group_ids,
             invalid_records,
         )
 
@@ -2633,9 +2699,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             attr_pos_to_token_mask = None
             attr_neg_to_token_mask = None
             relation_to_token_mask = None
-            phrase_semantic_token_mask = None
+            content_to_token_mask = None
             is_tn = None
             attr_neg_weight_mask = None
+            tn_group_ids = None
             invalid_text_mask_records: List[Dict[str, Any]] = []
             if int(self.cfg.support_num_patches_max) > 1:
                 support_classes_t, patches_or_emb = support
@@ -2660,9 +2727,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         attr_pos_to_token_mask,
                         attr_neg_to_token_mask,
                         relation_to_token_mask,
-                        phrase_semantic_token_mask,
+                        content_to_token_mask,
                         is_tn,
                         attr_neg_weight_mask,
+                        tn_group_ids,
                         invalid_text_mask_records,
                     ) = self._build_slot_text_masks(
                         phrases, slot_canonical_texts, slot_aliases, slot_records=slot_records
@@ -2699,9 +2767,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         attr_pos_to_token_mask,
                         attr_neg_to_token_mask,
                         relation_to_token_mask,
-                        phrase_semantic_token_mask,
+                        content_to_token_mask,
                         is_tn,
                         attr_neg_weight_mask,
+                        tn_group_ids,
                         invalid_text_mask_records,
                     ) = self._build_slot_text_masks(
                         phrases, [canonical_text], [alias_candidates], slot_records=slot_records
@@ -2780,12 +2849,16 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 target["attr_neg_to_token_mask"] = attr_neg_to_token_mask
             if relation_to_token_mask is not None:
                 target["relation_to_token_mask"] = relation_to_token_mask
-            if phrase_semantic_token_mask is not None:
-                target["phrase_semantic_token_mask"] = phrase_semantic_token_mask
+            if content_to_token_mask is not None:
+                target["content_to_token_mask"] = content_to_token_mask
+                # Compatibility alias: older code may still read phrase_semantic_token_mask.
+                target["phrase_semantic_token_mask"] = content_to_token_mask
             if is_tn is not None:
                 target["is_tn"] = is_tn
             if attr_neg_weight_mask is not None:
                 target["attr_neg_weight_mask"] = attr_neg_weight_mask
+            if tn_group_ids is not None:
+                target["tn_group_ids"] = tn_group_ids
             if negative_to_token_mask is not None:
                 target["negative_to_token_mask"] = negative_to_token_mask
             if int(self.cfg.support_num_patches_max) > 1:
@@ -2906,7 +2979,7 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         datasetinfo.get("use_tn_category_weights", getattr(args, "use_tn_category_weights", True))
     )
     default_tn_category_weight = float(
-        datasetinfo.get("default_tn_category_weight", getattr(args, "default_tn_category_weight", 0.0))
+        datasetinfo.get("default_tn_category_weight", getattr(args, "default_tn_category_weight", 1.0))
     )
     skip_tn_if_neg_overlaps_canonical = bool(
         datasetinfo.get(
@@ -2930,8 +3003,12 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         )
     )
     skip_relation_like_tn_in_v1 = bool(
-        datasetinfo.get("skip_relation_like_tn_in_v1", getattr(args, "skip_relation_like_tn_in_v1", True))
+        datasetinfo.get("skip_relation_like_tn_in_v1", getattr(args, "skip_relation_like_tn_in_v1", False))
     )
+    tn_balance_sampling = bool(
+        datasetinfo.get("tn_balance_sampling", getattr(args, "tn_balance_sampling", True))
+    )
+    tn_balance_cap = float(datasetinfo.get("tn_balance_cap", getattr(args, "tn_balance_cap", 5.0)))
     if text_mask_audit_jsonl is None and build_text_token_masks:
         output_dir = getattr(args, "output_dir", None)
         if output_dir:
@@ -3001,4 +3078,6 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         skip_tn_if_changed_span_not_found=skip_tn_if_changed_span_not_found,
         skip_tn_if_changed_span_empty_after_filter=skip_tn_if_changed_span_empty_after_filter,
         skip_relation_like_tn_in_v1=skip_relation_like_tn_in_v1,
+        tn_balance_sampling=tn_balance_sampling,
+        tn_balance_cap=tn_balance_cap,
     )

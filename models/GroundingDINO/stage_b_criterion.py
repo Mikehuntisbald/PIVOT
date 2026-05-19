@@ -9,6 +9,15 @@ import torch.nn.functional as F
 from .patch_hungarian_criterion import PatchHungarianCriterion
 
 
+_TN_GROUP_NAMES = ("color_like", "attr_like", "spatial_like", "relation_action_like", "other")
+_TN_GROUP_TO_ID = {name: idx for idx, name in enumerate(_TN_GROUP_NAMES)}
+_TN_ID_TO_GROUP = {idx: name for name, idx in _TN_GROUP_TO_ID.items()}
+
+
+def _tn_group_name_from_id(group_id: int) -> str:
+    return _TN_ID_TO_GROUP.get(int(group_id), "other")
+
+
 class StageBCriterion(nn.Module):
     """
     Stage B criterion:
@@ -23,42 +32,32 @@ class StageBCriterion(nn.Module):
         lambda_patch: float = 1.0,
         lambda_text: float = 0.25,
         canonical_pos_weight: float = 0.15,
-        attr_pos_weight: float = 1.0,
-        tn_shared_attr_pos_weight: float = 0.75,
-        attr_neg_weight: float = 1.0,
-        use_phrase_tn_loss: bool = True,
-        phrase_score_type: str = "softmin",
-        softmin_tau: float = 0.7,
-        lambda_phrase: float = 0.3,
+        # Deprecated compatibility args. Content-positive and TN-negative tokens
+        # are fixed at weight 1.0, and softmin phrase TN loss is disabled.
+        attr_pos_weight: Optional[float] = None,
+        tn_shared_attr_pos_weight: Optional[float] = None,
+        attr_neg_weight: Optional[float] = None,
+        use_phrase_tn_loss: Optional[bool] = None,
+        phrase_score_type: Optional[str] = None,
+        softmin_tau: Optional[float] = None,
+        lambda_phrase: Optional[float] = None,
     ) -> None:
         super().__init__()
         self.patch_criterion = patch_criterion
-        self.matcher = patch_criterion.matcher
+        self.matcher = getattr(patch_criterion, "matcher", None)
         self.lambda_patch = float(lambda_patch)
         self.lambda_text = float(lambda_text)
         self.canonical_pos_weight = float(canonical_pos_weight)
-        self.attr_pos_weight = float(attr_pos_weight)
-        self.tn_shared_attr_pos_weight = float(tn_shared_attr_pos_weight)
-        self.attr_neg_weight = float(attr_neg_weight)
-        self.use_phrase_tn_loss = bool(use_phrase_tn_loss)
-        self.phrase_score_type = str(phrase_score_type)
-        self.softmin_tau = float(softmin_tau)
-        self.lambda_phrase = float(lambda_phrase)
+        patch_weight_dict = getattr(patch_criterion, "weight_dict", {}) or {}
         self.weight_dict = {
             "loss_patch_ce": float(lambda_patch),
             "loss_text": float(lambda_text),
-            "loss_bbox": 0.0,
-            "loss_giou": 0.0,
+            "loss_bbox": float(patch_weight_dict.get("loss_bbox", 0.0)),
+            "loss_giou": float(patch_weight_dict.get("loss_giou", 0.0)),
         }
 
     def compute_matching(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
         return self.patch_criterion.compute_matching(outputs, targets)
-
-    def _softmin_logits(self, logits: torch.Tensor) -> torch.Tensor:
-        if self.phrase_score_type != "softmin":
-            raise ValueError(f"Unsupported phrase_score_type={self.phrase_score_type!r}; expected 'softmin'.")
-        tau = max(float(self.softmin_tau), 1e-6)
-        return -tau * torch.logsumexp(-logits / tau, dim=-1)
 
     def _slot_bce_mean(
         self,
@@ -97,12 +96,18 @@ class StageBCriterion(nn.Module):
 
         device = pred_logits_text.device
         zero = pred_logits_text.new_zeros(())
-        attr_pos_slot_losses: List[torch.Tensor] = []
-        attr_neg_slot_losses: List[torch.Tensor] = []
+        content_pos_slot_losses: List[torch.Tensor] = []
+        tn_neg_slot_losses: List[torch.Tensor] = []
         canonical_slot_losses: List[torch.Tensor] = []
-        phrase_tn_slot_losses: List[torch.Tensor] = []
+        tn_group_slot_losses: Dict[str, List[torch.Tensor]] = {name: [] for name in _TN_GROUP_NAMES}
+        tn_group_token_counts = {name: 0 for name in _TN_GROUP_NAMES}
+        tn_group_nonempty_counts = {name: 0 for name in _TN_GROUP_NAMES}
+        tn_group_slot_counts = {name: 0 for name in _TN_GROUP_NAMES}
         valid_slot_count = 0
-        skipped_tn_slot_count = 0
+        empty_content_mask_count = 0
+        empty_tn_negative_mask_count = 0
+        effective_content_token_count = 0
+        effective_tn_negative_token_count = 0
 
         all_indices = match_ctx["all_indices"]
         matched_patch_idx_list = match_ctx["matched_patch_idx_list"]
@@ -117,25 +122,28 @@ class StageBCriterion(nn.Module):
 
             phrase_to_token_mask = targets[b]["phrase_to_token_mask"].to(device=device).to(torch.bool)
             canonical_to_token_mask = targets[b]["canonical_to_token_mask"].to(device=device).to(torch.bool)
+            content_to_token_mask = targets[b].get("content_to_token_mask", None)
             attr_pos_to_token_mask = targets[b].get("attr_pos_to_token_mask", None)
             attr_neg_to_token_mask = targets[b].get("attr_neg_to_token_mask", None)
-            phrase_semantic_token_mask = targets[b].get("phrase_semantic_token_mask", None)
             attr_neg_weight_mask = targets[b].get("attr_neg_weight_mask", None)
             is_tn_mask = targets[b].get("is_tn", None)
             negative_to_token_mask = targets[b].get("negative_to_token_mask", None)
+            tn_group_ids = targets[b].get("tn_group_ids", None)
 
+            if content_to_token_mask is not None:
+                content_to_token_mask = content_to_token_mask.to(device=device).to(torch.bool)
             if attr_pos_to_token_mask is not None:
                 attr_pos_to_token_mask = attr_pos_to_token_mask.to(device=device).to(torch.bool)
             if attr_neg_to_token_mask is not None:
                 attr_neg_to_token_mask = attr_neg_to_token_mask.to(device=device).to(torch.bool)
-            if phrase_semantic_token_mask is not None:
-                phrase_semantic_token_mask = phrase_semantic_token_mask.to(device=device).to(torch.bool)
             if attr_neg_weight_mask is not None:
                 attr_neg_weight_mask = attr_neg_weight_mask.to(device=device, dtype=pred_logits_text.dtype)
             if is_tn_mask is not None:
                 is_tn_mask = is_tn_mask.to(device=device).to(torch.bool)
             if negative_to_token_mask is not None:
                 negative_to_token_mask = negative_to_token_mask.to(device=device).to(torch.bool)
+            if tn_group_ids is not None:
+                tn_group_ids = tn_group_ids.to(device=device).to(torch.long)
             T = int(pred_logits_text.shape[-1])
             if phrase_to_token_mask.dim() != 2 or canonical_to_token_mask.dim() != 2:
                 raise ValueError("Stage B token masks must be shaped (K,T).")
@@ -145,9 +153,9 @@ class StageBCriterion(nn.Module):
                     f"canonical={tuple(canonical_to_token_mask.shape)} pred_logits_text={tuple(pred_logits_text.shape)}"
                 )
             optional_masks = {
+                "content_to_token_mask": content_to_token_mask,
                 "attr_pos_to_token_mask": attr_pos_to_token_mask,
                 "attr_neg_to_token_mask": attr_neg_to_token_mask,
-                "phrase_semantic_token_mask": phrase_semantic_token_mask,
                 "attr_neg_weight_mask": attr_neg_weight_mask,
                 "negative_to_token_mask": negative_to_token_mask,
             }
@@ -163,6 +171,10 @@ class StageBCriterion(nn.Module):
                 raise ValueError(
                     f"is_tn must be shaped (K,), got {tuple(is_tn_mask.shape)} for K={phrase_to_token_mask.shape[0]}"
                 )
+            if tn_group_ids is not None and (tn_group_ids.dim() != 1 or tn_group_ids.shape[0] != phrase_to_token_mask.shape[0]):
+                raise ValueError(
+                    f"tn_group_ids must be shaped (K,), got {tuple(tn_group_ids.shape)} for K={phrase_to_token_mask.shape[0]}"
+                )
 
             logits_b = pred_logits_text[b, src_idx]
             for row_idx, slot_idx in enumerate(matched_patch_idx.tolist()):
@@ -173,6 +185,13 @@ class StageBCriterion(nn.Module):
                 phrase_mask = phrase_to_token_mask[slot_idx]
                 canonical_mask = canonical_to_token_mask[slot_idx] & phrase_mask
                 is_tn_slot = bool(is_tn_mask[slot_idx].item()) if is_tn_mask is not None else False
+                tn_group_name = (
+                    _tn_group_name_from_id(int(tn_group_ids[slot_idx].item()))
+                    if tn_group_ids is not None
+                    else "other"
+                )
+                if is_tn_slot:
+                    tn_group_slot_counts[tn_group_name] += 1
 
                 if attr_neg_to_token_mask is not None:
                     negative_attr_mask = attr_neg_to_token_mask[slot_idx] & phrase_mask & (~canonical_mask)
@@ -184,62 +203,49 @@ class StageBCriterion(nn.Module):
                 if attr_neg_weight_mask is not None:
                     negative_weight = attr_neg_weight_mask[slot_idx].to(dtype=logits_b.dtype) * negative_attr_mask.to(dtype=logits_b.dtype)
                 else:
-                    negative_weight = negative_attr_mask.to(dtype=logits_b.dtype) * self.attr_neg_weight
+                    negative_weight = negative_attr_mask.to(dtype=logits_b.dtype)
                 effective_negative_mask = negative_attr_mask & (negative_weight > 0)
 
                 if is_tn_slot and not effective_negative_mask.any():
-                    skipped_tn_slot_count += 1
-                    continue
+                    empty_tn_negative_mask_count += 1
 
-                if attr_pos_to_token_mask is not None:
-                    attr_pos_mask = attr_pos_to_token_mask[slot_idx] & phrase_mask & (~canonical_mask) & (~effective_negative_mask)
+                if content_to_token_mask is not None:
+                    content_pos_mask = content_to_token_mask[slot_idx]
+                elif attr_pos_to_token_mask is not None:
+                    content_pos_mask = attr_pos_to_token_mask[slot_idx]
                 else:
-                    attr_pos_mask = phrase_mask & (~canonical_mask) & (~effective_negative_mask)
+                    content_pos_mask = phrase_mask
+                content_pos_mask = content_pos_mask & phrase_mask & (~canonical_mask) & (~effective_negative_mask)
+                if not content_pos_mask.any():
+                    empty_content_mask_count += 1
 
                 slot_logits = logits_b[row_idx]
                 slot_had_loss = False
 
-                attr_pos_loss = self._slot_bce_mean(slot_logits, attr_pos_mask, 1.0)
-                if attr_pos_loss is not None:
-                    slot_attr_weight = self.tn_shared_attr_pos_weight if is_tn_slot else self.attr_pos_weight
-                    attr_pos_slot_losses.append(attr_pos_loss * float(slot_attr_weight))
+                content_pos_loss = self._slot_bce_mean(slot_logits, content_pos_mask, 1.0)
+                if content_pos_loss is not None:
+                    content_pos_slot_losses.append(content_pos_loss)
+                    effective_content_token_count += int(content_pos_mask.sum().item())
                     slot_had_loss = True
 
                 neg_loss = self._slot_bce_mean(
                     slot_logits,
                     effective_negative_mask,
                     0.0,
-                    weight=negative_weight,
                 )
                 if neg_loss is not None:
-                    attr_neg_slot_losses.append(neg_loss)
+                    tn_neg_slot_losses.append(neg_loss)
+                    tn_group_slot_losses[tn_group_name].append(neg_loss)
+                    neg_token_count = int(effective_negative_mask.sum().item())
+                    effective_tn_negative_token_count += neg_token_count
+                    tn_group_token_counts[tn_group_name] += neg_token_count
+                    tn_group_nonempty_counts[tn_group_name] += 1
                     slot_had_loss = True
 
                 canonical_loss = self._slot_bce_mean(slot_logits, canonical_mask, 1.0)
                 if canonical_loss is not None:
                     canonical_slot_losses.append(canonical_loss * self.canonical_pos_weight)
                     slot_had_loss = True
-
-                if (
-                    self.use_phrase_tn_loss
-                    and is_tn_slot
-                    and effective_negative_mask.any()
-                    and phrase_semantic_token_mask is not None
-                ):
-                    semantic_mask = phrase_semantic_token_mask[slot_idx] & phrase_mask
-                    semantic_mask = semantic_mask & (canonical_mask | attr_pos_mask | effective_negative_mask)
-                    if semantic_mask.any():
-                        phrase_logits = slot_logits[semantic_mask]
-                        finite = torch.isfinite(phrase_logits)
-                        if finite.any():
-                            phrase_logits = phrase_logits[finite]
-                            phrase_score = self._softmin_logits(phrase_logits)
-                            phrase_loss = F.binary_cross_entropy_with_logits(
-                                phrase_score,
-                                torch.zeros_like(phrase_score),
-                                reduction="mean",
-                            )
-                            phrase_tn_slot_losses.append(phrase_loss)
 
                 if slot_had_loss:
                     valid_slot_count += 1
@@ -249,27 +255,90 @@ class StageBCriterion(nn.Module):
                 return zero
             return torch.stack(values).mean()
 
+        content_pos_loss = _mean_or_zero(content_pos_slot_losses)
+        tn_neg_loss = _mean_or_zero(tn_neg_slot_losses)
+        canonical_loss = _mean_or_zero(canonical_slot_losses)
         token_loss = (
-            _mean_or_zero(attr_pos_slot_losses)
-            + _mean_or_zero(attr_neg_slot_losses)
-            + _mean_or_zero(canonical_slot_losses)
+            content_pos_loss
+            + tn_neg_loss
+            + canonical_loss
         )
-        phrase_loss = _mean_or_zero(phrase_tn_slot_losses)
-        loss_text = token_loss + float(self.lambda_phrase) * phrase_loss
-        return {
+        loss_text = token_loss
+        metrics = {
             "loss_text": loss_text,
             "text_token_loss_raw": token_loss.detach(),
-            "text_phrase_tn_loss_raw": phrase_loss.detach(),
+            "text_phrase_tn_loss_raw": zero.detach(),
+            "content_pos_loss": content_pos_loss.detach(),
+            "canonical_loss": canonical_loss.detach(),
+            "tn_neg_loss": tn_neg_loss.detach(),
             "text_valid_slot_count": torch.as_tensor(float(valid_slot_count), device=device),
-            "text_attr_pos_slot_count": torch.as_tensor(float(len(attr_pos_slot_losses)), device=device),
-            "text_attr_neg_slot_count": torch.as_tensor(float(len(attr_neg_slot_losses)), device=device),
+            "text_content_pos_slot_count": torch.as_tensor(float(len(content_pos_slot_losses)), device=device),
+            "text_tn_neg_slot_count": torch.as_tensor(float(len(tn_neg_slot_losses)), device=device),
+            "text_attr_pos_slot_count": torch.as_tensor(float(len(content_pos_slot_losses)), device=device),
+            "text_attr_neg_slot_count": torch.as_tensor(float(len(tn_neg_slot_losses)), device=device),
             "text_canonical_slot_count": torch.as_tensor(float(len(canonical_slot_losses)), device=device),
-            "text_phrase_tn_slot_count": torch.as_tensor(float(len(phrase_tn_slot_losses)), device=device),
-            "text_skipped_tn_slot_count": torch.as_tensor(float(skipped_tn_slot_count), device=device),
+            "text_phrase_tn_slot_count": zero.detach(),
+            "text_skipped_tn_slot_count": torch.as_tensor(float(empty_tn_negative_mask_count), device=device),
+            "effective_content_token_count": torch.as_tensor(float(effective_content_token_count), device=device),
+            "effective_tn_negative_token_count": torch.as_tensor(float(effective_tn_negative_token_count), device=device),
+            "empty_content_mask_count": torch.as_tensor(float(empty_content_mask_count), device=device),
+            "empty_tn_negative_mask_count": torch.as_tensor(float(empty_tn_negative_mask_count), device=device),
+            "spatial_like_tn_count": torch.as_tensor(float(tn_group_slot_counts["spatial_like"]), device=device),
+            "relation_action_like_tn_count": torch.as_tensor(
+                float(tn_group_slot_counts["relation_action_like"]), device=device
+            ),
         }
+        for group_name in _TN_GROUP_NAMES:
+            group_loss = _mean_or_zero(tn_group_slot_losses[group_name])
+            metrics[f"loss_tn_{group_name}"] = group_loss.detach()
+            metrics[f"tn_neg_count_{group_name}"] = torch.as_tensor(
+                float(tn_group_token_counts[group_name]), device=device
+            )
+            metrics[f"tn_nonempty_mask_count_{group_name}"] = torch.as_tensor(
+                float(tn_group_nonempty_counts[group_name]), device=device
+            )
+        return metrics
+
+    def _zero_text_loss_dict(self, zero: torch.Tensor) -> Dict[str, torch.Tensor]:
+        z = zero.detach()
+        out = {
+            "loss_text": zero,
+            "text_token_loss_raw": z,
+            "text_phrase_tn_loss_raw": z,
+            "content_pos_loss": z,
+            "canonical_loss": z,
+            "tn_neg_loss": z,
+            "text_valid_slot_count": z,
+            "text_content_pos_slot_count": z,
+            "text_tn_neg_slot_count": z,
+            "text_attr_pos_slot_count": z,
+            "text_attr_neg_slot_count": z,
+            "text_canonical_slot_count": z,
+            "text_phrase_tn_slot_count": z,
+            "text_skipped_tn_slot_count": z,
+            "effective_content_token_count": z,
+            "effective_tn_negative_token_count": z,
+            "empty_content_mask_count": z,
+            "empty_tn_negative_mask_count": z,
+            "spatial_like_tn_count": z,
+            "relation_action_like_tn_count": z,
+        }
+        for group_name in _TN_GROUP_NAMES:
+            out[f"loss_tn_{group_name}"] = z
+            out[f"tn_neg_count_{group_name}"] = z
+            out[f"tn_nonempty_mask_count_{group_name}"] = z
+        return out
 
     def forward(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
         match_ctx = self.patch_criterion.compute_matching(outputs, targets)
         losses = self.patch_criterion.compute_losses_from_matching(match_ctx, targets)
+        if self.lambda_text <= 0:
+            pred_logits_patch = outputs.get("pred_logits_patch", None)
+            if pred_logits_patch is not None:
+                zero = pred_logits_patch.sum() * 0.0
+            else:
+                zero = outputs["pred_boxes"].sum() * 0.0
+            losses.update(self._zero_text_loss_dict(zero))
+            return losses
         losses.update(self._compute_text_loss(outputs, targets, match_ctx))
         return losses

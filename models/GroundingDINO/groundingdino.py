@@ -504,9 +504,11 @@ class GroundingDINO(nn.Module):
                 out["phrase_to_token_mask"] = text_dict["phrase_to_token_mask"]
         for mask_key in (
             "canonical_to_token_mask",
+            "content_to_token_mask",
             "attr_pos_to_token_mask",
             "attr_neg_to_token_mask",
             "phrase_semantic_token_mask",
+            "tn_group_ids",
         ):
             mask_value = kw.get(mask_key, None)
             if mask_value is not None:
@@ -1155,7 +1157,11 @@ def build_groundingdino(args):
             matcher = build_matcher(args)
             patch_criterion = PatchHungarianCriterion(
                 matcher=matcher,
-                weight_dict={"loss_patch_ce": 1.0, "loss_bbox": 0.0, "loss_giou": 0.0},
+                weight_dict={
+                    "loss_patch_ce": 1.0,
+                    "loss_bbox": float(getattr(args, "bbox_loss_coef", 0.0)),
+                    "loss_giou": float(getattr(args, "giou_loss_coef", 0.0)),
+                },
                 focal_alpha=args.focal_alpha,
                 focal_gamma=args.focal_gamma,
             )
@@ -1164,13 +1170,6 @@ def build_groundingdino(args):
                 lambda_patch=float(getattr(args, "lambda_patch", 1.0)),
                 lambda_text=float(getattr(args, "lambda_text", 0.25)),
                 canonical_pos_weight=float(getattr(args, "canonical_pos_weight", 0.15)),
-                attr_pos_weight=float(getattr(args, "attr_pos_weight", 1.0)),
-                attr_neg_weight=float(getattr(args, "attr_neg_weight", 1.0)),
-                tn_shared_attr_pos_weight=float(getattr(args, "tn_shared_attr_pos_weight", 0.75)),
-                use_phrase_tn_loss=bool(getattr(args, "use_phrase_tn_loss", True)),
-                phrase_score_type=str(getattr(args, "phrase_score_type", "softmin")),
-                softmin_tau=float(getattr(args, "softmin_tau", 0.7)),
-                lambda_phrase=float(getattr(args, "lambda_phrase", 0.3)),
             )
         else:
             weight_dict = {
