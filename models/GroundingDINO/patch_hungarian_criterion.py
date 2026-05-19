@@ -97,6 +97,43 @@ class PatchHungarianCriterion(nn.Module):
             support_classes = torch.cat([support_classes, pad], dim=0)
         return support_classes[:K]
 
+    @staticmethod
+    def _truthy_flag(value, batch_index: int | None = None) -> bool:
+        if value is None:
+            return False
+        if torch.is_tensor(value):
+            if value.numel() == 0:
+                return False
+            v = value.detach()
+            if batch_index is not None and v.dim() > 0 and int(v.shape[0]) > batch_index:
+                v = v[batch_index]
+            return bool(v.reshape(-1)[0].item())
+        return bool(value)
+
+    def _check_duplicate_support_classes(
+        self,
+        support_classes: torch.Tensor,
+        valid_k: torch.Tensor,
+        *,
+        batch_index: int,
+        allow_duplicate: bool,
+    ) -> None:
+        if allow_duplicate:
+            return
+        valid_classes = support_classes[valid_k]
+        valid_classes = valid_classes[valid_classes >= 0].to(torch.long)
+        if valid_classes.numel() <= 1:
+            return
+        unique, counts = torch.unique(valid_classes, sorted=True, return_counts=True)
+        dup = unique[counts > 1]
+        if dup.numel() == 0:
+            return
+        dup_list = [int(x) for x in dup.detach().cpu().tolist()]
+        raise ValueError(
+            f"Duplicate support class cid(s) {dup_list} in batch index {batch_index}. "
+            "If multi-exemplar-per-class is intentional, set allow_duplicate_support_classes=True."
+        )
+
     def compute_matching(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
         if "pred_logits_patch" not in outputs or outputs["pred_logits_patch"] is None:
             raise KeyError("PatchHungarianCriterion requires outputs['pred_logits_patch'] (B,Q) or (B,Q,K).")
@@ -146,6 +183,15 @@ class PatchHungarianCriterion(nn.Module):
             valid_k = support_classes >= 0
             if patch_mask is not None:
                 valid_k = valid_k & patch_mask[b]
+            allow_duplicate = self._truthy_flag(outputs.get("allow_duplicate_support_classes", None), b) or self._truthy_flag(
+                targets[b].get("allow_duplicate_support_classes", None)
+            )
+            self._check_duplicate_support_classes(
+                support_classes,
+                valid_k,
+                batch_index=b,
+                allow_duplicate=allow_duplicate,
+            )
             if int(valid_k.sum().item()) == 0:
                 empty = torch.zeros((0,), dtype=torch.int64, device=device)
                 all_indices.append((empty, empty))

@@ -5,11 +5,14 @@ Train and eval functions used in main.py
 
 import math
 import os
+import random
 import sys
+import time
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Callable, Iterable, Optional, Tuple
 
 from util.utils import to_device
+import numpy as np
 import torch
 
 import util.misc as utils
@@ -17,6 +20,48 @@ from datasets.coco_eval import CocoEvaluator
 from datasets.cocogrounding_eval import CocoGroundingEvaluator
 
 from datasets.panoptic_eval import PanopticEvaluator
+
+
+class GracefulTrainingExit(Exception):
+    """Raised after an interrupt checkpoint has been written."""
+
+
+def _make_grad_scaler(enabled: bool):
+    amp_mod = getattr(torch, "amp", None)
+    if amp_mod is not None and hasattr(amp_mod, "GradScaler"):
+        try:
+            return amp_mod.GradScaler("cuda", enabled=enabled)
+        except TypeError:
+            try:
+                return amp_mod.GradScaler(device_type="cuda", enabled=enabled)
+            except TypeError:
+                pass
+    return torch.cuda.amp.GradScaler(enabled=enabled)
+
+
+class _IteratorWithLen:
+    def __init__(self, iterator, length: int) -> None:
+        self.iterator = iterator
+        self.length = max(0, int(length))
+
+    def __iter__(self):
+        return self.iterator
+
+    def __len__(self) -> int:
+        return self.length
+
+
+def _restore_rng_state(rng_state) -> None:
+    if not rng_state:
+        return
+    if "python" in rng_state:
+        random.setstate(rng_state["python"])
+    if "numpy" in rng_state:
+        np.random.set_state(rng_state["numpy"])
+    if "torch" in rng_state:
+        torch.set_rng_state(rng_state["torch"])
+    if torch.cuda.is_available() and rng_state.get("cuda", None) is not None:
+        torch.cuda.set_rng_state_all(rng_state["cuda"])
 
 
 def _unnormalize_img(img: torch.Tensor) -> torch.Tensor:
@@ -385,8 +430,14 @@ def _maybe_log_stage_b_patch_drift(
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, max_norm: float = 0, 
-                    wo_class_error=False, lr_scheduler=None, args=None, logger=None):
-    scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
+                    wo_class_error=False, lr_scheduler=None, args=None, logger=None,
+                    scaler: Optional[torch.cuda.amp.GradScaler] = None,
+                    start_iter: int = 0,
+                    epoch_rng_state=None,
+                    runtime_rng_state=None,
+                    iter_checkpoint_fn: Optional[Callable[..., None]] = None):
+    if scaler is None:
+        scaler = _make_grad_scaler(enabled=args.amp)
 
 
     model.train()
@@ -398,11 +449,61 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
     header = 'Epoch: [{}]'.format(epoch)
     print_freq = 10
 
-    _cnt = 0
+    _cnt = max(0, int(start_iter))
     drift_state = None
 
+    data_iterable = data_loader
+    if _cnt > 0:
+        if epoch_rng_state is not None:
+            _restore_rng_state(epoch_rng_state)
+        raw_iter = iter(data_loader)
+        skipped = 0
+        total_len = len(data_loader) if hasattr(data_loader, "__len__") else _cnt
+        target_skip = min(_cnt, int(total_len))
+        def log_skip(message: str) -> None:
+            if logger is not None:
+                logger.info(message)
+            else:
+                print(message, flush=True)
 
-    for samples, targets in metric_logger.log_every(data_loader, print_freq, header, logger=logger):
+        log_every_batches = 100
+        log_every_seconds = 30.0
+        last_log_t = time.time()
+        skip_start_t = last_log_t
+        log_skip(
+            f"Resuming epoch {epoch}: skipping {target_skip}/{total_len} already-finished batches. "
+            "This is CPU/data-loader work, so GPU usage can stay low until the skip finishes."
+        )
+        for _ in range(target_skip):
+            try:
+                next(raw_iter)
+                skipped += 1
+                now_t = time.time()
+                if (
+                    skipped <= 10
+                    or skipped % log_every_batches == 0
+                    or skipped == target_skip
+                    or (now_t - last_log_t) >= log_every_seconds
+                ):
+                    elapsed = max(1e-6, now_t - skip_start_t)
+                    batches_per_sec = skipped / elapsed
+                    remaining = max(0, target_skip - skipped)
+                    eta = remaining / max(1e-6, batches_per_sec)
+                    log_skip(
+                        f"Resume skip progress: {skipped}/{target_skip} batches "
+                        f"({batches_per_sec:.2f} batch/s, eta {int(eta)}s)."
+                    )
+                    last_log_t = now_t
+            except StopIteration:
+                break
+        msg = f"Resuming epoch {epoch} from iteration {skipped}/{total_len}; skipped completed batches."
+        log_skip(msg)
+        if runtime_rng_state is not None:
+            _restore_rng_state(runtime_rng_state)
+        data_iterable = _IteratorWithLen(raw_iter, int(total_len) - skipped)
+        _cnt = skipped
+
+    for samples, targets in metric_logger.log_every(data_iterable, print_freq, header, logger=logger):
 
         samples = samples.to(device)
         patch_only = bool(getattr(args, "patch_only", False))
@@ -470,6 +571,28 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         with torch.cuda.amp.autocast(enabled=args.amp):
             if patch_only:
                 # Pass `targets` so the model can optionally build GT-guided (DN) queries in patch-only mode.
+                stage_b_mask_kwargs = {}
+                for mask_key in (
+                    "canonical_to_token_mask",
+                    "content_to_token_mask",
+                    "attr_pos_to_token_mask",
+                    "attr_neg_to_token_mask",
+                    "phrase_semantic_token_mask",
+                ):
+                    if all(mask_key in t for t in targets):
+                        values = [t[mask_key] for t in targets]
+                        if all(torch.is_tensor(v) for v in values):
+                            if len({tuple(v.shape) for v in values}) == 1:
+                                stage_b_mask_kwargs[mask_key] = torch.stack(values, dim=0).to(
+                                    device, non_blocking=True
+                                )
+                            elif all(v.dim() == 2 for v in values):
+                                kmax = max(int(v.shape[0]) for v in values)
+                                tmax = max(int(v.shape[1]) for v in values)
+                                padded = values[0].new_zeros((len(values), kmax, tmax))
+                                for i, v in enumerate(values):
+                                    padded[i, : int(v.shape[0]), : int(v.shape[1])] = v
+                                stage_b_mask_kwargs[mask_key] = padded.to(device, non_blocking=True)
                 outputs = model(
                     samples,
                     targets=targets,
@@ -479,6 +602,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     patch_mask=patch_mask,
                     patch_only=True,
                     patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
+                    **stage_b_mask_kwargs,
                 )
                 loss_dict = criterion(outputs, targets)
             else:
@@ -552,6 +676,23 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
         _cnt += 1
+        iter_interval = int(getattr(args, "iter_checkpoint_interval", 0) or 0)
+        stop_requested = bool(getattr(args, "_stop_requested", False))
+        should_save_iter = iter_checkpoint_fn is not None and (
+            stop_requested or (iter_interval > 0 and (_cnt % iter_interval == 0))
+        )
+        if should_save_iter:
+            reason = "signal" if stop_requested else "interval"
+            iter_checkpoint_fn(
+                epoch=epoch,
+                iteration=_cnt,
+                scaler=scaler,
+                epoch_finished=False,
+                reason=reason,
+            )
+        if stop_requested:
+            signum = getattr(args, "_stop_signal", None)
+            raise GracefulTrainingExit(f"Stop requested by signal {signum}; saved iteration checkpoint.")
         if args.debug:
             if _cnt % 15 == 0:
                 print("BREAK!"*5)

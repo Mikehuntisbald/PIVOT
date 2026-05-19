@@ -6,6 +6,7 @@ import argparse
 import datetime
 import json
 import random
+import signal
 import time
 from pathlib import Path
 import os, sys
@@ -21,7 +22,7 @@ import util.misc as utils
 
 import datasets
 from datasets import build_dataset, get_coco_api_from_dataset
-from engine import evaluate, train_one_epoch
+from engine import GracefulTrainingExit, evaluate, train_one_epoch
 
 from groundingdino.util.utils import clean_state_dict
 
@@ -53,6 +54,26 @@ def _torch_load_compat(path: str, *, map_location: str = "cpu"):
             return _torch.load(path, map_location=map_location, weights_only=False)
 
 
+def _make_grad_scaler(enabled: bool):
+    amp_mod = getattr(torch, "amp", None)
+    if amp_mod is not None and hasattr(amp_mod, "GradScaler"):
+        try:
+            return amp_mod.GradScaler("cuda", enabled=enabled)
+        except TypeError:
+            try:
+                return amp_mod.GradScaler(device_type="cuda", enabled=enabled)
+            except TypeError:
+                pass
+    return torch.cuda.amp.GradScaler(enabled=enabled)
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return int(default)
+
+
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
     parser.add_argument('--config_file', '-c', type=str, required=True)
@@ -82,11 +103,63 @@ def get_args_parser():
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--num_workers', default=8, type=int)
+    parser.add_argument(
+        '--prefetch_factor',
+        default=1,
+        type=int,
+        help='DataLoader batches prefetched per worker when num_workers > 0; lower values use fewer shared-memory file descriptors',
+    )
+    parser.add_argument(
+        '--pin_memory',
+        dest='pin_memory',
+        action='store_true',
+        default=None,
+        help='enable DataLoader pin_memory; default is enabled for CUDA devices',
+    )
+    parser.add_argument(
+        '--no_pin_memory',
+        '--no-pin-memory',
+        dest='pin_memory',
+        action='store_false',
+        help='disable DataLoader pin_memory',
+    )
+    parser.add_argument(
+        '--persistent_workers',
+        dest='persistent_workers',
+        action='store_true',
+        default=None,
+        help='keep DataLoader workers alive between epochs; default is enabled when num_workers > 0',
+    )
+    parser.add_argument(
+        '--no_persistent_workers',
+        '--no-persistent-workers',
+        dest='persistent_workers',
+        action='store_false',
+        help='disable persistent DataLoader workers',
+    )
+    parser.add_argument(
+        '--mp_sharing_strategy',
+        default=os.environ.get("TORCH_MP_SHARING_STRATEGY", "file_system"),
+        choices=("file_system", "file_descriptor", "none"),
+        help='torch multiprocessing CPU tensor sharing strategy; file_system avoids one fd per shared storage',
+    )
+    parser.add_argument(
+        '--min_nofile',
+        default=_env_int("GDINO_MIN_NOFILE", 65536),
+        type=int,
+        help='try to raise the process open-file soft limit to at least this value; 0 disables',
+    )
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--find_unused_params', action='store_true')
     parser.add_argument('--save_results', action='store_true')
     parser.add_argument('--save_log', action='store_true')
+    parser.add_argument(
+        '--iter_checkpoint_interval',
+        default=0,
+        type=int,
+        help='save output_dir/checkpoint_iter.pth every N finished train iterations; 0 disables periodic saves',
+    )
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -109,6 +182,98 @@ def build_model_main(args):
     build_func = MODULE_BUILD_FUNCS.get(args.modelname)
     model, criterion, postprocessors = build_func(args)
     return model, criterion, postprocessors
+
+
+def _capture_rng_state():
+    return {
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch": torch.get_rng_state(),
+        "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+    }
+
+
+def _install_signal_checkpoint_handlers(args):
+    def _handler(signum, _frame):
+        if getattr(args, "_stop_requested", False):
+            raise KeyboardInterrupt(f"Received signal {signum} twice.")
+        args._stop_requested = True
+        args._stop_signal = int(signum)
+        print(
+            f"Received signal {signum}; will save checkpoint_iter.pth after the current iteration.",
+            flush=True,
+        )
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            signal.signal(sig, _handler)
+        except Exception:
+            pass
+
+
+def _configure_torch_multiprocessing(args, logger):
+    strategy = str(getattr(args, "mp_sharing_strategy", "file_system") or "none")
+    if strategy == "none":
+        return
+    try:
+        available = torch.multiprocessing.get_all_sharing_strategies()
+        if strategy not in available:
+            logger.warning(
+                f"Requested mp_sharing_strategy={strategy!r}, but available strategies are {sorted(available)}."
+            )
+            return
+        torch.multiprocessing.set_sharing_strategy(strategy)
+        logger.info(f"torch multiprocessing sharing strategy: {torch.multiprocessing.get_sharing_strategy()}")
+    except Exception as e:
+        logger.warning(f"Failed to set torch multiprocessing sharing strategy to {strategy!r}: {e}")
+
+
+def _get_nofile_limit():
+    try:
+        import resource
+
+        return resource.getrlimit(resource.RLIMIT_NOFILE)
+    except Exception:
+        return None
+
+
+def _raise_nofile_limit(args, logger):
+    minimum = int(getattr(args, "min_nofile", 0) or 0)
+    if minimum <= 0:
+        return
+    try:
+        import resource
+
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        target = min(max(int(soft), minimum), int(hard))
+        if target > soft:
+            resource.setrlimit(resource.RLIMIT_NOFILE, (target, hard))
+            logger.info(f"Raised RLIMIT_NOFILE soft limit from {soft} to {target} (hard={hard}).")
+        elif soft < minimum:
+            logger.warning(
+                f"RLIMIT_NOFILE soft/hard is {soft}/{hard}; cannot raise to requested minimum {minimum}."
+            )
+    except Exception as e:
+        logger.warning(f"Failed to adjust RLIMIT_NOFILE: {e}")
+
+
+def _resolve_dataloader_runtime(args):
+    num_workers = int(args.num_workers)
+    if num_workers < 0:
+        raise ValueError(f"--num_workers must be >= 0, got {num_workers}.")
+    prefetch_factor = int(getattr(args, "prefetch_factor", 1))
+    if prefetch_factor < 1:
+        raise ValueError(f"--prefetch_factor must be >= 1, got {prefetch_factor}.")
+    pin_memory_arg = getattr(args, "pin_memory", None)
+    pin_memory = str(args.device).startswith("cuda") if pin_memory_arg is None else bool(pin_memory_arg)
+    persistent_arg = getattr(args, "persistent_workers", None)
+    persistent_workers = num_workers > 0 if persistent_arg is None else bool(persistent_arg)
+    return {
+        "num_workers": num_workers,
+        "prefetch_factor": prefetch_factor,
+        "pin_memory": pin_memory,
+        "persistent_workers": persistent_workers and num_workers > 0,
+    }
 
 
 def _trainable_param_summary(model: torch.nn.Module):
@@ -160,6 +325,11 @@ def main(args):
 
     logger.info("git:\n  {}\n".format(utils.get_sha()))
     logger.info("Command: "+' '.join(sys.argv))
+    _raise_nofile_limit(args, logger)
+    _configure_torch_multiprocessing(args, logger)
+    nofile_limit = _get_nofile_limit()
+    if nofile_limit is not None:
+        logger.info(f"RLIMIT_NOFILE soft/hard: {nofile_limit[0]}/{nofile_limit[1]}")
     if args.rank == 0:
         save_json_path = os.path.join(args.output_dir, "config_args_all.json")
         with open(save_json_path, 'w') as f:
@@ -285,17 +455,41 @@ def main(args):
     if args.distributed:
         sampler_val = DistributedSampler(dataset_val, shuffle=False) if dataset_val is not None else None
         if not args.eval:
-            if train_mix_weights is not None and any(abs(w - 1.0) > 1e-12 for w in train_mix_weights):
-                raise NotImplementedError("mix_weight sampling is currently only supported in non-distributed training.")
+            has_dataset_sample_weights = (
+                dataset_train_list is not None
+                and any(getattr(ds, "sample_weights", None) is not None for ds in dataset_train_list)
+            )
+            if train_mix_weights is not None and (
+                any(abs(w - 1.0) > 1e-12 for w in train_mix_weights) or has_dataset_sample_weights
+            ):
+                raise NotImplementedError(
+                    "mix_weight / dataset sample_weight sampling is currently only supported in non-distributed training."
+                )
             sampler_train = DistributedSampler(dataset_train)
     else:
         sampler_val = torch.utils.data.SequentialSampler(dataset_val) if dataset_val is not None else None
         if not args.eval:
-            if train_mix_weights is not None and any(abs(w - 1.0) > 1e-12 for w in train_mix_weights):
+            has_dataset_sample_weights = (
+                dataset_train_list is not None
+                and any(getattr(ds, "sample_weights", None) is not None for ds in dataset_train_list)
+            )
+            has_explicit_mix_weights = train_mix_weights is not None and any(
+                abs(w - 1.0) > 1e-12 for w in train_mix_weights
+            )
+            if train_mix_weights is not None and (has_explicit_mix_weights or has_dataset_sample_weights):
                 sample_weights = []
                 for ds, mix_weight in zip(dataset_train_list, train_mix_weights):
                     ds_len = max(1, len(ds))
-                    sample_weights.extend([float(mix_weight) / float(ds_len)] * len(ds))
+                    if has_explicit_mix_weights:
+                        base_weight = float(mix_weight) / float(ds_len)
+                    else:
+                        # Preserve RandomSampler's length-proportional dataset mix when all mix weights are 1.
+                        base_weight = 1.0
+                    ds_sample_weights = getattr(ds, "sample_weights", None)
+                    if ds_sample_weights is not None and len(ds_sample_weights) == len(ds):
+                        sample_weights.extend([base_weight * float(w) for w in ds_sample_weights])
+                    else:
+                        sample_weights.extend([base_weight] * len(ds))
                 sample_weights = torch.as_tensor(sample_weights, dtype=torch.double)
                 sampler_train = torch.utils.data.WeightedRandomSampler(
                     weights=sample_weights,
@@ -303,17 +497,34 @@ def main(args):
                     replacement=True,
                 )
                 expected = []
-                total_mix = sum(train_mix_weights)
+                total_mix = sum(train_mix_weights) if has_explicit_mix_weights else sum(len(ds) for ds in dataset_train_list)
                 for idx, (ds, mix_weight) in enumerate(zip(dataset_train_list, train_mix_weights)):
+                    expected_fraction = (
+                        (float(mix_weight) / float(total_mix))
+                        if has_explicit_mix_weights and total_mix > 0
+                        else (float(len(ds)) / float(total_mix) if total_mix > 0 else 0.0)
+                    )
                     expected.append(
                         {
                             "dataset_idx": idx,
                             "len": len(ds),
                             "mix_weight": float(mix_weight),
-                            "expected_fraction": (float(mix_weight) / float(total_mix)) if total_mix > 0 else 0.0,
+                            "expected_fraction": expected_fraction,
+                            "tn_balance_stats": getattr(ds, "tn_balance_stats", None),
                         }
                     )
                 logger.info("using mix_weight weighted sampling:\n" + json.dumps(expected, indent=2))
+            elif getattr(dataset_train, "sample_weights", None) is not None:
+                sample_weights = torch.as_tensor(getattr(dataset_train, "sample_weights"), dtype=torch.double)
+                sampler_train = torch.utils.data.WeightedRandomSampler(
+                    weights=sample_weights,
+                    num_samples=len(dataset_train),
+                    replacement=True,
+                )
+                logger.info(
+                    "using dataset-level weighted sampling:\n"
+                    + json.dumps(getattr(dataset_train, "tn_balance_stats", {}), indent=2)
+                )
             else:
                 sampler_train = torch.utils.data.RandomSampler(dataset_train)
 
@@ -331,33 +542,35 @@ def main(args):
             except Exception:
                 pass
 
+        dataloader_runtime = _resolve_dataloader_runtime(args)
+        logger.info("DataLoader runtime settings: " + json.dumps(dataloader_runtime, indent=2))
         dl_train_kwargs = dict(
             batch_sampler=batch_sampler_train,
             collate_fn=utils.collate_fn,
-            num_workers=args.num_workers,
+            num_workers=dataloader_runtime["num_workers"],
         )
-        if str(args.device).startswith("cuda"):
-            dl_train_kwargs["pin_memory"] = True
-        if int(args.num_workers) > 0:
-            dl_train_kwargs["persistent_workers"] = True
-            dl_train_kwargs["prefetch_factor"] = 2
+        dl_train_kwargs["pin_memory"] = dataloader_runtime["pin_memory"]
+        if dataloader_runtime["num_workers"] > 0:
+            dl_train_kwargs["persistent_workers"] = dataloader_runtime["persistent_workers"]
+            dl_train_kwargs["prefetch_factor"] = dataloader_runtime["prefetch_factor"]
             dl_train_kwargs["worker_init_fn"] = _worker_init_fn
         data_loader_train = DataLoader(dataset_train, **dl_train_kwargs)
 
     data_loader_val = None
     if dataset_val is not None:
+        dataloader_runtime = _resolve_dataloader_runtime(args)
+        logger.info("Validation DataLoader runtime settings: " + json.dumps(dataloader_runtime, indent=2))
         dl_val_kwargs = dict(
             batch_size=4,
             sampler=sampler_val,
             drop_last=False,
             collate_fn=utils.collate_fn,
-            num_workers=args.num_workers,
+            num_workers=dataloader_runtime["num_workers"],
         )
-        if str(args.device).startswith("cuda"):
-            dl_val_kwargs["pin_memory"] = True
-        if int(args.num_workers) > 0:
-            dl_val_kwargs["persistent_workers"] = True
-            dl_val_kwargs["prefetch_factor"] = 2
+        dl_val_kwargs["pin_memory"] = dataloader_runtime["pin_memory"]
+        if dataloader_runtime["num_workers"] > 0:
+            dl_val_kwargs["persistent_workers"] = dataloader_runtime["persistent_workers"]
+            dl_val_kwargs["prefetch_factor"] = dataloader_runtime["prefetch_factor"]
             dl_val_kwargs["worker_init_fn"] = _worker_init_fn
         data_loader_val = DataLoader(dataset_val, **dl_val_kwargs)
 
@@ -368,6 +581,10 @@ def main(args):
     else:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
+    scaler = _make_grad_scaler(enabled=args.amp)
+    resume_iter = 0
+    resume_epoch_rng_state = None
+    resume_runtime_rng_state = None
 
     base_ds = get_coco_api_from_dataset(dataset_val) if dataset_val is not None else None
 
@@ -383,12 +600,14 @@ def main(args):
             "Pass --resume explicitly to restore model/optimizer/scheduler from it."
         )
     if args.resume:
+        logger.info(f"Loading resume checkpoint from {args.resume}")
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = _torch_load_compat(args.resume, map_location="cpu")
-        model_without_ddp.load_state_dict(clean_state_dict(checkpoint['model']),strict=False)
+        load_output = model_without_ddp.load_state_dict(clean_state_dict(checkpoint['model']),strict=False)
+        logger.info(f"Loaded resume model state: {load_output}")
 
 
         
@@ -396,12 +615,43 @@ def main(args):
             try:
                 optimizer.load_state_dict(checkpoint['optimizer'])
                 lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-                args.start_epoch = checkpoint['epoch'] + 1
+                restored_scaler = False
+                if 'scaler' in checkpoint:
+                    scaler.load_state_dict(checkpoint['scaler'])
+                    restored_scaler = True
+                ckpt_epoch = int(checkpoint['epoch'])
+                ckpt_iter = int(checkpoint.get('iteration', 0) or 0)
+                epoch_finished = bool(checkpoint.get('epoch_finished', 'iteration' not in checkpoint))
+                logger.info(
+                    "Restored resume training state: "
+                    f"epoch={ckpt_epoch}, iteration={ckpt_iter}, "
+                    f"epoch_finished={epoch_finished}, scaler_restored={restored_scaler}"
+                )
+                if (not epoch_finished) and ckpt_iter > 0 and ckpt_iter < len(data_loader_train):
+                    args.start_epoch = ckpt_epoch
+                    resume_iter = ckpt_iter
+                    resume_epoch_rng_state = checkpoint.get('epoch_rng_state', None)
+                    resume_runtime_rng_state = checkpoint.get('rng_state', None)
+                    logger.info(
+                        f"Resuming mid-epoch from epoch={ckpt_epoch}, "
+                        f"next_iter={resume_iter}/{len(data_loader_train)}"
+                    )
+                else:
+                    args.start_epoch = ckpt_epoch + 1
+                    logger.info(
+                        f"Resuming from next epoch: checkpoint_epoch={ckpt_epoch}, "
+                        f"start_epoch={args.start_epoch}"
+                    )
             except Exception as e:
                 logger.warning(
                     f"Failed to restore optimizer/scheduler state from resume checkpoint; "
                     f"continuing with fresh optimizer state. Error: {e}"
                 )
+        elif not args.eval:
+            logger.info(
+                "Resume checkpoint did not include optimizer/lr_scheduler/epoch; "
+                "loaded model weights only and will use fresh training state."
+            )
 
     if (not args.resume) and args.pretrain_model_path:
         checkpoint = _torch_load_compat(args.pretrain_model_path, map_location="cpu")["model"]
@@ -443,85 +693,140 @@ def main(args):
     print("Start training")
     start_time = time.time()
     best_map_holder = BestMetricHolder(use_ema=False) if not patch_only else None
+    _install_signal_checkpoint_handlers(args)
 
-    for epoch in range(args.start_epoch, args.epochs):
-        epoch_start_time = time.time()
-        if args.distributed:
-            sampler_train.set_epoch(epoch)
+    current_epoch_rng_state = None
 
-        train_stats = train_one_epoch(
-            model, criterion, data_loader_train, optimizer, device, epoch,
-            args.clip_max_norm, wo_class_error=wo_class_error, lr_scheduler=lr_scheduler, args=args, logger=(logger if args.save_log else None))
-        if args.output_dir:
-            checkpoint_paths = [output_dir / 'checkpoint.pth']
+    def _checkpoint_payload(epoch, *, iteration=0, epoch_finished=True, reason=None):
+        payload = {
+            'model': model_without_ddp.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'lr_scheduler': lr_scheduler.state_dict(),
+            'scaler': scaler.state_dict(),
+            'epoch': int(epoch),
+            'iteration': int(iteration),
+            'epoch_finished': bool(epoch_finished),
+            'rng_state': _capture_rng_state(),
+            'epoch_rng_state': current_epoch_rng_state,
+            # Store as plain dict to stay compatible with `weights_only=True` safe loading.
+            'args': vars(args),
+        }
+        if reason is not None:
+            payload['checkpoint_reason'] = str(reason)
+        return payload
 
-        if not args.onecyclelr:
-            lr_scheduler.step()
-        if args.output_dir:
-            checkpoint_paths = [output_dir / 'checkpoint.pth']
-            # extra checkpoint before LR drop and every 100 epochs
-            if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.save_checkpoint_interval == 0:
-                checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
-            for checkpoint_path in checkpoint_paths:
-                weights = {
-                    'model': model_without_ddp.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'lr_scheduler': lr_scheduler.state_dict(),
-                    'epoch': epoch,
-                    # Store as plain dict to stay compatible with `weights_only=True` safe loading.
-                    'args': vars(args),
-                }
+    def _save_iter_checkpoint(*, epoch, iteration, scaler=None, epoch_finished=False, reason=None):
+        if not args.output_dir:
+            return
+        checkpoint_path = output_dir / 'checkpoint_iter.pth'
+        utils.save_on_master(
+            _checkpoint_payload(epoch, iteration=iteration, epoch_finished=epoch_finished, reason=reason),
+            checkpoint_path,
+        )
+        msg = f"Saved iteration checkpoint to {checkpoint_path} (epoch={epoch}, next_iter={iteration}, reason={reason})."
+        logger.info(msg) if args.save_log else print(msg, flush=True)
 
-                utils.save_on_master(weights, checkpoint_path)
+    try:
+        for epoch in range(args.start_epoch, args.epochs):
+            epoch_start_time = time.time()
+            if args.distributed:
+                sampler_train.set_epoch(epoch)
+
+            this_start_iter = resume_iter if epoch == args.start_epoch else 0
+            if this_start_iter > 0 and resume_epoch_rng_state is not None:
+                current_epoch_rng_state = resume_epoch_rng_state
+            else:
+                current_epoch_rng_state = _capture_rng_state()
+
+            train_stats = train_one_epoch(
+                model, criterion, data_loader_train, optimizer, device, epoch,
+                args.clip_max_norm, wo_class_error=wo_class_error, lr_scheduler=lr_scheduler,
+                args=args, logger=(logger if args.save_log else None), scaler=scaler,
+                start_iter=this_start_iter, epoch_rng_state=current_epoch_rng_state,
+                runtime_rng_state=(resume_runtime_rng_state if this_start_iter > 0 else None),
+                iter_checkpoint_fn=_save_iter_checkpoint)
+            resume_iter = 0
+            resume_epoch_rng_state = None
+            resume_runtime_rng_state = None
+            if getattr(args, "_stop_requested", False):
+                _save_iter_checkpoint(
+                    epoch=epoch,
+                    iteration=len(data_loader_train),
+                    scaler=scaler,
+                    epoch_finished=True,
+                    reason="signal_after_epoch",
+                )
+                return
+            if args.output_dir:
+                checkpoint_paths = [output_dir / 'checkpoint.pth']
+
+            if not args.onecyclelr:
+                lr_scheduler.step()
+            if args.output_dir:
+                checkpoint_paths = [output_dir / 'checkpoint.pth']
+                # extra checkpoint before LR drop and every 100 epochs
+                if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.save_checkpoint_interval == 0:
+                    checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
+                for checkpoint_path in checkpoint_paths:
+                    weights = _checkpoint_payload(epoch, iteration=0, epoch_finished=True, reason="epoch")
+
+                    utils.save_on_master(weights, checkpoint_path)
                 
-        if not patch_only:
-            # eval
-            test_stats, coco_evaluator = evaluate(
-                model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir,
-                wo_class_error=wo_class_error, args=args, logger=(logger if args.save_log else None)
-            )
-            map_regular = test_stats['coco_eval_bbox'][0]
-            _isbest = best_map_holder.update(map_regular, epoch, is_ema=False)
-            if _isbest:
-                checkpoint_path = output_dir / 'checkpoint_best_regular.pth'
-                utils.save_on_master({
-                    'model': model_without_ddp.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'lr_scheduler': lr_scheduler.state_dict(),
-                    'epoch': epoch,
-                    'args': args,
-                }, checkpoint_path)
-            log_stats = {
-                **{f'train_{k}': v for k, v in train_stats.items()},
-                **{f'test_{k}': v for k, v in test_stats.items()},
-            }
-        else:
-            log_stats = {**{f'train_{k}': v for k, v in train_stats.items()}}
+            if not patch_only:
+                # eval
+                test_stats, coco_evaluator = evaluate(
+                    model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir,
+                    wo_class_error=wo_class_error, args=args, logger=(logger if args.save_log else None)
+                )
+                map_regular = test_stats['coco_eval_bbox'][0]
+                _isbest = best_map_holder.update(map_regular, epoch, is_ema=False)
+                if _isbest:
+                    checkpoint_path = output_dir / 'checkpoint_best_regular.pth'
+                    utils.save_on_master({
+                        'model': model_without_ddp.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'lr_scheduler': lr_scheduler.state_dict(),
+                        'scaler': scaler.state_dict(),
+                        'epoch': epoch,
+                        'iteration': 0,
+                        'epoch_finished': True,
+                        'args': vars(args),
+                    }, checkpoint_path)
+                log_stats = {
+                    **{f'train_{k}': v for k, v in train_stats.items()},
+                    **{f'test_{k}': v for k, v in test_stats.items()},
+                }
+            else:
+                log_stats = {**{f'train_{k}': v for k, v in train_stats.items()}}
 
 
-        try:
-            log_stats.update({'now_time': str(datetime.datetime.now())})
-        except:
-            pass
-        
-        epoch_time = time.time() - epoch_start_time
-        epoch_time_str = str(datetime.timedelta(seconds=int(epoch_time)))
-        log_stats['epoch_time'] = epoch_time_str
+            try:
+                log_stats.update({'now_time': str(datetime.datetime.now())})
+            except:
+                pass
 
-        if args.output_dir and utils.is_main_process():
-            with (output_dir / "log.txt").open("a") as f:
-                f.write(json.dumps(log_stats) + "\n")
+            epoch_time = time.time() - epoch_start_time
+            epoch_time_str = str(datetime.timedelta(seconds=int(epoch_time)))
+            log_stats['epoch_time'] = epoch_time_str
 
-            # for evaluation logs
-            if (not patch_only) and coco_evaluator is not None:
-                (output_dir / 'eval').mkdir(exist_ok=True)
-                if "bbox" in coco_evaluator.coco_eval:
-                    filenames = ['latest.pth']
-                    if epoch % 50 == 0:
-                        filenames.append(f'{epoch:03}.pth')
-                    for name in filenames:
-                        torch.save(coco_evaluator.coco_eval["bbox"].eval,
-                                   output_dir / "eval" / name)
+            if args.output_dir and utils.is_main_process():
+                with (output_dir / "log.txt").open("a") as f:
+                    f.write(json.dumps(log_stats) + "\n")
+
+                # for evaluation logs
+                if (not patch_only) and coco_evaluator is not None:
+                    (output_dir / 'eval').mkdir(exist_ok=True)
+                    if "bbox" in coco_evaluator.coco_eval:
+                        filenames = ['latest.pth']
+                        if epoch % 50 == 0:
+                            filenames.append(f'{epoch:03}.pth')
+                        for name in filenames:
+                            torch.save(coco_evaluator.coco_eval["bbox"].eval,
+                                       output_dir / "eval" / name)
+    except GracefulTrainingExit as e:
+        msg = str(e) or "Training stopped after writing iteration checkpoint."
+        logger.info(msg) if args.save_log else print(msg)
+        return
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
