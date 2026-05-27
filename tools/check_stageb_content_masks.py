@@ -23,6 +23,7 @@ from models.GroundingDINO.groundingdino import GroundingDINO
 from models.GroundingDINO.stage_b_score import compute_stage_b_slot_logits
 from models.GroundingDINO.stage_b_score import aggregate_stage_b_tokens
 from models.GroundingDINO.stage_b_criterion import StageBCriterion
+from util.misc import NestedTensor
 import engine
 
 
@@ -470,7 +471,30 @@ def check_rank_forward_disables_patch_dn() -> None:
     engine_src = inspect.getsource(engine.train_one_epoch)
     assert 'disable_patch_dn = bool(kw.get("disable_patch_dn", False))' in model_forward_src
     assert "and (not disable_patch_dn)" in model_forward_src
+    assert "has_rank_pairs = bool(rank_subbatch is not None and rank_subbatch.get(\"indices\"))" in engine_src
+    assert "disable_patch_dn=has_rank_pairs" in engine_src
     assert "disable_patch_dn=True" in engine_src
+
+
+def check_drift_batch_handles_non_tensor_targets() -> None:
+    samples = NestedTensor(
+        torch.zeros(1, 3, 4, 4),
+        torch.zeros(1, 4, 4, dtype=torch.bool),
+    )
+    targets = [
+        {
+            "labels": torch.tensor([1]),
+            "rank_positive_captions": ["a red car ."],
+            "meta": {"source": "tn"},
+        }
+    ]
+    batch = engine._clone_stage_b_drift_batch(samples, targets, ["a blue car ."], None, None, None)
+    assert batch["targets"][0]["rank_positive_captions"] == ["a red car ."]
+    assert batch["targets"][0]["rank_positive_captions"] is not targets[0]["rank_positive_captions"]
+    assert batch["targets"][0]["meta"] == {"source": "tn"}
+    moved = engine._move_stage_b_drift_batch_to_device(batch, torch.device("cpu"))
+    assert moved["targets"][0]["rank_positive_captions"] == ["a red car ."]
+    assert torch.equal(moved["targets"][0]["labels"], torch.tensor([1]))
 
 
 def main() -> None:
@@ -483,6 +507,7 @@ def main() -> None:
     check_mean_normalized_softmin_scorer()
     check_phrase_rank_loss_independent_and_match_by_target()
     check_rank_forward_disables_patch_dn()
+    check_drift_batch_handles_non_tensor_targets()
     print("Stage-B content-mask sanity checks passed.")
 
 

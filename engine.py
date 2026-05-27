@@ -3,6 +3,7 @@
 Train and eval functions used in main.py
 """
 
+import copy
 import math
 import os
 import random
@@ -428,13 +429,28 @@ def _maybe_save_patch_sanity(
         pil.save(save_dir / f"e{epoch:03d}_s{step:06d}_b{b}.jpg", quality=90)
 
 
+def _clone_target_value_for_drift(value):
+    if torch.is_tensor(value):
+        return value.detach().cpu().clone()
+    return copy.deepcopy(value)
+
+
+def _move_target_value_to_device(value, device):
+    if torch.is_tensor(value):
+        return value.to(device)
+    return value
+
+
 def _clone_stage_b_drift_batch(samples, targets, captions, patches, patch_global, patch_mask):
     return {
         "samples": utils.NestedTensor(
             samples.tensors.detach().cpu().clone(),
             samples.mask.detach().cpu().clone() if samples.mask is not None else None,
         ),
-        "targets": [{k: v.detach().cpu().clone() for k, v in t.items()} for t in targets],
+        "targets": [
+            {k: _clone_target_value_for_drift(v) for k, v in t.items()}
+            for t in targets
+        ],
         "captions": list(captions),
         "patches": patches.detach().cpu().clone() if torch.is_tensor(patches) else None,
         "patch_global": patch_global.detach().cpu().clone() if torch.is_tensor(patch_global) else None,
@@ -445,7 +461,10 @@ def _clone_stage_b_drift_batch(samples, targets, captions, patches, patch_global
 def _move_stage_b_drift_batch_to_device(batch, device):
     return {
         "samples": batch["samples"].to(device),
-        "targets": [{k: v.to(device) for k, v in t.items()} for t in batch["targets"]],
+        "targets": [
+            {k: _move_target_value_to_device(v, device) for k, v in t.items()}
+            for t in batch["targets"]
+        ],
         "captions": list(batch["captions"]),
         "patches": batch["patches"].to(device) if torch.is_tensor(batch["patches"]) else None,
         "patch_global": batch["patch_global"].to(device) if torch.is_tensor(batch["patch_global"]) else None,
@@ -752,6 +771,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     patch_global,
                     patch_mask,
                 )
+                has_rank_pairs = bool(rank_subbatch is not None and rank_subbatch.get("indices"))
                 outputs = model(
                     samples,
                     targets=targets,
@@ -760,6 +780,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     patch_global=patch_global,
                     patch_mask=patch_mask,
                     patch_only=True,
+                    disable_patch_dn=has_rank_pairs,
                     patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
                     **stage_b_mask_kwargs,
                 )
