@@ -9,6 +9,10 @@ build_text_token_masks = True
 
 lambda_patch = 1.0
 lambda_text = 0.25
+stage_b_enable_phrase_rank = True
+stage_b_rank_margin = 0.3
+stage_b_rank_loss_coef = 1.0
+stage_b_rank_detach_patch = True
 tn_loss_profile = "standard"
 canonical_pos_weight = 0.15
 
@@ -27,6 +31,7 @@ stage_b_infer_text_beta = 1.0
 stage_b_infer_canonical_weight = 0.15
 stage_b_infer_text_agg = "mean"
 stage_b_infer_softmin_tau = 0.7
+stage_b_infer_mean_softmin_alpha = 0.5
 stage_b_infer_sigmoid_scores = True
 
 skip_tn_if_neg_overlaps_canonical = True

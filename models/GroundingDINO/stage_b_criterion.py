@@ -7,6 +7,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from .patch_hungarian_criterion import PatchHungarianCriterion
+from .stage_b_score import compute_stage_b_slot_logits
 
 
 _TN_GROUP_NAMES = ("color_like", "attr_like", "spatial_like", "relation_action_like", "other")
@@ -32,6 +33,14 @@ class StageBCriterion(nn.Module):
         lambda_patch: float = 1.0,
         lambda_text: float = 0.25,
         canonical_pos_weight: float = 0.15,
+        stage_b_rank_margin: float = 0.3,
+        stage_b_rank_loss_coef: float = 1.0,
+        stage_b_rank_detach_patch: bool = True,
+        stage_b_rank_beta: float = 1.0,
+        stage_b_rank_canonical_weight: float = 0.15,
+        stage_b_rank_text_agg: str = "mean",
+        stage_b_rank_softmin_tau: float = 0.7,
+        stage_b_rank_mean_softmin_alpha: float = 0.5,
         # Deprecated compatibility args. Content-positive and TN-negative tokens
         # are fixed at weight 1.0, and softmin phrase TN loss is disabled.
         attr_pos_weight: Optional[float] = None,
@@ -48,10 +57,19 @@ class StageBCriterion(nn.Module):
         self.lambda_patch = float(lambda_patch)
         self.lambda_text = float(lambda_text)
         self.canonical_pos_weight = float(canonical_pos_weight)
+        self.stage_b_rank_margin = float(stage_b_rank_margin)
+        self.stage_b_rank_loss_coef = float(stage_b_rank_loss_coef)
+        self.stage_b_rank_detach_patch = bool(stage_b_rank_detach_patch)
+        self.stage_b_rank_beta = float(stage_b_rank_beta)
+        self.stage_b_rank_canonical_weight = float(stage_b_rank_canonical_weight)
+        self.stage_b_rank_text_agg = str(stage_b_rank_text_agg)
+        self.stage_b_rank_softmin_tau = float(stage_b_rank_softmin_tau)
+        self.stage_b_rank_mean_softmin_alpha = float(stage_b_rank_mean_softmin_alpha)
         patch_weight_dict = getattr(patch_criterion, "weight_dict", {}) or {}
         self.weight_dict = {
             "loss_patch_ce": float(lambda_patch),
             "loss_text": float(lambda_text),
+            "loss_phrase_rank": float(stage_b_rank_loss_coef),
             "loss_bbox": float(patch_weight_dict.get("loss_bbox", 0.0)),
             "loss_giou": float(patch_weight_dict.get("loss_giou", 0.0)),
         }
@@ -299,6 +317,154 @@ class StageBCriterion(nn.Module):
             )
         return metrics
 
+    def _zero_rank_loss_dict(self, zero: torch.Tensor) -> Dict[str, torch.Tensor]:
+        z = zero.detach()
+        return {
+            "loss_phrase_rank": zero,
+            "phrase_rank_loss_raw": z,
+            "phrase_rank_pair_count": z,
+            "phrase_rank_active_pair_count": z,
+            "phrase_rank_skipped_pair_count": z,
+            "phrase_rank_candidate_tn_count": z,
+            "phrase_rank_missing_positive_count": z,
+            "phrase_rank_invalid_positive_count": z,
+            "phrase_rank_margin": torch.as_tensor(float(self.stage_b_rank_margin), device=zero.device),
+        }
+
+    def _compute_phrase_rank_loss(self, outputs, targets, match_ctx_neg):
+        rank_pos_outputs = outputs.get("rank_pos_outputs", None)
+        rank_pos_targets = outputs.get("rank_pos_targets", None)
+        rank_pair_map = outputs.get("rank_pair_map", None)
+        pred_logits_patch = outputs.get("pred_logits_patch", None)
+        if pred_logits_patch is not None:
+            zero = pred_logits_patch.sum() * 0.0
+        else:
+            zero = outputs["pred_boxes"].sum() * 0.0
+        device = zero.device
+        candidate_tn_count = outputs.get("rank_candidate_tn_count", zero.detach()).to(device=device)
+        missing_positive_count = outputs.get("rank_missing_positive_count", zero.detach()).to(device=device)
+        invalid_positive_count = outputs.get("rank_invalid_positive_count", zero.detach()).to(device=device)
+        if (
+            rank_pos_outputs is None
+            or rank_pos_targets is None
+            or rank_pair_map is None
+            or self.stage_b_rank_loss_coef <= 0
+        ):
+            metrics = self._zero_rank_loss_dict(zero)
+            metrics["phrase_rank_candidate_tn_count"] = candidate_tn_count.detach()
+            metrics["phrase_rank_missing_positive_count"] = missing_positive_count.detach()
+            metrics["phrase_rank_invalid_positive_count"] = invalid_positive_count.detach()
+            return metrics
+
+        rank_pair_map = rank_pair_map.to(device=device, dtype=torch.long).view(-1)
+        if len(rank_pos_targets) != int(rank_pair_map.numel()):
+            raise ValueError(
+                f"rank_pos_targets length must match rank_pair_map, got {len(rank_pos_targets)} vs {rank_pair_map.numel()}"
+            )
+
+        match_ctx_pos = self.patch_criterion.compute_matching(rank_pos_outputs, rank_pos_targets)
+        score_neg = compute_stage_b_slot_logits(
+            outputs,
+            beta=self.stage_b_rank_beta,
+            canonical_weight=self.stage_b_rank_canonical_weight,
+            text_agg=self.stage_b_rank_text_agg,
+            softmin_tau=self.stage_b_rank_softmin_tau,
+            mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
+            detach_patch=self.stage_b_rank_detach_patch,
+        )
+        score_pos = compute_stage_b_slot_logits(
+            rank_pos_outputs,
+            beta=self.stage_b_rank_beta,
+            canonical_weight=self.stage_b_rank_canonical_weight,
+            text_agg=self.stage_b_rank_text_agg,
+            softmin_tau=self.stage_b_rank_softmin_tau,
+            mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
+            detach_patch=self.stage_b_rank_detach_patch,
+        )
+
+        losses: List[torch.Tensor] = []
+        active_count = 0
+        skipped_count = 0
+        pair_count = int(rank_pair_map.numel())
+        neg_indices = match_ctx_neg["all_indices"]
+        neg_slots = match_ctx_neg["matched_patch_idx_list"]
+        pos_indices = match_ctx_pos["all_indices"]
+        pos_slots = match_ctx_pos["matched_patch_idx_list"]
+
+        for rank_row, batch_idx_t in enumerate(rank_pair_map.tolist()):
+            batch_idx = int(batch_idx_t)
+            if batch_idx < 0 or batch_idx >= len(targets):
+                skipped_count += 1
+                continue
+            rank_source_slot = rank_pos_targets[rank_row].get("rank_source_slot", None)
+            if torch.is_tensor(rank_source_slot) and rank_source_slot.numel() > 0:
+                source_slot = int(rank_source_slot.view(-1)[0].item())
+            else:
+                source_slot = 0
+
+            src_neg, tgt_neg = neg_indices[batch_idx]
+            slot_neg = neg_slots[batch_idx]
+            src_pos, tgt_pos = pos_indices[rank_row]
+            slot_pos = pos_slots[rank_row]
+            if src_neg.numel() == 0 or src_pos.numel() == 0:
+                skipped_count += 1
+                continue
+
+            neg_by_target = {}
+            for row_idx, (query_idx, target_idx, slot_idx) in enumerate(
+                zip(src_neg.tolist(), tgt_neg.tolist(), slot_neg.tolist())
+            ):
+                if int(slot_idx) != source_slot:
+                    continue
+                neg_by_target[int(target_idx)] = (int(query_idx), int(slot_idx))
+
+            pos_by_target = {}
+            rank_target_ids = rank_pos_targets[rank_row].get("rank_target_ids", None)
+            if torch.is_tensor(rank_target_ids):
+                rank_target_ids = rank_target_ids.to(device=device, dtype=torch.long).view(-1)
+            for row_idx, (query_idx, target_idx, slot_idx) in enumerate(
+                zip(src_pos.tolist(), tgt_pos.tolist(), slot_pos.tolist())
+            ):
+                local_target_idx = int(target_idx)
+                if rank_target_ids is not None and local_target_idx < int(rank_target_ids.numel()):
+                    original_target_idx = int(rank_target_ids[local_target_idx].item())
+                else:
+                    original_target_idx = local_target_idx
+                pos_by_target[original_target_idx] = (int(query_idx), int(slot_idx))
+
+            common_targets = sorted(set(neg_by_target.keys()) & set(pos_by_target.keys()))
+            if not common_targets:
+                skipped_count += 1
+                continue
+
+            for target_idx in common_targets:
+                q_neg, k_neg = neg_by_target[target_idx]
+                q_pos, k_pos = pos_by_target[target_idx]
+                if k_neg < 0 or k_neg >= score_neg.shape[2] or k_pos < 0 or k_pos >= score_pos.shape[2]:
+                    skipped_count += 1
+                    continue
+                s_neg = score_neg[batch_idx, q_neg, k_neg]
+                s_pos = score_pos[rank_row, q_pos, k_pos]
+                losses.append(F.relu(s_neg - s_pos + self.stage_b_rank_margin))
+                active_count += 1
+
+        if losses:
+            rank_loss = torch.stack(losses).mean()
+        else:
+            rank_loss = zero
+        metrics = {
+            "loss_phrase_rank": rank_loss,
+            "phrase_rank_loss_raw": rank_loss.detach(),
+            "phrase_rank_pair_count": torch.as_tensor(float(pair_count), device=device),
+            "phrase_rank_active_pair_count": torch.as_tensor(float(active_count), device=device),
+            "phrase_rank_skipped_pair_count": torch.as_tensor(float(skipped_count), device=device),
+            "phrase_rank_candidate_tn_count": candidate_tn_count.detach(),
+            "phrase_rank_missing_positive_count": missing_positive_count.detach(),
+            "phrase_rank_invalid_positive_count": invalid_positive_count.detach(),
+            "phrase_rank_margin": torch.as_tensor(float(self.stage_b_rank_margin), device=device),
+        }
+        return metrics
+
     def _zero_text_loss_dict(self, zero: torch.Tensor) -> Dict[str, torch.Tensor]:
         z = zero.detach()
         out = {
@@ -339,6 +505,7 @@ class StageBCriterion(nn.Module):
             else:
                 zero = outputs["pred_boxes"].sum() * 0.0
             losses.update(self._zero_text_loss_dict(zero))
-            return losses
-        losses.update(self._compute_text_loss(outputs, targets, match_ctx))
+        else:
+            losses.update(self._compute_text_loss(outputs, targets, match_ctx))
+        losses.update(self._compute_phrase_rank_loss(outputs, targets, match_ctx))
         return losses

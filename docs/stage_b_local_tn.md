@@ -17,6 +17,14 @@ shirt -> target 1 if it is non-canonical content in the slot
 man   -> target 1 with canonical/head weight
 ```
 
+Stage B also trains an independent phrase-ranking loss for TN rows that have a real `positive_phrase`:
+
+```text
+S(q, t+, p) > S(q, t-, p)
+```
+
+The ranking score is the same phrase score used by Stage-B inference. `try_tn_head_phrase` is not used as a fallback for ranking positives.
+
 ## Dataset Masks
 
 `datasets/patch_episode.py` builds these text masks per support slot:
@@ -33,6 +41,9 @@ phrase_semantic_token_mask    # compatibility alias for content_to_token_mask
 is_tn
 attr_neg_weight_mask
 tn_group_ids
+rank_positive_phrase_to_token_mask
+rank_positive_canonical_to_token_mask
+has_rank_positive
 ```
 
 `content_to_token_mask` is training-only. It marks non-canonical meaningful content tokens inside the phrase slot. It excludes canonical/head tokens, articles `a/an/the`, punctuation, special tokens, and padding.
@@ -104,6 +115,16 @@ The total Stage-B text loss is:
 loss_text = content_pos_loss + canonical_loss + tn_neg_loss
 ```
 
+Phrase ranking is a separate loss:
+
+```python
+loss_phrase_rank = mean(max(0, stage_b_rank_margin - S_pos + S_neg))
+```
+
+`loss_phrase_rank` is weighted by `stage_b_rank_loss_coef`; it is not part of `loss_text` and is not multiplied by `lambda_text`. The default margin is `0.3` and the default rank loss coefficient is `1.0`.
+
+Ranking uses match-by-target alignment. The negative forward and positive forward each run Hungarian matching; scores are compared only when both forwards match the same GT target id and the same support slot. The patch part of the rank score is detached by default (`stage_b_rank_detach_patch=True`).
+
 There is no softmin phrase rejection loss in v2. The old knobs `attr_pos_weight`, `tn_shared_attr_pos_weight`, `attr_neg_weight`, `use_phrase_tn_loss`, `phrase_score_type`, `softmin_tau`, and `lambda_phrase` are deprecated and ignored by the content-token loss.
 
 ## Inference
@@ -112,11 +133,33 @@ There is no softmin phrase rejection loss in v2. The old knobs `attr_pos_weight`
 
 Training-only content masks therefore cannot change demo/postprocess scoring.
 
+The phrase scorer is configured by `stage_b_infer_text_agg`. The default remains `mean`. The optional mixed scorer is:
+
+```python
+stage_b_infer_text_agg = "mean_norm_softmin"
+score = alpha * mean_score + (1 - alpha) * normalized_softmin_score
+```
+
+where:
+
+```python
+normalized_softmin_score = softmin_score + tau * log(num_tokens)
+```
+
+This normalization keeps the score equal to the common token logit when all selected token logits are equal. Stage-B ranking uses the same scorer config as inference.
+
 ## Default Config
 
 ```python
 tn_loss_profile = "standard"
 canonical_pos_weight = 0.15
+stage_b_infer_text_agg = "mean"
+stage_b_infer_softmin_tau = 0.7
+stage_b_infer_mean_softmin_alpha = 0.5
+stage_b_enable_phrase_rank = True
+stage_b_rank_margin = 0.3
+stage_b_rank_loss_coef = 1.0
+stage_b_rank_detach_patch = True
 
 use_tn_category_weights = True
 default_tn_category_weight = 1.0

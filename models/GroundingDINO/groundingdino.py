@@ -46,6 +46,7 @@ from .bertwarper import (
 )
 from .transformer import build_transformer
 from .utils import MLP, ContrastiveEmbed, sigmoid_focal_loss
+from .stage_b_score import compute_stage_b_slot_logits
 
 from .matcher import build_matcher
 from .patch_encoder import PatchEncoder
@@ -369,9 +370,11 @@ class GroundingDINO(nn.Module):
 
         input_query_bbox = input_query_label = attn_mask = dn_meta = None
         patch_only = bool(kw.get("patch_only", self.patch_only))
+        disable_patch_dn = bool(kw.get("disable_patch_dn", False))
         if (
             patch_only
             and self.training
+            and (not disable_patch_dn)
             and (targets is not None)
             and (self.patch_dn_num_queries > 0)
             and (self.patch_dn_tgt is not None)
@@ -946,6 +949,7 @@ class PostProcessStageB(nn.Module):
         canonical_weight: float = 0.15,
         text_agg: str = "mean",
         softmin_tau: float = 0.7,
+        mean_softmin_alpha: float = 0.5,
         output_sigmoid_scores: bool = True,
     ) -> None:
         super().__init__()
@@ -955,96 +959,30 @@ class PostProcessStageB(nn.Module):
         self.canonical_weight = float(canonical_weight)
         self.text_agg = str(text_agg).lower().strip()
         self.softmin_tau = float(softmin_tau)
+        self.mean_softmin_alpha = float(mean_softmin_alpha)
         self.output_sigmoid_scores = bool(output_sigmoid_scores)
 
     def _aggregate_tokens(self, logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        if logits.dim() != 3:
-            raise ValueError(f"pred_logits_text must be (B,Q,T), got {tuple(logits.shape)}")
-        if mask.dim() != 3:
-            raise ValueError(f"token mask must be (B,K,T), got {tuple(mask.shape)}")
-        if logits.shape[0] != mask.shape[0] or logits.shape[-1] != mask.shape[-1]:
-            raise ValueError(
-                f"Token mask/logit shape mismatch: logits={tuple(logits.shape)} mask={tuple(mask.shape)}"
-            )
+        from .stage_b_score import aggregate_stage_b_tokens
 
-        mask = mask.to(device=logits.device, dtype=torch.bool)
-        z = logits[:, :, None, :]  # (B,Q,1,T)
-        m = mask[:, None, :, :]  # (B,1,K,T)
-        valid = m.any(dim=-1)  # (B,1,K)
-
-        if self.text_agg == "mean":
-            denom = m.to(logits.dtype).sum(dim=-1).clamp(min=1.0)
-            score = (z.masked_fill(~m, 0.0).sum(dim=-1) / denom)
-        elif self.text_agg == "max":
-            score = z.masked_fill(~m, torch.finfo(logits.dtype).min).max(dim=-1).values
-        elif self.text_agg == "softmin":
-            tau = max(float(self.softmin_tau), 1e-6)
-            score = -tau * torch.logsumexp(z.masked_fill(~m, torch.finfo(logits.dtype).max).neg() / tau, dim=-1)
-        else:
-            raise ValueError(f"Unsupported Stage B text aggregator: {self.text_agg}")
-
-        return score.masked_fill(~valid, 0.0)  # (B,Q,K)
+        return aggregate_stage_b_tokens(
+            logits,
+            mask,
+            text_agg=self.text_agg,
+            softmin_tau=self.softmin_tau,
+            mean_softmin_alpha=self.mean_softmin_alpha,
+        )
 
     def compute_slot_logits(self, outputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        pred_logits_patch = outputs.get("pred_logits_patch", None)
-        pred_logits_text = outputs.get("pred_logits_text", None)
-        phrase_to_token_mask = outputs.get("phrase_to_token_mask", None)
-        if pred_logits_patch is None:
-            raise KeyError("PostProcessStageB requires outputs['pred_logits_patch'].")
-        if pred_logits_text is None:
-            raise KeyError("PostProcessStageB requires outputs['pred_logits_text'].")
-        if phrase_to_token_mask is None:
-            raise KeyError("PostProcessStageB requires outputs['phrase_to_token_mask'].")
-
-        if pred_logits_patch.dim() == 2:
-            pred_logits_patch = pred_logits_patch.unsqueeze(-1)
-        elif pred_logits_patch.dim() != 3:
-            raise ValueError(
-                f"pred_logits_patch must be (B,Q) or (B,Q,K), got {tuple(pred_logits_patch.shape)}"
-            )
-
-        B, Q, K = pred_logits_patch.shape
-        T = pred_logits_text.shape[-1]
-        phrase_to_token_mask = phrase_to_token_mask.to(device=pred_logits_text.device, dtype=torch.bool)
-        if phrase_to_token_mask.shape[0] != B or phrase_to_token_mask.shape[-1] != T:
-            raise ValueError(
-                "phrase_to_token_mask must be shaped (B,K,T) and share B/T with pred_logits_text, "
-                f"got phrase={tuple(phrase_to_token_mask.shape)} text={tuple(pred_logits_text.shape)}"
-            )
-        if phrase_to_token_mask.shape[1] < K:
-            raise ValueError(
-                f"phrase_to_token_mask has fewer slots than patch logits: {phrase_to_token_mask.shape[1]} < {K}"
-            )
-        phrase_to_token_mask = phrase_to_token_mask[:, :K, :]
-
-        canonical_to_token_mask = outputs.get("canonical_to_token_mask", None)
-        if canonical_to_token_mask is None:
-            canonical_to_token_mask = torch.zeros_like(phrase_to_token_mask)
-        else:
-            canonical_to_token_mask = canonical_to_token_mask.to(device=pred_logits_text.device, dtype=torch.bool)
-            if canonical_to_token_mask.shape[0] != B or canonical_to_token_mask.shape[-1] != T:
-                raise ValueError(
-                    "canonical_to_token_mask must be shaped (B,K,T) and share B/T with pred_logits_text, "
-                    f"got canonical={tuple(canonical_to_token_mask.shape)} text={tuple(pred_logits_text.shape)}"
-                )
-            if canonical_to_token_mask.shape[1] < K:
-                raise ValueError(
-                    f"canonical_to_token_mask has fewer slots than patch logits: {canonical_to_token_mask.shape[1]} < {K}"
-                )
-            canonical_to_token_mask = canonical_to_token_mask[:, :K, :] & phrase_to_token_mask
-
-        attr_mask = phrase_to_token_mask & ~canonical_to_token_mask
-        text_attr_score = self._aggregate_tokens(pred_logits_text, attr_mask)
-        text_canon_score = self._aggregate_tokens(pred_logits_text, canonical_to_token_mask)
-        text_score = text_attr_score + self.canonical_weight * text_canon_score
-
-        slot_logits = pred_logits_patch.to(pred_logits_text.device) + self.beta * text_score
-        patch_mask = outputs.get("patch_mask", outputs.get("patch_phrase_mask", None))
-        if patch_mask is not None:
-            patch_mask = patch_mask.to(device=slot_logits.device, dtype=torch.bool)
-            if patch_mask.shape[0] == B and patch_mask.shape[1] >= K:
-                slot_logits = slot_logits.masked_fill(~patch_mask[:, None, :K], -100.0)
-        return slot_logits
+        return compute_stage_b_slot_logits(
+            outputs,
+            beta=self.beta,
+            canonical_weight=self.canonical_weight,
+            text_agg=self.text_agg,
+            softmin_tau=self.softmin_tau,
+            mean_softmin_alpha=self.mean_softmin_alpha,
+            detach_patch=False,
+        )
 
     @torch.no_grad()
     def forward(self, outputs, target_sizes, not_to_xyxy=False, test=False):
@@ -1170,6 +1108,14 @@ def build_groundingdino(args):
                 lambda_patch=float(getattr(args, "lambda_patch", 1.0)),
                 lambda_text=float(getattr(args, "lambda_text", 0.25)),
                 canonical_pos_weight=float(getattr(args, "canonical_pos_weight", 0.15)),
+                stage_b_rank_margin=float(getattr(args, "stage_b_rank_margin", 0.3)),
+                stage_b_rank_loss_coef=float(getattr(args, "stage_b_rank_loss_coef", 1.0)),
+                stage_b_rank_detach_patch=bool(getattr(args, "stage_b_rank_detach_patch", True)),
+                stage_b_rank_beta=float(getattr(args, "stage_b_infer_text_beta", 1.0)),
+                stage_b_rank_canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 0.15)),
+                stage_b_rank_text_agg=str(getattr(args, "stage_b_infer_text_agg", "mean")),
+                stage_b_rank_softmin_tau=float(getattr(args, "stage_b_infer_softmin_tau", getattr(args, "softmin_tau", 0.7))),
+                stage_b_rank_mean_softmin_alpha=float(getattr(args, "stage_b_infer_mean_softmin_alpha", 0.5)),
             )
         else:
             weight_dict = {
@@ -1212,6 +1158,7 @@ def build_groundingdino(args):
                     canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 0.15)),
                     text_agg=str(getattr(args, "stage_b_infer_text_agg", "mean")),
                     softmin_tau=float(getattr(args, "stage_b_infer_softmin_tau", getattr(args, "softmin_tau", 0.7))),
+                    mean_softmin_alpha=float(getattr(args, "stage_b_infer_mean_softmin_alpha", 0.5)),
                     output_sigmoid_scores=bool(getattr(args, "stage_b_infer_sigmoid_scores", True)),
                 )
             }

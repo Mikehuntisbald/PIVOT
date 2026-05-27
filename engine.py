@@ -9,7 +9,7 @@ import random
 import sys
 import time
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Tuple
+from typing import Callable, Iterable, List, Optional, Tuple
 
 from util.utils import to_device
 import numpy as np
@@ -20,6 +20,7 @@ from datasets.coco_eval import CocoEvaluator
 from datasets.cocogrounding_eval import CocoGroundingEvaluator
 
 from datasets.panoptic_eval import PanopticEvaluator
+from util.misc import NestedTensor
 
 
 class GracefulTrainingExit(Exception):
@@ -49,6 +50,153 @@ class _IteratorWithLen:
 
     def __len__(self) -> int:
         return self.length
+
+
+def _index_nested_tensor(samples: NestedTensor, indices: List[int]) -> NestedTensor:
+    idx = torch.as_tensor(indices, dtype=torch.long, device=samples.tensors.device)
+    tensors = samples.tensors.index_select(0, idx)
+    mask = samples.mask.index_select(0, idx) if samples.mask is not None else None
+    return NestedTensor(tensors, mask)
+
+
+def _select_rank_patch_rows(value, indices: List[int], slots: List[int]):
+    if value is None:
+        return None
+    batch_idx = torch.as_tensor(indices, dtype=torch.long, device=value.device)
+    slot_idx = torch.as_tensor(slots, dtype=torch.long, device=value.device)
+    if value.dim() == 2:
+        return value.index_select(0, batch_idx)
+    if value.dim() == 3:
+        return value[batch_idx, slot_idx].unsqueeze(1)
+    if value.dim() == 4:
+        return value.index_select(0, batch_idx)
+    if value.dim() == 5:
+        return value[batch_idx, slot_idx].unsqueeze(1)
+    raise ValueError(f"Unsupported rank patch tensor shape: {tuple(value.shape)}")
+
+
+def _build_stage_b_rank_subbatch(args, samples, targets, captions, patches, patch_global, patch_mask):
+    if not bool(getattr(args, "stage_b_enable_phrase_rank", True)):
+        return None
+    device = samples.tensors.device
+    rank_indices: List[int] = []
+    rank_slots: List[int] = []
+    rank_captions: List[str] = []
+    rank_targets: List[dict] = []
+    rank_candidate_tn_count = 0
+    rank_missing_positive_count = 0
+    rank_invalid_positive_count = 0
+    for batch_idx, target in enumerate(targets):
+        is_tn = target.get("is_tn", None)
+        if torch.is_tensor(is_tn):
+            tn_slots = torch.nonzero(is_tn.to(torch.bool).view(-1), as_tuple=False).flatten()
+        else:
+            tn_slots = torch.zeros((0,), dtype=torch.long)
+        if int(tn_slots.numel()) == 0:
+            continue
+        rank_candidate_tn_count += 1
+        has_rank = target.get("has_rank_positive", None)
+        rank_captions_i = target.get("rank_positive_captions", None)
+        if (not torch.is_tensor(has_rank)) or rank_captions_i is None:
+            rank_missing_positive_count += 1
+            continue
+        valid_slots = torch.nonzero(has_rank.to(torch.bool).view(-1) & is_tn.to(torch.bool).view(-1), as_tuple=False).flatten()
+        if int(valid_slots.numel()) == 0:
+            rank_missing_positive_count += 1
+            continue
+        if int(valid_slots.numel()) != 1:
+            rank_invalid_positive_count += 1
+            continue
+        slot_idx = int(valid_slots[0].item())
+        if not isinstance(rank_captions_i, list) or slot_idx >= len(rank_captions_i):
+            rank_invalid_positive_count += 1
+            continue
+        caption = rank_captions_i[slot_idx]
+        if not isinstance(caption, str) or not caption.strip():
+            rank_missing_positive_count += 1
+            continue
+        phrase_mask = target.get("rank_positive_phrase_to_token_mask", None)
+        canonical_mask = target.get("rank_positive_canonical_to_token_mask", None)
+        if (not torch.is_tensor(phrase_mask)) or (not torch.is_tensor(canonical_mask)):
+            rank_invalid_positive_count += 1
+            continue
+        if phrase_mask.dim() != 2 or canonical_mask.dim() != 2 or slot_idx >= int(phrase_mask.shape[0]):
+            rank_invalid_positive_count += 1
+            continue
+        if not bool(phrase_mask[slot_idx].any().item()) or not bool(canonical_mask[slot_idx].any().item()):
+            rank_invalid_positive_count += 1
+            continue
+        rank_indices.append(batch_idx)
+        rank_slots.append(slot_idx)
+        rank_captions.append(caption)
+        rank_target = {
+            k: v.to(device, non_blocking=True)
+            for k, v in target.items()
+            if torch.is_tensor(v)
+            and k
+            not in {
+                "phrase_to_token_mask",
+                "canonical_to_token_mask",
+                "content_to_token_mask",
+                "attr_pos_to_token_mask",
+                "attr_neg_to_token_mask",
+                "phrase_semantic_token_mask",
+                "negative_to_token_mask",
+                "attr_neg_weight_mask",
+                "rank_positive_phrase_to_token_mask",
+                "rank_positive_canonical_to_token_mask",
+                "has_rank_positive",
+            }
+        }
+        rank_target["phrase_to_token_mask"] = phrase_mask[slot_idx : slot_idx + 1].to(device, non_blocking=True)
+        rank_target["canonical_to_token_mask"] = canonical_mask[slot_idx : slot_idx + 1].to(device, non_blocking=True)
+        selected_class = None
+        if "support_classes" in rank_target and torch.is_tensor(rank_target["support_classes"]):
+            sc = rank_target["support_classes"].view(-1)
+            if slot_idx < int(sc.numel()):
+                selected_class = int(sc[slot_idx].item())
+                rank_target["support_classes"] = sc[slot_idx : slot_idx + 1]
+                rank_target["support_class"] = sc[slot_idx : slot_idx + 1]
+        elif "support_class" in rank_target and torch.is_tensor(rank_target["support_class"]):
+            selected_class = int(rank_target["support_class"].view(-1)[0].item())
+            rank_target["support_class"] = rank_target["support_class"].view(-1)[:1]
+        if selected_class is not None and "labels" in rank_target and "boxes" in rank_target:
+            label_mask = rank_target["labels"].to(torch.long) == int(selected_class)
+            if not bool(label_mask.any().item()):
+                rank_indices.pop()
+                rank_slots.pop()
+                rank_captions.pop()
+                rank_invalid_positive_count += 1
+                continue
+            rank_target["rank_target_ids"] = torch.nonzero(label_mask, as_tuple=False).flatten().to(device)
+            rank_target["labels"] = rank_target["labels"][label_mask]
+            rank_target["boxes"] = rank_target["boxes"][label_mask]
+        rank_target["rank_source_slot"] = torch.as_tensor([slot_idx], dtype=torch.long, device=device)
+        rank_targets.append(rank_target)
+    if rank_candidate_tn_count <= 0:
+        return None
+    if not rank_indices:
+        return {
+            "indices": [],
+            "rank_candidate_tn_count": rank_candidate_tn_count,
+            "rank_missing_positive_count": rank_missing_positive_count,
+            "rank_invalid_positive_count": rank_invalid_positive_count,
+        }
+    rank_patch_mask = None
+    if patch_mask is not None:
+        rank_patch_mask = torch.ones((len(rank_indices), 1), dtype=torch.bool, device=patch_mask.device)
+    return {
+        "indices": rank_indices,
+        "rank_candidate_tn_count": rank_candidate_tn_count,
+        "rank_missing_positive_count": rank_missing_positive_count,
+        "rank_invalid_positive_count": rank_invalid_positive_count,
+        "samples": _index_nested_tensor(samples, rank_indices),
+        "captions": rank_captions,
+        "targets": rank_targets,
+        "patches": _select_rank_patch_rows(patches, rank_indices, rank_slots),
+        "patch_global": _select_rank_patch_rows(patch_global, rank_indices, rank_slots),
+        "patch_mask": rank_patch_mask,
+    }
 
 
 def _restore_rng_state(rng_state) -> None:
@@ -554,6 +702,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                         pad = torch.full((Kmax - int(sc.numel()),), -1, dtype=sc.dtype, device=sc.device)
                         t2["support_classes"] = torch.cat([sc, pad], dim=0)
                 filtered_targets.append(t2)
+                if "rank_positive_captions" in t:
+                    t2["rank_positive_captions"] = t["rank_positive_captions"]
             targets = filtered_targets
         else:
             captions = [t["caption"] for t in targets]
@@ -593,6 +743,15 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                 for i, v in enumerate(values):
                                     padded[i, : int(v.shape[0]), : int(v.shape[1])] = v
                                 stage_b_mask_kwargs[mask_key] = padded.to(device, non_blocking=True)
+                rank_subbatch = _build_stage_b_rank_subbatch(
+                    args,
+                    samples,
+                    targets,
+                    captions,
+                    patches,
+                    patch_global,
+                    patch_mask,
+                )
                 outputs = model(
                     samples,
                     targets=targets,
@@ -604,6 +763,36 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
                     **stage_b_mask_kwargs,
                 )
+                if rank_subbatch is not None:
+                    outputs["rank_candidate_tn_count"] = torch.as_tensor(
+                        float(rank_subbatch.get("rank_candidate_tn_count", 0)), device=device
+                    )
+                    outputs["rank_missing_positive_count"] = torch.as_tensor(
+                        float(rank_subbatch.get("rank_missing_positive_count", 0)), device=device
+                    )
+                    outputs["rank_invalid_positive_count"] = torch.as_tensor(
+                        float(rank_subbatch.get("rank_invalid_positive_count", 0)), device=device
+                    )
+                    if rank_subbatch["indices"]:
+                        rank_pos_outputs = model(
+                            rank_subbatch["samples"],
+                            targets=rank_subbatch["targets"],
+                            captions=rank_subbatch["captions"],
+                            patches=rank_subbatch["patches"],
+                            patch_global=rank_subbatch["patch_global"],
+                            patch_mask=rank_subbatch["patch_mask"],
+                            patch_only=True,
+                            disable_patch_dn=True,
+                            patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
+                            canonical_to_token_mask=torch.stack(
+                                [t["canonical_to_token_mask"] for t in rank_subbatch["targets"]], dim=0
+                            ),
+                        )
+                        outputs["rank_pos_outputs"] = rank_pos_outputs
+                        outputs["rank_pos_targets"] = rank_subbatch["targets"]
+                        outputs["rank_pair_map"] = torch.as_tensor(
+                            rank_subbatch["indices"], dtype=torch.long, device=device
+                        )
                 loss_dict = criterion(outputs, targets)
             else:
                 outputs = model(samples, captions=captions, patches=patches, patch_global=patch_global)

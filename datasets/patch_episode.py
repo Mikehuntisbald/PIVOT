@@ -1448,6 +1448,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         tn_group_ids = torch.full((K,), int(_TN_GROUP_TO_ID["other"]), dtype=torch.long)
         attr_neg_weight_mask = torch.zeros((K, T), dtype=torch.float32)
         is_tn = torch.zeros((K,), dtype=torch.bool)
+        rank_positive_phrase_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        rank_positive_canonical_to_token_mask = torch.zeros((K, T), dtype=torch.bool)
+        has_rank_positive = torch.zeros((K,), dtype=torch.bool)
+        rank_positive_captions: List[Optional[str]] = [None for _ in range(K)]
         invalid_records: List[Dict[str, Any]] = []
 
         for k, ((span_start, _span_end), phrase_text, canonical_text, aliases) in enumerate(
@@ -1674,11 +1678,12 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 canonical_mask,
                 T,
             )
-            positive_phrase = record.get("positive_phrase", None) or record.get("try_tn_head_phrase", None)
+            positive_phrase = record.get("positive_phrase", None)
+            shared_positive_phrase = positive_phrase or record.get("try_tn_head_phrase", None)
             attr_pos_mask = self._build_shared_attr_mask(
                 tokenized,
                 phrase_text,
-                positive_phrase,
+                shared_positive_phrase,
                 slot_spans[k],
                 phrase_mask,
                 canonical_mask,
@@ -1692,6 +1697,38 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             # not only attribute words. TN negative tokens stay in attr_neg.
             attr_pos_to_token_mask[k] = content_mask & (~neg_mask)
 
+            positive_phrase_clean = self._clean_caption_phrase(positive_phrase)
+            if positive_phrase_clean:
+                positive_caption, positive_spans = self._build_caption_from_phrases([positive_phrase_clean])
+                positive_tokenized = self._text_tokenizer(
+                    positive_caption,
+                    truncation=True,
+                    max_length=int(self.cfg.max_text_len),
+                )
+                positive_phrase_mask = self._char_span_to_token_mask(positive_tokenized, positive_spans[0], T)
+                positive_canonical_span = None
+                for cand in candidates:
+                    positive_canonical_span = self._find_word_span(positive_phrase_clean, cand, ignore_case=False)
+                    if positive_canonical_span is not None:
+                        break
+                if positive_canonical_span is None:
+                    for cand in candidates:
+                        positive_canonical_span = self._find_word_span(positive_phrase_clean, cand, ignore_case=True)
+                        if positive_canonical_span is not None:
+                            break
+                if positive_phrase_mask.any() and positive_canonical_span is not None:
+                    pos_abs_span = (
+                        positive_spans[0][0] + int(positive_canonical_span[0]),
+                        positive_spans[0][0] + int(positive_canonical_span[1]),
+                    )
+                    positive_canonical_mask = self._char_span_to_token_mask(positive_tokenized, pos_abs_span, T)
+                    positive_canonical_mask = positive_canonical_mask & positive_phrase_mask
+                    if positive_canonical_mask.any():
+                        rank_positive_phrase_to_token_mask[k] = positive_phrase_mask
+                        rank_positive_canonical_to_token_mask[k] = positive_canonical_mask
+                        has_rank_positive[k] = True
+                        rank_positive_captions[k] = positive_caption
+
         return (
             caption,
             phrase_to_token_mask,
@@ -1703,6 +1740,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             is_tn,
             attr_neg_weight_mask,
             tn_group_ids,
+            rank_positive_phrase_to_token_mask,
+            rank_positive_canonical_to_token_mask,
+            has_rank_positive,
+            rank_positive_captions,
             invalid_records,
         )
 
@@ -2703,6 +2744,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             is_tn = None
             attr_neg_weight_mask = None
             tn_group_ids = None
+            rank_positive_phrase_to_token_mask = None
+            rank_positive_canonical_to_token_mask = None
+            has_rank_positive = None
+            rank_positive_captions: List[Optional[str]] = []
             invalid_text_mask_records: List[Dict[str, Any]] = []
             if int(self.cfg.support_num_patches_max) > 1:
                 support_classes_t, patches_or_emb = support
@@ -2731,6 +2776,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         is_tn,
                         attr_neg_weight_mask,
                         tn_group_ids,
+                        rank_positive_phrase_to_token_mask,
+                        rank_positive_canonical_to_token_mask,
+                        has_rank_positive,
+                        rank_positive_captions,
                         invalid_text_mask_records,
                     ) = self._build_slot_text_masks(
                         phrases, slot_canonical_texts, slot_aliases, slot_records=slot_records
@@ -2771,6 +2820,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         is_tn,
                         attr_neg_weight_mask,
                         tn_group_ids,
+                        rank_positive_phrase_to_token_mask,
+                        rank_positive_canonical_to_token_mask,
+                        has_rank_positive,
+                        rank_positive_captions,
                         invalid_text_mask_records,
                     ) = self._build_slot_text_masks(
                         phrases, [canonical_text], [alias_candidates], slot_records=slot_records
@@ -2861,6 +2914,14 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 target["tn_group_ids"] = tn_group_ids
             if negative_to_token_mask is not None:
                 target["negative_to_token_mask"] = negative_to_token_mask
+            if rank_positive_phrase_to_token_mask is not None:
+                target["rank_positive_phrase_to_token_mask"] = rank_positive_phrase_to_token_mask
+            if rank_positive_canonical_to_token_mask is not None:
+                target["rank_positive_canonical_to_token_mask"] = rank_positive_canonical_to_token_mask
+            if has_rank_positive is not None:
+                target["has_rank_positive"] = has_rank_positive
+            if rank_positive_captions:
+                target["rank_positive_captions"] = rank_positive_captions
             if int(self.cfg.support_num_patches_max) > 1:
                 target["support_classes"] = support_classes_t
                 target["support_class"] = support_classes_t[:1]  # legacy logging key

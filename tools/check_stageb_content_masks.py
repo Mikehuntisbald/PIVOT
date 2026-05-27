@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sys
+import inspect
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -18,7 +19,11 @@ from datasets.patch_episode import (
     _tn_category_group,
 )
 from models.GroundingDINO.groundingdino import PostProcessStageB
+from models.GroundingDINO.groundingdino import GroundingDINO
+from models.GroundingDINO.stage_b_score import compute_stage_b_slot_logits
+from models.GroundingDINO.stage_b_score import aggregate_stage_b_tokens
 from models.GroundingDINO.stage_b_criterion import StageBCriterion
+import engine
 
 
 def _make_dataset_shell() -> PatchEpisodeJsonlDataset:
@@ -60,6 +65,10 @@ def check_content_mask_semantics() -> None:
         is_tn,
         attr_neg_weight_mask,
         tn_group_ids,
+        _rank_phrase_mask,
+        _rank_canonical_mask,
+        _has_rank_positive,
+        _rank_positive_captions,
         invalid_records,
     ) = ds._build_slot_text_masks(
         ["the blue bird left of the tree"],
@@ -86,7 +95,23 @@ def check_content_mask_semantics() -> None:
     assert not neg_tokens
     assert not attr_neg_weight_mask[0].any()
 
-    caption, *_masks, content_to_token_mask, _is_tn, _w, _g, invalid_records = ds._build_slot_text_masks(
+    (
+        caption,
+        _phrase_to_token_mask,
+        _canonical_to_token_mask,
+        _attr_pos_to_token_mask,
+        _attr_neg_to_token_mask,
+        _relation_to_token_mask,
+        content_to_token_mask,
+        _is_tn,
+        _w,
+        _g,
+        _rank_phrase_mask,
+        _rank_canonical_mask,
+        _has_rank_positive,
+        _rank_positive_captions,
+        invalid_records,
+    ) = ds._build_slot_text_masks(
         ["bird next to tree"],
         ["bird"],
         [["bird"]],
@@ -109,6 +134,10 @@ def check_tn_changed_tokens_retained() -> None:
         is_tn,
         attr_neg_weight_mask,
         tn_group_ids,
+        _rank_phrase_mask,
+        _rank_canonical_mask,
+        _has_rank_positive,
+        _rank_positive_captions,
         invalid_records,
     ) = ds._build_slot_text_masks(
         ["bird next to tree"],
@@ -202,11 +231,258 @@ def check_phrase_loss_disabled() -> None:
     assert losses["tn_neg_count_relation_action_like"].item() == 1.0
 
 
+def check_rank_positive_uses_positive_phrase_only() -> None:
+    ds = _make_dataset_shell()
+    (
+        _caption,
+        _phrase_to_token_mask,
+        _canonical_to_token_mask,
+        _attr_pos_to_token_mask,
+        _attr_neg_to_token_mask,
+        _relation_to_token_mask,
+        _content_to_token_mask,
+        _is_tn,
+        _attr_neg_weight_mask,
+        _tn_group_ids,
+        _rank_phrase_mask,
+        _rank_canonical_mask,
+        has_rank_positive,
+        rank_positive_captions,
+        invalid_records,
+    ) = ds._build_slot_text_masks(
+        ["bird next to tree"],
+        ["bird"],
+        [["bird"]],
+        slot_records=[
+            {
+                "phrase": "bird next to tree",
+                "head_phrase": "bird",
+                "text_is_negative": True,
+                "try_tn_head_phrase": "bird beside tree",
+                "replace_from": ["beside"],
+                "replace_to": ["next to"],
+                "replace_category": ["spatial relation"],
+            }
+        ],
+    )
+    assert not invalid_records, invalid_records
+    assert not has_rank_positive[0].item()
+    assert rank_positive_captions[0] is None
+
+    (
+        _caption,
+        _phrase_to_token_mask,
+        _canonical_to_token_mask,
+        _attr_pos_to_token_mask,
+        _attr_neg_to_token_mask,
+        _relation_to_token_mask,
+        _content_to_token_mask,
+        _is_tn,
+        _attr_neg_weight_mask,
+        _tn_group_ids,
+        rank_phrase_mask,
+        rank_canonical_mask,
+        has_rank_positive,
+        rank_positive_captions,
+        invalid_records,
+    ) = ds._build_slot_text_masks(
+        ["bird next to tree"],
+        ["bird"],
+        [["bird"]],
+        slot_records=[
+            {
+                "phrase": "bird next to tree",
+                "head_phrase": "bird",
+                "text_is_negative": True,
+                "positive_phrase": "bird beside tree",
+                "try_tn_head_phrase": "wrong fallback",
+                "replace_from": ["beside"],
+                "replace_to": ["next to"],
+                "replace_category": ["spatial relation"],
+            }
+        ],
+    )
+    assert not invalid_records, invalid_records
+    assert has_rank_positive[0].item()
+    assert rank_positive_captions[0] == "bird beside tree ."
+    assert rank_phrase_mask[0].any()
+    assert rank_canonical_mask[0].any()
+
+
+def check_shared_score_helper_matches_postprocess() -> None:
+    torch.manual_seed(11)
+    outputs = {
+        "pred_logits_patch": torch.randn(1, 4, 2),
+        "pred_logits_text": torch.randn(1, 4, 9),
+        "phrase_to_token_mask": torch.tensor(
+            [[[0, 1, 1, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 0]]],
+            dtype=torch.bool,
+        ),
+        "canonical_to_token_mask": torch.tensor(
+            [[[0, 0, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0, 0]]],
+            dtype=torch.bool,
+        ),
+    }
+    post = PostProcessStageB(beta=0.8, canonical_weight=0.2, text_agg="mean", output_sigmoid_scores=False)
+    from_post = post.compute_slot_logits(outputs)
+    from_helper = compute_stage_b_slot_logits(
+        outputs,
+        beta=0.8,
+        canonical_weight=0.2,
+        text_agg="mean",
+        detach_patch=False,
+    )
+    assert torch.allclose(from_post, from_helper)
+
+    post_mix = PostProcessStageB(
+        beta=0.8,
+        canonical_weight=0.2,
+        text_agg="mean_norm_softmin",
+        softmin_tau=0.7,
+        mean_softmin_alpha=0.35,
+        output_sigmoid_scores=False,
+    )
+    from_post_mix = post_mix.compute_slot_logits(outputs)
+    from_helper_mix = compute_stage_b_slot_logits(
+        outputs,
+        beta=0.8,
+        canonical_weight=0.2,
+        text_agg="mean_norm_softmin",
+        softmin_tau=0.7,
+        mean_softmin_alpha=0.35,
+        detach_patch=False,
+    )
+    assert torch.allclose(from_post_mix, from_helper_mix)
+
+
+def check_mean_normalized_softmin_scorer() -> None:
+    logits = torch.tensor([[[1.0, 3.0, -1.0, 9.0]]])
+    mask = torch.tensor([[[1, 1, 1, 0]]], dtype=torch.bool)
+    tau = 0.7
+    alpha = 0.25
+    score = aggregate_stage_b_tokens(
+        logits,
+        mask,
+        text_agg="mean_norm_softmin",
+        softmin_tau=tau,
+        mean_softmin_alpha=alpha,
+    )
+    token_logits = torch.tensor([1.0, 3.0, -1.0])
+    mean_score = token_logits.mean()
+    softmin_score = -tau * torch.logsumexp(-token_logits / tau, dim=0)
+    normalized_softmin = softmin_score + tau * torch.log(torch.tensor(float(token_logits.numel())))
+    expected = alpha * mean_score + (1.0 - alpha) * normalized_softmin
+    assert torch.allclose(score[0, 0, 0], expected)
+
+    equal_logits = torch.full((1, 1, 4), 2.5)
+    equal_mask = torch.tensor([[[1, 1, 1, 1]]], dtype=torch.bool)
+    equal_score = aggregate_stage_b_tokens(
+        equal_logits,
+        equal_mask,
+        text_agg="mean_normalized_softmin",
+        softmin_tau=0.3,
+        mean_softmin_alpha=0.0,
+    )
+    assert torch.allclose(equal_score[0, 0, 0], torch.tensor(2.5), atol=1e-6)
+
+
+def check_phrase_rank_loss_independent_and_match_by_target() -> None:
+    class DummyPatchCriterion:
+        matcher = None
+        weight_dict = {}
+
+        def compute_matching(self, outputs, targets):
+            if outputs.get("is_rank_pos", False):
+                return {
+                    "all_indices": [(torch.tensor([1]), torch.tensor([0]))],
+                    "matched_patch_idx_list": [torch.tensor([0])],
+                }
+            return {
+                "all_indices": [(torch.tensor([0, 2]), torch.tensor([0, 1]))],
+                "matched_patch_idx_list": [torch.tensor([0, 0])],
+            }
+
+    criterion = StageBCriterion(
+        patch_criterion=DummyPatchCriterion(),
+        lambda_text=1.0,
+        stage_b_rank_margin=0.3,
+        stage_b_rank_loss_coef=1.0,
+        stage_b_rank_detach_patch=True,
+        stage_b_rank_beta=1.0,
+        stage_b_rank_canonical_weight=0.0,
+    )
+    pred_patch_neg = torch.tensor([[[0.0], [0.0], [0.0]]], requires_grad=True)
+    pred_patch_pos = torch.tensor([[[0.0], [0.0], [0.0]]], requires_grad=True)
+    outputs = {
+        "pred_logits_patch": pred_patch_neg,
+        "pred_logits_text": torch.tensor([[[0.2, 0.2], [0.0, 0.0], [0.9, 0.9]]], requires_grad=True),
+        "pred_boxes": torch.zeros(1, 3, 4),
+        "phrase_to_token_mask": torch.tensor([[[1, 1]]], dtype=torch.bool),
+        "canonical_to_token_mask": torch.zeros(1, 1, 2, dtype=torch.bool),
+        "rank_pos_outputs": {
+            "is_rank_pos": True,
+            "pred_logits_patch": pred_patch_pos,
+            "pred_logits_text": torch.tensor([[[0.1, 0.1], [0.4, 0.4], [0.0, 0.0]]], requires_grad=True),
+            "pred_boxes": torch.zeros(1, 3, 4),
+            "phrase_to_token_mask": torch.tensor([[[1, 1]]], dtype=torch.bool),
+            "canonical_to_token_mask": torch.zeros(1, 1, 2, dtype=torch.bool),
+        },
+        "rank_pair_map": torch.tensor([0], dtype=torch.long),
+    }
+    targets = [{"labels": torch.tensor([5, 5]), "boxes": torch.zeros(2, 4)}]
+    rank_pos_targets = [
+        {
+            "labels": torch.tensor([5]),
+            "boxes": torch.zeros(1, 4),
+            "support_class": torch.tensor([5]),
+            "rank_source_slot": torch.tensor([0]),
+            "rank_target_ids": torch.tensor([1]),
+        }
+    ]
+    outputs["rank_pos_targets"] = rank_pos_targets
+    match_ctx = DummyPatchCriterion().compute_matching(outputs, targets)
+    rank_losses = criterion._compute_phrase_rank_loss(outputs, targets, match_ctx)
+    # Match-by-target should use neg query 2 for original target 1, not neg query 0.
+    expected = torch.relu(torch.tensor(0.9 - 0.4 + 0.3))
+    assert torch.allclose(rank_losses["loss_phrase_rank"], expected)
+    text_losses = criterion._compute_text_loss(
+        {"pred_logits_text": torch.tensor([[[0.2, 0.7, -0.6]]])},
+        [
+            {
+                "phrase_to_token_mask": torch.tensor([[1, 1, 1]], dtype=torch.bool),
+                "canonical_to_token_mask": torch.tensor([[0, 1, 0]], dtype=torch.bool),
+                "content_to_token_mask": torch.tensor([[1, 0, 0]], dtype=torch.bool),
+                "attr_neg_to_token_mask": torch.tensor([[0, 0, 1]], dtype=torch.bool),
+                "attr_neg_weight_mask": torch.tensor([[0, 0, 1]], dtype=torch.float32),
+                "is_tn": torch.tensor([True]),
+            }
+        ],
+        {"all_indices": [(torch.tensor([0]), torch.tensor([0]))], "matched_patch_idx_list": [torch.tensor([0])]},
+    )
+    assert "loss_phrase_rank" not in text_losses
+    rank_losses["loss_phrase_rank"].backward()
+    assert pred_patch_neg.grad is None
+    assert pred_patch_pos.grad is None
+
+
+def check_rank_forward_disables_patch_dn() -> None:
+    model_forward_src = inspect.getsource(GroundingDINO.forward)
+    engine_src = inspect.getsource(engine.train_one_epoch)
+    assert 'disable_patch_dn = bool(kw.get("disable_patch_dn", False))' in model_forward_src
+    assert "and (not disable_patch_dn)" in model_forward_src
+    assert "disable_patch_dn=True" in engine_src
+
+
 def main() -> None:
     check_content_mask_semantics()
     check_tn_changed_tokens_retained()
     check_postprocess_ignores_training_masks()
     check_phrase_loss_disabled()
+    check_rank_positive_uses_positive_phrase_only()
+    check_shared_score_helper_matches_postprocess()
+    check_mean_normalized_softmin_scorer()
+    check_phrase_rank_loss_independent_and_match_by_target()
+    check_rank_forward_disables_patch_dn()
     print("Stage-B content-mask sanity checks passed.")
 
 
