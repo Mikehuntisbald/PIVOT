@@ -506,6 +506,7 @@ class GroundingDINO(nn.Module):
             if "phrase_to_token_mask" in text_dict:
                 out["phrase_to_token_mask"] = text_dict["phrase_to_token_mask"]
         for mask_key in (
+            "phrase_to_token_mask",
             "canonical_to_token_mask",
             "content_to_token_mask",
             "attr_pos_to_token_mask",

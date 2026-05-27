@@ -561,6 +561,9 @@ def check_rank_forward_disables_patch_dn() -> None:
     engine_src = inspect.getsource(engine.train_one_epoch)
     assert 'disable_patch_dn = bool(kw.get("disable_patch_dn", False))' in model_forward_src
     assert "and (not disable_patch_dn)" in model_forward_src
+    assert '"phrase_to_token_mask",' in model_forward_src
+    assert '"phrase_to_token_mask",' in engine_src
+    assert "phrase_to_token_mask=torch.stack" in engine_src
     assert "has_rank_pairs = bool(rank_subbatch is not None and rank_subbatch.get(\"indices\"))" in engine_src
     assert "disable_patch_dn=has_rank_pairs" in engine_src
     assert "disable_patch_dn=True" in engine_src

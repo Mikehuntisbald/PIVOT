@@ -741,6 +741,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 # Pass `targets` so the model can optionally build GT-guided (DN) queries in patch-only mode.
                 stage_b_mask_kwargs = {}
                 for mask_key in (
+                    "phrase_to_token_mask",
                     "canonical_to_token_mask",
                     "content_to_token_mask",
                     "attr_pos_to_token_mask",
@@ -804,6 +805,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                             patch_only=True,
                             disable_patch_dn=True,
                             patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
+                            phrase_to_token_mask=torch.stack(
+                                [t["phrase_to_token_mask"] for t in rank_subbatch["targets"]], dim=0
+                            ),
                             canonical_to_token_mask=torch.stack(
                                 [t["canonical_to_token_mask"] for t in rank_subbatch["targets"]], dim=0
                             ),
