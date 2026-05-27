@@ -323,7 +323,8 @@ class StageBCriterion(nn.Module):
             "loss_phrase_rank": zero,
             "phrase_rank_loss_raw": z,
             "phrase_rank_pair_count": z,
-            "phrase_rank_active_pair_count": z,
+            "phrase_rank_used_pair_count": z,
+            "phrase_rank_violation_count": z,
             "phrase_rank_skipped_pair_count": z,
             "phrase_rank_candidate_tn_count": z,
             "phrase_rank_missing_positive_count": z,
@@ -383,7 +384,8 @@ class StageBCriterion(nn.Module):
         )
 
         losses: List[torch.Tensor] = []
-        active_count = 0
+        used_count = 0
+        violation_count = 0
         skipped_count = 0
         pair_count = int(rank_pair_map.numel())
         neg_indices = match_ctx_neg["all_indices"]
@@ -445,8 +447,11 @@ class StageBCriterion(nn.Module):
                     continue
                 s_neg = score_neg[batch_idx, q_neg, k_neg]
                 s_pos = score_pos[rank_row, q_pos, k_pos]
-                losses.append(F.relu(s_neg - s_pos + self.stage_b_rank_margin))
-                active_count += 1
+                rank_value = F.relu(s_neg - s_pos + self.stage_b_rank_margin)
+                losses.append(rank_value)
+                used_count += 1
+                if float(rank_value.detach().item()) > 0:
+                    violation_count += 1
 
         if losses:
             rank_loss = torch.stack(losses).mean()
@@ -456,7 +461,8 @@ class StageBCriterion(nn.Module):
             "loss_phrase_rank": rank_loss,
             "phrase_rank_loss_raw": rank_loss.detach(),
             "phrase_rank_pair_count": torch.as_tensor(float(pair_count), device=device),
-            "phrase_rank_active_pair_count": torch.as_tensor(float(active_count), device=device),
+            "phrase_rank_used_pair_count": torch.as_tensor(float(used_count), device=device),
+            "phrase_rank_violation_count": torch.as_tensor(float(violation_count), device=device),
             "phrase_rank_skipped_pair_count": torch.as_tensor(float(skipped_count), device=device),
             "phrase_rank_candidate_tn_count": candidate_tn_count.detach(),
             "phrase_rank_missing_positive_count": missing_positive_count.detach(),

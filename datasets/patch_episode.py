@@ -1428,7 +1428,23 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         slot_records = list(slot_records or [{} for _ in slot_phrases])
         caption, slot_spans = self._build_caption_from_phrases(slot_phrases)
         if not self.cfg.build_text_token_masks:
-            return caption, None, None, None, None, None, None, None, None, None, []
+            return (
+                caption,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                [],
+                [],
+            )
         if self._text_tokenizer is None:
             raise RuntimeError("build_text_token_masks=True but tokenizer is not initialized.")
 

@@ -47,6 +47,13 @@ def _make_dataset_shell() -> PatchEpisodeJsonlDataset:
     return ds
 
 
+def _make_dataset_shell_without_text_masks() -> PatchEpisodeJsonlDataset:
+    ds = object.__new__(PatchEpisodeJsonlDataset)
+    ds.cfg = SimpleNamespace(build_text_token_masks=False, patch_text_aug_max_words=64)
+    ds._text_tokenizer = None
+    return ds
+
+
 def _masked_tokens(ds: PatchEpisodeJsonlDataset, caption: str, mask: torch.Tensor) -> set[str]:
     tokenized = ds._text_tokenizer(caption, truncation=True, max_length=int(ds.cfg.max_text_len))
     tokens = ds._text_tokenizer.convert_ids_to_tokens(tokenized["input_ids"])
@@ -120,6 +127,22 @@ def check_content_mask_semantics() -> None:
     )
     assert not invalid_records, invalid_records
     assert "to" in _masked_tokens(ds, caption, content_to_token_mask[0])
+
+
+def check_build_slot_text_masks_early_return_arity() -> None:
+    ds = _make_dataset_shell_without_text_masks()
+    result = ds._build_slot_text_masks(
+        ["blue bird"],
+        ["bird"],
+        [["bird"]],
+        slot_records=[{"phrase": "blue bird", "head_phrase": "bird", "text_is_negative": False}],
+    )
+    assert len(result) == 15
+    caption, *rest = result
+    assert caption == "blue bird ."
+    assert all(value is None for value in rest[:12])
+    assert rest[12] == []
+    assert rest[13] == []
 
 
 def check_tn_changed_tokens_retained() -> None:
@@ -466,6 +489,73 @@ def check_phrase_rank_loss_independent_and_match_by_target() -> None:
     assert pred_patch_pos.grad is None
 
 
+def check_phrase_rank_violation_count() -> None:
+    class DummyPatchCriterion:
+        matcher = None
+        weight_dict = {}
+
+        def __init__(self, neg_query: int = 0, pos_query: int = 0):
+            self.neg_query = int(neg_query)
+            self.pos_query = int(pos_query)
+
+        def compute_matching(self, outputs, targets):
+            query = self.pos_query if outputs.get("is_rank_pos", False) else self.neg_query
+            return {
+                "all_indices": [(torch.tensor([query]), torch.tensor([0]))],
+                "matched_patch_idx_list": [torch.tensor([0])],
+            }
+
+    def run_case(s_pos: float, s_neg: float):
+        patch_criterion = DummyPatchCriterion()
+        criterion = StageBCriterion(
+            patch_criterion=patch_criterion,
+            lambda_text=1.0,
+            stage_b_rank_margin=0.3,
+            stage_b_rank_loss_coef=1.0,
+            stage_b_rank_detach_patch=True,
+            stage_b_rank_beta=1.0,
+            stage_b_rank_canonical_weight=0.0,
+        )
+        outputs = {
+            "pred_logits_patch": torch.zeros(1, 1, 1),
+            "pred_logits_text": torch.tensor([[[s_neg]]], dtype=torch.float32),
+            "pred_boxes": torch.zeros(1, 1, 4),
+            "phrase_to_token_mask": torch.tensor([[[1]]], dtype=torch.bool),
+            "canonical_to_token_mask": torch.zeros(1, 1, 1, dtype=torch.bool),
+            "rank_pos_outputs": {
+                "is_rank_pos": True,
+                "pred_logits_patch": torch.zeros(1, 1, 1),
+                "pred_logits_text": torch.tensor([[[s_pos]]], dtype=torch.float32),
+                "pred_boxes": torch.zeros(1, 1, 4),
+                "phrase_to_token_mask": torch.tensor([[[1]]], dtype=torch.bool),
+                "canonical_to_token_mask": torch.zeros(1, 1, 1, dtype=torch.bool),
+            },
+            "rank_pair_map": torch.tensor([0], dtype=torch.long),
+            "rank_pos_targets": [
+                {
+                    "labels": torch.tensor([5]),
+                    "boxes": torch.zeros(1, 4),
+                    "rank_source_slot": torch.tensor([0]),
+                    "rank_target_ids": torch.tensor([0]),
+                }
+            ],
+        }
+        targets = [{"labels": torch.tensor([5]), "boxes": torch.zeros(1, 4)}]
+        return criterion._compute_phrase_rank_loss(outputs, targets, patch_criterion.compute_matching(outputs, targets))
+
+    no_violation = run_case(s_pos=1.0, s_neg=0.0)
+    assert torch.allclose(no_violation["loss_phrase_rank"], torch.tensor(0.0))
+    assert no_violation["phrase_rank_used_pair_count"].item() == 1.0
+    assert no_violation["phrase_rank_violation_count"].item() == 0.0
+    assert "phrase_rank_active_pair_count" not in no_violation
+
+    violation = run_case(s_pos=0.1, s_neg=0.5)
+    assert violation["loss_phrase_rank"].item() > 0.0
+    assert violation["phrase_rank_used_pair_count"].item() == 1.0
+    assert violation["phrase_rank_violation_count"].item() == 1.0
+    assert "phrase_rank_active_pair_count" not in violation
+
+
 def check_rank_forward_disables_patch_dn() -> None:
     model_forward_src = inspect.getsource(GroundingDINO.forward)
     engine_src = inspect.getsource(engine.train_one_epoch)
@@ -497,8 +587,48 @@ def check_drift_batch_handles_non_tensor_targets() -> None:
     assert torch.equal(moved["targets"][0]["labels"], torch.tensor([1]))
 
 
+def check_rank_subbatch_keeps_multiple_valid_slots() -> None:
+    samples = NestedTensor(
+        torch.zeros(1, 3, 4, 4),
+        torch.zeros(1, 4, 4, dtype=torch.bool),
+    )
+    target = {
+        "labels": torch.tensor([10, 20]),
+        "boxes": torch.zeros(2, 4),
+        "support_classes": torch.tensor([10, 20]),
+        "is_tn": torch.tensor([True, True]),
+        "has_rank_positive": torch.tensor([True, True]),
+        "rank_positive_captions": ["blue bird .", "red car ."],
+        "rank_positive_phrase_to_token_mask": torch.tensor([[1, 1, 0], [1, 0, 1]], dtype=torch.bool),
+        "rank_positive_canonical_to_token_mask": torch.tensor([[0, 1, 0], [0, 0, 1]], dtype=torch.bool),
+        "phrase_to_token_mask": torch.ones(2, 3, dtype=torch.bool),
+        "canonical_to_token_mask": torch.ones(2, 3, dtype=torch.bool),
+    }
+    patch_global = torch.zeros(1, 2, 4)
+    patch_mask = torch.ones(1, 2, dtype=torch.bool)
+    subbatch = engine._build_stage_b_rank_subbatch(
+        SimpleNamespace(stage_b_enable_phrase_rank=True),
+        samples,
+        [target],
+        ["tn caption ."],
+        None,
+        patch_global,
+        patch_mask,
+    )
+    assert subbatch is not None
+    assert subbatch["indices"] == [0, 0]
+    assert subbatch["captions"] == ["blue bird .", "red car ."]
+    assert len(subbatch["targets"]) == 2
+    assert subbatch["patch_global"].shape == (2, 1, 4)
+    assert subbatch["targets"][0]["rank_source_slot"].item() == 0
+    assert subbatch["targets"][1]["rank_source_slot"].item() == 1
+    assert subbatch["targets"][0]["rank_target_ids"].tolist() == [0]
+    assert subbatch["targets"][1]["rank_target_ids"].tolist() == [1]
+
+
 def main() -> None:
     check_content_mask_semantics()
+    check_build_slot_text_masks_early_return_arity()
     check_tn_changed_tokens_retained()
     check_postprocess_ignores_training_masks()
     check_phrase_loss_disabled()
@@ -506,8 +636,10 @@ def main() -> None:
     check_shared_score_helper_matches_postprocess()
     check_mean_normalized_softmin_scorer()
     check_phrase_rank_loss_independent_and_match_by_target()
+    check_phrase_rank_violation_count()
     check_rank_forward_disables_patch_dn()
     check_drift_batch_handles_non_tensor_targets()
+    check_rank_subbatch_keeps_multiple_valid_slots()
     print("Stage-B content-mask sanity checks passed.")
 
 

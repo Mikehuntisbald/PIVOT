@@ -105,75 +105,74 @@ def _build_stage_b_rank_subbatch(args, samples, targets, captions, patches, patc
         if int(valid_slots.numel()) == 0:
             rank_missing_positive_count += 1
             continue
-        if int(valid_slots.numel()) != 1:
-            rank_invalid_positive_count += 1
-            continue
-        slot_idx = int(valid_slots[0].item())
-        if not isinstance(rank_captions_i, list) or slot_idx >= len(rank_captions_i):
-            rank_invalid_positive_count += 1
-            continue
-        caption = rank_captions_i[slot_idx]
-        if not isinstance(caption, str) or not caption.strip():
-            rank_missing_positive_count += 1
-            continue
         phrase_mask = target.get("rank_positive_phrase_to_token_mask", None)
         canonical_mask = target.get("rank_positive_canonical_to_token_mask", None)
         if (not torch.is_tensor(phrase_mask)) or (not torch.is_tensor(canonical_mask)):
-            rank_invalid_positive_count += 1
+            rank_invalid_positive_count += int(valid_slots.numel())
             continue
-        if phrase_mask.dim() != 2 or canonical_mask.dim() != 2 or slot_idx >= int(phrase_mask.shape[0]):
-            rank_invalid_positive_count += 1
+        if phrase_mask.dim() != 2 or canonical_mask.dim() != 2:
+            rank_invalid_positive_count += int(valid_slots.numel())
             continue
-        if not bool(phrase_mask[slot_idx].any().item()) or not bool(canonical_mask[slot_idx].any().item()):
-            rank_invalid_positive_count += 1
-            continue
-        rank_indices.append(batch_idx)
-        rank_slots.append(slot_idx)
-        rank_captions.append(caption)
-        rank_target = {
-            k: v.to(device, non_blocking=True)
-            for k, v in target.items()
-            if torch.is_tensor(v)
-            and k
-            not in {
-                "phrase_to_token_mask",
-                "canonical_to_token_mask",
-                "content_to_token_mask",
-                "attr_pos_to_token_mask",
-                "attr_neg_to_token_mask",
-                "phrase_semantic_token_mask",
-                "negative_to_token_mask",
-                "attr_neg_weight_mask",
-                "rank_positive_phrase_to_token_mask",
-                "rank_positive_canonical_to_token_mask",
-                "has_rank_positive",
-            }
-        }
-        rank_target["phrase_to_token_mask"] = phrase_mask[slot_idx : slot_idx + 1].to(device, non_blocking=True)
-        rank_target["canonical_to_token_mask"] = canonical_mask[slot_idx : slot_idx + 1].to(device, non_blocking=True)
-        selected_class = None
-        if "support_classes" in rank_target and torch.is_tensor(rank_target["support_classes"]):
-            sc = rank_target["support_classes"].view(-1)
-            if slot_idx < int(sc.numel()):
-                selected_class = int(sc[slot_idx].item())
-                rank_target["support_classes"] = sc[slot_idx : slot_idx + 1]
-                rank_target["support_class"] = sc[slot_idx : slot_idx + 1]
-        elif "support_class" in rank_target and torch.is_tensor(rank_target["support_class"]):
-            selected_class = int(rank_target["support_class"].view(-1)[0].item())
-            rank_target["support_class"] = rank_target["support_class"].view(-1)[:1]
-        if selected_class is not None and "labels" in rank_target and "boxes" in rank_target:
-            label_mask = rank_target["labels"].to(torch.long) == int(selected_class)
-            if not bool(label_mask.any().item()):
-                rank_indices.pop()
-                rank_slots.pop()
-                rank_captions.pop()
+
+        for slot_idx_t in valid_slots:
+            slot_idx = int(slot_idx_t.item())
+            if not isinstance(rank_captions_i, list) or slot_idx >= len(rank_captions_i):
                 rank_invalid_positive_count += 1
                 continue
-            rank_target["rank_target_ids"] = torch.nonzero(label_mask, as_tuple=False).flatten().to(device)
-            rank_target["labels"] = rank_target["labels"][label_mask]
-            rank_target["boxes"] = rank_target["boxes"][label_mask]
-        rank_target["rank_source_slot"] = torch.as_tensor([slot_idx], dtype=torch.long, device=device)
-        rank_targets.append(rank_target)
+            caption = rank_captions_i[slot_idx]
+            if not isinstance(caption, str) or not caption.strip():
+                rank_missing_positive_count += 1
+                continue
+            if slot_idx >= int(phrase_mask.shape[0]) or slot_idx >= int(canonical_mask.shape[0]):
+                rank_invalid_positive_count += 1
+                continue
+            if not bool(phrase_mask[slot_idx].any().item()) or not bool(canonical_mask[slot_idx].any().item()):
+                rank_invalid_positive_count += 1
+                continue
+            rank_target = {
+                k: v.to(device, non_blocking=True)
+                for k, v in target.items()
+                if torch.is_tensor(v)
+                and k
+                not in {
+                    "phrase_to_token_mask",
+                    "canonical_to_token_mask",
+                    "content_to_token_mask",
+                    "attr_pos_to_token_mask",
+                    "attr_neg_to_token_mask",
+                    "phrase_semantic_token_mask",
+                    "negative_to_token_mask",
+                    "attr_neg_weight_mask",
+                    "rank_positive_phrase_to_token_mask",
+                    "rank_positive_canonical_to_token_mask",
+                    "has_rank_positive",
+                }
+            }
+            rank_target["phrase_to_token_mask"] = phrase_mask[slot_idx : slot_idx + 1].to(device, non_blocking=True)
+            rank_target["canonical_to_token_mask"] = canonical_mask[slot_idx : slot_idx + 1].to(device, non_blocking=True)
+            selected_class = None
+            if "support_classes" in rank_target and torch.is_tensor(rank_target["support_classes"]):
+                sc = rank_target["support_classes"].view(-1)
+                if slot_idx < int(sc.numel()):
+                    selected_class = int(sc[slot_idx].item())
+                    rank_target["support_classes"] = sc[slot_idx : slot_idx + 1]
+                    rank_target["support_class"] = sc[slot_idx : slot_idx + 1]
+            elif "support_class" in rank_target and torch.is_tensor(rank_target["support_class"]):
+                selected_class = int(rank_target["support_class"].view(-1)[0].item())
+                rank_target["support_class"] = rank_target["support_class"].view(-1)[:1]
+            if selected_class is not None and "labels" in rank_target and "boxes" in rank_target:
+                label_mask = rank_target["labels"].to(torch.long) == int(selected_class)
+                if not bool(label_mask.any().item()):
+                    rank_invalid_positive_count += 1
+                    continue
+                rank_target["rank_target_ids"] = torch.nonzero(label_mask, as_tuple=False).flatten().to(device)
+                rank_target["labels"] = rank_target["labels"][label_mask]
+                rank_target["boxes"] = rank_target["boxes"][label_mask]
+            rank_target["rank_source_slot"] = torch.as_tensor([slot_idx], dtype=torch.long, device=device)
+            rank_indices.append(batch_idx)
+            rank_slots.append(slot_idx)
+            rank_captions.append(caption)
+            rank_targets.append(rank_target)
     if rank_candidate_tn_count <= 0:
         return None
     if not rank_indices:
