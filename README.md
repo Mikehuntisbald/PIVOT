@@ -817,14 +817,22 @@ On a single batch:
 
 ### 5. Patch drift check
 
-Stage B adds an optional patch drift logger to make sure Stage A patch behavior is preserved.
+Stage B has an optional patch drift logger to make sure Stage A patch behavior is preserved.
+Keep it disabled for full training; enable it only in a short sanity run with
+`config/cfg_patch_stage_b_drift_sanity.py`.
 
-Relevant config:
+Sanity config:
 
 ```python
 log_stage_b_patch_drift = True
 stage_b_patch_drift_interval = 200
 stage_b_patch_drift_topk = 50
+```
+
+The full training config keeps:
+
+```python
+log_stage_b_patch_drift = False
 ```
 
 The logger records:

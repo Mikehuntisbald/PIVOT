@@ -65,7 +65,8 @@ patch_text_augment = False
 text_mask_skip_invalid_canonical = True
 text_mask_warn_limit = 100
 
-# Optional drift logging to verify Stage B preserves Stage A patch behavior.
-log_stage_b_patch_drift = True
+# Keep drift logging off for full training. Use cfg_patch_stage_b_drift_sanity.py
+# for a short sanity run when patch-drift diagnostics are needed.
+log_stage_b_patch_drift = False
 stage_b_patch_drift_interval = 200
 stage_b_patch_drift_topk = 50
