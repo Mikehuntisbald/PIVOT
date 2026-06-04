@@ -74,7 +74,8 @@ class ODVGDataset(VisionDataset):
             ori_classes = [str(obj["label"]) for obj in instances]
             pos_labels = set(ori_classes)
             # neg bbox labels
-            neg_labels = list(self.label_index.difference(pos_labels))
+            not_exhaustive = set(str(x) for x in meta.get("not_exhaustive_labels", []) or [])
+            neg_labels = list(self.label_index.difference(pos_labels).difference(not_exhaustive))
 
             vg_labels = list(pos_labels)
             num_to_add = min(len(neg_labels), self.max_labels-len(pos_labels))
@@ -111,7 +112,10 @@ class ODVGDataset(VisionDataset):
             classes = torch.tensor(classes, dtype=torch.int64)
             caption_list = uni_caption_list
         target = {}
+        image_id = meta.get("image_id", index)
         target["size"] = torch.as_tensor([int(h), int(w)])
+        target["orig_size"] = torch.as_tensor([int(h), int(w)])
+        target["image_id"] = torch.as_tensor([int(image_id)])
         target["cap_list"] = caption_list
         target["caption"] = caption
         target["boxes"] = boxes

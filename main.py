@@ -318,6 +318,7 @@ def main(args):
     # update some new args temporally
     if not getattr(args, 'debug', None):
         args.debug = False
+    skip_eval = bool(getattr(args, "skip_eval", False)) and (not args.eval)
 
     # setup logger
     os.makedirs(args.output_dir, exist_ok=True)
@@ -338,7 +339,7 @@ def main(args):
 
     with open(args.datasets) as f:
         dataset_meta = json.load(f)
-    if args.use_coco_eval:
+    if args.use_coco_eval and (args.eval or not skip_eval):
         args.coco_val_path = dataset_meta["val"][0]["anno"]
 
     logger.info('world size: {}'.format(args.world_size))
@@ -449,7 +450,7 @@ def main(args):
         logger.debug(f'number of training dataset: {num_of_dataset_train}, samples: {len(dataset_train)}')
 
     dataset_val = None
-    if not patch_only:
+    if (not patch_only) and (args.eval or not skip_eval):
         dataset_val = build_dataset(image_set='val', args=args, datasetinfo=dataset_meta["val"][0])
 
     if args.distributed:
@@ -692,10 +693,11 @@ def main(args):
     
     print("Start training")
     start_time = time.time()
-    best_map_holder = BestMetricHolder(use_ema=False) if not patch_only else None
+    best_map_holder = BestMetricHolder(use_ema=False) if (not patch_only and not skip_eval) else None
     _install_signal_checkpoint_handlers(args)
 
     current_epoch_rng_state = None
+    coco_evaluator = None
 
     def _checkpoint_payload(epoch, *, iteration=0, epoch_finished=True, reason=None):
         payload = {
@@ -772,7 +774,7 @@ def main(args):
 
                     utils.save_on_master(weights, checkpoint_path)
                 
-            if not patch_only:
+            if not patch_only and not skip_eval:
                 # eval
                 test_stats, coco_evaluator = evaluate(
                     model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir,
