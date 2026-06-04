@@ -27,8 +27,6 @@ cd "${REPO_ROOT}" && DATA_ROOT="${DATA_ROOT}" python main.py \\
 EOF
 }
 
-print_cmd "full" "${REPO_ROOT}/config/ablations/cfg_stageb_full.py" "${FULL_DATASET}"
+print_cmd "rank_loss_only" "${REPO_ROOT}/config/ablations/cfg_stageb_rank_loss_only.py" "${FULL_DATASET}"
+print_cmd "tn_token_only" "${REPO_ROOT}/config/ablations/cfg_stageb_tn_token_only.py" "${FULL_DATASET}"
 print_cmd "no_tn" "${REPO_ROOT}/config/ablations/cfg_stageb_no_tn.py" "${NO_TN_DATASET}"
-print_cmd "no_canonical" "${REPO_ROOT}/config/ablations/cfg_stageb_no_canonical.py" "${FULL_DATASET}"
-print_cmd "full_canonical" "${REPO_ROOT}/config/ablations/cfg_stageb_full_canonical.py" "${FULL_DATASET}"
-# print_cmd "no_text" "${REPO_ROOT}/config/ablations/cfg_stageb_no_text.py" "${FULL_DATASET}"
