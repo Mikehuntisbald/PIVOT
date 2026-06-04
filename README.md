@@ -184,6 +184,8 @@ The Stage B implementation is intentionally conservative:
 - only `feat_map` and `class_embed` are trainable in Stage B
 
 Stage B local TN supervision is documented in [docs/stage_b_local_tn.md](docs/stage_b_local_tn.md).
+Stage-A-caliber checkpoint comparison and the GroundingDINO same-data FT
+baseline are recorded in [docs/stage_a_caliber_eval.md](docs/stage_a_caliber_eval.md).
 
 ## Current Local Path Layout
 

@@ -595,6 +595,22 @@ Stage AB from OGC is the joint ablation path:
 - The config opens the last decoder layers and keeps bbox / GIoU coefficients
   aligned with Stage A.
 
+OGC original-training finetune on Stage-A data is a separate baseline:
+
+- It starts directly from `groundingdino_swint_ogc`.
+- It converts the Stage-A LVIS/COCO patch-episode annotations into ODVG object
+  detection records.
+- It trains with the normal GroundingDINO ODVG objective: text-token focal
+  classification plus Hungarian box/GIoU/L1 losses, with aux/interm losses from
+  `cfg_odvg.py`.
+- It does not use support patches, patch logits, Stage-B text/TN masks, or
+  Stage-A patch losses.
+- Its training exposure is matched by using the same Stage-A train split and
+  the same number of completed epochs / image samples. Per-epoch eval is skipped
+  during the exposure-matched run, and evaluation should be run separately for
+  all checkpoints under the same protocol. GPU time is recorded as a resource
+  metric, not used as the primary matching variable.
+
 Design reason:
 
 - Two-stage training isolates localization learning from fine-grained phrase
@@ -603,6 +619,9 @@ Design reason:
   separate Stage-A pretraining phase.
 - Keeping bbox coefficients aligned makes the ablation compare schedule and data
   structure rather than silently changing localization supervision.
+- The OGC original-training finetune baseline tests whether ordinary
+  GroundingDINO finetuning on the same Stage-A images/classes can explain the
+  gains without exemplar-patch supervision.
 
 ## Ablation preparation
 
@@ -612,13 +631,15 @@ Design reason:
 export STAGE_A_CKPT=/media/haoyi/T9/gdino/outputs/stageA_coco_multipatch/checkpoint0004.pth
 ```
 
-The prepared Stage-B ablations include:
+The prepared Stage-B ablation panel, separate from the GroundingDINO same-data
+FT baseline, includes:
 
-- `full`
-- `no_tn`
-- `no_canonical`
-- `full_canonical`
-- `no_text` as a commented-out command
+- `rank_loss_only`: keep TN rows and phrase-ranking supervision; disable
+  token-level text BCE.
+- `tn_token_only`: keep TN rows and token-level content/TN BCE; disable
+  phrase-ranking supervision.
+- `no_tn`: remove TN rows and disable phrase-ranking supervision; keep positive
+  RefCOCO token supervision.
 
 `tools/collect_stageb_ablation_results.py` collects metrics such as:
 
@@ -634,15 +655,62 @@ The prepared Stage-B ablations include:
 The Stage AB ablation config is
 `config/ablations/cfg_stageab_from_ogc.py`.
 
+The OGC original-training finetune baseline uses:
+
+```text
+config/ablations/cfg_ogc_original_finetune_stage_a.py
+tools/build_stagea_odvg_finetune_ablation.py
+tools/run_ogc_original_finetune_stage_a.sh
+```
+
+Typical run:
+
+```bash
+cd /media/haoyi/T9/gdino
+
+STAGEA_DATASETS=/media/haoyi/T9/gdino/config/datasets_patch_stage_a_lvis_coco2017_local.json \
+STAGE_A_LOG=/media/haoyi/T9/gdino/outputs/stageA_coco_multipatch/log.txt \
+PRETRAIN_MODEL_PATH=/media/haoyi/T9/gdino/weights/groundingdino_swint_ogc.pth \
+CUDA_VISIBLE_DEVICES=0 \
+tools/run_ogc_original_finetune_stage_a.sh
+```
+
+If the completed Stage-A epoch count is known explicitly, set
+`MATCH_EPOCHS=<epochs>` instead of `STAGE_A_LOG`.
+
+Stage-A-caliber evaluation uses the shared LVIS/COCO patch-episode val config:
+
+```text
+config/datasets_patch_stage_a_lvis_coco2017_eval_local.json
+```
+
+Evaluator roles:
+
+- `tools/eval_stagea_patch_checkpoints.py` evaluates patch-only Stage-A
+  checkpoints with support-patch logits.
+- `tools/eval_text_stagea_caliber_checkpoints.py` evaluates ordinary
+  GroundingDINO text checkpoints on the same target episodes with canonical text
+  prompts built from `support_classes`.
+
+The local recorded comparison is documented in
+`docs/stage_a_caliber_eval.md`. In the current run:
+
+- Stage-A patch-only `checkpoint0004.pth` beats `checkpoint0002.pth` under mean
+  `patch_ap50`.
+- OGC same-data FT `checkpoint0001.pth` is slightly better than
+  `checkpoint0002.pth` under the text Stage-A-caliber AP50 computation.
+
 Design reason:
 
-- `full` measures the intended recipe.
-- `no_tn` isolates whether true-negative supervision matters.
-- `no_canonical` tests whether head/canonical anchoring is necessary.
-- `full_canonical` checks stronger canonical contribution.
-- `no_text` checks whether patch-only behavior explains the result.
+- `rank_loss_only` tests whether inference-aligned phrase ranking alone can
+  explain TN gains.
+- `tn_token_only` tests whether local changed-token supervision is sufficient
+  without ranking.
+- `no_tn` tests the positive RefCOCO Stage-B path without true-negative rows.
 - Stage AB from OGC tests whether the staged recipe is necessary or whether a
   single joint run is sufficient.
+- OGC original-training finetune tests whether standard GroundingDINO training
+  on the same Stage-A training set is enough under the same sample exposure.
 
 ## Training reliability notes
 
