@@ -50,12 +50,33 @@ class PatchHungarianCriterion(nn.Module):
         weight_dict: Dict[str, float],
         focal_alpha: float = 0.25,
         focal_gamma: float = 2.0,
+        patch_ce_reduction: str = "legacy",
+        patch_lambda_neg: float = 0.25,
+        patch_ce_neg_topk: int = 0,
+        patch_ce_neg_topk_ratio: float = 0.0,
+        patch_rank_margin: float = 0.3,
+        patch_rank_hard_negatives: int = 16,
+        patch_rank_include_wrong_slots: bool = True,
+        patch_rank_wrong_slot_weight: float = 0.5,
     ) -> None:
         super().__init__()
         self.matcher = matcher
         self.weight_dict = weight_dict
         self.focal_alpha = float(focal_alpha)
         self.focal_gamma = float(focal_gamma)
+        self.patch_ce_reduction = str(patch_ce_reduction).lower().strip()
+        self.patch_lambda_neg = float(patch_lambda_neg)
+        self.patch_ce_neg_topk = max(0, int(patch_ce_neg_topk))
+        self.patch_ce_neg_topk_ratio = max(0.0, float(patch_ce_neg_topk_ratio))
+        self.patch_rank_margin = float(patch_rank_margin)
+        self.patch_rank_hard_negatives = max(0, int(patch_rank_hard_negatives))
+        self.patch_rank_include_wrong_slots = bool(patch_rank_include_wrong_slots)
+        self.patch_rank_wrong_slot_weight = float(patch_rank_wrong_slot_weight)
+        if self.patch_ce_reduction not in {"legacy", "posneg_mean", "posneg_topk"}:
+            raise ValueError(
+                "patch_ce_reduction must be one of: legacy, posneg_mean, posneg_topk; "
+                f"got {patch_ce_reduction!r}."
+            )
 
     def _get_src_permutation_idx(self, indices: List[Tuple[torch.Tensor, torch.Tensor]]):
         batch_idx = torch.cat([torch.full_like(src, i) for i, (src, _) in enumerate(indices)])
@@ -240,6 +261,105 @@ class PatchHungarianCriterion(nn.Module):
             "K": K,
         }
 
+    def _compute_patch_rank_loss(self, match_ctx, targets: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+        if float(self.weight_dict.get("loss_patch_rank", 0.0)) <= 0:
+            return {}
+
+        pred_logits_patch = match_ctx["pred_logits_patch"]
+        patch_mask = match_ctx["patch_mask"]
+        all_indices = match_ctx["all_indices"]
+        matched_patch_idx_list = match_ctx["matched_patch_idx_list"]
+        B = int(match_ctx["B"])
+        Q = int(match_ctx["Q"])
+        K = int(match_ctx["K"])
+        device = pred_logits_patch.device
+        zero = pred_logits_patch.sum() * 0.0
+
+        rank_losses: List[torch.Tensor] = []
+        violations: List[torch.Tensor] = []
+        pos_scores: List[torch.Tensor] = []
+        neg_scores: List[torch.Tensor] = []
+        pos_total = 0
+        cand_total = 0
+        margin = self.patch_rank_margin
+
+        for b in range(B):
+            src_idx, _tgt_idx = all_indices[b]
+            src_idx = src_idx.to(device=device)
+            matched_full_k = matched_patch_idx_list[b].to(device=device)
+            if src_idx.numel() == 0 or matched_full_k.numel() == 0:
+                continue
+
+            support_classes = self._get_support_classes(targets[b], K=K, device=device)
+            valid_k = support_classes >= 0
+            if patch_mask is not None:
+                valid_k = valid_k & patch_mask[b]
+            valid_slots = valid_k.nonzero(as_tuple=False).flatten()
+            if valid_slots.numel() == 0:
+                continue
+
+            for q_t, k_t in zip(src_idx, matched_full_k):
+                q = int(q_t.item())
+                k = int(k_t.item())
+                if q < 0 or q >= Q or k < 0 or k >= K or not bool(valid_k[k].item()):
+                    continue
+
+                pos = pred_logits_patch[b, q, k]
+                pos_scores.append(pos.detach().reshape(1))
+                pos_total += 1
+
+                same_slot_pos_q = src_idx[matched_full_k == k]
+                neg_mask = torch.ones((Q,), dtype=torch.bool, device=device)
+                if same_slot_pos_q.numel() > 0:
+                    neg_mask[same_slot_pos_q] = False
+                same_slot_neg = pred_logits_patch[b, :, k][neg_mask]
+                if same_slot_neg.numel() > 0 and self.patch_rank_hard_negatives > 0:
+                    topk = min(self.patch_rank_hard_negatives, int(same_slot_neg.numel()))
+                    hard_neg = same_slot_neg.topk(topk).values
+                    raw = hard_neg - pos + margin
+                    rank_losses.append(F.relu(raw))
+                    violations.append((raw.detach() > 0).to(torch.float32))
+                    neg_scores.append(hard_neg.detach())
+                    cand_total += int(hard_neg.numel())
+
+                if self.patch_rank_include_wrong_slots and self.patch_rank_wrong_slot_weight > 0:
+                    wrong_slots = valid_slots[valid_slots != k]
+                    if wrong_slots.numel() > 0 and self.patch_rank_hard_negatives > 0:
+                        wrong_neg = pred_logits_patch[b, q, wrong_slots]
+                        topk = min(self.patch_rank_hard_negatives, int(wrong_neg.numel()))
+                        hard_wrong = wrong_neg.topk(topk).values
+                        raw = hard_wrong - pos + margin
+                        rank_losses.append(F.relu(raw) * self.patch_rank_wrong_slot_weight)
+                        violations.append((raw.detach() > 0).to(torch.float32))
+                        neg_scores.append(hard_wrong.detach())
+                        cand_total += int(hard_wrong.numel())
+
+        if rank_losses:
+            loss_patch_rank = torch.cat([x.reshape(-1) for x in rank_losses]).mean()
+            patch_rank_violation_frac = torch.cat([x.reshape(-1) for x in violations]).mean()
+        else:
+            loss_patch_rank = zero
+            patch_rank_violation_frac = torch.zeros((), device=device)
+
+        if pos_scores:
+            patch_rank_pos_score = torch.cat(pos_scores).mean()
+        else:
+            patch_rank_pos_score = torch.zeros((), device=device)
+        if neg_scores:
+            patch_rank_neg_score = torch.cat([x.reshape(-1) for x in neg_scores]).mean()
+        else:
+            patch_rank_neg_score = torch.zeros((), device=device)
+
+        return {
+            "loss_patch_rank": loss_patch_rank,
+            "patch_rank_used_pairs": torch.as_tensor(float(pos_total), device=device),
+            "patch_rank_candidate_count": torch.as_tensor(float(cand_total), device=device),
+            "patch_rank_violation_frac": patch_rank_violation_frac,
+            "patch_rank_pos_score": patch_rank_pos_score,
+            "patch_rank_neg_score": patch_rank_neg_score,
+            "patch_rank_margin": torch.as_tensor(float(margin), device=device),
+        }
+
     def compute_losses_from_matching(self, match_ctx, targets: List[Dict[str, torch.Tensor]]):
         pred_logits_patch = match_ctx["pred_logits_patch"]
         pred_boxes = match_ctx["pred_boxes"]
@@ -252,8 +372,15 @@ class PatchHungarianCriterion(nn.Module):
         K = int(match_ctx["K"])
         device = pred_boxes.device
 
-        loss_cls = torch.zeros((), device=device)
+        legacy_loss_cls = torch.zeros((), device=device)
+        posneg_loss_cls = torch.zeros((), device=device)
+        loss_pos_total = torch.zeros((), device=device)
+        loss_neg_total = torch.zeros((), device=device)
+        loss_neg_all_total = torch.zeros((), device=device)
+        neg_topk_count_total = 0
+        neg_count_total = 0
         matched_total = 0
+        cls_batches = 0
         for b in range(B):
             support_classes = self._get_support_classes(targets[b], K=K, device=device)
             valid_k = support_classes >= 0
@@ -274,13 +401,58 @@ class PatchHungarianCriterion(nn.Module):
             loss_mat = _sigmoid_focal_loss_no_reduce(
                 logits_b, target_b, alpha=self.focal_alpha, gamma=self.focal_gamma
             )
-            loss_cls = loss_cls + loss_mat.sum()
+            legacy_loss_cls = legacy_loss_cls + loss_mat.sum()
+            pos = target_b > 0.5
+            neg = ~pos
+            zero = loss_mat.sum() * 0.0
+            pos_loss = loss_mat[pos].mean() if pos.any() else zero
+            neg_values = loss_mat[neg]
+            if neg_values.numel() > 0:
+                neg_all_loss = neg_values.mean()
+                neg_loss = neg_all_loss
+                neg_count = int(neg_values.numel())
+                topk_count = neg_count
+                if self.patch_ce_reduction == "posneg_topk":
+                    topk_count = self.patch_ce_neg_topk
+                    if self.patch_ce_neg_topk_ratio > 0:
+                        ratio_count = int(neg_count * self.patch_ce_neg_topk_ratio + 0.999999)
+                        topk_count = max(topk_count, ratio_count)
+                    if topk_count <= 0:
+                        topk_count = neg_count
+                    topk_count = min(topk_count, neg_count)
+                    neg_loss = neg_values.topk(k=topk_count, largest=True).values.mean()
+            else:
+                neg_all_loss = zero
+                neg_loss = zero
+                neg_count = 0
+                topk_count = 0
+            posneg_loss_cls = posneg_loss_cls + pos_loss + self.patch_lambda_neg * neg_loss
+            loss_pos_total = loss_pos_total + pos_loss.detach()
+            loss_neg_total = loss_neg_total + neg_loss.detach()
+            loss_neg_all_total = loss_neg_all_total + neg_all_loss.detach()
+            neg_topk_count_total += int(topk_count)
+            neg_count_total += int(neg_count)
+            cls_batches += 1
 
-        loss_patch_ce = loss_cls / num_boxes
+        cls_den = max(int(cls_batches), 1)
+        patch_ce_legacy_dense = legacy_loss_cls / num_boxes
+        patch_ce_posneg = posneg_loss_cls / float(cls_den)
+        if self.patch_ce_reduction == "legacy":
+            loss_patch_ce = patch_ce_legacy_dense
+        else:
+            loss_patch_ce = patch_ce_posneg
 
         losses: Dict[str, torch.Tensor] = {
             "loss_patch_ce": loss_patch_ce,
             "patch_match_frac": torch.as_tensor(matched_total / float(B * Q), device=device),
+            "patch_ce_pos": loss_pos_total / float(cls_den),
+            "patch_ce_neg": loss_neg_total / float(cls_den),
+            "patch_ce_neg_all": loss_neg_all_total / float(cls_den),
+            "patch_ce_neg_topk_count": torch.as_tensor(float(neg_topk_count_total) / float(cls_den), device=device),
+            "patch_ce_neg_count": torch.as_tensor(float(neg_count_total) / float(cls_den), device=device),
+            "patch_ce_legacy_dense": patch_ce_legacy_dense.detach(),
+            "patch_ce_posneg": patch_ce_posneg.detach(),
+            "patch_lambda_neg": torch.as_tensor(self.patch_lambda_neg, device=device),
         }
 
         if ("loss_bbox" in self.weight_dict and self.weight_dict["loss_bbox"] > 0) or (
@@ -301,6 +473,7 @@ class PatchHungarianCriterion(nn.Module):
                     )
                 )
                 losses["loss_giou"] = giou.sum() / num_boxes
+        losses.update(self._compute_patch_rank_loss(match_ctx, targets))
         return losses
 
     def forward(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):

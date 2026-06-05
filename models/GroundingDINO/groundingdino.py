@@ -1103,6 +1103,14 @@ def build_groundingdino(args):
                 },
                 focal_alpha=args.focal_alpha,
                 focal_gamma=args.focal_gamma,
+                patch_ce_reduction=str(getattr(args, "patch_ce_reduction", "legacy")),
+                patch_lambda_neg=float(getattr(args, "patch_lambda_neg", 0.25)),
+                patch_ce_neg_topk=int(getattr(args, "patch_ce_neg_topk", 0)),
+                patch_ce_neg_topk_ratio=float(getattr(args, "patch_ce_neg_topk_ratio", 0.0)),
+                patch_rank_margin=float(getattr(args, "patch_rank_margin", 0.3)),
+                patch_rank_hard_negatives=int(getattr(args, "patch_rank_hard_negatives", 16)),
+                patch_rank_include_wrong_slots=bool(getattr(args, "patch_rank_include_wrong_slots", True)),
+                patch_rank_wrong_slot_weight=float(getattr(args, "patch_rank_wrong_slot_weight", 0.5)),
             )
             criterion = StageBCriterion(
                 patch_criterion=patch_criterion,
@@ -1124,6 +1132,9 @@ def build_groundingdino(args):
                 "loss_bbox": float(getattr(args, "bbox_loss_coef", 0.0)),
                 "loss_giou": float(getattr(args, "giou_loss_coef", 0.0)),
             }
+            patch_rank_loss_coef = float(getattr(args, "patch_rank_loss_coef", 0.0))
+            if patch_rank_loss_coef > 0:
+                weight_dict["loss_patch_rank"] = patch_rank_loss_coef
             if patch_matching == "hungarian":
                 from .patch_hungarian_criterion import PatchHungarianCriterion
 
@@ -1133,6 +1144,14 @@ def build_groundingdino(args):
                     weight_dict=weight_dict,
                     focal_alpha=args.focal_alpha,
                     focal_gamma=args.focal_gamma,
+                    patch_ce_reduction=str(getattr(args, "patch_ce_reduction", "legacy")),
+                    patch_lambda_neg=float(getattr(args, "patch_lambda_neg", 0.25)),
+                    patch_ce_neg_topk=int(getattr(args, "patch_ce_neg_topk", 0)),
+                    patch_ce_neg_topk_ratio=float(getattr(args, "patch_ce_neg_topk_ratio", 0.0)),
+                    patch_rank_margin=float(getattr(args, "patch_rank_margin", 0.3)),
+                    patch_rank_hard_negatives=int(getattr(args, "patch_rank_hard_negatives", 16)),
+                    patch_rank_include_wrong_slots=bool(getattr(args, "patch_rank_include_wrong_slots", True)),
+                    patch_rank_wrong_slot_weight=float(getattr(args, "patch_rank_wrong_slot_weight", 0.5)),
                 )
             elif patch_matching == "iou":
                 from .patch_only_criterion import PatchOnlyCriterion

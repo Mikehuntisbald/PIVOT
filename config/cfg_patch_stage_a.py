@@ -11,6 +11,13 @@ patch_matching = "hungarian"  # hungarian | iou
 patch_iou_thr = 0.5
 patch_lambda_neg = 0.25
 patch_ce_coef = 1.0
+# Deprecated Stage-A v2 loss knobs are ablation-only. Keep the main Stage-A
+# foundation on the legacy dense patch CE and no patch-rank loss unless an
+# ablation config overrides these values.
+patch_ce_reduction = "legacy"  # legacy | posneg_mean | posneg_topk
+patch_ce_neg_topk = 0
+patch_ce_neg_topk_ratio = 0.0
+patch_rank_loss_coef = 0.0
 unfreeze_decoder_last_n_layers = 3  # 0 = keep decoder frozen
 
 # Patch query labeling mode for PatchOnlyCriterion:
