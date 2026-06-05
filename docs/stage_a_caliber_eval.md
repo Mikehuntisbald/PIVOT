@@ -4,6 +4,17 @@ This note records the local Stage-A-caliber evaluation protocol used for both
 patch-only Stage A checkpoints and the original GroundingDINO same-data
 finetune baseline.
 
+The reproducible Stage A/B training and evaluation runbook is
+`docs/stage_ab_runbook.md`.
+
+Stage A commands have separate model and dataset inputs:
+
+```text
+model/training config: config/cfg_patch_stage_a.py
+train dataset config:  config/datasets_patch_stage_a_lvis_coco2017_local.json
+eval dataset config:   config/datasets_patch_stage_a_lvis_coco2017_eval_local.json
+```
+
 ## Scope
 
 The shared validation set is:
@@ -45,17 +56,30 @@ checkpoint0006.pth  epoch 6
 checkpoint.pth      latest, epoch 6
 ```
 
-The current sequence is the LVIS+COCO `config/cfg_patch_stage_a.py` run. The
-same output directory also contains older warmup / COCO-only startup records in
-`info.txt`, so checkpoint metadata is the source of truth for this sequence.
+The recorded checkpoint sequence is staged. The checkpoint `args` field is the
+source of truth, because the same `config/cfg_patch_stage_a.py` path was used
+with different effective knobs across time.
 
-The core setup is:
+| checkpoint range | saved config/dataset path | init/resume evidence | key saved-args difference |
+|---|---|---|---|
+| `checkpoint0000.pth` - `checkpoint0002.pth` | `config/cfg_patch_stage_a.py`, `config/datasets_patch_stage_a_lvis_coco2017_local.json` | `resume=""`, `pretrain_model_path=weights/groundingdino_swint_ogc.pth` | phase-1 DN: `patch_dn_num_queries=50`, `patch_dn_box_noise_scale=0.4`, `patch_sanity_interval=250` |
+| `checkpoint0003.pth` - `checkpoint0004.pth` | same paths | `resume=outputs/stageA_coco_multipatch/checkpoint.pth`, `start_epoch=3` | phase-2 DN: `patch_dn_num_queries=1`, `patch_dn_box_noise_scale=1.0`, `patch_sanity_interval=500` |
+| `checkpoint0005.pth` - `checkpoint0006.pth` | same paths plus `--options epochs=7` | resumed from `checkpoint.pth` / `checkpoint_iter.pth` on 2026-06-05 | phase-2 continuation: same `patch_dn_num_queries=1`, `patch_dn_box_noise_scale=1.0` |
+
+This means `checkpoint0002.pth` versus `checkpoint0004.pth` is not a pure epoch
+comparison; it also crosses a Stage-A config boundary. The same-caliber eval
+table below is still valid for model selection, but this lineage matters when
+reproducing training.
+
+The current phase-2/mainline core setup is:
 
 ```text
 datasets: config/datasets_patch_stage_a_lvis_coco2017_local.json
 patch_only: true
 patch_matching: hungarian
 support_num_patches_max: 80
+patch_ce_reduction: legacy
+patch_rank_loss_coef: 0.0
 patch_labeling_mode: topk_iou
 patch_topk: 50
 patch_topk_iou_thr: 0.04
@@ -64,11 +88,6 @@ unfreeze_decoder_last_n_layers: 3
 batch_size: 18
 lr: 1e-4
 ```
-
-`checkpoint0000.pth` through `checkpoint0002.pth` used
-`patch_dn_num_queries=50` and `patch_dn_box_noise_scale=0.4`.
-`checkpoint0003.pth` through `checkpoint0006.pth` were resumed with
-`patch_dn_num_queries=1` and `patch_dn_box_noise_scale=1.0`.
 
 Evaluator:
 
@@ -105,6 +124,54 @@ Recorded result:
 
 Under this Stage-A patch-only protocol, `checkpoint0006.pth` is the strongest
 Stage-A checkpoint among the evaluated local sequence so far.
+
+## Deprecated Stage-A v2 Loss Ablations
+
+Status: deprecated for the Stage-A mainline. The Stage-A v2 loss code remains
+available only to reproduce negative ablations; it is not enabled by the default
+Stage-A config and should not be used as the Stage-A foundation.
+
+The default `config/cfg_patch_stage_a.py` keeps:
+
+```text
+patch_ce_reduction = "legacy"
+patch_rank_loss_coef = 0.0
+patch_ce_neg_topk = 0
+patch_ce_neg_topk_ratio = 0.0
+```
+
+The additional Stage-A losses are only activated by explicit ablation configs:
+
+```text
+config/cfg_patch_stage_a_v2_rank.py
+config/cfg_patch_stage_a_v2_posneg_topk32_lam4.py
+config/cfg_patch_stage_a_v2_rank_posneg_topk.py
+```
+
+Probe comparisons from `checkpoint0004.pth` showed no support for promoting
+these losses into the Stage-A mainline:
+
+| ablation | output | mean patch_ap50 | delta vs probe control | mean box_recall@50 | mean matched_query_recall@50 |
+|---|---|---:|---:|---:|---:|
+| probe control `checkpoint0004.pth` | `outputs/stageA_coco_multipatch_v2_rank_only_legacy_probe_iter0802_vs_0004` | 0.600179 | 0.000000 | 0.878200 | 0.833481 |
+| legacy CE + rank only | `outputs/stageA_coco_multipatch_v2_rank_only_legacy_probe_iter0802_vs_0004` | 0.600012 | -0.000166 | 0.874776 | 0.824930 |
+| pos/neg top-k32 CE, lambda_neg=4, no rank | `outputs/stageA_coco_multipatch_v2_posneg_topk32_lam4_norank_probe_iter0802_vs_0004` | 0.584910 | -0.015269 | 0.873120 | 0.807626 |
+| rank + pos/neg top-k16 CE, lambda_neg=8 | `outputs/stageA_coco_multipatch_v2_rank_posneg_topk16_lam8_probe_iter0802_vs_0004` | 0.563079 | -0.037100 | 0.861275 | 0.782602 |
+
+The longer `rank + pos/neg` continuation also underperformed:
+
+```text
+outputs/stageA_coco_multipatch_v2_rank_posneg_eval_0006_fast
+mean patch_ap50 = 0.506181
+mean box_recall@50 = 0.843147
+mean matched_query_recall@50 = 0.763575
+```
+
+Decision: Stage-A v2 is deprecated for mainline training. Keep Stage A as the
+legacy patch foundation and treat Stage-A rank / pos-neg CE as ablation code
+only. Ranking and calibration improvements should be evaluated in Stage B or
+inference-time fusion unless a future Stage-A ablation beats the legacy control
+under the same checkpoint and dataset caliber.
 
 ## Original GroundingDINO Same-Data FT
 
