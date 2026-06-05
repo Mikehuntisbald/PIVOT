@@ -193,9 +193,18 @@ def _iou_one_to_many(box: np.ndarray, boxes: np.ndarray) -> np.ndarray:
 
 
 class PatchEvalAccumulator:
-    def __init__(self, topks: Iterable[int], *, ap_max_dets_per_image: int) -> None:
+    def __init__(
+        self,
+        topks: Iterable[int],
+        *,
+        ap_max_dets_per_image: int,
+        ap_score_agg: str = "slot",
+    ) -> None:
         self.topks = sorted({max(1, int(k)) for k in topks})
         self.ap_max_dets_per_image = max(0, int(ap_max_dets_per_image))
+        self.ap_score_agg = str(ap_score_agg).lower().strip()
+        if self.ap_score_agg not in {"slot", "class_max"}:
+            raise ValueError(f"Unsupported ap_score_agg={ap_score_agg!r}; expected slot or class_max.")
         self.num_images = 0
         self.num_targets = 0
         self.unsupported_targets = 0
@@ -304,16 +313,42 @@ class PatchEvalAccumulator:
     ) -> None:
         if self.ap_max_dets_per_image <= 0 or valid_slot_ids.numel() == 0:
             return
-        slot_scores = logits_b[:, valid_slot_ids]
-        flat_scores = slot_scores.reshape(-1)
+        if self.ap_score_agg == "class_max":
+            det_scores = []
+            det_labels = []
+            det_query_idx = []
+            for label in torch.unique(support_classes[valid_slot_ids]):
+                class_slots = valid_slot_ids[support_classes[valid_slot_ids] == label]
+                if class_slots.numel() == 0:
+                    continue
+                class_scores = logits_b[:, class_slots].max(dim=-1).values
+                det_scores.append(class_scores)
+                det_labels.append(label.expand_as(class_scores))
+                det_query_idx.append(torch.arange(class_scores.numel(), device=logits_b.device))
+            if not det_scores:
+                return
+            flat_scores = torch.cat(det_scores, dim=0)
+            flat_labels = torch.cat(det_labels, dim=0)
+            flat_query_idx = torch.cat(det_query_idx, dim=0)
+        else:
+            slot_scores = logits_b[:, valid_slot_ids]
+            flat_scores = slot_scores.reshape(-1)
+            if flat_scores.numel() == 0:
+                return
+            local_slot = torch.arange(flat_scores.numel(), device=logits_b.device) % int(valid_slot_ids.numel())
+            flat_query_idx = torch.div(
+                torch.arange(flat_scores.numel(), device=logits_b.device),
+                int(valid_slot_ids.numel()),
+                rounding_mode="floor",
+            )
+            flat_labels = support_classes[valid_slot_ids[local_slot]]
+
         if flat_scores.numel() == 0:
             return
         keep = min(int(self.ap_max_dets_per_image), int(flat_scores.numel()))
         top_scores, top_idx = torch.topk(flat_scores, k=keep, largest=True)
-        local_slot = top_idx % int(valid_slot_ids.numel())
-        query_idx = torch.div(top_idx, int(valid_slot_ids.numel()), rounding_mode="floor")
-        full_slot = valid_slot_ids[local_slot]
-        det_labels = support_classes[full_slot]
+        query_idx = flat_query_idx[top_idx]
+        det_labels = flat_labels[top_idx]
         det_boxes = pred_xyxy[query_idx]
         for score, label, box in zip(top_scores.detach().cpu(), det_labels.detach().cpu(), det_boxes.detach().cpu()):
             x1, y1, x2, y2 = [float(x) for x in box.tolist()]
@@ -375,6 +410,7 @@ class PatchEvalAccumulator:
             "match_errors": int(self.match_errors),
             "ap_targets": int(self.ap_targets),
             "ap_detections": int(len(self.detections)),
+            "ap_score_agg": self.ap_score_agg,
             "patch_ap50": self._compute_ap50(),
         }
         for k in self.topks:
@@ -435,6 +471,7 @@ def evaluate_one(
     seed: int,
     topks: List[int],
     ap_max_dets_per_image: int,
+    ap_score_agg: str,
     amp: bool,
     max_batches: int,
     max_images: int,
@@ -448,7 +485,7 @@ def evaluate_one(
         device=device,
         seed=seed,
     )
-    acc = PatchEvalAccumulator(topks, ap_max_dets_per_image=ap_max_dets_per_image)
+    acc = PatchEvalAccumulator(topks, ap_max_dets_per_image=ap_max_dets_per_image, ap_score_agg=ap_score_agg)
     start = time.time()
     total_batches = len(loader)
     print(
@@ -489,6 +526,7 @@ def evaluate_one(
             "max_batches": int(max_batches),
             "max_images": int(max_images),
             "ap_max_dets_per_image": int(ap_max_dets_per_image),
+            "ap_score_agg": str(ap_score_agg),
         }
     )
     return result
@@ -589,6 +627,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--topk", nargs="+", type=int, default=[1, 5, 10, 50])
     parser.add_argument("--ap_max_dets_per_image", type=int, default=100)
+    parser.add_argument("--ap_score_agg", default="slot", choices=["slot", "class_max"])
     parser.add_argument("--amp", action="store_true")
     parser.add_argument("--max_batches", type=int, default=0)
     parser.add_argument("--max_images", type=int, default=0)
@@ -641,6 +680,7 @@ def main() -> None:
                 seed=ds_seed,
                 topks=list(args.topk),
                 ap_max_dets_per_image=int(args.ap_max_dets_per_image),
+                ap_score_agg=str(args.ap_score_agg),
                 amp=bool(args.amp),
                 max_batches=int(args.max_batches),
                 max_images=int(args.max_images),
