@@ -26,13 +26,57 @@ ranked by text class scores instead of support-patch scores.
 
 ## Patch-Only Stage A
 
+Local Stage-A foundation directory:
+
+```text
+outputs/stageA_coco_multipatch/
+```
+
+Recorded checkpoints:
+
+```text
+checkpoint0000.pth  epoch 0
+checkpoint0001.pth  epoch 1
+checkpoint0002.pth  epoch 2
+checkpoint0003.pth  epoch 3
+checkpoint0004.pth  epoch 4
+checkpoint0005.pth  epoch 5
+checkpoint0006.pth  epoch 6
+checkpoint.pth      latest, epoch 6
+```
+
+The current sequence is the LVIS+COCO `config/cfg_patch_stage_a.py` run. The
+same output directory also contains older warmup / COCO-only startup records in
+`info.txt`, so checkpoint metadata is the source of truth for this sequence.
+
+The core setup is:
+
+```text
+datasets: config/datasets_patch_stage_a_lvis_coco2017_local.json
+patch_only: true
+patch_matching: hungarian
+support_num_patches_max: 80
+patch_labeling_mode: topk_iou
+patch_topk: 50
+patch_topk_iou_thr: 0.04
+patch_lambda_neg: 0.25
+unfreeze_decoder_last_n_layers: 3
+batch_size: 18
+lr: 1e-4
+```
+
+`checkpoint0000.pth` through `checkpoint0002.pth` used
+`patch_dn_num_queries=50` and `patch_dn_box_noise_scale=0.4`.
+`checkpoint0003.pth` through `checkpoint0006.pth` were resumed with
+`patch_dn_num_queries=1` and `patch_dn_box_noise_scale=1.0`.
+
 Evaluator:
 
 ```text
 tools/eval_stagea_patch_checkpoints.py
 ```
 
-Command used for the recorded `checkpoint0002.pth` and `checkpoint0004.pth`
+Command used for the recorded `checkpoint0005.pth` and `checkpoint0006.pth`
 comparison:
 
 ```bash
@@ -41,9 +85,9 @@ DATA_ROOT=/media/haoyi/T9/data \
   --config config/cfg_patch_stage_a.py \
   --datasets config/datasets_patch_stage_a_lvis_coco2017_eval_local.json \
   --ckpts \
-    outputs/stageA_coco_multipatch/checkpoint0002.pth \
-    outputs/stageA_coco_multipatch/checkpoint0004.pth \
-  --output_dir outputs/stageA_coco_multipatch_eval_0002_0004_fast \
+    outputs/stageA_coco_multipatch/checkpoint0005.pth \
+    outputs/stageA_coco_multipatch/checkpoint0006.pth \
+  --output_dir outputs/stageA_coco_multipatch_eval_0005_0006_fast \
   --batch_size 28 \
   --num_workers 8 \
   --log_every 25 \
@@ -54,11 +98,13 @@ Recorded result:
 
 | rank | checkpoint | mean patch_ap50 | mean box_recall@50 | mean matched_query_recall@50 | lvis_val patch_ap50 | coco_val patch_ap50 |
 |---:|---|---:|---:|---:|---:|---:|
-| 1 | `checkpoint0004.pth` | 0.590184 | 0.869767 | 0.830631 | 0.478985 | 0.701384 |
-| 2 | `checkpoint0002.pth` | 0.247510 | 0.737447 | 0.662394 | 0.180233 | 0.314787 |
+| 1 | `checkpoint0006.pth` | 0.596751 | 0.871689 | 0.833839 | 0.488652 | 0.704849 |
+| 2 | `checkpoint0005.pth` | 0.594680 | 0.870034 | 0.831887 | 0.485812 | 0.703548 |
+| 3 | `checkpoint0004.pth` | 0.590184 | 0.869767 | 0.830631 | 0.478985 | 0.701384 |
+| 4 | `checkpoint0002.pth` | 0.247510 | 0.737447 | 0.662394 | 0.180233 | 0.314787 |
 
-Under this Stage-A patch-only protocol, `checkpoint0004.pth` is the stronger
-Stage-A checkpoint among the evaluated pair.
+Under this Stage-A patch-only protocol, `checkpoint0006.pth` is the strongest
+Stage-A checkpoint among the evaluated local sequence so far.
 
 ## Original GroundingDINO Same-Data FT
 

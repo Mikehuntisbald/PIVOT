@@ -580,6 +580,45 @@ Stage A is patch-centric:
 - The text is usually a generic object/canonical prompt rather than the
   fine-grained RefCOCO phrase.
 
+Current local Stage-A foundation path:
+
+```text
+/media/haoyi/T9/gdino/outputs/stageA_coco_multipatch
+```
+
+The checkpoint sequence in that directory is:
+
+```text
+checkpoint0000.pth  epoch 0
+checkpoint0001.pth  epoch 1
+checkpoint0002.pth  epoch 2
+checkpoint0003.pth  epoch 3
+checkpoint0004.pth  epoch 4
+checkpoint0005.pth  epoch 5
+checkpoint0006.pth  epoch 6
+checkpoint.pth      latest, epoch 6
+```
+
+This sequence uses `config/cfg_patch_stage_a.py` with
+`config/datasets_patch_stage_a_lvis_coco2017_local.json` for the current
+LVIS+COCO Stage-A run. It should not be confused with older warmup / COCO-only
+startup records that also exist in the same `info.txt` because the output
+directory was reused.
+
+Important checkpoint metadata:
+
+- `checkpoint0000.pth` through `checkpoint0002.pth` used
+  `patch_dn_num_queries=50` and `patch_dn_box_noise_scale=0.4`.
+- `checkpoint0003.pth` through `checkpoint0006.pth` were resumed from
+  `outputs/stageA_coco_multipatch/checkpoint.pth` and used
+  `patch_dn_num_queries=1` and `patch_dn_box_noise_scale=1.0`.
+- The core Stage-A setup stayed the same: `patch_only=True`,
+  `patch_matching="hungarian"`, `support_num_patches_max=80`,
+  `patch_labeling_mode="topk_iou"`, `patch_topk=50`,
+  `patch_topk_iou_thr=0.04`, `patch_lambda_neg=0.25`,
+  `unfreeze_decoder_last_n_layers=3`, `bbox_loss_coef=5.0`,
+  `giou_loss_coef=2.0`, batch size `18`, and LR `1e-4`.
+
 Stage B is phrase/TN-centric:
 
 - It starts from a Stage-A checkpoint in the two-stage path.
@@ -628,7 +667,7 @@ Design reason:
 `tools/run_stageb_ablations.sh` prints the Stage-B ablation commands. It expects:
 
 ```bash
-export STAGE_A_CKPT=/media/haoyi/T9/gdino/outputs/stageA_coco_multipatch/checkpoint0004.pth
+export STAGE_A_CKPT=/media/haoyi/T9/gdino/outputs/stageA_coco_multipatch/checkpoint0006.pth
 ```
 
 The prepared Stage-B ablation panel, separate from the GroundingDINO same-data
@@ -695,8 +734,8 @@ Evaluator roles:
 The local recorded comparison is documented in
 `docs/stage_a_caliber_eval.md`. In the current run:
 
-- Stage-A patch-only `checkpoint0004.pth` beats `checkpoint0002.pth` under mean
-  `patch_ap50`.
+- Stage-A patch-only `checkpoint0006.pth` is the best local checkpoint so far
+  under mean `patch_ap50`.
 - OGC same-data FT `checkpoint0001.pth` is slightly better than
   `checkpoint0002.pth` under the text Stage-A-caliber AP50 computation.
 
