@@ -66,6 +66,7 @@ class GroundingDINO(nn.Module):
         nheads=8,
         patch_gate_with_text: bool = True,
         patch_only: bool = False,
+        enable_patch_branch: bool = True,
         patch_only_compute_text_logits: bool = False,
         patch_logit_scale_init: float = 14.2857142857,  # CLIP: 1/0.07
         patch_logit_scale_max: float = 100.0,
@@ -162,24 +163,31 @@ class GroundingDINO(nn.Module):
 
         self.backbone = backbone
 
-        self.patch_encoder = PatchEncoder(
-            backbone=self.backbone,
-            hidden_dim=self.hidden_dim,
-            gate_with_text=patch_gate_with_text,
-            max_text_len=self.max_text_len,
-        )
         self.patch_only = patch_only
+        self.enable_patch_branch = bool(enable_patch_branch)
         self.patch_only_compute_text_logits = bool(patch_only_compute_text_logits)
+        if self.enable_patch_branch:
+            self.patch_encoder = PatchEncoder(
+                backbone=self.backbone,
+                hidden_dim=self.hidden_dim,
+                gate_with_text=patch_gate_with_text,
+                max_text_len=self.max_text_len,
+            )
 
-        # Project decoder queries before computing patch similarity.
-        self.query_proj_for_patch = nn.Linear(hidden_dim, hidden_dim)
-        nn.init.xavier_uniform_(self.query_proj_for_patch.weight)
-        nn.init.constant_(self.query_proj_for_patch.bias, 0)
+            # Project decoder queries before computing patch similarity.
+            self.query_proj_for_patch = nn.Linear(hidden_dim, hidden_dim)
+            nn.init.xavier_uniform_(self.query_proj_for_patch.weight)
+            nn.init.constant_(self.query_proj_for_patch.bias, 0)
 
-        # CLIP-style learnable temperature for patch similarity.
-        # Stored in log-space; scale = exp(logit_scale). Clamp for stability.
-        self.patch_logit_scale = nn.Parameter(torch.tensor(float(patch_logit_scale_init)).log())
-        self.patch_logit_scale_max = float(patch_logit_scale_max)
+            # CLIP-style learnable temperature for patch similarity.
+            # Stored in log-space; scale = exp(logit_scale). Clamp for stability.
+            self.patch_logit_scale = nn.Parameter(torch.tensor(float(patch_logit_scale_init)).log())
+            self.patch_logit_scale_max = float(patch_logit_scale_max)
+        else:
+            self.patch_encoder = None
+            self.query_proj_for_patch = None
+            self.patch_logit_scale = None
+            self.patch_logit_scale_max = float(patch_logit_scale_max)
 
         # Patch-only DN / GT-guided queries: add extra queries initialized from GT boxes (+noise)
         # to guarantee some positives when box head is imperfect or iou_thr is strict.
@@ -449,12 +457,16 @@ class GroundingDINO(nn.Module):
         patch_gate = None
         patch_global = patch_global_in
         if patch_global is None and patches is not None:
+            if self.patch_encoder is None:
+                raise RuntimeError("Patch inputs were provided but this model was built without a patch branch.")
             patch_text_dict = text_dict if self.patch_encoder.gate_with_text else None
             patch_enc_out = self.patch_encoder(patches, text_dict=patch_text_dict, return_tokens=False)
             patch_global = patch_enc_out.get("patch_global", None)
             patch_gate = patch_enc_out.get("patch_gate", None)
 
         if patch_global is not None:
+            if self.patch_logit_scale is None or self.query_proj_for_patch is None:
+                raise RuntimeError("patch_global was provided but this model was built without a patch branch.")
             logit_scale = self.patch_logit_scale.exp().clamp(max=self.patch_logit_scale_max)
             query_proj = F.normalize(self.query_proj_for_patch(hs[-1]), dim=-1)
             patch_global = F.normalize(patch_global, dim=-1)
@@ -604,6 +616,8 @@ class GroundingDINO(nn.Module):
 
         注意: 这里只是一个 thin wrapper，内部直接调用 self.patch_encoder。
         """
+        if self.patch_encoder is None:
+            raise RuntimeError("This model was built without a patch branch.")
         return self.patch_encoder(patches, text_dict=text_dict)
 
     @torch.jit.unused
@@ -1052,6 +1066,7 @@ def build_groundingdino(args):
     patch_gate_with_text = bool(getattr(args, "patch_gate_with_text", not patch_only))
     if patch_only:
         patch_gate_with_text = False
+    enable_patch_branch = bool(getattr(args, "enable_patch_branch", patch_only or stage_b))
 
     model = GroundingDINO(
         backbone,
@@ -1064,6 +1079,7 @@ def build_groundingdino(args):
         nheads=args.nheads,
         patch_gate_with_text=patch_gate_with_text,
         patch_only=patch_only,
+        enable_patch_branch=enable_patch_branch,
         patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False) or stage_b),
         patch_logit_scale_init=float(getattr(args, "patch_logit_scale_init", 14.2857142857)),
         patch_logit_scale_max=float(getattr(args, "patch_logit_scale_max", 100.0)),
@@ -1118,7 +1134,7 @@ def build_groundingdino(args):
                 lambda_text=float(getattr(args, "lambda_text", 0.25)),
                 canonical_pos_weight=float(getattr(args, "canonical_pos_weight", 0.15)),
                 stage_b_rank_margin=float(getattr(args, "stage_b_rank_margin", 0.3)),
-                stage_b_rank_loss_coef=float(getattr(args, "stage_b_rank_loss_coef", 1.0)),
+                stage_b_rank_loss_coef=float(getattr(args, "stage_b_rank_loss_coef", 0.0)),
                 stage_b_rank_detach_patch=bool(getattr(args, "stage_b_rank_detach_patch", True)),
                 stage_b_rank_beta=float(getattr(args, "stage_b_infer_text_beta", 1.0)),
                 stage_b_rank_canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 0.15)),

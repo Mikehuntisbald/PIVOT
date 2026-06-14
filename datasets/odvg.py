@@ -99,18 +99,32 @@ class ODVGDataset(VisionDataset):
             instances = [obj for obj in anno["regions"]]
             boxes = [obj["bbox"] for obj in instances]
             caption_list = [obj["phrase"] for obj in instances]
-            c = list(zip(boxes, caption_list))
-            random.shuffle(c)
-            boxes[:], caption_list[:] = zip(*c)
-            uni_caption_list  = list(set(caption_list))
-            label_map = {}
-            for idx in range(len(uni_caption_list)):
-                label_map[uni_caption_list[idx]] = idx
-            classes = [label_map[cap] for cap in caption_list]
-            caption = ' . '.join(uni_caption_list) + ' .'
-            boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
-            classes = torch.tensor(classes, dtype=torch.int64)
-            caption_list = uni_caption_list
+            if boxes:
+                c = list(zip(boxes, caption_list))
+                random.shuffle(c)
+                boxes[:], caption_list[:] = zip(*c)
+                uni_caption_list  = list(set(caption_list))
+                label_map = {}
+                for idx in range(len(uni_caption_list)):
+                    label_map[uni_caption_list[idx]] = idx
+                classes = [label_map[cap] for cap in caption_list]
+                caption = ' . '.join(uni_caption_list) + ' .'
+                boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
+                classes = torch.tensor(classes, dtype=torch.int64)
+                caption_list = uni_caption_list
+            else:
+                caption_list = anno.get("caption_list", []) or meta.get("cap_list", [])
+                if not caption_list:
+                    caption = str(anno.get("caption", meta.get("caption", "object ."))).strip()
+                    caption_list = [caption[:-1].strip() if caption.endswith(".") else caption]
+                caption_list = [str(x).strip() for x in caption_list if str(x).strip()]
+                if not caption_list:
+                    caption_list = ["object"]
+                caption = str(anno.get("caption", meta.get("caption", ""))).strip()
+                if not caption:
+                    caption = ' . '.join(caption_list) + ' .'
+                boxes = torch.zeros((0, 4), dtype=torch.float32)
+                classes = torch.zeros((0,), dtype=torch.int64)
         target = {}
         image_id = meta.get("image_id", index)
         target["size"] = torch.as_tensor([int(h), int(w)])
