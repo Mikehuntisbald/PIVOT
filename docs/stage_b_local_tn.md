@@ -133,10 +133,19 @@ There is no softmin phrase rejection loss in v2. The old knobs `attr_pos_weight`
 
 ## Stage-B v4 Score Calibration
 
-Stage-B v4 is an ablation that starts from the v2 `checkpoint0003.pth` and keeps
-the v2 token BCE objective. It does not enable the historical v3 phrase-rank
-loss. Instead, it adds an inference-score calibration loss on TN rows with a
-valid positive prompt:
+Stage-B v4 is an ablation that starts from the v2 `checkpoint0003.pth`, replaces
+the v2 matched-query token BCE with a GroundingDINO-like all-query sigmoid focal
+text loss, and adds inference-score calibration. It does not enable the
+historical v3 phrase-rank loss.
+
+The v4 text loss builds a dense `(query, token)` target map from the Hungarian
+matched query/slot pairs: matched positive content and canonical tokens are
+positive, and all other valid query-token cells are focal negatives. This keeps
+the text head closer to original GroundingDINO dense token classification than
+the earlier matched-only BCE. Because dense focal has many query-token
+negatives, v4 uses `lambda_text = 0.05` instead of the v2 `0.25`.
+
+The v4 score calibration runs on TN rows with a valid positive prompt:
 
 ```text
 S = patch_score + beta * text_score

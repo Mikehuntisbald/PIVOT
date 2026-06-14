@@ -10,6 +10,11 @@ build_text_token_masks = True
 
 lambda_patch = 1.0
 lambda_text = 0.25
+# Mainline v2 keeps the local matched-query BCE token objective. Ablations can
+# set this to "allquery_focal" for original GroundingDINO-like dense token loss.
+stage_b_text_loss_type = "matched_bce"
+stage_b_text_focal_alpha = 0.25
+stage_b_text_focal_gamma = 2.0
 stage_b_enable_phrase_rank = False
 stage_b_rank_margin = 0.3
 stage_b_rank_loss_coef = 0.0

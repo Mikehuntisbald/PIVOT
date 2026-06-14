@@ -19,6 +19,23 @@ def _tn_group_name_from_id(group_id: int) -> str:
     return _TN_ID_TO_GROUP.get(int(group_id), "other")
 
 
+def _sigmoid_focal_loss_no_reduce(
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    *,
+    alpha: float = 0.25,
+    gamma: float = 2.0,
+) -> torch.Tensor:
+    prob = inputs.sigmoid()
+    ce_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction="none")
+    p_t = prob * targets + (1 - prob) * (1 - targets)
+    loss = ce_loss * ((1 - p_t) ** gamma)
+    if alpha >= 0:
+        alpha_t = alpha * targets + (1 - alpha) * (1 - targets)
+        loss = alpha_t * loss
+    return loss
+
+
 class StageBCriterion(nn.Module):
     """
     Stage B criterion:
@@ -33,6 +50,9 @@ class StageBCriterion(nn.Module):
         lambda_patch: float = 1.0,
         lambda_text: float = 0.25,
         canonical_pos_weight: float = 0.15,
+        stage_b_text_loss_type: str = "matched_bce",
+        stage_b_text_focal_alpha: float = 0.25,
+        stage_b_text_focal_gamma: float = 2.0,
         stage_b_rank_margin: float = 0.3,
         stage_b_rank_loss_coef: float = 0.0,
         stage_b_rank_detach_patch: bool = True,
@@ -67,6 +87,14 @@ class StageBCriterion(nn.Module):
         self.lambda_patch = float(lambda_patch)
         self.lambda_text = float(lambda_text)
         self.canonical_pos_weight = float(canonical_pos_weight)
+        self.stage_b_text_loss_type = str(stage_b_text_loss_type).lower().replace("-", "_").strip()
+        if self.stage_b_text_loss_type not in {"matched_bce", "allquery_focal"}:
+            raise ValueError(
+                "stage_b_text_loss_type must be 'matched_bce' or 'allquery_focal', "
+                f"got {stage_b_text_loss_type!r}"
+            )
+        self.stage_b_text_focal_alpha = float(stage_b_text_focal_alpha)
+        self.stage_b_text_focal_gamma = float(stage_b_text_focal_gamma)
         self.stage_b_rank_margin = float(stage_b_rank_margin)
         self.stage_b_rank_loss_coef = float(stage_b_rank_loss_coef)
         self.stage_b_rank_detach_patch = bool(stage_b_rank_detach_patch)
@@ -124,7 +152,90 @@ class StageBCriterion(nn.Module):
             loss = loss[positive_weight] * token_weight[positive_weight]
         return loss.mean()
 
-    def _compute_text_loss(self, outputs, targets, match_ctx):
+    def _validate_stage_b_token_masks(
+        self,
+        *,
+        pred_logits_text: torch.Tensor,
+        target: Dict[str, torch.Tensor],
+        batch_idx: int,
+    ) -> Dict[str, Optional[torch.Tensor]]:
+        device = pred_logits_text.device
+        if "phrase_to_token_mask" not in target:
+            raise KeyError("Stage B targets must include 'phrase_to_token_mask'.")
+        if "canonical_to_token_mask" not in target:
+            raise KeyError("Stage B targets must include 'canonical_to_token_mask'.")
+
+        phrase_to_token_mask = target["phrase_to_token_mask"].to(device=device).to(torch.bool)
+        canonical_to_token_mask = target["canonical_to_token_mask"].to(device=device).to(torch.bool)
+        content_to_token_mask = target.get("content_to_token_mask", None)
+        attr_pos_to_token_mask = target.get("attr_pos_to_token_mask", None)
+        attr_neg_to_token_mask = target.get("attr_neg_to_token_mask", None)
+        attr_neg_weight_mask = target.get("attr_neg_weight_mask", None)
+        is_tn_mask = target.get("is_tn", None)
+        negative_to_token_mask = target.get("negative_to_token_mask", None)
+        tn_group_ids = target.get("tn_group_ids", None)
+
+        if content_to_token_mask is not None:
+            content_to_token_mask = content_to_token_mask.to(device=device).to(torch.bool)
+        if attr_pos_to_token_mask is not None:
+            attr_pos_to_token_mask = attr_pos_to_token_mask.to(device=device).to(torch.bool)
+        if attr_neg_to_token_mask is not None:
+            attr_neg_to_token_mask = attr_neg_to_token_mask.to(device=device).to(torch.bool)
+        if attr_neg_weight_mask is not None:
+            attr_neg_weight_mask = attr_neg_weight_mask.to(device=device, dtype=pred_logits_text.dtype)
+        if is_tn_mask is not None:
+            is_tn_mask = is_tn_mask.to(device=device).to(torch.bool)
+        if negative_to_token_mask is not None:
+            negative_to_token_mask = negative_to_token_mask.to(device=device).to(torch.bool)
+        if tn_group_ids is not None:
+            tn_group_ids = tn_group_ids.to(device=device).to(torch.long)
+
+        T = int(pred_logits_text.shape[-1])
+        if phrase_to_token_mask.dim() != 2 or canonical_to_token_mask.dim() != 2:
+            raise ValueError("Stage B token masks must be shaped (K,T).")
+        if phrase_to_token_mask.shape[-1] != T or canonical_to_token_mask.shape[-1] != T:
+            raise ValueError(
+                f"Token mask length mismatch for batch {batch_idx}: "
+                f"phrase={tuple(phrase_to_token_mask.shape)} "
+                f"canonical={tuple(canonical_to_token_mask.shape)} "
+                f"pred_logits_text={tuple(pred_logits_text.shape)}"
+            )
+        optional_masks = {
+            "content_to_token_mask": content_to_token_mask,
+            "attr_pos_to_token_mask": attr_pos_to_token_mask,
+            "attr_neg_to_token_mask": attr_neg_to_token_mask,
+            "attr_neg_weight_mask": attr_neg_weight_mask,
+            "negative_to_token_mask": negative_to_token_mask,
+        }
+        for name, mask in optional_masks.items():
+            if mask is None:
+                continue
+            if mask.dim() != 2 or mask.shape != phrase_to_token_mask.shape:
+                raise ValueError(
+                    f"{name} must match phrase_to_token_mask, got "
+                    f"{tuple(mask.shape)} vs {tuple(phrase_to_token_mask.shape)}"
+                )
+        if is_tn_mask is not None and (is_tn_mask.dim() != 1 or is_tn_mask.shape[0] != phrase_to_token_mask.shape[0]):
+            raise ValueError(
+                f"is_tn must be shaped (K,), got {tuple(is_tn_mask.shape)} for K={phrase_to_token_mask.shape[0]}"
+            )
+        if tn_group_ids is not None and (tn_group_ids.dim() != 1 or tn_group_ids.shape[0] != phrase_to_token_mask.shape[0]):
+            raise ValueError(
+                f"tn_group_ids must be shaped (K,), got {tuple(tn_group_ids.shape)} for K={phrase_to_token_mask.shape[0]}"
+            )
+        return {
+            "phrase_to_token_mask": phrase_to_token_mask,
+            "canonical_to_token_mask": canonical_to_token_mask,
+            "content_to_token_mask": content_to_token_mask,
+            "attr_pos_to_token_mask": attr_pos_to_token_mask,
+            "attr_neg_to_token_mask": attr_neg_to_token_mask,
+            "attr_neg_weight_mask": attr_neg_weight_mask,
+            "is_tn_mask": is_tn_mask,
+            "negative_to_token_mask": negative_to_token_mask,
+            "tn_group_ids": tn_group_ids,
+        }
+
+    def _compute_matched_bce_text_loss(self, outputs, targets, match_ctx):
         pred_logits_text = outputs.get("pred_logits_text", None)
         if pred_logits_text is None:
             raise KeyError("StageBCriterion requires outputs['pred_logits_text'] in Stage B.")
@@ -154,66 +265,20 @@ class StageBCriterion(nn.Module):
         for b, ((src_idx, _tgt_idx), matched_patch_idx) in enumerate(zip(all_indices, matched_patch_idx_list)):
             if src_idx.numel() == 0:
                 continue
-            if "phrase_to_token_mask" not in targets[b]:
-                raise KeyError("Stage B targets must include 'phrase_to_token_mask'.")
-            if "canonical_to_token_mask" not in targets[b]:
-                raise KeyError("Stage B targets must include 'canonical_to_token_mask'.")
-
-            phrase_to_token_mask = targets[b]["phrase_to_token_mask"].to(device=device).to(torch.bool)
-            canonical_to_token_mask = targets[b]["canonical_to_token_mask"].to(device=device).to(torch.bool)
-            content_to_token_mask = targets[b].get("content_to_token_mask", None)
-            attr_pos_to_token_mask = targets[b].get("attr_pos_to_token_mask", None)
-            attr_neg_to_token_mask = targets[b].get("attr_neg_to_token_mask", None)
-            attr_neg_weight_mask = targets[b].get("attr_neg_weight_mask", None)
-            is_tn_mask = targets[b].get("is_tn", None)
-            negative_to_token_mask = targets[b].get("negative_to_token_mask", None)
-            tn_group_ids = targets[b].get("tn_group_ids", None)
-
-            if content_to_token_mask is not None:
-                content_to_token_mask = content_to_token_mask.to(device=device).to(torch.bool)
-            if attr_pos_to_token_mask is not None:
-                attr_pos_to_token_mask = attr_pos_to_token_mask.to(device=device).to(torch.bool)
-            if attr_neg_to_token_mask is not None:
-                attr_neg_to_token_mask = attr_neg_to_token_mask.to(device=device).to(torch.bool)
-            if attr_neg_weight_mask is not None:
-                attr_neg_weight_mask = attr_neg_weight_mask.to(device=device, dtype=pred_logits_text.dtype)
-            if is_tn_mask is not None:
-                is_tn_mask = is_tn_mask.to(device=device).to(torch.bool)
-            if negative_to_token_mask is not None:
-                negative_to_token_mask = negative_to_token_mask.to(device=device).to(torch.bool)
-            if tn_group_ids is not None:
-                tn_group_ids = tn_group_ids.to(device=device).to(torch.long)
-            T = int(pred_logits_text.shape[-1])
-            if phrase_to_token_mask.dim() != 2 or canonical_to_token_mask.dim() != 2:
-                raise ValueError("Stage B token masks must be shaped (K,T).")
-            if phrase_to_token_mask.shape[-1] != T or canonical_to_token_mask.shape[-1] != T:
-                raise ValueError(
-                    f"Token mask length mismatch: phrase={tuple(phrase_to_token_mask.shape)} "
-                    f"canonical={tuple(canonical_to_token_mask.shape)} pred_logits_text={tuple(pred_logits_text.shape)}"
-                )
-            optional_masks = {
-                "content_to_token_mask": content_to_token_mask,
-                "attr_pos_to_token_mask": attr_pos_to_token_mask,
-                "attr_neg_to_token_mask": attr_neg_to_token_mask,
-                "attr_neg_weight_mask": attr_neg_weight_mask,
-                "negative_to_token_mask": negative_to_token_mask,
-            }
-            for name, mask in optional_masks.items():
-                if mask is None:
-                    continue
-                if mask.dim() != 2 or mask.shape != phrase_to_token_mask.shape:
-                    raise ValueError(
-                        f"{name} must match phrase_to_token_mask, got "
-                        f"{tuple(mask.shape)} vs {tuple(phrase_to_token_mask.shape)}"
-                    )
-            if is_tn_mask is not None and (is_tn_mask.dim() != 1 or is_tn_mask.shape[0] != phrase_to_token_mask.shape[0]):
-                raise ValueError(
-                    f"is_tn must be shaped (K,), got {tuple(is_tn_mask.shape)} for K={phrase_to_token_mask.shape[0]}"
-                )
-            if tn_group_ids is not None and (tn_group_ids.dim() != 1 or tn_group_ids.shape[0] != phrase_to_token_mask.shape[0]):
-                raise ValueError(
-                    f"tn_group_ids must be shaped (K,), got {tuple(tn_group_ids.shape)} for K={phrase_to_token_mask.shape[0]}"
-                )
+            masks = self._validate_stage_b_token_masks(
+                pred_logits_text=pred_logits_text,
+                target=targets[b],
+                batch_idx=b,
+            )
+            phrase_to_token_mask = masks["phrase_to_token_mask"]
+            canonical_to_token_mask = masks["canonical_to_token_mask"]
+            content_to_token_mask = masks["content_to_token_mask"]
+            attr_pos_to_token_mask = masks["attr_pos_to_token_mask"]
+            attr_neg_to_token_mask = masks["attr_neg_to_token_mask"]
+            attr_neg_weight_mask = masks["attr_neg_weight_mask"]
+            is_tn_mask = masks["is_tn_mask"]
+            negative_to_token_mask = masks["negative_to_token_mask"]
+            tn_group_ids = masks["tn_group_ids"]
 
             logits_b = pred_logits_text[b, src_idx]
             for row_idx, slot_idx in enumerate(matched_patch_idx.tolist()):
@@ -337,6 +402,199 @@ class StageBCriterion(nn.Module):
                 float(tn_group_nonempty_counts[group_name]), device=device
             )
         return metrics
+
+    def _compute_allquery_focal_text_loss(self, outputs, targets, match_ctx):
+        pred_logits_text = outputs.get("pred_logits_text", None)
+        if pred_logits_text is None:
+            raise KeyError("StageBCriterion requires outputs['pred_logits_text'] in Stage B.")
+        if pred_logits_text.dim() != 3:
+            raise ValueError(
+                f"outputs['pred_logits_text'] must be (B,Q,T), got {tuple(pred_logits_text.shape)}"
+            )
+
+        device = pred_logits_text.device
+        target_map = torch.zeros_like(pred_logits_text, dtype=pred_logits_text.dtype, device=device)
+        weight_map = torch.ones_like(pred_logits_text, dtype=pred_logits_text.dtype, device=device)
+        text_mask = outputs.get("text_mask", None)
+        if text_mask is None:
+            valid_text_mask = torch.ones(
+                pred_logits_text.shape[0],
+                pred_logits_text.shape[-1],
+                dtype=torch.bool,
+                device=device,
+            )
+        else:
+            valid_text_mask = text_mask.to(device=device, dtype=torch.bool)
+            if valid_text_mask.dim() != 2 or valid_text_mask.shape[0] != pred_logits_text.shape[0]:
+                raise ValueError(
+                    f"outputs['text_mask'] must be (B,T), got {tuple(valid_text_mask.shape)}"
+                )
+            if valid_text_mask.shape[-1] != pred_logits_text.shape[-1]:
+                valid_text_mask = valid_text_mask[:, : pred_logits_text.shape[-1]]
+                if valid_text_mask.shape[-1] != pred_logits_text.shape[-1]:
+                    raise ValueError(
+                        f"outputs['text_mask'] length mismatch: {tuple(valid_text_mask.shape)} "
+                        f"vs pred_logits_text={tuple(pred_logits_text.shape)}"
+                    )
+
+        zero = pred_logits_text.new_zeros(())
+        content_pos_count = 0
+        tn_neg_count = 0
+        canonical_pos_count = 0
+        matched_query_count = 0
+        matched_slot_count = 0
+        empty_content_mask_count = 0
+        empty_tn_negative_mask_count = 0
+        tn_group_token_counts = {name: 0 for name in _TN_GROUP_NAMES}
+        tn_group_nonempty_counts = {name: 0 for name in _TN_GROUP_NAMES}
+        tn_group_slot_counts = {name: 0 for name in _TN_GROUP_NAMES}
+
+        all_indices = match_ctx["all_indices"]
+        matched_patch_idx_list = match_ctx["matched_patch_idx_list"]
+        for b, ((src_idx, _tgt_idx), matched_patch_idx) in enumerate(zip(all_indices, matched_patch_idx_list)):
+            if src_idx.numel() == 0:
+                continue
+            masks = self._validate_stage_b_token_masks(
+                pred_logits_text=pred_logits_text,
+                target=targets[b],
+                batch_idx=b,
+            )
+            phrase_to_token_mask = masks["phrase_to_token_mask"]
+            canonical_to_token_mask = masks["canonical_to_token_mask"]
+            content_to_token_mask = masks["content_to_token_mask"]
+            attr_pos_to_token_mask = masks["attr_pos_to_token_mask"]
+            attr_neg_to_token_mask = masks["attr_neg_to_token_mask"]
+            attr_neg_weight_mask = masks["attr_neg_weight_mask"]
+            is_tn_mask = masks["is_tn_mask"]
+            negative_to_token_mask = masks["negative_to_token_mask"]
+            tn_group_ids = masks["tn_group_ids"]
+
+            for query_idx_t, slot_idx_t in zip(src_idx.tolist(), matched_patch_idx.tolist()):
+                query_idx = int(query_idx_t)
+                slot_idx = int(slot_idx_t)
+                if slot_idx < 0 or slot_idx >= int(phrase_to_token_mask.shape[0]):
+                    continue
+
+                phrase_mask = phrase_to_token_mask[slot_idx] & valid_text_mask[b]
+                canonical_mask = canonical_to_token_mask[slot_idx] & phrase_mask
+                is_tn_slot = bool(is_tn_mask[slot_idx].item()) if is_tn_mask is not None else False
+                tn_group_name = (
+                    _tn_group_name_from_id(int(tn_group_ids[slot_idx].item()))
+                    if tn_group_ids is not None
+                    else "other"
+                )
+                if is_tn_slot:
+                    tn_group_slot_counts[tn_group_name] += 1
+
+                if attr_neg_to_token_mask is not None:
+                    negative_attr_mask = attr_neg_to_token_mask[slot_idx] & phrase_mask & (~canonical_mask)
+                elif negative_to_token_mask is not None:
+                    negative_attr_mask = negative_to_token_mask[slot_idx] & phrase_mask & (~canonical_mask)
+                else:
+                    negative_attr_mask = torch.zeros_like(phrase_mask)
+
+                if attr_neg_weight_mask is not None:
+                    negative_weight = (
+                        attr_neg_weight_mask[slot_idx].to(dtype=pred_logits_text.dtype)
+                        * negative_attr_mask.to(dtype=pred_logits_text.dtype)
+                    )
+                    weight_map[b, query_idx, negative_attr_mask] = negative_weight[negative_attr_mask]
+                else:
+                    negative_weight = negative_attr_mask.to(dtype=pred_logits_text.dtype)
+                effective_negative_mask = negative_attr_mask & (negative_weight > 0)
+                if is_tn_slot and not effective_negative_mask.any():
+                    empty_tn_negative_mask_count += 1
+
+                if content_to_token_mask is not None:
+                    content_pos_mask = content_to_token_mask[slot_idx]
+                elif attr_pos_to_token_mask is not None:
+                    content_pos_mask = attr_pos_to_token_mask[slot_idx]
+                else:
+                    content_pos_mask = phrase_mask
+                content_pos_mask = content_pos_mask & phrase_mask & (~canonical_mask) & (~effective_negative_mask)
+                if not content_pos_mask.any():
+                    empty_content_mask_count += 1
+
+                target_map[b, query_idx, content_pos_mask] = 1.0
+                target_map[b, query_idx, canonical_mask] = 1.0
+                if canonical_mask.any() and self.canonical_pos_weight != 1.0:
+                    weight_map[b, query_idx, canonical_mask] = float(self.canonical_pos_weight)
+
+                content_pos_count += int(content_pos_mask.sum().item())
+                canonical_pos_count += int(canonical_mask.sum().item())
+                neg_token_count = int(effective_negative_mask.sum().item())
+                tn_neg_count += neg_token_count
+                if neg_token_count > 0:
+                    tn_group_token_counts[tn_group_name] += neg_token_count
+                    tn_group_nonempty_counts[tn_group_name] += 1
+                matched_query_count += 1
+                matched_slot_count += 1
+
+        expanded_text_mask = valid_text_mask[:, None, :].expand_as(pred_logits_text)
+        valid_logits = pred_logits_text[expanded_text_mask]
+        valid_targets = target_map[expanded_text_mask]
+        valid_weights = weight_map[expanded_text_mask]
+        if valid_logits.numel() == 0:
+            loss_text = zero
+        else:
+            valid_loss = _sigmoid_focal_loss_no_reduce(
+                valid_logits,
+                valid_targets,
+                alpha=self.stage_b_text_focal_alpha,
+                gamma=self.stage_b_text_focal_gamma,
+            )
+            valid_loss = valid_loss * valid_weights
+            normalizer = max(float(matched_query_count), 1.0)
+            loss_text = valid_loss.sum() / normalizer
+
+        positive_token_count = int((target_map[expanded_text_mask] > 0.5).sum().item())
+        valid_token_count = int(expanded_text_mask.sum().item())
+        negative_token_count = max(valid_token_count - positive_token_count, 0)
+        metrics = {
+            "loss_text": loss_text,
+            "text_token_loss_raw": loss_text.detach(),
+            "text_phrase_tn_loss_raw": zero.detach(),
+            "content_pos_loss": loss_text.detach(),
+            "canonical_loss": zero.detach(),
+            "tn_neg_loss": zero.detach(),
+            "text_valid_slot_count": torch.as_tensor(float(matched_slot_count), device=device),
+            "text_content_pos_slot_count": torch.as_tensor(float(matched_query_count), device=device),
+            "text_tn_neg_slot_count": torch.as_tensor(float(tn_neg_count), device=device),
+            "text_attr_pos_slot_count": torch.as_tensor(float(matched_query_count), device=device),
+            "text_attr_neg_slot_count": torch.as_tensor(float(tn_neg_count), device=device),
+            "text_canonical_slot_count": torch.as_tensor(float(canonical_pos_count), device=device),
+            "text_phrase_tn_slot_count": zero.detach(),
+            "text_skipped_tn_slot_count": torch.as_tensor(float(empty_tn_negative_mask_count), device=device),
+            "effective_content_token_count": torch.as_tensor(float(content_pos_count), device=device),
+            "effective_tn_negative_token_count": torch.as_tensor(float(tn_neg_count), device=device),
+            "empty_content_mask_count": torch.as_tensor(float(empty_content_mask_count), device=device),
+            "empty_tn_negative_mask_count": torch.as_tensor(float(empty_tn_negative_mask_count), device=device),
+            "spatial_like_tn_count": torch.as_tensor(float(tn_group_slot_counts["spatial_like"]), device=device),
+            "relation_action_like_tn_count": torch.as_tensor(
+                float(tn_group_slot_counts["relation_action_like"]), device=device
+            ),
+            "text_allquery_focal_loss_raw": loss_text.detach(),
+            "text_allquery_positive_token_count": torch.as_tensor(float(positive_token_count), device=device),
+            "text_allquery_negative_token_count": torch.as_tensor(float(negative_token_count), device=device),
+            "text_allquery_valid_token_count": torch.as_tensor(float(valid_token_count), device=device),
+            "text_allquery_matched_query_count": torch.as_tensor(float(matched_query_count), device=device),
+            "text_allquery_focal_alpha": torch.as_tensor(float(self.stage_b_text_focal_alpha), device=device),
+            "text_allquery_focal_gamma": torch.as_tensor(float(self.stage_b_text_focal_gamma), device=device),
+        }
+        for group_name in _TN_GROUP_NAMES:
+            metrics[f"loss_tn_{group_name}"] = zero.detach()
+            metrics[f"tn_neg_count_{group_name}"] = torch.as_tensor(
+                float(tn_group_token_counts[group_name]), device=device
+            )
+            metrics[f"tn_nonempty_mask_count_{group_name}"] = torch.as_tensor(
+                float(tn_group_nonempty_counts[group_name]), device=device
+            )
+        return metrics
+
+    def _compute_text_loss(self, outputs, targets, match_ctx):
+        if self.stage_b_text_loss_type == "allquery_focal":
+            return self._compute_allquery_focal_text_loss(outputs, targets, match_ctx)
+        return self._compute_matched_bce_text_loss(outputs, targets, match_ctx)
 
     def _zero_score_calib_loss_dict(self, zero: torch.Tensor) -> Dict[str, torch.Tensor]:
         z = zero.detach()

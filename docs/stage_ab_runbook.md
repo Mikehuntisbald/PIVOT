@@ -381,9 +381,10 @@ ranking code is retained for ablations, but it is not part of mainline Stage B.
 Use `config/ablations/cfg_stageb_full.py` only for the historical rank-enabled
 v3 / rank probe.
 
-Stage-B v4 is a separate ablation that starts from the v2 epoch-3 checkpoint and
-adds inference-score calibration/listwise top-10 constraints. It does not use
-the historical v3 phrase-rank loss.
+Stage-B v4 is a separate ablation that starts from the v2 epoch-3 checkpoint,
+replaces v2 matched-only token BCE with GroundingDINO-like all-query sigmoid
+focal text loss, and adds inference-score calibration/listwise top-10
+constraints. It does not use the historical v3 phrase-rank loss.
 
 ### Reproduce Current Stage B v2
 
@@ -463,12 +464,12 @@ state. Use `checkpoint0003.pth` when the requested caliber is "latest epoch".
 
 ### Stage B v4 Score-Calibration Ablation
 
-Stage-B v4 initializes from the recorded v2 `checkpoint0003.pth`, keeps v2
-token BCE, and adds `loss_score_calib`:
+Stage-B v4 initializes from the recorded v2 `checkpoint0003.pth`, uses
+all-query sigmoid focal text loss, and adds `loss_score_calib`:
 
 ```text
 config/ablations/cfg_stageb_v4_score_calib.py
-outputs/stageB_local_tn_v4_score_calib_from_v2e3/
+outputs/stageB_local_tn_v4_allquery_focal_score_calib_from_v2e3/
 ```
 
 v4 constants were chosen from the v2 checkpoint0003 TN-val score distribution
@@ -487,6 +488,8 @@ topk_query = 10
 The v4 loss terms are:
 
 ```text
+text: original GroundingDINO-like all-query sigmoid focal over valid tokens
+text weight: lambda_text = 0.05, because all-query focal has many query-token negatives
 positive prompt: matched query > other top-10 queries
 TN prompt: max/top-10 query score should be low
 plus a light positive score floor and matched positive-vs-TN gap
@@ -495,7 +498,7 @@ plus a light positive score floor and matched positive-vs-TN gap
 Run v4 from v2 epoch 3:
 
 ```bash
-export STAGE_B_V4_OUT=outputs/stageB_local_tn_v4_score_calib_from_v2e3
+export STAGE_B_V4_OUT=outputs/stageB_local_tn_v4_allquery_focal_score_calib_from_v2e3
 
 CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
 "${PY}" -u main.py \
@@ -507,6 +510,10 @@ CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
   --amp \
   --options batch_size=19 epochs=1 lr_drop=100
 ```
+
+The earlier directory `outputs/stageB_local_tn_v4_score_calib_from_v2e3/` was
+an aborted pre-v4-final run with matched-only BCE and should not be used for
+results.
 
 Primary validation for v4 remains paired:
 
