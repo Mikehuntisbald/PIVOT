@@ -14,6 +14,16 @@ stage_b_enable_phrase_rank = False
 stage_b_rank_margin = 0.3
 stage_b_rank_loss_coef = 0.0
 stage_b_rank_detach_patch = True
+stage_b_score_calib_loss_coef = 0.0
+stage_b_score_calib_tau_pos = 0.10
+stage_b_score_calib_tau_neg = 1.40
+stage_b_score_calib_margin = 0.30
+stage_b_score_calib_topk = 10
+stage_b_score_calib_neg_weight = 0.5
+stage_b_score_calib_pos_weight = 0.1
+stage_b_score_calib_gap_weight = 0.1
+stage_b_score_calib_pos_query_weight = 0.1
+stage_b_score_calib_detach_patch = True
 tn_loss_profile = "standard"
 canonical_pos_weight = 0.15
 

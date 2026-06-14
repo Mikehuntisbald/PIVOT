@@ -131,6 +131,54 @@ Ranking uses match-by-target alignment. The negative forward and positive forwar
 
 There is no softmin phrase rejection loss in v2. The old knobs `attr_pos_weight`, `tn_shared_attr_pos_weight`, `attr_neg_weight`, `use_phrase_tn_loss`, `phrase_score_type`, `softmin_tau`, and `lambda_phrase` are deprecated and ignored by the content-token loss.
 
+## Stage-B v4 Score Calibration
+
+Stage-B v4 is an ablation that starts from the v2 `checkpoint0003.pth` and keeps
+the v2 token BCE objective. It does not enable the historical v3 phrase-rank
+loss. Instead, it adds an inference-score calibration loss on TN rows with a
+valid positive prompt:
+
+```text
+S = patch_score + beta * text_score
+```
+
+The scorer is the same Stage-B slot scorer used by RefCOCO/TN-val evaluation.
+The v4 loss uses the matched positive/TN queries and the top-10 competing query
+scores:
+
+```text
+loss_pos       = softplus(tau_pos - S_pos)
+loss_neg       = mean_top10 softplus(S_tn_topk - tau_neg)
+loss_gap       = softplus(margin - S_pos + S_tn_matched)
+loss_pos_query = mean_top10 softplus(margin - S_pos + S_pos_other_topk)
+```
+
+Default v4 constants come from the recorded v2 `checkpoint0003.pth` TN-val score
+quantiles at `beta=1`:
+
+```text
+outputs/stageb_tn_val_compare_quantiles_v2/v2_ckpt0003_beta1_score_quantiles.json
+
+tau_pos = 0.10   # v2 positive score q10 ~= 0.096
+tau_neg = 1.40   # v2 TN score q75 ~= 1.425
+margin  = 0.30   # conservative gap below v2 gap median ~= 0.641
+topk    = 10
+```
+
+The weighted v4 objective is:
+
+```text
+loss_score_calib =
+  0.5 * loss_neg
++ 0.1 * loss_pos
++ 0.1 * loss_gap
++ 0.1 * loss_pos_query
+```
+
+This objective is intended to lower high-scoring TN tails and improve top-1
+query ordering without globally raising all positive/TN scores as the v3
+pairwise rank probe did.
+
 ## Inference
 
 `PostProcessStageB.compute_slot_logits` does not use `content_to_token_mask` or `phrase_semantic_token_mask`. Inference scoring uses phrase-level token spans from `phrase_to_token_mask`, with the canonical mask only for the configured canonical contribution.
@@ -164,6 +212,7 @@ stage_b_enable_phrase_rank = False
 stage_b_rank_margin = 0.3
 stage_b_rank_loss_coef = 0.0
 stage_b_rank_detach_patch = True
+stage_b_score_calib_loss_coef = 0.0
 
 use_tn_category_weights = True
 default_tn_category_weight = 1.0

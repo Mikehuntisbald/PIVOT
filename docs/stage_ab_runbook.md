@@ -381,6 +381,10 @@ ranking code is retained for ablations, but it is not part of mainline Stage B.
 Use `config/ablations/cfg_stageb_full.py` only for the historical rank-enabled
 v3 / rank probe.
 
+Stage-B v4 is a separate ablation that starts from the v2 epoch-3 checkpoint and
+adds inference-score calibration/listwise top-10 constraints. It does not use
+the historical v3 phrase-rank loss.
+
 ### Reproduce Current Stage B v2
 
 The recorded `outputs/stageB_local_tn_v2_no_phrase_loss` run was initialized
@@ -456,6 +460,60 @@ outputs/stageB_local_tn_v3/checkpoint.pth
 
 `checkpoint_iter.pth` is newer than `checkpoint0003.pth`, but it is a mid-epoch
 state. Use `checkpoint0003.pth` when the requested caliber is "latest epoch".
+
+### Stage B v4 Score-Calibration Ablation
+
+Stage-B v4 initializes from the recorded v2 `checkpoint0003.pth`, keeps v2
+token BCE, and adds `loss_score_calib`:
+
+```text
+config/ablations/cfg_stageb_v4_score_calib.py
+outputs/stageB_local_tn_v4_score_calib_from_v2e3/
+```
+
+v4 constants were chosen from the v2 checkpoint0003 TN-val score distribution
+at `beta=1`:
+
+```text
+score quantiles:
+outputs/stageb_tn_val_compare_quantiles_v2/v2_ckpt0003_beta1_score_quantiles.json
+
+tau_pos = 0.10
+tau_neg = 1.40
+margin = 0.30
+topk_query = 10
+```
+
+The v4 loss terms are:
+
+```text
+positive prompt: matched query > other top-10 queries
+TN prompt: max/top-10 query score should be low
+plus a light positive score floor and matched positive-vs-TN gap
+```
+
+Run v4 from v2 epoch 3:
+
+```bash
+export STAGE_B_V4_OUT=outputs/stageB_local_tn_v4_score_calib_from_v2e3
+
+CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
+"${PY}" -u main.py \
+  -c config/ablations/cfg_stageb_v4_score_calib.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --output_dir "${STAGE_B_V4_OUT}" \
+  --pretrain_model_path outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
+  --num_workers 8 \
+  --amp \
+  --options batch_size=19 epochs=1 lr_drop=100
+```
+
+Primary validation for v4 remains paired:
+
+```text
+RefCOCO val acc50 should not drop versus v2 checkpoint0003.
+TN-val fpr@95tpr should improve versus v2 checkpoint0003.
+```
 
 ### Recommended New Stage B From Current Stage A
 

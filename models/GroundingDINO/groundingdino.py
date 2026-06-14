@@ -1141,6 +1141,16 @@ def build_groundingdino(args):
                 stage_b_rank_text_agg=str(getattr(args, "stage_b_infer_text_agg", "mean")),
                 stage_b_rank_softmin_tau=float(getattr(args, "stage_b_infer_softmin_tau", getattr(args, "softmin_tau", 0.7))),
                 stage_b_rank_mean_softmin_alpha=float(getattr(args, "stage_b_infer_mean_softmin_alpha", 0.5)),
+                stage_b_score_calib_loss_coef=float(getattr(args, "stage_b_score_calib_loss_coef", 0.0)),
+                stage_b_score_calib_tau_pos=float(getattr(args, "stage_b_score_calib_tau_pos", 0.1)),
+                stage_b_score_calib_tau_neg=float(getattr(args, "stage_b_score_calib_tau_neg", 1.4)),
+                stage_b_score_calib_margin=float(getattr(args, "stage_b_score_calib_margin", 0.3)),
+                stage_b_score_calib_topk=int(getattr(args, "stage_b_score_calib_topk", 10)),
+                stage_b_score_calib_pos_weight=float(getattr(args, "stage_b_score_calib_pos_weight", 0.1)),
+                stage_b_score_calib_neg_weight=float(getattr(args, "stage_b_score_calib_neg_weight", 0.5)),
+                stage_b_score_calib_gap_weight=float(getattr(args, "stage_b_score_calib_gap_weight", 0.1)),
+                stage_b_score_calib_pos_query_weight=float(getattr(args, "stage_b_score_calib_pos_query_weight", 0.1)),
+                stage_b_score_calib_detach_patch=bool(getattr(args, "stage_b_score_calib_detach_patch", True)),
             )
         else:
             weight_dict = {
