@@ -265,6 +265,65 @@ lvis_val patch_ap50 = 0.604870
 coco_val patch_ap50 = 0.725449
 ```
 
+## Stage A Decoder-Unfreeze Ablation
+
+Status: negative result, not Stage-A mainline.
+
+This ablation starts from the historical Stage A `checkpoint0002.pth`, keeps the
+phase-2/mainline recipe used for `checkpoint0003.pth` and `checkpoint0004.pth`,
+but unfreezes all 6 decoder layers instead of the mainline last 3 layers. The
+run also disables the epoch-4 LR drop, so both epoch 3 and epoch 4 train at
+base LR.
+
+Config and artifacts:
+
+```text
+config/ablations/cfg_stagea_phase2_decoder_all_nolrdrop.py
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_from0002_v2/
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_from0002_v2/bridge_resume_from0002_all_decoder_nolrdrop_noscaler.pth
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_from0002_v2/checkpoint0003.pth
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_from0002_v2/checkpoint0004.pth
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0003_vs_orig/summary.md
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0004_vs_orig/summary.md
+```
+
+Important settings:
+
+```text
+source checkpoint = outputs/stageA_coco_multipatch/checkpoint0002.pth
+unfreeze_decoder_last_n_layers = 6
+lr_drop = 100
+command override = --options epochs=5 lr_drop=100
+```
+
+Because changing the number of trainable decoder layers changes optimizer
+parameter groups, this run used a bridge resume checkpoint. The bridge reused
+Adam state for matching parameters and initialized optimizer state for newly
+trainable decoder parameters. The AMP scaler was intentionally omitted from the
+bridge so `main.py` could restore optimizer and scheduler state cleanly.
+
+Training evidence:
+
+```text
+Epoch 4 start: lr = 0.000100
+Epoch 4 averaged stats: lr = 0.000100, loss = 0.7364
+checkpoint0004.pth written at 2026-06-06 11:04 local time
+```
+
+Same-caliber eval versus the original Stage A `checkpoint0004.pth`:
+
+| checkpoint | branch | mean patch_ap50 | mean box_recall@50 | mean matched_query_recall@50 | lvis_val patch_ap50 | coco_val patch_ap50 |
+|---|---|---:|---:|---:|---:|---:|
+| `checkpoint0003.pth` | original | 0.581870 | 0.867450 | 0.829550 | 0.468977 | 0.694764 |
+| `checkpoint0003.pth` | decoder-all no-drop | 0.576159 | 0.859027 | 0.816437 | 0.461330 | 0.690988 |
+| `checkpoint0004.pth` | original | 0.590184 | 0.869767 | 0.830631 | 0.478985 | 0.701384 |
+| `checkpoint0004.pth` | decoder-all no-drop | 0.577569 | 0.861146 | 0.818542 | 0.462768 | 0.692369 |
+
+Decision: do not promote decoder-all/no-drop into the Stage-A foundation. It
+reduced patch AP50, box recall, and matched-query recall on both LVIS and COCO
+relative to the original checkpoint at both `checkpoint0003.pth` and
+`checkpoint0004.pth`.
+
 ## Deprecated Stage A v2 Loss Ablations
 
 Status: deprecated for the Stage-A mainline. Stage-A rank loss and pos/neg
@@ -297,10 +356,11 @@ Key files:
 config/cfg_patch_stage_b.py
 config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json
 docs/stage_b_local_tn.md
+outputs/stageB_local_tn_v2_no_phrase_loss/
 outputs/stageB_local_tn_v3/
 ```
 
-Stage B default training behavior:
+Stage B v2 mainline default training behavior:
 
 ```text
 stage_b = True
@@ -310,16 +370,52 @@ patch_only_compute_text_logits = True
 build_text_token_masks = True
 lambda_patch = 1.0
 lambda_text = 0.25
-stage_b_enable_phrase_rank = True
-stage_b_rank_loss_coef = 1.0
+stage_b_enable_phrase_rank = False
+stage_b_rank_loss_coef = 0.0
 canonical_pos_weight = 0.15
 only_train_keywords = ["feat_map", "class_embed"]
 ```
 
-### Reproduce Recorded Stage B v3
+The current Stage-B mainline is v2: token/content/canonical/TN BCE only. Phrase
+ranking code is retained for ablations, but it is not part of mainline Stage B.
+Use `config/ablations/cfg_stageb_full.py` only for the historical rank-enabled
+v3 / rank probe.
+
+### Reproduce Current Stage B v2
+
+The recorded `outputs/stageB_local_tn_v2_no_phrase_loss` run was initialized
+from Stage A `checkpoint0004.pth` and uses the no-ranking v2 objective.
+
+Initial command recorded in `outputs/stageB_local_tn_v2_no_phrase_loss/info.txt`:
+
+```bash
+export STAGE_B_OUT=outputs/stageB_local_tn_v2_no_phrase_loss
+
+CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
+"${PY}" -u main.py \
+  -c config/cfg_patch_stage_b.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --output_dir "${STAGE_B_OUT}" \
+  --pretrain_model_path outputs/stageA_coco_multipatch/checkpoint0004.pth \
+  --num_workers 8 \
+  --amp \
+  --options batch_size=22
+```
+
+Recorded latest v2 epoch checkpoint:
+
+```text
+outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth
+outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint.pth
+```
+
+### Historical Stage B v3 Rank Probe
 
 The recorded `outputs/stageB_local_tn_v3` run was initialized from Stage A
-`checkpoint0004.pth`, then later resumed from `checkpoint_iter.pth`.
+`checkpoint0004.pth`, then later resumed from `checkpoint_iter.pth`. Its saved
+args have `stage_b_enable_phrase_rank=True` and `stage_b_rank_loss_coef=1.0`,
+so treat it as the historical rank-enabled v3 / rank probe, not the current
+Stage-B v2 mainline.
 
 Initial command recorded in `outputs/stageB_local_tn_v3/info.txt`:
 
@@ -328,7 +424,7 @@ export STAGE_B_OUT=outputs/stageB_local_tn_v3
 
 CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
 "${PY}" -u main.py \
-  -c config/cfg_patch_stage_b.py \
+  -c config/ablations/cfg_stageb_full.py \
   --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
   --output_dir "${STAGE_B_OUT}" \
   --pretrain_model_path outputs/stageA_coco_multipatch/checkpoint0004.pth \
@@ -342,7 +438,7 @@ Recorded later resume used the same output directory and `checkpoint_iter.pth`:
 ```bash
 CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
 "${PY}" -u main.py \
-  -c config/cfg_patch_stage_b.py \
+  -c config/ablations/cfg_stageb_full.py \
   --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
   --output_dir "${STAGE_B_OUT}" \
   --resume "${STAGE_B_OUT}/checkpoint_iter.pth" \
@@ -351,7 +447,7 @@ CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
   --options batch_size=19
 ```
 
-Recorded latest epoch checkpoint:
+Recorded latest v3 epoch checkpoint:
 
 ```text
 outputs/stageB_local_tn_v3/checkpoint0003.pth
@@ -363,8 +459,8 @@ state. Use `checkpoint0003.pth` when the requested caliber is "latest epoch".
 
 ### Recommended New Stage B From Current Stage A
 
-For a new run using the current best Stage A foundation, initialize from
-`checkpoint0006.pth` and use a fresh output directory:
+For a new v2 mainline run using the current best Stage A foundation, initialize
+from `checkpoint0006.pth` and use a fresh output directory:
 
 ```bash
 export STAGE_A_CKPT=outputs/stageA_coco_multipatch/checkpoint0006.pth
@@ -404,17 +500,17 @@ LVIS/COCO Stage-A-caliber validation episodes:
 config/datasets_patch_stage_a_lvis_coco2017_eval_local.json
 ```
 
-Evaluate the latest recorded Stage B epoch with patch/text fusion:
+Evaluate the latest recorded Stage B v2 epoch with patch/text fusion:
 
 ```bash
-export STAGE_B_EVAL_OUT=outputs/stageB_local_tn_v3_patch_text_fusion_eval_0003_stagea_caliber
+export STAGE_B_EVAL_OUT=outputs/stageB_local_tn_v2_no_phrase_loss_patch_text_fusion_eval_0003_stagea_caliber
 
 DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
 TOKENIZERS_PARALLELISM=false \
 "${PY}" -u tools/eval_stagea_patch_text_fusion_probe.py \
   --config config/cfg_patch_stage_b.py \
   --datasets config/datasets_patch_stage_a_lvis_coco2017_eval_local.json \
-  --ckpts outputs/stageB_local_tn_v3/checkpoint0003.pth \
+  --ckpts outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
   --output_dir "${STAGE_B_EVAL_OUT}" \
   --batch_size 24 \
   --num_workers 8 \
@@ -427,9 +523,9 @@ Expected current best:
 
 ```text
 checkpoint0003:patch_plus_text_b0.5
-mean patch_ap50 = 0.696129
-lvis_val patch_ap50 = 0.647883
-coco_val patch_ap50 = 0.744375
+mean patch_ap50 = 0.698039
+lvis_val patch_ap50 = 0.651198
+coco_val patch_ap50 = 0.744881
 ```
 
 This beats the recorded GroundingDINO same-data FT `checkpoint0001.pth` under
@@ -437,7 +533,7 @@ the same LVIS/COCO Stage-A-caliber comparison:
 
 ```text
 GDINO FT e1 mean patch_ap50 = 0.681998
-Stage B e3 beta=0.5 delta = +0.014131
+Stage B v2 e3 beta=0.5 delta = +0.016041
 ```
 
 ## GroundingDINO Same-Data FT Baseline
@@ -482,6 +578,91 @@ lvis_val patch_ap50 = 0.640117
 coco_val patch_ap50 = 0.723879
 ```
 
+## Pure GroundingDINO Stage-B Data Ablations
+
+These ablations continue the GroundingDINO same-data FT checkpoint with the
+Stage-B data recipe, but keep the model path pure GroundingDINO. They must not
+use `config/cfg_patch_stage_b.py`, `patch_episode` datasets, support patches,
+patch losses, Stage-B criterion, or phrase-rank loss.
+
+Key files:
+
+```text
+tools/build_stageb_gdino_finetune_ablation.py
+config/ablations/cfg_stageb_from_gdino_ft_with_tn.py
+config/ablations/cfg_stageb_from_gdino_ft_no_tn.py
+config/ablations/datasets_gdino_ft_stageb_with_tn_local.json
+config/ablations/datasets_gdino_ft_stageb_no_tn_local.json
+data/ablations/gdino_ft_stage_b/
+```
+
+Pure-structure boundary:
+
+```text
+patch_only = False
+stage_b = False
+enable_patch_branch = False
+batch_size = 19
+```
+
+`enable_patch_branch = False` prevents this fork's optional patch encoder,
+query-to-patch projection, and patch logit scale from being instantiated at all.
+When loading a checkpoint that contains historical patch-extension keys, those
+keys are expected `unexpected_keys` and are ignored. The ordinary GroundingDINO
+SetCriterion remains the only training loss.
+
+Build the pure-GDINO Stage-B ODVG/VG datasets:
+
+```bash
+DATA_ROOT="${DATA_ROOT}" "${PY}" tools/build_stageb_gdino_finetune_ablation.py \
+  --stageb_datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --stagea_odvg_datasets data/ablations/ogc_original_finetune_stage_a/stagea_odvg_datasets.json \
+  --out_dir data/ablations/gdino_ft_stage_b \
+  --dataset_config_dir config/ablations
+```
+
+Generated data semantics:
+
+```text
+LVIS train:      ODVG detection, mix_weight = 2
+COCO train:      ODVG detection, mix_weight = 2
+RefCOCO+ train:  VG positive phrase + box, mix_weight = 2
+RefCOCOg train:  VG positive phrase + box, mix_weight = 2
+TN train:        VG negative phrase + zero regions, mix_weight = 1
+```
+
+The with-TN dataset includes the TN row above. The no-TN dataset removes only
+that entry, keeping the other four entries and ordinary GroundingDINO training
+config identical.
+
+Run the with-TN ablation from the same-data FT best checkpoint:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
+"${PY}" -u main.py \
+  -c config/ablations/cfg_stageb_from_gdino_ft_with_tn.py \
+  --datasets config/ablations/datasets_gdino_ft_stageb_with_tn_local.json \
+  --output_dir outputs/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch \
+  --pretrain_model_path outputs/ogc_original_finetune_stage_a/checkpoint0001.pth \
+  --num_workers 8 \
+  --amp \
+  --options batch_size=19
+```
+
+Run the no-TN companion:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
+"${PY}" -u main.py \
+  -c config/ablations/cfg_stageb_from_gdino_ft_no_tn.py \
+  --datasets config/ablations/datasets_gdino_ft_stageb_no_tn_local.json \
+  --output_dir outputs/gdino_ft_stageb_from_gdino_ft_e1_no_tn_bs19_nopatchbranch \
+  --pretrain_model_path outputs/ogc_original_finetune_stage_a/checkpoint0001.pth \
+  --num_workers 8 \
+  --amp \
+  --options batch_size=19
+```
+
 ## Result Files To Check
 
 Stage A patch-only:
@@ -498,11 +679,20 @@ outputs/stageA_coco_multipatch_patch_text_fusion_eval_0006_betas_full/summary.js
 outputs/stageA_coco_multipatch_patch_text_fusion_eval_0006_betas_full/summary.md
 ```
 
+Stage A decoder-all/no-drop ablation:
+
+```text
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0003_vs_orig/summary.json
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0003_vs_orig/summary.md
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0004_vs_orig/summary.json
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0004_vs_orig/summary.md
+```
+
 Stage B same-caliber patch/text fusion:
 
 ```text
-outputs/stageB_local_tn_v3_patch_text_fusion_eval_0003_stagea_caliber/summary.json
-outputs/stageB_local_tn_v3_patch_text_fusion_eval_0003_stagea_caliber/summary.md
+outputs/stageB_local_tn_v2_no_phrase_loss_patch_text_fusion_eval_0003_stagea_caliber/summary.json
+outputs/stageB_local_tn_v2_no_phrase_loss_patch_text_fusion_eval_0003_stagea_caliber/summary.md
 ```
 
 GroundingDINO same-data FT:

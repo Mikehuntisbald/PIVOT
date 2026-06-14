@@ -125,6 +125,53 @@ Recorded result:
 Under this Stage-A patch-only protocol, `checkpoint0006.pth` is the strongest
 Stage-A checkpoint among the evaluated local sequence so far.
 
+## Stage-A Decoder-Unfreeze Ablation
+
+Status: negative result, not Stage-A mainline. This test asked whether starting
+from `checkpoint0002.pth`, unfreezing all decoder layers, and keeping the phase-2
+recipe without an epoch-4 LR drop could beat the original Stage A
+`checkpoint0004.pth`.
+
+Config and output:
+
+```text
+config/ablations/cfg_stagea_phase2_decoder_all_nolrdrop.py
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_from0002_v2/
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0003_vs_orig/
+outputs/stageA_coco_multipatch_decoder_all_nolrdrop_eval_0004_vs_orig/
+```
+
+Effective ablation knobs:
+
+```text
+source checkpoint = outputs/stageA_coco_multipatch/checkpoint0002.pth
+phase-2 DN settings = same as checkpoint0003/checkpoint0004
+unfreeze_decoder_last_n_layers = 6
+lr_drop = 100
+```
+
+Training evidence confirms that the run did not drop LR at epoch 4:
+
+```text
+Epoch 4 start lr = 0.000100
+Epoch 4 averaged lr = 0.000100
+checkpoint0004.pth = outputs/stageA_coco_multipatch_decoder_all_nolrdrop_from0002_v2/checkpoint0004.pth
+```
+
+Same-caliber result:
+
+| checkpoint | branch | mean patch_ap50 | mean box_recall@50 | mean matched_query_recall@50 | lvis_val patch_ap50 | coco_val patch_ap50 |
+|---|---|---:|---:|---:|---:|---:|
+| `checkpoint0003.pth` | original | 0.581870 | 0.867450 | 0.829550 | 0.468977 | 0.694764 |
+| `checkpoint0003.pth` | decoder-all no-drop | 0.576159 | 0.859027 | 0.816437 | 0.461330 | 0.690988 |
+| `checkpoint0004.pth` | original | 0.590184 | 0.869767 | 0.830631 | 0.478985 | 0.701384 |
+| `checkpoint0004.pth` | decoder-all no-drop | 0.577569 | 0.861146 | 0.818542 | 0.462768 | 0.692369 |
+
+Decision: do not continue this branch as the Stage-A foundation. Unfreezing all
+decoder layers from `checkpoint0002.pth` with no LR drop underperformed the
+original checkpoint at both `checkpoint0003.pth` and `checkpoint0004.pth` on
+both LVIS and COCO.
+
 ## Deprecated Stage-A v2 Loss Ablations
 
 Status: deprecated for the Stage-A mainline. The Stage-A v2 loss code remains
