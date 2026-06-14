@@ -17,7 +17,9 @@ shirt -> target 1 if it is non-canonical content in the slot
 man   -> target 1 with canonical/head weight
 ```
 
-Stage B also trains an independent phrase-ranking loss for TN rows that have a real `positive_phrase`:
+Stage B v2 does not train phrase ranking by default. The rank-enabled v3 /
+ablation path can additionally train an independent phrase-ranking loss for TN
+rows that have a real `positive_phrase`:
 
 ```text
 S(q, t+, p) > S(q, t-, p)
@@ -115,13 +117,15 @@ The total Stage-B text loss is:
 loss_text = content_pos_loss + canonical_loss + tn_neg_loss
 ```
 
-Phrase ranking is a separate loss:
+Phrase ranking, when an ablation explicitly enables it, is a separate loss:
 
 ```python
 loss_phrase_rank = mean(max(0, stage_b_rank_margin - S_pos + S_neg))
 ```
 
-`loss_phrase_rank` is weighted by `stage_b_rank_loss_coef`; it is not part of `loss_text` and is not multiplied by `lambda_text`. The default margin is `0.3` and the default rank loss coefficient is `1.0`.
+`loss_phrase_rank` is weighted by `stage_b_rank_loss_coef`; it is not part of
+`loss_text` and is not multiplied by `lambda_text`. The current v2 default rank
+loss coefficient is `0.0`; rank-enabled v3 / ablation configs set it to `1.0`.
 
 Ranking uses match-by-target alignment. The negative forward and positive forward each run Hungarian matching; scores are compared only when both forwards match the same GT target id and the same support slot. The patch part of the rank score is detached by default (`stage_b_rank_detach_patch=True`).
 
@@ -146,7 +150,7 @@ where:
 normalized_softmin_score = softmin_score + tau * log(num_tokens)
 ```
 
-This normalization keeps the score equal to the common token logit when all selected token logits are equal. Stage-B ranking uses the same scorer config as inference.
+This normalization keeps the score equal to the common token logit when all selected token logits are equal. The rank-enabled ablation path uses the same scorer config as inference.
 
 ## Default Config
 
@@ -156,9 +160,9 @@ canonical_pos_weight = 0.15
 stage_b_infer_text_agg = "mean"
 stage_b_infer_softmin_tau = 0.7
 stage_b_infer_mean_softmin_alpha = 0.5
-stage_b_enable_phrase_rank = True
+stage_b_enable_phrase_rank = False
 stage_b_rank_margin = 0.3
-stage_b_rank_loss_coef = 1.0
+stage_b_rank_loss_coef = 0.0
 stage_b_rank_detach_patch = True
 
 use_tn_category_weights = True

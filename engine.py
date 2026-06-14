@@ -77,7 +77,7 @@ def _select_rank_patch_rows(value, indices: List[int], slots: List[int]):
 
 
 def _build_stage_b_rank_subbatch(args, samples, targets, captions, patches, patch_global, patch_mask):
-    if not bool(getattr(args, "stage_b_enable_phrase_rank", True)):
+    if not bool(getattr(args, "stage_b_enable_phrase_rank", False)):
         return None
     device = samples.tensors.device
     rank_indices: List[int] = []

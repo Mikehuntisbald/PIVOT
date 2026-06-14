@@ -34,7 +34,7 @@ class StageBCriterion(nn.Module):
         lambda_text: float = 0.25,
         canonical_pos_weight: float = 0.15,
         stage_b_rank_margin: float = 0.3,
-        stage_b_rank_loss_coef: float = 1.0,
+        stage_b_rank_loss_coef: float = 0.0,
         stage_b_rank_detach_patch: bool = True,
         stage_b_rank_beta: float = 1.0,
         stage_b_rank_canonical_weight: float = 0.15,

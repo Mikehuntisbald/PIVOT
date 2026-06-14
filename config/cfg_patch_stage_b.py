@@ -1,6 +1,7 @@
 from config.cfg_patch_stage_a import *  # noqa: F401,F403
 
-# Stage B: keep Stage A patch-only training path, add text-only token supervision.
+# Stage B v2: keep Stage A patch-only training path, add text-only token
+# supervision. Phrase ranking is retained only in ablation configs.
 stage_b = True
 patch_only = True
 patch_matching = "hungarian"
@@ -9,9 +10,9 @@ build_text_token_masks = True
 
 lambda_patch = 1.0
 lambda_text = 0.25
-stage_b_enable_phrase_rank = True
+stage_b_enable_phrase_rank = False
 stage_b_rank_margin = 0.3
-stage_b_rank_loss_coef = 1.0
+stage_b_rank_loss_coef = 0.0
 stage_b_rank_detach_patch = True
 tn_loss_profile = "standard"
 canonical_pos_weight = 0.15
