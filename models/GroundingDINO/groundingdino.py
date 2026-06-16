@@ -1136,6 +1136,12 @@ def build_groundingdino(args):
                 stage_b_text_loss_type=str(getattr(args, "stage_b_text_loss_type", "matched_bce")),
                 stage_b_text_focal_alpha=float(getattr(args, "stage_b_text_focal_alpha", args.focal_alpha)),
                 stage_b_text_focal_gamma=float(getattr(args, "stage_b_text_focal_gamma", args.focal_gamma)),
+                stage_b_extra_iou_match_thr=float(getattr(args, "stage_b_extra_iou_match_thr", 0.5)),
+                stage_b_tn_neg_weight=float(getattr(args, "lambda_tn_neg", getattr(args, "stage_b_tn_neg_weight", 1.0))),
+                stage_b_tn_content_weight=float(getattr(args, "lambda_tn_content", getattr(args, "stage_b_tn_content_weight", 1.0))),
+                stage_b_tn_canonical_weight=float(getattr(args, "lambda_tn_canonical", getattr(args, "stage_b_tn_canonical_weight", 1.0))),
+                stage_b_tn_content_target=float(getattr(args, "tn_content_target", getattr(args, "stage_b_tn_content_target", 1.0))),
+                stage_b_tn_canonical_target=float(getattr(args, "tn_canonical_target", getattr(args, "stage_b_tn_canonical_target", 1.0))),
                 stage_b_rank_margin=float(getattr(args, "stage_b_rank_margin", 0.3)),
                 stage_b_rank_loss_coef=float(getattr(args, "stage_b_rank_loss_coef", 0.0)),
                 stage_b_rank_detach_patch=bool(getattr(args, "stage_b_rank_detach_patch", True)),
@@ -1153,7 +1159,10 @@ def build_groundingdino(args):
                 stage_b_score_calib_neg_weight=float(getattr(args, "stage_b_score_calib_neg_weight", 0.5)),
                 stage_b_score_calib_gap_weight=float(getattr(args, "stage_b_score_calib_gap_weight", 0.1)),
                 stage_b_score_calib_pos_query_weight=float(getattr(args, "stage_b_score_calib_pos_query_weight", 0.1)),
+                stage_b_score_calib_all_tn_neg_weight=float(getattr(args, "stage_b_score_calib_all_tn_neg_weight", 0.0)),
                 stage_b_score_calib_detach_patch=bool(getattr(args, "stage_b_score_calib_detach_patch", True)),
+                stage_b_score_calib_neg_agg=str(getattr(args, "stage_b_score_calib_neg_agg", "mean")),
+                stage_b_score_calib_neg_lse_tau=float(getattr(args, "stage_b_score_calib_neg_lse_tau", 0.5)),
             )
         else:
             weight_dict = {
