@@ -894,12 +894,19 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
         _cnt += 1
         iter_interval = int(getattr(args, "iter_checkpoint_interval", 0) or 0)
+        max_train_iters = int(getattr(args, "max_train_iters", 0) or 0)
         stop_requested = bool(getattr(args, "_stop_requested", False))
+        stop_at_iter_limit = max_train_iters > 0 and _cnt >= max_train_iters
         should_save_iter = iter_checkpoint_fn is not None and (
-            stop_requested or (iter_interval > 0 and (_cnt % iter_interval == 0))
+            stop_requested or stop_at_iter_limit or (iter_interval > 0 and (_cnt % iter_interval == 0))
         )
         if should_save_iter:
-            reason = "signal" if stop_requested else "interval"
+            if stop_requested:
+                reason = "signal"
+            elif stop_at_iter_limit:
+                reason = "max_train_iters"
+            else:
+                reason = "interval"
             iter_checkpoint_fn(
                 epoch=epoch,
                 iteration=_cnt,
@@ -910,6 +917,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         if stop_requested:
             signum = getattr(args, "_stop_signal", None)
             raise GracefulTrainingExit(f"Stop requested by signal {signum}; saved iteration checkpoint.")
+        if stop_at_iter_limit:
+            raise GracefulTrainingExit(f"Reached max_train_iters={max_train_iters}; saved iteration checkpoint.")
         if args.debug:
             if _cnt % 15 == 0:
                 print("BREAK!"*5)

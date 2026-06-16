@@ -160,6 +160,12 @@ def get_args_parser():
         type=int,
         help='save output_dir/checkpoint_iter.pth every N finished train iterations; 0 disables periodic saves',
     )
+    parser.add_argument(
+        '--max_train_iters',
+        default=0,
+        type=int,
+        help='stop training after N finished train iterations by writing output_dir/checkpoint_iter.pth; 0 disables',
+    )
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
