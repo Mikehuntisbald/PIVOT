@@ -491,9 +491,13 @@ The v4 loss terms are:
 text: original GroundingDINO-like all-query sigmoid focal over valid tokens
 text weight: lambda_text = 0.05, because all-query focal has many query-token negatives
 positive prompt: matched query > other top-10 queries
-TN prompt: max/top-10 query score should be low
+TN prompt: global top-10 over all query/slot scores should be low
 plus a light positive score floor and matched positive-vs-TN gap
 ```
+
+The TN score calibration uses the same global flattening as inference
+(`slot_logits.reshape(B, -1)`), not only the matched/source slot. The matched TN
+score is still logged for diagnosis.
 
 Run v4 from v2 epoch 3:
 
@@ -521,6 +525,111 @@ Primary validation for v4 remains paired:
 RefCOCO val acc50 should not drop versus v2 checkpoint0003.
 TN-val fpr@95tpr should improve versus v2 checkpoint0003.
 ```
+
+### Stage B v5 alltn00625 Candidate
+
+The current best TN/FPR branch is v5 `alltn00625`, initialized from the recorded
+v2 epoch-3 checkpoint. Unlike v2, this probe unfreezes decoder/box heads and
+enables bbox losses while keeping the patch branch, backbone/input projection,
+and BERT frozen:
+
+```text
+config/ablations/cfg_stageb_v5_tnneg10_lse_top10_alltn00625_from_w0125.py
+outputs/stageB_v5_tnneg10_lse_top10_alltn00625_from_v2e3_bs4_long/
+```
+
+Important config deltas from v2:
+
+```text
+stage_b_text_loss_type = "allquery_focal_tn_matched_bce"
+only_train_keywords = ["feat_map", "class_embed", "bbox_embed", "transformer.decoder.layers"]
+bbox_loss_coef = 5.0
+giou_loss_coef = 2.0
+lambda_tn_neg = 10.0
+lambda_tn_content = 0.0
+lambda_tn_canonical = 0.0
+stage_b_score_calib_neg_agg = "logsumexp"
+stage_b_score_calib_neg_lse_tau = 0.2
+stage_b_score_calib_neg_weight = 0.125
+stage_b_score_calib_gap_weight = 0.125
+stage_b_score_calib_all_tn_neg_weight = 0.0625
+stage_b_score_calib_detach_patch = False
+```
+
+Run from v2 checkpoint0003:
+
+```bash
+export STAGE_B_V5_OUT=outputs/stageB_v5_tnneg10_lse_top10_alltn00625_from_v2e3_bs4_long
+
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u main.py \
+  --config_file config/ablations/cfg_stageb_v5_tnneg10_lse_top10_alltn00625_from_w0125.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --pretrain_model_path outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
+  --output_dir "${STAGE_B_V5_OUT}" \
+  --num_workers 8 \
+  --amp \
+  --iter_checkpoint_interval 5000 \
+  --options batch_size=4
+```
+
+The selected checkpoint is the explicit 20k backup:
+
+```text
+outputs/stageB_v5_tnneg10_lse_top10_alltn00625_from_v2e3_bs4_long/checkpoint_iter0020000.pth
+```
+
+Use the explicit backup for comparisons; `checkpoint_iter.pth` may be a later
+signal-save checkpoint and is not the same comparison point.
+
+TN-val evaluation:
+
+```bash
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u tools/eval_stageb_tn_val.py \
+  --config config/ablations/cfg_stageb_v5_tnneg10_lse_top10_alltn00625_from_w0125.py \
+  --ckpts outputs/stageB_v5_tnneg10_lse_top10_alltn00625_from_v2e3_bs4_long/checkpoint_iter0020000.pth \
+  --output_dir outputs/stageb_tn_val_v5_tnneg10_lse_top10_alltn00625_long20k \
+  --data_root "${DATA_ROOT}" \
+  --batch_size 24 \
+  --num_workers 8 \
+  --amp \
+  --betas 0 0.5 1 2 \
+  --splits refcocop_val refcocog_val \
+  --log_every 50
+```
+
+RefCOCO/RefCOCO+ val evaluation:
+
+```bash
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u tools/eval_refcoco_stageb.py \
+  --config config/ablations/cfg_stageb_v5_tnneg10_lse_top10_alltn00625_from_w0125.py \
+  --ckpts outputs/stageB_v5_tnneg10_lse_top10_alltn00625_from_v2e3_bs4_long/checkpoint_iter0020000.pth \
+  --output_dir outputs/refcoco_stageb_v5_tnneg10_lse_top10_alltn00625_long20k_ref_refp \
+  --data_root "${DATA_ROOT}" \
+  --batch_size 24 \
+  --num_workers 8 \
+  --amp \
+  --betas 0 0.5 1 2 \
+  --splits refcoco_val refcocop_val \
+  --log_every 50
+```
+
+Recorded result:
+
+| checkpoint | beta | TN FPR@95 | TN pair win | RefCOCO val acc50 | RefCOCO+ val acc50 |
+|---|---:|---:|---:|---:|---:|
+| v2 `checkpoint0003.pth` | 1.0 | 0.780817 | 0.744607 | 0.533229 | 0.564045 |
+| alltn00625 long20k | 0.5 | 0.752119 | 0.789869 | 0.578826 | 0.595464 |
+
+Decision: for TN rejection plus local RefCOCO val, `alltn00625` long20k is the
+current strongest candidate. Its gain should be described as a combined v5
+optimization-scope plus inference-score calibration result, not as a pure
+same-freeze v2 score-head change.
 
 ### Recommended New Stage B From Current Stage A
 

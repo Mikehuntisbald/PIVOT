@@ -152,15 +152,19 @@ S = patch_score + beta * text_score
 ```
 
 The scorer is the same Stage-B slot scorer used by RefCOCO/TN-val evaluation.
-The v4 loss uses the matched positive/TN queries and the top-10 competing query
-scores:
+The current v4 loss uses the matched positive query and the TN prompt's global
+top-10 over all `(query, slot)` scores, matching the inference flattening of
+`slot_logits.reshape(B, -1)`:
 
 ```text
 loss_pos       = softplus(tau_pos - S_pos)
-loss_neg       = mean_top10 softplus(S_tn_topk - tau_neg)
-loss_gap       = softplus(margin - S_pos + S_tn_matched)
+loss_neg       = mean_global_top10 softplus(S_tn_topk - tau_neg)
+loss_gap       = mean_global_top10 softplus(margin - S_pos + S_tn_topk)
 loss_pos_query = mean_top10 softplus(margin - S_pos + S_pos_other_topk)
 ```
+
+`score_calib_neg_matched_score` remains logged only as a diagnostic; it is no
+longer the negative score used by `loss_neg` or `loss_gap`.
 
 Default v4 constants come from the recorded v2 `checkpoint0003.pth` TN-val score
 quantiles at `beta=1`:
@@ -187,6 +191,117 @@ loss_score_calib =
 This objective is intended to lower high-scoring TN tails and improve top-1
 query ordering without globally raising all positive/TN scores as the v3
 pairwise rank probe did.
+
+## Stage-B v5 all-TN Score Calibration
+
+Stage-B v5 is the current TN/FPR research branch, not the v2 mainline. It starts
+from the recorded v2 epoch-3 checkpoint and changes both the optimization scope
+and the loss:
+
+```text
+base checkpoint:
+outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth
+
+selected long-run checkpoint:
+outputs/stageB_v5_tnneg10_lse_top10_alltn00625_from_v2e3_bs4_long/checkpoint_iter0020000.pth
+```
+
+The selected config is:
+
+```text
+config/ablations/cfg_stageb_v5_tnneg10_lse_top10_alltn00625_from_w0125.py
+```
+
+Compared with v2, `alltn00625` is not just a same-freeze score-head probe:
+
+| item | v2 mainline | v5 alltn00625 |
+|---|---|---|
+| text loss | `matched_bce` | `allquery_focal_tn_matched_bce` |
+| trainable scope | `feat_map`, `class_embed` | `feat_map`, `class_embed`, `bbox_embed`, `transformer.decoder.layers` |
+| box losses | off (`bbox_loss_coef=0`, `giou_loss_coef=0`) | on (`bbox_loss_coef=5`, `giou_loss_coef=2`) |
+| TN token weights | standard | `lambda_tn_neg=10`, `lambda_tn_content=0`, `lambda_tn_canonical=0` |
+| score calibration | off | on |
+
+The v5 text loss keeps TN rows on the matched-query BCE path, but positive
+RefCOCO rows use all-query focal text supervision. Unmatched queries with
+`IoU > 0.5` to a ground-truth box are also supervised as positive queries for
+the corresponding slot.
+
+The selected score calibration uses the final Stage-B inference score:
+
+```text
+S = patch_score + beta * text_score
+```
+
+and applies a hard-tail global top-10 constraint:
+
+```text
+stage_b_score_calib_loss_coef = 1.0
+stage_b_score_calib_topk = 10
+stage_b_score_calib_neg_agg = "logsumexp"
+stage_b_score_calib_neg_lse_tau = 0.2
+stage_b_score_calib_tau_pos = 0.1
+stage_b_score_calib_tau_neg = -2.4
+stage_b_score_calib_margin = 0.8
+stage_b_score_calib_pos_weight = 0.05
+stage_b_score_calib_neg_weight = 0.125
+stage_b_score_calib_gap_weight = 0.125
+stage_b_score_calib_pos_query_weight = 0.05
+stage_b_score_calib_all_tn_neg_weight = 0.0625
+stage_b_score_calib_detach_patch = False
+```
+
+`stage_b_score_calib_all_tn_neg_weight=0.0625` is the final addition in the
+selected probe. It adds a light penalty on every TN slot's actual global
+top-10 final score, rather than only the sparse positive/TN rank pairs. This
+targets the same score distribution that TN-val and RefCOCO inference use.
+
+### alltn00625 Result
+
+Primary comparison points:
+
+| checkpoint | best beta | TN-val FPR@95 | TN-val pair win | RefCOCO val acc50 | RefCOCO+ val acc50 |
+|---|---:|---:|---:|---:|---:|
+| v2 `checkpoint0003.pth` | 1.0 | 0.780817 | 0.744607 | 0.533229 | 0.564045 |
+| v2 `checkpoint0003.pth` Ref-best | 0.5 | 0.797381 | 0.731125 | 0.535536 | 0.568600 |
+| alltn00625 1k | 2.0 | 0.780046 | 0.751541 | 0.544213 | 0.565533 |
+| alltn00625 1k Ref-best | 0.5 | 0.810285 | 0.732473 | 0.567196 | 0.596672 |
+| alltn00625 long20k | 0.5 | 0.752119 | 0.789869 | 0.578826 | 0.595464 |
+
+Evidence files:
+
+```text
+outputs/stageb_tn_val_v4_allquery_focal_vs_v2/summary.md
+outputs/refcoco_stageb_v2_v3_eval_val/summary.md
+outputs/stageb_tn_val_v5_tnneg10_lse_top10_alltn00625_1k/summary.md
+outputs/refcoco_stageb_v5_tnneg10_lse_top10_alltn00625_1k_ref_refp/summary.md
+outputs/stageb_tn_val_v5_tnneg10_lse_top10_alltn00625_long20k/summary.md
+outputs/refcoco_stageb_v5_tnneg10_lse_top10_alltn00625_long20k_ref_refp/summary.md
+```
+
+The 1k alltn00625 probe was already competitive with v2 on TN FPR, but its
+TN-best beta did not align with the RefCOCO-best beta. The long20k checkpoint is
+the first clean candidate in this branch: beta `0.5` is best for both TN-val
+FPR@95 and RefCOCO/RefCOCO+ val acc50.
+
+The RefCOCO gain should be interpreted as ranking/calibration improvement, not
+as proof that the frozen proposal pool changed by itself. v5 alltn00625 does
+unfreeze decoder and box heads, but the measured improvement is still consistent
+with better top-1 query/slot selection: TN-val `pos_top1_iou50` improves from
+v2 beta=1 `0.702234` to alltn00625 long20k beta=0.5 `0.782550`, while the
+selected TN top-1 IoU50 is still high (`0.479391`), showing that remaining FPR
+is a score-tail separation problem rather than a pure localization failure.
+
+Near-v2-FPR probes that were checked on RefCOCO val did not beat the selected
+long20k branch:
+
+| probe | TN-best beta | TN FPR@95 | RefCOCO val best | RefCOCO val at TN-best beta |
+|---|---:|---:|---:|---:|
+| `w0125_tau02` | 2.0 | 0.783513 | 0.566273 | 0.555658 |
+| `w025` | 1.0 | 0.780046 | 0.560181 | 0.543843 |
+| `neg025_gap0125_tau02` | 2.0 | 0.784861 | 0.563227 | 0.535352 |
+| `w025_detach` | 2.0 | 0.790062 | 0.565904 | 0.534706 |
+| `w025_tau02_detach` | 1.0 | 0.795262 | 0.562304 | 0.542459 |
 
 ## Inference
 
