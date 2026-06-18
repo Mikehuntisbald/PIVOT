@@ -317,6 +317,7 @@ def _maybe_save_patch_sanity(
         Q = int(logits_union.numel())
         dn = max(0, min(int(dn_num), Q))
         is_neg = int(targets[b].get("is_negative_episode", torch.tensor([0])).item())
+        is_lvis_neg = int(targets[b].get("is_lvis_neg_category_episode", torch.tensor([0])).item())
 
         def _load_font(size: int, bold: bool = False):
             try:
@@ -345,9 +346,11 @@ def _maybe_save_patch_sanity(
         # 1) Draw ALL GT boxes (green).
         gt_boxes = targets[b].get("boxes", None)
         gt_labels = targets[b].get("labels", None)
+        has_gt = False
         if gt_boxes is not None and gt_labels is not None:
             gt_boxes = gt_boxes.detach().float().cpu()
             gt_labels = gt_labels.detach().long().cpu()
+            has_gt = bool(gt_boxes.numel() > 0 and gt_labels.numel() > 0)
             gt_xyxy = _cxcywh_norm_to_xyxy_abs(gt_boxes, w=w, h=h).tolist()
             for (x0, y0, x1, y1) in gt_xyxy:
                 draw.rectangle([x0, y0, x1, y1], outline=(0, 255, 0), width=4)
@@ -390,7 +393,7 @@ def _maybe_save_patch_sanity(
             if patch_mask is not None:
                 valid_k = valid_k & patch_mask[b].view(-1)[:K]
 
-            if gt_boxes is not None and gt_labels is not None and int(valid_k.sum().item()) > 0:
+            if has_gt and int(valid_k.sum().item()) > 0:
                 keep = valid_k.nonzero(as_tuple=False).flatten()
                 logits_b = logits_qk[:, keep]
                 support_kept = support_classes[keep].to(torch.long)
@@ -426,7 +429,7 @@ def _maybe_save_patch_sanity(
 
         draw.text(
             (5, 5),
-            f"epoch={epoch} step={step} neg={is_neg} dn={dn}",
+            f"epoch={epoch} step={step} neg={is_neg} lvis_neg={is_lvis_neg} dn={dn}",
             fill=(255, 255, 0),
         )
         pil.save(save_dir / f"e{epoch:03d}_s{step:06d}_b{b}.jpg", quality=90)
