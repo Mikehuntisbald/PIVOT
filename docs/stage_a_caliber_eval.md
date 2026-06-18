@@ -15,6 +15,11 @@ train dataset config:  config/datasets_patch_stage_a_lvis_coco2017_local.json
 eval dataset config:   config/datasets_patch_stage_a_lvis_coco2017_eval_local.json
 ```
 
+Stage-A v3/v4 experimental recipes are documented in
+`docs/stage_a_v3_v4_lvis_neg.md`. They are not replacements for the recorded
+`checkpoint0006.pth` foundation until they beat it under this same-caliber
+evaluation.
+
 ## Scope
 
 The shared validation set is:
@@ -88,6 +93,19 @@ unfreeze_decoder_last_n_layers: 3
 batch_size: 18
 lr: 1e-4
 ```
+
+Current Stage-A v3/v4 probe knobs:
+
+```text
+v3 config: config/cfg_patch_stage_a_v3_all_gt_classes.py
+v4 config: config/cfg_patch_stage_a_v4_all_gt_aux.py
+dataset:   config/datasets_patch_stage_a_v3_v4_lvis_neg025_local.json
+```
+
+v3 removes random multi-patch support-class K sampling: each query image uses
+all eligible annotated GT classes as support slots. v4 is v3 plus patch-only
+decoder auxiliary losses. The shared v3/v4 dataset adds an LVIS
+`neg_category_ids` negative subset with expected training sample fraction 0.25.
 
 Evaluator:
 
