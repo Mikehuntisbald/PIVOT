@@ -631,6 +631,364 @@ current strongest candidate. Its gain should be described as a combined v5
 optimization-scope plus inference-score calibration result, not as a pure
 same-freeze v2 score-head change.
 
+Stage-B 5.x lineage:
+
+| version | base | intended delta |
+|---|---|---|
+| v5 `alltn00625` | v2 `checkpoint0003.pth` | all-query focal for positive text rows, matched-query TN BCE, decoder/box-head unfreeze, bbox/GIoU losses, top-10 score calibration with all-TN penalty |
+| v5.1 | v5 `alltn00625` | RefCOCO-family patch CE positive-only; LVIS/COCO patch CE unchanged |
+| v5.2 | v5.1 | enable decoder aux losses for patch/text/bbox/GIoU |
+| v5.2 text sweep | v5.2 | only sweep `lambda_text` (`0.30` to `0.75`) |
+| v5.3 | v5.2 | `lambda_text=1.0` |
+| v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
+
+### Stage B v5.1 RefCOCO Patch-Positive CE Probe
+
+v5.1 keeps the v5 alltn00625 text/TN/score-calibration recipe and changes only
+the patch CE labels for RefCOCO-family phrase rows:
+
+```text
+config/ablations/cfg_stageb_v5_1_refcoco_patchpos_from_v5_alltn00625.py
+patch_ce_positive_only_for_datasets = ("refcoco", "refcocoplus", "refcocog", "refexp")
+```
+
+Reason: RefCOCO-style phrase rows only label the referred phrase object. Dense
+patch CE negatives on those rows can create false negatives for unannotated
+same-class/person objects. v5.1 computes patch CE from matched positive cells
+only on RefCOCO-family rows; LVIS/COCO patch CE remains the v5 dense objective.
+
+Fair 1k probe from the shared v2 Stage-B checkpoint used by the alltn00625 1k
+baseline:
+
+```bash
+export STAGE_B_V51_OUT=outputs/stageB_v5_1_refcoco_patchpos_from_v2e3_probe1k
+
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u main.py \
+  --config_file config/ablations/cfg_stageb_v5_1_refcoco_patchpos_from_v5_alltn00625.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --pretrain_model_path outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
+  --output_dir "${STAGE_B_V51_OUT}" \
+  --num_workers 8 \
+  --amp \
+  --max_train_iters 1000 \
+  --iter_checkpoint_interval 500 \
+  --options batch_size=4
+```
+
+Check the train log for `patch_ce_positive_only_batch_frac > 0` on mixed
+RefCOCO batches and nonzero `patch_ce_neg_count` on LVIS/COCO batches.
+
+### Stage B v5.2 RefCOCO Patch-Positive CE + Aux Probe
+
+v5.2 is v5.1 plus decoder auxiliary losses:
+
+```text
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_from_v5_alltn00625.py
+aux_loss = True
+use_checkpoint = False
+```
+
+The patch-only forward path emits intermediate decoder patch scores, and
+`StageBCriterion` applies aux `loss_patch_ce`, `loss_text`, `loss_bbox`, and
+`loss_giou` for intermediate layers. Score calibration and phrase-rank losses
+remain final-layer only.
+
+Run the fair 1k probe from the same v2 checkpoint:
+
+```bash
+export STAGE_B_V52_OUT=outputs/stageB_v5_2_refcoco_patchpos_aux_from_v2e3_probe1k
+
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u main.py \
+  --config_file config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_from_v5_alltn00625.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --pretrain_model_path outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
+  --output_dir "${STAGE_B_V52_OUT}" \
+  --num_workers 8 \
+  --amp \
+  --max_train_iters 1000 \
+  --iter_checkpoint_interval 500 \
+  --options batch_size=4
+```
+
+Text-weight sweep probes on top of v5.2 raise only `lambda_text` while keeping
+the RefCOCO patch-positive CE, aux losses, TN calibration, and freeze/unfreeze
+settings unchanged:
+
+```text
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_text030_from_v5_alltn00625.py
+lambda_text = 0.30
+
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_text035_from_v5_alltn00625.py
+lambda_text = 0.35
+
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_text040_from_v5_alltn00625.py
+lambda_text = 0.40
+
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_text045_from_v5_alltn00625.py
+lambda_text = 0.45
+
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_text050_from_v5_alltn00625.py
+lambda_text = 0.5
+
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_text075_from_v5_alltn00625.py
+lambda_text = 0.75
+
+config/ablations/cfg_stageb_v5_3_refcoco_patchpos_aux_text1_from_v5_alltn00625.py
+lambda_text = 1.0
+```
+
+Run each point from the same v2 checkpoint and the same 1k budget. Example for
+`lambda_text=1.0`:
+
+```bash
+export STAGE_B_V53_OUT=outputs/stageB_v5_3_refcoco_patchpos_aux_text1_from_v2e3_probe1k
+
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u main.py \
+  --config_file config/ablations/cfg_stageb_v5_3_refcoco_patchpos_aux_text1_from_v5_alltn00625.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --pretrain_model_path outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
+  --output_dir "${STAGE_B_V53_OUT}" \
+  --num_workers 8 \
+  --amp \
+  --max_train_iters 1000 \
+  --iter_checkpoint_interval 500 \
+  --options batch_size=4
+```
+
+Evaluate v5.1/v5.2/v5.3 and the text-weight sweep with the same TN and RefCOCO
+val caliber. Replace the config, checkpoint, and output directory for one-off
+probes. For the `0.5/0.75` sweep, both checkpoints can share the `0.5` config
+at eval time because `lambda_text` affects only training loss, not model
+structure or inference:
+
+```bash
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u tools/eval_stageb_tn_val.py \
+  --config config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_from_v5_alltn00625.py \
+  --ckpts outputs/stageB_v5_2_refcoco_patchpos_aux_from_v2e3_probe1k/checkpoint_iter.pth \
+  --output_dir outputs/stageb_tn_val_v5_2_refcoco_patchpos_aux_from_v2e3_probe1k \
+  --data_root "${DATA_ROOT}" \
+  --batch_size 24 \
+  --num_workers 8 \
+  --amp \
+  --betas 0 0.5 1 2 \
+  --splits refcocop_val refcocog_val \
+  --log_every 50
+```
+
+```bash
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u tools/eval_refcoco_stageb.py \
+  --config config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_from_v5_alltn00625.py \
+  --ckpts outputs/stageB_v5_2_refcoco_patchpos_aux_from_v2e3_probe1k/checkpoint_iter.pth \
+  --output_dir outputs/refcoco_stageb_v5_2_refcoco_patchpos_aux_from_v2e3_probe1k_ref_refp \
+  --data_root "${DATA_ROOT}" \
+  --batch_size 24 \
+  --num_workers 8 \
+  --amp \
+  --betas 0 0.5 1 2 \
+  --splits refcoco_val refcocop_val \
+  --log_every 50
+```
+
+Additional fine-sweep evidence:
+
+```text
+outputs/stageb_tn_val_v5_2_lambda_text_sweep_030_045_probe1k/summary.md
+outputs/refcoco_stageb_v5_2_lambda_text_sweep_030_045_probe1k_ref_refp/summary.md
+```
+
+Recorded fair 1k comparison:
+
+| checkpoint | TN-best beta | TN FPR@95 | TN pair win | pos top1 IoU50 | Ref-best beta | mean Ref acc50 | RefCOCO val acc50 | RefCOCO+ val acc50 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| v5 alltn00625 1k | 2.0 | 0.780046 | 0.751541 | 0.725539 | 0.5 | 0.581934 | 0.567196 | 0.596672 |
+| v5.1 patch-positive 1k | 1.0 | 0.759823 | 0.779083 | 0.746341 | 0.5 | 0.574426 | 0.561104 | 0.587749 |
+| v5.2 patch-positive + aux 1k | 1.0 | 0.757126 | 0.778505 | 0.750193 | 0.5 | 0.586751 | 0.571811 | 0.601692 |
+| v5.2 + `lambda_text=0.30` 1k | 2.0 | 0.754237 | 0.781202 | 0.741718 | 0.5 | 0.586394 | 0.567750 | 0.605038 |
+| v5.2 + `lambda_text=0.35` 1k | 1.0 | 0.751733 | 0.772149 | 0.745955 | 1.0 | 0.583279 | 0.568119 | 0.598438 |
+| v5.2 + `lambda_text=0.40` 1k | 1.0 | 0.747304 | 0.779083 | 0.753467 | 1.0 | 0.581381 | 0.565811 | 0.596951 |
+| v5.2 + `lambda_text=0.45` 1k | 1.0 | 0.762519 | 0.781587 | 0.755586 | 0.5 | 0.587875 | 0.569596 | 0.606154 |
+| v5.2 + `lambda_text=0.5` 1k | 1.0 | 0.761749 | 0.774846 | 0.748074 | 1.0 | 0.584947 | 0.569411 | 0.600483 |
+| v5.2 + `lambda_text=0.75` 1k | 1.0 | 0.772920 | 0.782357 | 0.756549 | 1.0 | 0.588189 | 0.572826 | 0.603551 |
+| v5.3 v5.2 + `lambda_text=1` 1k | 1.0 | 0.785054 | 0.763867 | 0.754045 | 1.0 | 0.590285 | 0.571534 | 0.609035 |
+
+Decision: v5.2 is the best 1k direction. v5.1 improves TN rejection but loses
+RefCOCO val accuracy; aux losses recover the positive grounding side while
+preserving the lower FPR. The fine `0.30/0.35/0.40/0.45` sweep shows the local
+tradeoff is not monotonic. `lambda_text=0.40` is the best TN/FPR point
+(`0.747304` FPR@95 at beta `1.0`) but drops mean Ref acc50 to `0.581381`;
+`lambda_text=0.45` gives the best fine-sweep Ref mean (`0.587875`) but regresses
+FPR to `0.762519`; `lambda_text=0.30` is the balanced candidate, keeping Ref
+mean near the default (`0.586394` vs `0.586751`) while improving TN-best FPR
+(`0.754237` vs `0.757126`). Keep v5.2 `lambda_text=0.25` as the established
+default unless the next longer run explicitly targets the `0.30` balanced point
+or the `0.40` FPR-focused point.
+
+### Stage B v6 GDINO-like Text + v5.2 Patch CE Probe
+
+v6 is a probe, not the selected Stage-B branch. It keeps TN examples positive
+for the patch branch, but makes the text/detection view match GDINO Stage-B
+data-FT as closely as this Stage-B wrapper allows: all-query token sigmoid
+focal, uniform token weights, GDINO `cls_loss_coef=2.0` mirrored by
+`lambda_text=2.0`, TN prompts as no-positive/all-negative text rows, no
+extra-IoU positive query expansion, and no TN-specific BCE/calibration. The
+only intended addition over the GDINO-like text/detection branch is v5.2's
+patch CE path, including RefCOCO-family positive-only patch CE and aux losses.
+
+```text
+config/ablations/cfg_stageb_v6_gdino_like_tn_empty_det_patchpos_aux.py
+outputs/stageB_v6_gdino_like_text_v52patch_from_v2e3_probe1k/checkpoint_iter.pth
+```
+
+Main deltas:
+
+```text
+stage_b_text_loss_type = "allquery_focal_tn_empty_det"
+lambda_patch = 1.0
+lambda_text = 2.0
+cls_loss_coef = 2.0
+canonical_pos_weight = 1.0
+bbox_loss_coef = 5.0
+giou_loss_coef = 2.0
+aux_loss = True
+patch_ce_positive_only_for_datasets = ("refcoco", "refcocoplus", "refcocog", "refexp")
+stage_b_extra_iou_match_thr = 0.0
+stage_b_score_calib_loss_coef = 0.0
+```
+
+Run the 1k probe from the same Stage-B v2 checkpoint used by the v5.x fair
+probes:
+
+```bash
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u main.py \
+  -c config/ablations/cfg_stageb_v6_gdino_like_tn_empty_det_patchpos_aux.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --pretrain_model_path outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
+  --output_dir outputs/stageB_v6_gdino_like_text_v52patch_from_v2e3_probe1k \
+  --num_workers 4 \
+  --amp \
+  --max_train_iters 1000 \
+  --iter_checkpoint_interval 500 \
+  --options batch_size=4
+```
+
+Evaluation uses the same TN-val and RefCOCO scripts as v5:
+
+```bash
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u tools/eval_stageb_tn_val.py \
+  --config config/ablations/cfg_stageb_v6_gdino_like_tn_empty_det_patchpos_aux.py \
+  --ckpts outputs/stageB_v6_gdino_like_text_v52patch_from_v2e3_probe1k/checkpoint_iter.pth \
+  --output_dir outputs/stageb_tn_val_v6_gdino_like_text_v52patch_probe1k \
+  --data_root "${DATA_ROOT}" \
+  --batch_size 24 \
+  --num_workers 8 \
+  --amp \
+  --betas 0 0.5 1 2 \
+  --splits refcocop_val refcocog_val \
+  --log_every 50
+```
+
+```bash
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u tools/eval_refcoco_stageb.py \
+  --config config/ablations/cfg_stageb_v6_gdino_like_tn_empty_det_patchpos_aux.py \
+  --ckpts outputs/stageB_v6_gdino_like_text_v52patch_from_v2e3_probe1k/checkpoint_iter.pth \
+  --output_dir outputs/refcoco_stageb_v6_gdino_like_text_v52patch_probe1k_ref_refp_refg \
+  --data_root "${DATA_ROOT}" \
+  --batch_size 24 \
+  --num_workers 8 \
+  --amp \
+  --betas 0 0.5 1 2 \
+  --splits refcoco_val refcocop_val refcocog_val \
+  --log_every 50
+```
+
+Separate Stage-A-initialized probe: the table below is from a v6-style run
+initialized directly from Stage A `checkpoint0006.pth`
+(`stageA0006_probe1k`). It is not the current Stage-B V6 lineage, which
+continues from Stage-B v2 `checkpoint0003.pth`; do not compare it as an older
+checkpoint of the same run.
+
+| checkpoint | beta | TN FPR@95 | TN pair win | RefCOCO val acc50 | RefCOCO+ val acc50 | RefCOCOg val acc50 |
+|---|---:|---:|---:|---:|---:|---:|
+| Stage-A-init v6-style 1k TN-best | 2.0 | 0.890216 | 0.634630 | 0.572734 | 0.606061 | 0.711601 |
+| Stage-A-init v6-style 1k Ref-best | 1.0 | 0.896572 | 0.628082 | 0.572365 | 0.607269 | 0.712418 |
+
+Wrapper-vs-original criterion audit:
+
+| item | pure GroundingDINO Stage-B data FT | Stage-B v6 wrapper |
+|---|---|---|
+| text loss formula | all-query sigmoid focal | all-query sigmoid focal |
+| text loss weight | `cls_loss_coef=2.0` | `lambda_text=2.0`, `cls_loss_coef=2.0` for provenance |
+| TN rows | no positive boxes/text tokens | no positive text tokens; patch branch still has TN support positives |
+| Hungarian matching | text-logit class cost plus box costs | patch-logit matching, box losses filtered for TN |
+| aux text supervision | original aux matching path | aux patch matching path |
+| inference score | text phrase score | `patch_score + beta * text_score` slot fusion |
+
+So v6 aligns the text-loss formula and weighting with original GDINO, but it is
+not criterion-identical. The main remaining mismatch is Hungarian assignment:
+Stage-B still matches through `PatchHungarianCriterion.compute_matching` on
+`pred_logits_patch`, while original GDINO uses text logits and `positive_map`
+for class cost. The content/canonical target-token map should be equivalent
+when built from the same phrase spans, but the matcher and inference scorer are
+still different.
+
+Completed Stage-A0006 epoch-1 v6 comparison:
+
+```text
+checkpoint:
+outputs/stageB_v6_gdino_like_tn_empty_det_patchpos_aux_from_stageA0006_bs5_resume35000_epoch1/checkpoint0000.pth
+```
+
+Shared TN/RefCOCO-val readout versus pure GroundingDINO Stage-B data FT
+`checkpoint0001.pth`:
+
+| checkpoint | TN FPR@95 | TN FPR@90 | TN pair win | RefCOCO val acc50 | RefCOCO+ val acc50 | RefCOCOg val acc50 | shared mean acc50 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| pure GDINO Stage-B FT `ckpt0001` | 0.528302 | 0.450905 | 0.825760 | 0.645468 | 0.690835 | 0.806985 | 0.714429 |
+| Stage-B v6 Stage-A0006 `ckpt0000` beta=2 | 0.790832 | 0.661980 | 0.767720 | 0.600332 | 0.652352 | 0.721405 | 0.658030 |
+
+Pure GDINO `checkpoint0000.pth` was also evaluated on the full RefCOCO series,
+but that comparison did not rerun TN metrics. It is effectively tied with
+`checkpoint0001.pth` on RefCOCO:
+
+| pure GDINO checkpoint | val mean acc50 | full-series mean acc50 | RefCOCO val | RefCOCO+ val | RefCOCOg val |
+|---|---:|---:|---:|---:|---:|
+| `ckpt0000` | 0.713925 | 0.704004 | 0.645099 | 0.697249 | 0.799428 |
+| `ckpt0001` | 0.714429 | 0.703895 | 0.645468 | 0.690835 | 0.806985 |
+
+Evidence files:
+
+```text
+outputs/text_gdino_ft_stageb_with_tn_ckpt0000_refcoco_series_eval/compare_with_ckpt0001.md
+outputs/text_gdino_ft_stageb_with_tn_ckpt0001_tn_eval/summary.md
+outputs/text_gdino_ft_stageb_with_tn_ckpt0001_refcoco_series_eval/summary.md
+outputs/stageb_tn_val_v6_gdino_like_tn_empty_det_patchpos_from_stageA0006_epoch1_bs5/summary.md
+outputs/refcoco_stageb_v6_gdino_like_tn_empty_det_patchpos_from_stageA0006_epoch1_bs5_ref_refp_refg/summary.md
+```
+
+This comparison is not a clean "patch loss only" ablation because the Stage-B
+wrapper, patch-based matching, and beta-fused scorer remain active. Current
+evidence says v6 does not yet close the gap to pure GDINO Stage-B data FT on
+either TN rejection or RefCOCO localization.
+
+Decision status for the v2-initialized fair v6 probe remains pending; keep that
+separate from the completed Stage-A0006 epoch-1 run above.
+
 ### Recommended New Stage B From Current Stage A
 
 For a new v2 mainline run using the current best Stage A foundation, initialize
