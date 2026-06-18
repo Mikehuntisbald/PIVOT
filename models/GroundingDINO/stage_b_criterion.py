@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 import torch
+import torch.distributed as dist
 from torch import nn
 import torch.nn.functional as F
 
@@ -99,10 +100,15 @@ class StageBCriterion(nn.Module):
         self.lambda_text = float(lambda_text)
         self.canonical_pos_weight = float(canonical_pos_weight)
         self.stage_b_text_loss_type = str(stage_b_text_loss_type).lower().replace("-", "_").strip()
-        if self.stage_b_text_loss_type not in {"matched_bce", "allquery_focal", "allquery_focal_tn_matched_bce"}:
+        if self.stage_b_text_loss_type not in {
+            "matched_bce",
+            "allquery_focal",
+            "allquery_focal_tn_matched_bce",
+            "allquery_focal_tn_empty_det",
+        }:
             raise ValueError(
                 "stage_b_text_loss_type must be 'matched_bce', 'allquery_focal', "
-                "or 'allquery_focal_tn_matched_bce', "
+                "'allquery_focal_tn_matched_bce', or 'allquery_focal_tn_empty_det', "
                 f"got {stage_b_text_loss_type!r}"
             )
         self.stage_b_text_focal_alpha = float(stage_b_text_focal_alpha)
@@ -148,9 +154,113 @@ class StageBCriterion(nn.Module):
             "loss_bbox": float(patch_weight_dict.get("loss_bbox", 0.0)),
             "loss_giou": float(patch_weight_dict.get("loss_giou", 0.0)),
         }
+        self.weight_dict.update(
+            {
+                f"{key}_{i}": value
+                for i in range(5)
+                for key, value in (
+                    ("loss_patch_ce", float(lambda_patch)),
+                    ("loss_text", float(lambda_text)),
+                    ("loss_bbox", float(patch_weight_dict.get("loss_bbox", 0.0))),
+                    ("loss_giou", float(patch_weight_dict.get("loss_giou", 0.0))),
+                )
+            }
+        )
 
     def compute_matching(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
         return self.patch_criterion.compute_matching(outputs, targets)
+
+    def _target_tn_mask(self, target: Dict[str, torch.Tensor], device: torch.device) -> Optional[torch.Tensor]:
+        is_tn = target.get("is_tn", None)
+        if not torch.is_tensor(is_tn):
+            return None
+        return is_tn.to(device=device, dtype=torch.bool).view(-1)
+
+    def _is_tn_target_index(self, target: Dict[str, torch.Tensor], target_idx: int, device: torch.device) -> bool:
+        tn_mask = self._target_tn_mask(target, device)
+        if tn_mask is None or tn_mask.numel() == 0:
+            return False
+        if tn_mask.numel() == 1:
+            return bool(tn_mask[0].item())
+        labels = target.get("labels", None)
+        support_classes = target.get("support_classes", None)
+        if support_classes is None:
+            support_classes = target.get("support_class", None)
+        if torch.is_tensor(labels) and torch.is_tensor(support_classes) and 0 <= target_idx < int(labels.numel()):
+            label = int(labels.to(device=device, dtype=torch.long).view(-1)[target_idx].item())
+            support_classes = support_classes.to(device=device, dtype=torch.long).view(-1)
+            matches = torch.nonzero(support_classes == label, as_tuple=False).flatten()
+            if matches.numel() > 0:
+                slot = int(matches[0].item())
+                if slot < int(tn_mask.numel()):
+                    return bool(tn_mask[slot].item())
+        if 0 <= target_idx < int(tn_mask.numel()):
+            return bool(tn_mask[target_idx].item())
+        return bool(tn_mask.any().item())
+
+    def _compute_det_box_losses(self, outputs, targets, match_ctx, *, suffix: str = "") -> Dict[str, torch.Tensor]:
+        pred_boxes = outputs.get("pred_boxes", None)
+        if pred_boxes is None:
+            raise KeyError("StageBCriterion requires outputs['pred_boxes'] for bbox/GIoU loss.")
+        device = pred_boxes.device
+        zero = pred_boxes.sum() * 0.0
+        if self.weight_dict.get(f"loss_bbox{suffix}", self.weight_dict.get("loss_bbox", 0.0)) <= 0 and self.weight_dict.get(
+            f"loss_giou{suffix}", self.weight_dict.get("loss_giou", 0.0)
+        ) <= 0:
+            return {f"loss_bbox{suffix}": zero, f"loss_giou{suffix}": zero}
+
+        src_boxes_list: List[torch.Tensor] = []
+        tgt_boxes_list: List[torch.Tensor] = []
+        det_box_count = 0
+        tn_box_filtered_count = 0
+        all_indices = match_ctx["all_indices"]
+        for b, (src_idx, tgt_idx) in enumerate(all_indices):
+            if src_idx.numel() == 0:
+                continue
+            boxes_b = targets[b]["boxes"].to(device=device, dtype=pred_boxes.dtype)
+            keep_src = []
+            keep_tgt = []
+            for q_t, tgt_t in zip(src_idx.tolist(), tgt_idx.tolist()):
+                tgt_i = int(tgt_t)
+                if self._is_tn_target_index(targets[b], tgt_i, device):
+                    tn_box_filtered_count += 1
+                    continue
+                if tgt_i < 0 or tgt_i >= int(boxes_b.shape[0]):
+                    continue
+                keep_src.append(int(q_t))
+                keep_tgt.append(tgt_i)
+            if not keep_src:
+                continue
+            src_t = torch.as_tensor(keep_src, dtype=torch.long, device=device)
+            tgt_t = torch.as_tensor(keep_tgt, dtype=torch.long, device=device)
+            src_boxes_list.append(pred_boxes[b].index_select(0, src_t))
+            tgt_boxes_list.append(boxes_b.index_select(0, tgt_t))
+            det_box_count += int(src_t.numel())
+
+        if not src_boxes_list:
+            out = {f"loss_bbox{suffix}": zero, f"loss_giou{suffix}": zero}
+        else:
+            src_boxes = torch.cat(src_boxes_list, dim=0)
+            tgt_boxes = torch.cat(tgt_boxes_list, dim=0)
+            num_boxes = torch.as_tensor([det_box_count], dtype=torch.float32, device=device)
+            if dist.is_available() and dist.is_initialized():
+                dist.all_reduce(num_boxes)
+                world_size = dist.get_world_size()
+            else:
+                world_size = 1
+            num_boxes = torch.clamp(num_boxes / max(1, world_size), min=1.0).item()
+            loss_bbox = F.l1_loss(src_boxes, tgt_boxes, reduction="none").sum() / num_boxes
+            loss_giou = 1.0 - torch.diag(
+                box_ops.generalized_box_iou(
+                    box_ops.box_cxcywh_to_xyxy(src_boxes),
+                    box_ops.box_cxcywh_to_xyxy(tgt_boxes),
+                )
+            )
+            out = {f"loss_bbox{suffix}": loss_bbox, f"loss_giou{suffix}": loss_giou.sum() / num_boxes}
+        if not suffix:
+            out["stageb_det_box_count"] = torch.as_tensor(float(det_box_count), device=device)
+            out["stageb_tn_box_filtered_count"] = torch.as_tensor(float(tn_box_filtered_count), device=device)
+        return out
 
     def _slot_bce_mean(
         self,
@@ -950,11 +1060,167 @@ class StageBCriterion(nn.Module):
             )
         return metrics
 
+    def _compute_allquery_focal_tn_empty_det_text_loss(self, outputs, targets, match_ctx):
+        pred_logits_text = outputs.get("pred_logits_text", None)
+        if pred_logits_text is None:
+            raise KeyError("StageBCriterion requires outputs['pred_logits_text'] in Stage B.")
+        if pred_logits_text.dim() != 3:
+            raise ValueError(
+                f"outputs['pred_logits_text'] must be (B,Q,T), got {tuple(pred_logits_text.shape)}"
+            )
+
+        device = pred_logits_text.device
+        target_map = torch.zeros_like(pred_logits_text, dtype=pred_logits_text.dtype, device=device)
+        valid_text_mask = self._get_valid_text_mask(outputs, pred_logits_text)
+        dense_valid_map = valid_text_mask[:, None, :].expand_as(pred_logits_text)
+        zero = pred_logits_text.new_zeros(())
+
+        det_supervised_query_count = 0
+        tn_patch_matched_query_count = 0
+        tn_empty_det_sample_count = 0
+        tn_text_positive_token_count = 0
+        content_pos_count = 0
+        canonical_pos_count = 0
+        empty_content_mask_count = 0
+        tn_group_slot_counts = {name: 0 for name in _TN_GROUP_NAMES}
+
+        all_indices = match_ctx["all_indices"]
+        matched_patch_idx_list = match_ctx["matched_patch_idx_list"]
+        for b, ((src_idx, _tgt_idx), matched_patch_idx) in enumerate(zip(all_indices, matched_patch_idx_list)):
+            sample_has_tn = False
+            tn_mask = self._target_tn_mask(targets[b], device)
+            if tn_mask is not None and bool(tn_mask.any().item()):
+                sample_has_tn = True
+                tn_empty_det_sample_count += 1
+            if src_idx.numel() == 0:
+                continue
+            masks = self._validate_stage_b_token_masks(
+                pred_logits_text=pred_logits_text,
+                target=targets[b],
+                batch_idx=b,
+            )
+            phrase_to_token_mask = masks["phrase_to_token_mask"]
+            canonical_to_token_mask = masks["canonical_to_token_mask"]
+            content_to_token_mask = masks["content_to_token_mask"]
+            attr_pos_to_token_mask = masks["attr_pos_to_token_mask"]
+            is_tn_mask = masks["is_tn_mask"]
+            tn_group_ids = masks["tn_group_ids"]
+
+            for query_idx_t, slot_idx_t in zip(src_idx.tolist(), matched_patch_idx.tolist()):
+                query_idx = int(query_idx_t)
+                slot_idx = int(slot_idx_t)
+                if slot_idx < 0 or slot_idx >= int(phrase_to_token_mask.shape[0]):
+                    continue
+
+                is_tn_slot = bool(is_tn_mask[slot_idx].item()) if is_tn_mask is not None else sample_has_tn
+                tn_group_name = (
+                    _tn_group_name_from_id(int(tn_group_ids[slot_idx].item()))
+                    if tn_group_ids is not None
+                    else "other"
+                )
+                if is_tn_slot:
+                    tn_patch_matched_query_count += 1
+                    tn_group_slot_counts[tn_group_name] += 1
+                    tn_phrase_mask = phrase_to_token_mask[slot_idx] & valid_text_mask[b]
+                    tn_text_positive_token_count += int(target_map[b, query_idx, tn_phrase_mask].sum().item())
+                    continue
+
+                phrase_mask = phrase_to_token_mask[slot_idx] & valid_text_mask[b]
+                canonical_mask = canonical_to_token_mask[slot_idx] & phrase_mask
+
+                if content_to_token_mask is not None:
+                    content_pos_mask = content_to_token_mask[slot_idx]
+                elif attr_pos_to_token_mask is not None:
+                    content_pos_mask = attr_pos_to_token_mask[slot_idx]
+                else:
+                    content_pos_mask = phrase_mask
+                content_pos_mask = content_pos_mask & phrase_mask & (~canonical_mask)
+                if not content_pos_mask.any():
+                    empty_content_mask_count += 1
+
+                target_map[b, query_idx, content_pos_mask] = 1.0
+                target_map[b, query_idx, canonical_mask] = 1.0
+
+                content_pos_count += int(content_pos_mask.sum().item())
+                canonical_pos_count += int(canonical_mask.sum().item())
+                det_supervised_query_count += 1
+
+        valid_logits = pred_logits_text[dense_valid_map]
+        valid_targets = target_map[dense_valid_map]
+        if valid_logits.numel() == 0:
+            loss_text = zero
+        else:
+            valid_loss = _sigmoid_focal_loss_no_reduce(
+                valid_logits,
+                valid_targets,
+                alpha=self.stage_b_text_focal_alpha,
+                gamma=self.stage_b_text_focal_gamma,
+            )
+            normalizer = max(float(det_supervised_query_count), 1.0)
+            loss_text = valid_loss.sum() / normalizer
+
+        positive_token_count = int((target_map[dense_valid_map] > 0.5).sum().item())
+        valid_token_count = int(dense_valid_map.sum().item())
+        negative_token_count = max(valid_token_count - positive_token_count, 0)
+        tn_dense_valid_token_count = int(
+            sum(
+                int(valid_text_mask[b].sum().item()) * int(pred_logits_text.shape[1])
+                for b, target in enumerate(targets)
+                if (self._target_tn_mask(target, device) is not None)
+                and bool(self._target_tn_mask(target, device).any().item())
+            )
+        )
+        metrics = {
+            "loss_text": loss_text,
+            "text_token_loss_raw": loss_text.detach(),
+            "text_phrase_tn_loss_raw": zero.detach(),
+            "content_pos_loss": loss_text.detach(),
+            "canonical_loss": zero.detach(),
+            "tn_neg_loss": zero.detach(),
+            "text_valid_slot_count": torch.as_tensor(float(det_supervised_query_count + tn_patch_matched_query_count), device=device),
+            "text_content_pos_slot_count": torch.as_tensor(float(det_supervised_query_count), device=device),
+            "text_tn_neg_slot_count": torch.as_tensor(float(tn_patch_matched_query_count), device=device),
+            "text_attr_pos_slot_count": torch.as_tensor(float(det_supervised_query_count), device=device),
+            "text_attr_neg_slot_count": torch.as_tensor(float(tn_patch_matched_query_count), device=device),
+            "text_canonical_slot_count": torch.as_tensor(float(canonical_pos_count), device=device),
+            "text_phrase_tn_slot_count": zero.detach(),
+            "text_skipped_tn_slot_count": zero.detach(),
+            "effective_content_token_count": torch.as_tensor(float(content_pos_count), device=device),
+            "effective_tn_negative_token_count": torch.as_tensor(float(tn_dense_valid_token_count), device=device),
+            "empty_content_mask_count": torch.as_tensor(float(empty_content_mask_count), device=device),
+            "empty_tn_negative_mask_count": zero.detach(),
+            "spatial_like_tn_count": torch.as_tensor(float(tn_group_slot_counts["spatial_like"]), device=device),
+            "relation_action_like_tn_count": torch.as_tensor(
+                float(tn_group_slot_counts["relation_action_like"]), device=device
+            ),
+            "text_allquery_focal_loss_raw": loss_text.detach(),
+            "text_allquery_positive_token_count": torch.as_tensor(float(positive_token_count), device=device),
+            "text_allquery_negative_token_count": torch.as_tensor(float(negative_token_count), device=device),
+            "text_allquery_valid_token_count": torch.as_tensor(float(valid_token_count), device=device),
+            "text_allquery_matched_query_count": torch.as_tensor(float(det_supervised_query_count), device=device),
+            "text_allquery_focal_alpha": torch.as_tensor(float(self.stage_b_text_focal_alpha), device=device),
+            "text_allquery_focal_gamma": torch.as_tensor(float(self.stage_b_text_focal_gamma), device=device),
+            "text_v6_tn_empty_det_sample_count": torch.as_tensor(float(tn_empty_det_sample_count), device=device),
+            "text_v6_tn_patch_matched_query_count": torch.as_tensor(float(tn_patch_matched_query_count), device=device),
+            "text_v6_tn_text_positive_token_count": torch.as_tensor(float(tn_text_positive_token_count), device=device),
+            "text_v6_tn_dense_valid_token_count": torch.as_tensor(float(tn_dense_valid_token_count), device=device),
+            "text_v6_det_supervised_query_count": torch.as_tensor(float(det_supervised_query_count), device=device),
+        }
+        for group_name in _TN_GROUP_NAMES:
+            metrics[f"loss_tn_{group_name}"] = zero.detach()
+            metrics[f"tn_neg_count_{group_name}"] = zero.detach()
+            metrics[f"tn_nonempty_mask_count_{group_name}"] = torch.as_tensor(
+                float(tn_group_slot_counts[group_name]), device=device
+            )
+        return metrics
+
     def _compute_text_loss(self, outputs, targets, match_ctx):
         if self.stage_b_text_loss_type == "allquery_focal":
             return self._compute_allquery_focal_text_loss(outputs, targets, match_ctx)
         if self.stage_b_text_loss_type == "allquery_focal_tn_matched_bce":
             return self._compute_allquery_focal_tn_matched_bce_text_loss(outputs, targets, match_ctx)
+        if self.stage_b_text_loss_type == "allquery_focal_tn_empty_det":
+            return self._compute_allquery_focal_tn_empty_det_text_loss(outputs, targets, match_ctx)
         return self._compute_matched_bce_text_loss(outputs, targets, match_ctx)
 
     def _zero_score_calib_loss_dict(self, zero: torch.Tensor) -> Dict[str, torch.Tensor]:
@@ -1403,7 +1669,13 @@ class StageBCriterion(nn.Module):
 
     def forward(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
         match_ctx = self.patch_criterion.compute_matching(outputs, targets)
-        losses = self.patch_criterion.compute_losses_from_matching(match_ctx, targets)
+        losses = self.patch_criterion.compute_losses_from_matching(
+            match_ctx,
+            targets,
+            include_box_losses=self.stage_b_text_loss_type != "allquery_focal_tn_empty_det",
+        )
+        if self.stage_b_text_loss_type == "allquery_focal_tn_empty_det":
+            losses.update(self._compute_det_box_losses(outputs, targets, match_ctx))
         if self.lambda_text <= 0:
             pred_logits_patch = outputs.get("pred_logits_patch", None)
             if pred_logits_patch is not None:
@@ -1413,6 +1685,27 @@ class StageBCriterion(nn.Module):
             losses.update(self._zero_text_loss_dict(zero))
         else:
             losses.update(self._compute_text_loss(outputs, targets, match_ctx))
+        for aux_idx, aux_outputs in enumerate(outputs.get("aux_outputs", []) or []):
+            aux_match_ctx = self.patch_criterion.compute_matching(aux_outputs, targets)
+            aux_suffix = f"_{aux_idx}"
+            aux_patch_losses = self.patch_criterion.compute_losses_from_matching(
+                aux_match_ctx,
+                targets,
+                include_box_losses=self.stage_b_text_loss_type != "allquery_focal_tn_empty_det",
+            )
+            if "loss_patch_ce" in aux_patch_losses:
+                losses[f"loss_patch_ce{aux_suffix}"] = aux_patch_losses["loss_patch_ce"]
+            if self.stage_b_text_loss_type == "allquery_focal_tn_empty_det":
+                aux_patch_losses.update(self._compute_det_box_losses(aux_outputs, targets, aux_match_ctx))
+            for key in ("loss_bbox", "loss_giou"):
+                if key in aux_patch_losses:
+                    losses[f"{key}{aux_suffix}"] = aux_patch_losses[key]
+            if self.lambda_text <= 0:
+                zero = aux_outputs["pred_boxes"].sum() * 0.0
+                aux_text_losses = self._zero_text_loss_dict(zero)
+            else:
+                aux_text_losses = self._compute_text_loss(aux_outputs, targets, aux_match_ctx)
+            losses[f"loss_text{aux_suffix}"] = aux_text_losses["loss_text"]
         losses.update(self._compute_score_calib_loss(outputs, targets, match_ctx))
         losses.update(self._compute_phrase_rank_loss(outputs, targets, match_ctx))
         return losses

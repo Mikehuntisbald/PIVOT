@@ -66,10 +66,11 @@ def apply_stageb_trainability(model: torch.nn.Module, cfg) -> None:
 
     only_train_keywords = _as_keyword_list(getattr(cfg, "only_train_keywords", None))
     if only_train_keywords:
+        only_train_exclude_keywords = _as_keyword_list(getattr(cfg, "only_train_exclude_keywords", None))
         for _, parameter in model.named_parameters():
             parameter.requires_grad_(False)
         for name, parameter in model.named_parameters():
-            if match_name_keywords(name, only_train_keywords):
+            if match_name_keywords(name, only_train_keywords) and not match_name_keywords(name, only_train_exclude_keywords):
                 parameter.requires_grad_(True)
 
 

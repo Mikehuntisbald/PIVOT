@@ -411,16 +411,24 @@ def main(args):
     if only_train_keywords:
         if isinstance(only_train_keywords, str):
             only_train_keywords = [only_train_keywords]
+        only_train_exclude_keywords = getattr(args, "only_train_exclude_keywords", None)
+        if isinstance(only_train_exclude_keywords, str):
+            only_train_exclude_keywords = [only_train_exclude_keywords]
+        only_train_exclude_keywords = list(only_train_exclude_keywords or [])
         for _, parameter in model_without_ddp.named_parameters():
             parameter.requires_grad_(False)
         for name, parameter in model_without_ddp.named_parameters():
-            if match_name_keywords(name, only_train_keywords):
+            if match_name_keywords(name, only_train_keywords) and not match_name_keywords(name, only_train_exclude_keywords):
                 parameter.requires_grad_(True)
 
         unexpected = [
             name
             for name, parameter in model_without_ddp.named_parameters()
-            if parameter.requires_grad and not match_name_keywords(name, only_train_keywords)
+            if parameter.requires_grad
+            and (
+                not match_name_keywords(name, only_train_keywords)
+                or match_name_keywords(name, only_train_exclude_keywords)
+            )
         ]
         if unexpected:
             raise RuntimeError(f"Unexpected trainable parameters outside only_train_keywords: {unexpected[:20]}")
