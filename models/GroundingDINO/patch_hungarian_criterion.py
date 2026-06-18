@@ -58,6 +58,7 @@ class PatchHungarianCriterion(nn.Module):
         patch_rank_hard_negatives: int = 16,
         patch_rank_include_wrong_slots: bool = True,
         patch_rank_wrong_slot_weight: float = 0.5,
+        patch_ce_positive_only_for_datasets=(),
     ) -> None:
         super().__init__()
         self.matcher = matcher
@@ -72,6 +73,15 @@ class PatchHungarianCriterion(nn.Module):
         self.patch_rank_hard_negatives = max(0, int(patch_rank_hard_negatives))
         self.patch_rank_include_wrong_slots = bool(patch_rank_include_wrong_slots)
         self.patch_rank_wrong_slot_weight = float(patch_rank_wrong_slot_weight)
+        if isinstance(patch_ce_positive_only_for_datasets, str):
+            patch_ce_positive_only_for_datasets = [
+                x.strip() for x in patch_ce_positive_only_for_datasets.split(",") if x.strip()
+            ]
+        self.patch_ce_positive_only_for_datasets = tuple(
+            str(x).lower().strip().replace("_", "").replace("-", "").replace("+", "plus")
+            for x in (patch_ce_positive_only_for_datasets or ())
+            if str(x).strip()
+        )
         if self.patch_ce_reduction not in {"legacy", "posneg_mean", "posneg_topk"}:
             raise ValueError(
                 "patch_ce_reduction must be one of: legacy, posneg_mean, posneg_topk; "
@@ -130,6 +140,29 @@ class PatchHungarianCriterion(nn.Module):
                 v = v[batch_index]
             return bool(v.reshape(-1)[0].item())
         return bool(value)
+
+    def _target_uses_positive_only_patch_ce(self, target: Dict[str, torch.Tensor]) -> bool:
+        flag = target.get("patch_ce_positive_only", None)
+        if torch.is_tensor(flag) and flag.numel() > 0:
+            return bool(flag.detach().reshape(-1)[0].item())
+        if not self.patch_ce_positive_only_for_datasets:
+            return False
+        names = []
+        for key in ("dataset_name", "source", "pair_source"):
+            value = target.get(key, None)
+            if value is None:
+                continue
+            if torch.is_tensor(value):
+                continue
+            if isinstance(value, (list, tuple, set)):
+                names.extend(str(v) for v in value)
+            else:
+                names.append(str(value))
+        for name in names:
+            norm = name.lower().replace("_", "").replace("-", "").replace("+", "plus")
+            if any(tag in norm for tag in self.patch_ce_positive_only_for_datasets):
+                return True
+        return False
 
     def _check_duplicate_support_classes(
         self,
@@ -360,7 +393,13 @@ class PatchHungarianCriterion(nn.Module):
             "patch_rank_margin": torch.as_tensor(float(margin), device=device),
         }
 
-    def compute_losses_from_matching(self, match_ctx, targets: List[Dict[str, torch.Tensor]]):
+    def compute_losses_from_matching(
+        self,
+        match_ctx,
+        targets: List[Dict[str, torch.Tensor]],
+        *,
+        include_box_losses: bool = True,
+    ):
         pred_logits_patch = match_ctx["pred_logits_patch"]
         pred_boxes = match_ctx["pred_boxes"]
         patch_mask = match_ctx["patch_mask"]
@@ -379,6 +418,7 @@ class PatchHungarianCriterion(nn.Module):
         loss_neg_all_total = torch.zeros((), device=device)
         neg_topk_count_total = 0
         neg_count_total = 0
+        positive_only_batch_total = 0
         matched_total = 0
         cls_batches = 0
         for b in range(B):
@@ -401,12 +441,17 @@ class PatchHungarianCriterion(nn.Module):
             loss_mat = _sigmoid_focal_loss_no_reduce(
                 logits_b, target_b, alpha=self.focal_alpha, gamma=self.focal_gamma
             )
-            legacy_loss_cls = legacy_loss_cls + loss_mat.sum()
             pos = target_b > 0.5
             neg = ~pos
             zero = loss_mat.sum() * 0.0
+            positive_only_patch_ce = self._target_uses_positive_only_patch_ce(targets[b])
+            if positive_only_patch_ce:
+                positive_only_batch_total += 1
+                legacy_loss_cls = legacy_loss_cls + loss_mat[pos].sum()
+            else:
+                legacy_loss_cls = legacy_loss_cls + loss_mat.sum()
             pos_loss = loss_mat[pos].mean() if pos.any() else zero
-            neg_values = loss_mat[neg]
+            neg_values = loss_mat[neg] if not positive_only_patch_ce else loss_mat.new_empty((0,))
             if neg_values.numel() > 0:
                 neg_all_loss = neg_values.mean()
                 neg_loss = neg_all_loss
@@ -450,13 +495,17 @@ class PatchHungarianCriterion(nn.Module):
             "patch_ce_neg_all": loss_neg_all_total / float(cls_den),
             "patch_ce_neg_topk_count": torch.as_tensor(float(neg_topk_count_total) / float(cls_den), device=device),
             "patch_ce_neg_count": torch.as_tensor(float(neg_count_total) / float(cls_den), device=device),
+            "patch_ce_positive_only_batch_frac": torch.as_tensor(
+                float(positive_only_batch_total) / float(cls_den), device=device
+            ),
             "patch_ce_legacy_dense": patch_ce_legacy_dense.detach(),
             "patch_ce_posneg": patch_ce_posneg.detach(),
             "patch_lambda_neg": torch.as_tensor(self.patch_lambda_neg, device=device),
         }
 
-        if ("loss_bbox" in self.weight_dict and self.weight_dict["loss_bbox"] > 0) or (
-            "loss_giou" in self.weight_dict and self.weight_dict["loss_giou"] > 0
+        if include_box_losses and (
+            ("loss_bbox" in self.weight_dict and self.weight_dict["loss_bbox"] > 0)
+            or ("loss_giou" in self.weight_dict and self.weight_dict["loss_giou"] > 0)
         ):
             idx = self._get_src_permutation_idx(all_indices)
             src_boxes = pred_boxes[idx]
@@ -478,4 +527,14 @@ class PatchHungarianCriterion(nn.Module):
 
     def forward(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
         match_ctx = self.compute_matching(outputs, targets)
-        return self.compute_losses_from_matching(match_ctx, targets)
+        losses = self.compute_losses_from_matching(match_ctx, targets)
+
+        for aux_idx, aux_outputs in enumerate(outputs.get("aux_outputs", []) or []):
+            aux_match_ctx = self.compute_matching(aux_outputs, targets)
+            aux_losses = self.compute_losses_from_matching(aux_match_ctx, targets)
+            aux_suffix = f"_{aux_idx}"
+            for key in ("loss_patch_ce", "loss_bbox", "loss_giou", "loss_patch_rank"):
+                if key in aux_losses:
+                    losses[f"{key}{aux_suffix}"] = aux_losses[key]
+
+        return losses

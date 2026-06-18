@@ -454,6 +454,7 @@ class GroundingDINO(nn.Module):
 
         fused_logits = text_logits
         score_patch = None
+        aux_score_patch_list = None
         patch_gate = None
         patch_global = patch_global_in
         if patch_global is None and patches is not None:
@@ -499,6 +500,18 @@ class GroundingDINO(nn.Module):
                 else:
                     alpha = alpha_base.unsqueeze(-1)
                 fused_logits = (1 - alpha) * text_logits + alpha * score_for_fuse.unsqueeze(-1)
+
+            if self.aux_loss and patch_only:
+                aux_score_patch_list = []
+                for layer_hs in hs[:-1]:
+                    aux_query_proj = F.normalize(self.query_proj_for_patch(layer_hs), dim=-1)
+                    if patch_global.dim() == 2:
+                        aux_score = logit_scale * torch.einsum("bqd,bd->bq", aux_query_proj, patch_global)
+                    else:
+                        aux_score = logit_scale * torch.einsum("bqd,bkd->bqk", aux_query_proj, patch_global)
+                        if patch_mask_in is not None:
+                            aux_score = aux_score.masked_fill(~patch_mask_in[:, None, :].to(torch.bool), -100.0)
+                    aux_score_patch_list.append(aux_score)
 
         out = {
             "pred_logits": fused_logits,
@@ -555,7 +568,13 @@ class GroundingDINO(nn.Module):
                     out['text_mask'][b][j] = True
 
         # for intermediate outputs
-        if self.aux_loss and (not patch_only):
+        if self.aux_loss and patch_only and aux_score_patch_list is not None:
+            out['aux_outputs'] = self._set_patch_aux_loss(outputs_class, outputs_coord_list, aux_score_patch_list)
+            for aux_out in out['aux_outputs']:
+                aux_out["text_mask"] = out["text_mask"]
+                if patch_mask_in is not None:
+                    aux_out["patch_mask"] = patch_mask_in
+        elif self.aux_loss and (not patch_only):
             out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord_list)
         out['token']=one_hot_token
         # # for encoder output
@@ -629,6 +648,33 @@ class GroundingDINO(nn.Module):
             {"pred_logits": a, "pred_boxes": b}
             for a, b in zip(outputs_class[:-1], outputs_coord[:-1])
         ]
+
+    @torch.jit.unused
+    def _set_patch_aux_loss(self, outputs_class, outputs_coord, outputs_patch):
+        if outputs_patch is None:
+            outputs_patch = [None for _ in range(len(outputs_coord) - 1)]
+        outputs_class_iter = (
+            outputs_class[:-1]
+            if outputs_class is not None
+            else [None for _ in range(len(outputs_coord) - 1)]
+        )
+        aux_outputs = []
+        for a, b, p in zip(outputs_class_iter, outputs_coord[:-1], outputs_patch):
+            if p is not None and p.dim() == 3:
+                pred_logits = p.max(dim=-1).values.unsqueeze(-1)
+            elif p is not None:
+                pred_logits = p.unsqueeze(-1)
+            else:
+                pred_logits = a
+            aux_out = {
+                "pred_logits": pred_logits,
+                "pred_logits_patch": p,
+                "pred_boxes": b,
+            }
+            if a is not None:
+                aux_out["pred_logits_text"] = a
+            aux_outputs.append(aux_out)
+        return aux_outputs
 
 
 
@@ -1127,6 +1173,7 @@ def build_groundingdino(args):
                 patch_rank_hard_negatives=int(getattr(args, "patch_rank_hard_negatives", 16)),
                 patch_rank_include_wrong_slots=bool(getattr(args, "patch_rank_include_wrong_slots", True)),
                 patch_rank_wrong_slot_weight=float(getattr(args, "patch_rank_wrong_slot_weight", 0.5)),
+                patch_ce_positive_only_for_datasets=getattr(args, "patch_ce_positive_only_for_datasets", ()),
             )
             criterion = StageBCriterion(
                 patch_criterion=patch_criterion,
@@ -1173,6 +1220,12 @@ def build_groundingdino(args):
             patch_rank_loss_coef = float(getattr(args, "patch_rank_loss_coef", 0.0))
             if patch_rank_loss_coef > 0:
                 weight_dict["loss_patch_rank"] = patch_rank_loss_coef
+            if bool(getattr(args, "aux_loss", False)):
+                aux_weight_dict = {}
+                for i in range(args.dec_layers - 1):
+                    for key, value in list(weight_dict.items()):
+                        aux_weight_dict[f"{key}_{i}"] = value
+                weight_dict.update(aux_weight_dict)
             if patch_matching == "hungarian":
                 from .patch_hungarian_criterion import PatchHungarianCriterion
 
@@ -1190,6 +1243,7 @@ def build_groundingdino(args):
                     patch_rank_hard_negatives=int(getattr(args, "patch_rank_hard_negatives", 16)),
                     patch_rank_include_wrong_slots=bool(getattr(args, "patch_rank_include_wrong_slots", True)),
                     patch_rank_wrong_slot_weight=float(getattr(args, "patch_rank_wrong_slot_weight", 0.5)),
+                    patch_ce_positive_only_for_datasets=getattr(args, "patch_ce_positive_only_for_datasets", ()),
                 )
             elif patch_matching == "iou":
                 from .patch_only_criterion import PatchOnlyCriterion
