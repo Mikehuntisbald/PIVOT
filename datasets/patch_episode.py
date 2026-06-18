@@ -591,6 +591,8 @@ class PatchEpisodeConfig:
     support_patch_size: int = 224
     support_num_patches_min: int = 1
     support_num_patches_max: int = 1
+    support_use_all_gt_classes: bool = False
+    lvis_neg_category_only: bool = False
     support_patch_max_per_class: int = 0  # 0 = keep all candidates
     negative_max_tries: int = 50
     support_patch_bucket: Optional[str] = None
@@ -674,6 +676,8 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         support_patch_size: int = 224,
         support_num_patches_min: int = 1,
         support_num_patches_max: int = 1,
+        support_use_all_gt_classes: bool = False,
+        lvis_neg_category_only: bool = False,
         support_patch_max_per_class: int = 0,
         negative_max_tries: int = 50,
         support_patch_tsv: Optional[str] = None,
@@ -742,6 +746,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         super().__init__(root=root, transforms=transforms)
         self.root = str(root)
         self.anno = str(anno)
+        self.source = str(source) if source else None
         self._canonical_classes_json = canonical_classes_json
         self._support_patch_class_map_json = support_patch_class_map_json
         self._alt_image_roots = [Path(p) for p in (vg_image_roots or [])]
@@ -752,6 +757,8 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             support_patch_size=support_patch_size,
             support_num_patches_min=int(support_num_patches_min),
             support_num_patches_max=int(support_num_patches_max),
+            support_use_all_gt_classes=bool(support_use_all_gt_classes),
+            lvis_neg_category_only=bool(lvis_neg_category_only),
             support_patch_max_per_class=int(support_patch_max_per_class),
             negative_max_tries=negative_max_tries,
             support_patch_bucket=support_patch_bucket,
@@ -858,6 +865,8 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     detected = "prebuilt"
 
                 src = source or detected
+                if self.source is None and src is not None:
+                    self.source = str(src)
                 if src == "lvis":
                     self.metas = self._load_metas_cached(
                         anno_path,
@@ -892,11 +901,6 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         else:
             raise ValueError(f"Unsupported anno extension: {anno_path.suffix}")
 
-        self.tn_category_stats = self._compute_tn_category_stats()
-        self.sample_weights = self._build_tn_balanced_sample_weights()
-        if self.tn_category_stats["total_edits"] > 0:
-            print("[INFO] TN category stats for {}:\n{}".format(self.anno, json.dumps(self.tn_category_stats, indent=2)))
-
         if (self.cfg.vg_phrase_labeler in {"classifier", "hybrid"}) and (not self.cfg.phrase_classifier_ckpt):
             raise ValueError("vg_phrase_labeler requires phrase_classifier_ckpt when using classifier/hybrid.")
 
@@ -926,6 +930,11 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     "provide support_patch_class_map_json to map class_name -> canonical_id."
                 )
         self._patch_emb_cache: "OrderedDict[str, torch.Tensor]" = OrderedDict()
+        self._filter_lvis_neg_category_metas_if_needed()
+        self.tn_category_stats = self._compute_tn_category_stats()
+        self.sample_weights = self._build_tn_balanced_sample_weights()
+        if self.tn_category_stats["total_edits"] > 0:
+            print("[INFO] TN category stats for {}:\n{}".format(self.anno, json.dumps(self.tn_category_stats, indent=2)))
 
         # Text augmentation pools (Stage A robustness): canonical aliases and VG raw phrases.
         self._text_aug_alias_pool: List[str] = []
@@ -999,6 +1008,49 @@ class PatchEpisodeJsonlDataset(VisionDataset):
 
     def __len__(self) -> int:
         return len(self.metas)
+
+    def _eligible_lvis_neg_cids_for_meta(self, meta: Dict[str, Any]) -> List[int]:
+        if self.patch_bank is None:
+            return []
+        _, labels = self._extract_instances(meta)
+        annotated = set(int(x) for x in labels.tolist())
+        forbidden = set(int(x) for x in (meta.get("not_exhaustive_cids", []) or []))
+        out: List[int] = []
+        seen = set()
+        for cid_raw in meta.get("neg_cids", []) or []:
+            try:
+                cid = int(cid_raw)
+            except Exception:
+                continue
+            if cid in seen or cid in annotated or cid in forbidden:
+                continue
+            if len(self.patch_bank.get(cid, [])) <= 0:
+                continue
+            seen.add(cid)
+            out.append(cid)
+        return out
+
+    def _filter_lvis_neg_category_metas_if_needed(self) -> None:
+        if not bool(self.cfg.lvis_neg_category_only):
+            return
+        if self.patch_bank is None:
+            raise ValueError("lvis_neg_category_only=True requires support_patch_tsv / patch_bank.")
+        kept: List[Dict[str, Any]] = []
+        for meta in self.metas:
+            eligible_neg_cids = self._eligible_lvis_neg_cids_for_meta(meta)
+            if not eligible_neg_cids:
+                continue
+            meta = dict(meta)
+            meta["eligible_neg_cids"] = eligible_neg_cids
+            kept.append(meta)
+        if not kept:
+            raise ValueError(
+                "lvis_neg_category_only=True produced an empty subset. "
+                "Check LVIS neg_category_ids, canonical class mapping, not_exhaustive filtering, and support patch bank coverage."
+            )
+        old_len = len(self.metas)
+        self.metas = kept
+        print(f"[INFO] LVIS neg_category_only subset: kept {len(self.metas)} / {old_len} images with patch-backed neg_category_ids.")
 
     def _iter_meta_tn_records(self, meta: Dict[str, Any]) -> List[Dict[str, Any]]:
         instances = meta.get("instances", None)
@@ -1820,6 +1872,11 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     bank.setdefault(cls_id, []).append(img_path)
         return bank
 
+    @staticmethod
+    def _patch_ce_positive_only_source_flag(source_name: Any) -> bool:
+        norm = str(source_name or "").lower().replace("_", "").replace("-", "").replace("+", "plus")
+        return any(tag in norm for tag in ("refcoco", "refcocoplus", "refcocog", "refexp"))
+
     def _default_patch_bank_cache_path(self, tsv_path: Path) -> Path:
         bucket = self.cfg.support_patch_bucket or "all"
         mode = "emb" if self.cfg.support_patch_use_embedding else "img"
@@ -1874,7 +1931,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 canonical_mtime = None
 
         meta = {
-            "version": 4,
+            "version": 5,
             "src": str(src),
             "anno_path": str(anno_path),
             "anno_mtime": anno_mtime,
@@ -2180,30 +2237,48 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 cat_id_to_cid[cat_id] = int(cid)
 
         img_id_to_not_exhaustive_cids: Dict[int, List[int]] = {}
+        img_id_to_neg_cids: Dict[int, List[int]] = {}
         for img in lvis_data.get("images", []) or []:
             try:
                 img_id = int(img["id"])
             except Exception:
                 continue
             ne_ids = img.get("not_exhaustive_category_ids", None)
-            if not ne_ids:
-                continue
-            cids: List[int] = []
-            seen = set()
-            for cat_id in ne_ids:
-                try:
-                    cat_id_int = int(cat_id)
-                except Exception:
-                    continue
-                cid = cat_id_to_cid.get(cat_id_int, None)
-                if cid is None:
-                    continue
-                if cid in seen:
-                    continue
-                seen.add(cid)
-                cids.append(int(cid))
-            if cids:
-                img_id_to_not_exhaustive_cids[img_id] = cids
+            if ne_ids:
+                cids: List[int] = []
+                seen = set()
+                for cat_id in ne_ids:
+                    try:
+                        cat_id_int = int(cat_id)
+                    except Exception:
+                        continue
+                    cid = cat_id_to_cid.get(cat_id_int, None)
+                    if cid is None:
+                        continue
+                    if cid in seen:
+                        continue
+                    seen.add(cid)
+                    cids.append(int(cid))
+                if cids:
+                    img_id_to_not_exhaustive_cids[img_id] = cids
+            neg_ids = img.get("neg_category_ids", None)
+            if neg_ids:
+                neg_cids: List[int] = []
+                neg_seen = set()
+                for cat_id in neg_ids:
+                    try:
+                        cat_id_int = int(cat_id)
+                    except Exception:
+                        continue
+                    cid = cat_id_to_cid.get(cat_id_int, None)
+                    if cid is None:
+                        continue
+                    if cid in neg_seen:
+                        continue
+                    neg_seen.add(cid)
+                    neg_cids.append(int(cid))
+                if neg_cids:
+                    img_id_to_neg_cids[img_id] = neg_cids
 
         anns_by_img: Dict[int, List[Dict[str, Any]]] = {}
         for a in lvis_data.get("annotations", []):
@@ -2237,6 +2312,9 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             ne_cids = img_id_to_not_exhaustive_cids.get(img_id, None)
             if ne_cids:
                 meta["not_exhaustive_cids"] = ne_cids
+            neg_cids = img_id_to_neg_cids.get(img_id, None)
+            if neg_cids:
+                meta["neg_cids"] = neg_cids
             metas.append(meta)
         return metas
 
@@ -2520,22 +2598,62 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         """
         forbidden = forbidden_classes or set()
         counts = Counter(labels.tolist())
-        candidates = [
-            int(c)
-            for c, cnt in counts.items()
-            if (cnt >= self.cfg.support_min_count and int(c) not in forbidden)
-        ]
-        if not candidates:
-            candidates = [int(c) for c in counts.keys() if int(c) not in forbidden]
-        if self.patch_bank is not None:
+        use_all_gt_classes = bool(self.cfg.support_use_all_gt_classes)
+        if use_all_gt_classes:
+            candidates = [int(c) for c in sorted(counts.keys()) if int(c) not in forbidden]
+        else:
+            candidates = [
+                int(c)
+                for c, cnt in counts.items()
+                if (cnt >= self.cfg.support_min_count and int(c) not in forbidden)
+            ]
+            if not candidates:
+                candidates = [int(c) for c in counts.keys() if int(c) not in forbidden]
+        if self.patch_bank is not None and ((not use_all_gt_classes) or self.cfg.support_patch_use_embedding):
             candidates = [c for c in candidates if len(self.patch_bank.get(int(c), [])) > 0]
         if not candidates:
             raise RuntimeError("No eligible support classes for multi-patch episode.")
+
+        if use_all_gt_classes:
+            return candidates
 
         k_max = min(int(self.cfg.support_num_patches_max), len(candidates))
         k_min = min(max(1, int(self.cfg.support_num_patches_min)), k_max)
         k = random.randint(k_min, k_max) if k_min < k_max else k_max
         return random.sample(candidates, k=k)
+
+    def _choose_lvis_neg_support_classes(
+        self,
+        labels: torch.Tensor,
+        neg_cids: Any,
+        forbidden_classes: Optional[set[int]] = None,
+    ) -> List[int]:
+        """
+        Choose LVIS verified-negative classes that are absent from current annotations.
+        These slots intentionally have no positive GT in the target.
+        """
+        if self.patch_bank is None:
+            raise RuntimeError("LVIS neg_category_only episodes require a support patch bank.")
+        forbidden = forbidden_classes or set()
+        annotated = set(int(x) for x in labels.tolist())
+        seen = set()
+        candidates: List[int] = []
+        for cid_raw in neg_cids or []:
+            try:
+                cid = int(cid_raw)
+            except Exception:
+                continue
+            if cid in seen or cid in annotated or cid in forbidden:
+                continue
+            if self.patch_bank is not None and len(self.patch_bank.get(int(cid), [])) <= 0:
+                continue
+            seen.add(cid)
+            candidates.append(cid)
+        if not candidates:
+            raise RuntimeError("No eligible LVIS neg_category_ids for negative support episode.")
+        if int(self.cfg.support_num_patches_max) > 0:
+            candidates = candidates[: int(self.cfg.support_num_patches_max)]
+        return candidates
 
     def _sample_support_patch_for_class(
         self,
@@ -2625,6 +2743,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 continue
 
             not_exhaustive = set(int(x) for x in (meta.get("not_exhaustive_cids", []) or []))
+            lvis_neg_category_only = bool(self.cfg.lvis_neg_category_only)
 
             try:
                 img = self._open_image(rel_path)
@@ -2657,7 +2776,14 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 if int(self.cfg.support_num_patches_max) > 1:
                     # Multi-patch: choose multiple support classes (canonical ids) and sample one patch per class.
                     try:
-                        support_classes = self._choose_support_classes(labels, forbidden_classes=not_exhaustive)
+                        if lvis_neg_category_only:
+                            support_classes = self._choose_lvis_neg_support_classes(
+                                labels,
+                                meta.get("eligible_neg_cids", meta.get("neg_cids", [])),
+                                forbidden_classes=not_exhaustive,
+                            )
+                        else:
+                            support_classes = self._choose_support_classes(labels, forbidden_classes=not_exhaustive)
                     except Exception:
                         continue
                     support_classes_t = torch.as_tensor(support_classes, dtype=torch.int64)
@@ -2665,31 +2791,53 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     patch_list: List[torch.Tensor] = []
                     ok = True
                     for cid in support_classes:
-                        idxs = (labels == int(cid)).nonzero(as_tuple=False).flatten()
-                        if idxs.numel() == 0:
-                            ok = False
-                            break
-                        support_i = int(idxs[torch.randint(len(idxs), (1,)).item()].item())
-                        patch_c = self._sample_support_patch_for_class(
-                            int(cid),
-                            fallback_img=img,
-                            fallback_boxes_xyxy=boxes_xyxy[support_i : support_i + 1],
-                            fallback_labels=labels[support_i : support_i + 1],
-                        )
+                        if lvis_neg_category_only:
+                            try:
+                                patch_c = self._sample_support_patch_for_class(int(cid))
+                            except Exception:
+                                ok = False
+                                break
+                            support_i = None
+                        else:
+                            idxs = (labels == int(cid)).nonzero(as_tuple=False).flatten()
+                            if idxs.numel() == 0:
+                                ok = False
+                                break
+                            support_i = int(idxs[torch.randint(len(idxs), (1,)).item()].item())
+                            patch_c = self._sample_support_patch_for_class(
+                                int(cid),
+                                fallback_img=img,
+                                fallback_boxes_xyxy=boxes_xyxy[support_i : support_i + 1],
+                                fallback_labels=labels[support_i : support_i + 1],
+                            )
                         patch_list.append(patch_c)
-                        phrase_text, canonical_text, alias_candidates = self._get_slot_text_for_record(
-                            instance_records[support_i], int(cid)
-                        )
+                        if lvis_neg_category_only:
+                            canonical_text = self._get_canonical_name(int(cid))
+                            phrase_text = canonical_text
+                            alias_candidates = self._get_canonical_aliases(int(cid))
+                            slot_record = {
+                                "phrase": phrase_text,
+                                "head_phrase": canonical_text,
+                                "text_is_negative": False,
+                            }
+                        else:
+                            slot_record = instance_records[int(support_i)]
+                            phrase_text, canonical_text, alias_candidates = self._get_slot_text_for_record(
+                                slot_record, int(cid)
+                            )
                         slot_phrases.append(phrase_text)
                         slot_canonical_texts.append(canonical_text)
                         slot_aliases.append(alias_candidates)
-                        slot_text_is_negative.append(bool(instance_records[support_i].get("text_is_negative", False)))
-                        slot_records.append(instance_records[support_i])
+                        slot_text_is_negative.append(bool(slot_record.get("text_is_negative", False)))
+                        slot_records.append(slot_record)
                     if (not ok) or (len(patch_list) != int(support_classes_t.numel())):
                         continue
 
                     # Optionally keep only GT boxes belonging to the selected support classes.
-                    if bool(self.cfg.keep_only_patchset_gt):
+                    if lvis_neg_category_only:
+                        boxes_xyxy = boxes_xyxy.new_zeros((0, 4))
+                        labels = labels.new_zeros((0,))
+                    elif bool(self.cfg.keep_only_patchset_gt):
                         m = torch.zeros((labels.shape[0],), dtype=torch.bool)
                         for cid in support_classes:
                             m = m | (labels == int(cid))
@@ -2703,7 +2851,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     else:
                         patches_or_emb = torch.stack(patch_list, dim=0)  # (K,3,S,S)
                     support = (support_classes_t, patches_or_emb)
-                    is_negative = False
+                    is_negative = bool(lvis_neg_category_only)
                 else:
                     if (self.cfg.neg_episode_prob > 0) and (random.random() < self.cfg.neg_episode_prob):
                         support = self._sample_negative_support(query_labels=labels, forbidden_classes=not_exhaustive)
@@ -2906,6 +3054,18 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             target["orig_size"] = torch.as_tensor([int(h), int(w)])
             target["size"] = torch.as_tensor([int(h), int(w)])
             target["caption"] = caption
+            dataset_name = (
+                meta.get("dataset_name", None)
+                or meta.get("source", None)
+                or meta.get("pair_source", None)
+                or self.source
+                or Path(self.anno).stem
+            )
+            target["dataset_name"] = dataset_name
+            target["patch_ce_positive_only"] = torch.as_tensor(
+                [1 if self._patch_ce_positive_only_source_flag(dataset_name) else 0],
+                dtype=torch.int64,
+            )
             # cap_list is used by other pipelines; keep it aligned to the number of phrases in `caption`.
             target["cap_list"] = phrases
             if phrase_to_token_mask is not None:
@@ -2952,6 +3112,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 else:
                     target["patch"] = patch
             target["is_negative_episode"] = torch.as_tensor([1 if is_negative else 0], dtype=torch.int64)
+            target["is_lvis_neg_category_episode"] = torch.as_tensor(
+                [1 if lvis_neg_category_only else 0],
+                dtype=torch.int64,
+            )
 
             if self.transforms is not None:
                 img, target = self.transforms(img, target)
@@ -2982,6 +3146,12 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
     )
     support_num_patches_max = int(
         datasetinfo.get("support_num_patches_max", getattr(args, "support_num_patches_max", 1))
+    )
+    support_use_all_gt_classes = bool(
+        datasetinfo.get("support_use_all_gt_classes", getattr(args, "support_use_all_gt_classes", False))
+    )
+    lvis_neg_category_only = bool(
+        datasetinfo.get("lvis_neg_category_only", getattr(args, "lvis_neg_category_only", False))
     )
     support_patch_max_per_class = int(
         datasetinfo.get("support_patch_max_per_class", getattr(args, "support_patch_max_per_class", 0))
@@ -3107,6 +3277,8 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         support_patch_size=support_patch_size,
         support_num_patches_min=support_num_patches_min,
         support_num_patches_max=support_num_patches_max,
+        support_use_all_gt_classes=support_use_all_gt_classes,
+        lvis_neg_category_only=lvis_neg_category_only,
         support_patch_max_per_class=support_patch_max_per_class,
         negative_max_tries=negative_max_tries,
         support_patch_tsv=support_patch_tsv,
