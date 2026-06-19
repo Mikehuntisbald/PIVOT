@@ -699,6 +699,7 @@ class SetCriterion(nn.Module):
         gdino_tn_token_neg_weight: float = 0.0,
         gdino_tn_token_content_weight: float = 0.0,
         gdino_tn_token_canonical_weight: float = 0.0,
+        gdino_tn_token_neg_weight_mode: str = "fixed",
     ):
         """ Create the criterion.
         Parameters:
@@ -732,6 +733,12 @@ class SetCriterion(nn.Module):
         self.gdino_tn_token_neg_weight = float(gdino_tn_token_neg_weight)
         self.gdino_tn_token_content_weight = float(gdino_tn_token_content_weight)
         self.gdino_tn_token_canonical_weight = float(gdino_tn_token_canonical_weight)
+        self.gdino_tn_token_neg_weight_mode = str(gdino_tn_token_neg_weight_mode).lower().strip()
+        if self.gdino_tn_token_neg_weight_mode not in {"fixed", "token_count"}:
+            raise ValueError(
+                "gdino_tn_token_neg_weight_mode must be 'fixed' or 'token_count', "
+                f"got {gdino_tn_token_neg_weight_mode!r}"
+            )
 
     def _target_is_tn(self, target: dict, *, device: torch.device) -> bool:
         flag = target.get("is_negative", None)
@@ -896,6 +903,7 @@ class SetCriterion(nn.Module):
         pred_logits = outputs["pred_logits"]
         text_mask = outputs.get("text_mask", None)
         negative_mask = outputs.get("negative_to_token_mask", outputs.get("attr_neg_to_token_mask", None))
+        phrase_mask = outputs.get("phrase_to_token_mask", None)
         content_mask = outputs.get("content_to_token_mask", None)
         canonical_mask = outputs.get("canonical_to_token_mask", None)
         zero = pred_logits.new_zeros(())
@@ -907,10 +915,13 @@ class SetCriterion(nn.Module):
             return {
                 "loss_tn_tokens": zero,
                 "tn_token_neg_loss_raw": zero.detach(),
+                "tn_token_neg_loss_weighted_raw": zero.detach(),
                 "tn_token_sample_count": zero.detach(),
                 "tn_token_valid_count": zero.detach(),
                 "tn_token_skipped_no_mask_count": zero.detach(),
                 "tn_token_neg_weight": zero.detach(),
+                "tn_token_neg_effective_weight": zero.detach(),
+                "tn_token_neg_weight_mode_token_count": zero.detach(),
                 "tn_token_content_weight": zero.detach(),
                 "tn_token_canonical_weight": zero.detach(),
             }
@@ -925,16 +936,28 @@ class SetCriterion(nn.Module):
             text_mask = text_mask.to(device=pred_logits.device, dtype=torch.bool)
 
         losses = []
+        neg_raw_losses = []
         content_losses = []
         canonical_losses = []
+        neg_effective_weights = []
         valid_token_count = 0
+        sample_count = 0
         skipped_no_mask_count = 0
         for b, target in enumerate(targets):
             if not self._target_is_tn(target, device=pred_logits.device):
                 continue
+            supervised_this_sample = False
             mask = text_mask[b]
             if not bool(mask.any().item()):
                 continue
+            phrase_source = phrase_mask[b] if phrase_mask is not None else target.get("phrase_to_token_mask", None)
+            phrase_token_count = 0
+            if phrase_source is not None:
+                phrase_b = phrase_source.to(device=pred_logits.device, dtype=torch.bool)
+                if phrase_b.dim() == 1:
+                    phrase_b = phrase_b.unsqueeze(0)
+                phrase_b = phrase_b[:1, : pred_logits.shape[-1]].any(dim=0) & mask
+                phrase_token_count = int(phrase_b.sum().item())
             neg_source = None
             if negative_mask is not None:
                 neg_source = negative_mask[b]
@@ -942,20 +965,30 @@ class SetCriterion(nn.Module):
                 neg_source = target.get("negative_to_token_mask", target.get("attr_neg_to_token_mask", None))
             if neg_source is None:
                 skipped_no_mask_count += 1
-                continue
-            neg_b = neg_source.to(device=pred_logits.device, dtype=torch.bool)
-            if neg_b.dim() == 1:
-                neg_b = neg_b.unsqueeze(0)
-            neg_b = neg_b[:1, : pred_logits.shape[-1]].any(dim=0) & mask
-            if neg_b.any():
-                logits = pred_logits[b][:, neg_b]
-                raw = F.binary_cross_entropy_with_logits(
-                    logits,
-                    torch.zeros_like(logits),
-                    reduction="mean",
-                )
-                losses.append(raw)
-                valid_token_count += int(neg_b.sum().item()) * int(pred_logits.shape[1])
+            else:
+                neg_b = neg_source.to(device=pred_logits.device, dtype=torch.bool)
+                if neg_b.dim() == 1:
+                    neg_b = neg_b.unsqueeze(0)
+                neg_b = neg_b[:1, : pred_logits.shape[-1]].any(dim=0) & mask
+                if neg_b.any():
+                    logits = pred_logits[b][:, neg_b]
+                    raw = F.binary_cross_entropy_with_logits(
+                        logits,
+                        torch.zeros_like(logits),
+                        reduction="mean",
+                    )
+                    neg_token_count = int(neg_b.sum().item())
+                    tn_token_count = phrase_token_count if phrase_token_count > 0 else neg_token_count
+                    neg_weight = (
+                        float(tn_token_count)
+                        if self.gdino_tn_token_neg_weight_mode == "token_count"
+                        else 1.0
+                    )
+                    losses.append(raw * neg_weight)
+                    neg_raw_losses.append(raw)
+                    neg_effective_weights.append(neg_weight)
+                    valid_token_count += neg_token_count * int(pred_logits.shape[1])
+                    supervised_this_sample = True
             content_source = content_mask[b] if content_mask is not None else target.get("content_to_token_mask", None)
             if self.gdino_tn_token_content_weight > 0 and content_source is not None:
                 content_b = content_source.to(device=pred_logits.device, dtype=torch.bool)
@@ -971,6 +1004,7 @@ class SetCriterion(nn.Module):
                             reduction="mean",
                         )
                     )
+                    supervised_this_sample = True
             canonical_source = canonical_mask[b] if canonical_mask is not None else target.get("canonical_to_token_mask", None)
             if self.gdino_tn_token_canonical_weight > 0 and canonical_source is not None:
                 canonical_b = canonical_source.to(device=pred_logits.device, dtype=torch.bool)
@@ -986,30 +1020,45 @@ class SetCriterion(nn.Module):
                             reduction="mean",
                         )
                     )
+                    supervised_this_sample = True
+            if supervised_this_sample:
+                sample_count += 1
 
         if losses:
-            neg_raw = torch.stack([x.reshape(()) for x in losses]).mean()
-            sample_count = len(losses)
+            neg_weighted_raw = torch.stack([x.reshape(()) for x in losses]).mean()
         else:
-            neg_raw = zero
-            sample_count = 0
+            neg_weighted_raw = zero
+        neg_raw = torch.stack([x.reshape(()) for x in neg_raw_losses]).mean() if neg_raw_losses else zero
         content_raw = torch.stack([x.reshape(()) for x in content_losses]).mean() if content_losses else zero
         canonical_raw = torch.stack([x.reshape(()) for x in canonical_losses]).mean() if canonical_losses else zero
+        if neg_effective_weights:
+            neg_effective_weight = torch.as_tensor(
+                float(sum(neg_effective_weights) / len(neg_effective_weights)),
+                device=pred_logits.device,
+            )
+        else:
+            neg_effective_weight = zero.detach()
 
         loss = (
-            neg_raw * self.gdino_tn_token_neg_weight
+            neg_weighted_raw * self.gdino_tn_token_neg_weight
             + content_raw * self.gdino_tn_token_content_weight
             + canonical_raw * self.gdino_tn_token_canonical_weight
         )
         return {
             "loss_tn_tokens": loss,
             "tn_token_neg_loss_raw": neg_raw.detach(),
+            "tn_token_neg_loss_weighted_raw": neg_weighted_raw.detach(),
             "tn_token_content_loss_raw": content_raw.detach(),
             "tn_token_canonical_loss_raw": canonical_raw.detach(),
             "tn_token_sample_count": torch.as_tensor(float(sample_count), device=pred_logits.device),
             "tn_token_valid_count": torch.as_tensor(float(valid_token_count), device=pred_logits.device),
             "tn_token_skipped_no_mask_count": torch.as_tensor(float(skipped_no_mask_count), device=pred_logits.device),
             "tn_token_neg_weight": torch.as_tensor(float(self.gdino_tn_token_neg_weight), device=pred_logits.device),
+            "tn_token_neg_effective_weight": neg_effective_weight,
+            "tn_token_neg_weight_mode_token_count": torch.as_tensor(
+                float(self.gdino_tn_token_neg_weight_mode == "token_count"),
+                device=pred_logits.device,
+            ),
             "tn_token_content_weight": torch.as_tensor(float(self.gdino_tn_token_content_weight), device=pred_logits.device),
             "tn_token_canonical_weight": torch.as_tensor(float(self.gdino_tn_token_canonical_weight), device=pred_logits.device),
         }
@@ -1096,7 +1145,11 @@ class SetCriterion(nn.Module):
             losses.update(self.get_loss(loss, outputs, targets, indices, num_boxes))
         if self.gdino_tn_loss_type == "alltn00625" and self.gdino_tn_alltn_weight > 0:
             losses.update(self.gdino_alltn00625_tn_loss(outputs, targets, indices, num_boxes))
-        if self.gdino_tn_token_neg_weight > 0:
+        if (
+            self.gdino_tn_token_neg_weight > 0
+            or self.gdino_tn_token_content_weight > 0
+            or self.gdino_tn_token_canonical_weight > 0
+        ):
             losses.update(self.gdino_tn_token_loss(outputs, targets, indices, num_boxes))
 
         # In case of auxiliary losses, we repeat this process with the output of each intermediate layer.
@@ -1128,7 +1181,11 @@ class SetCriterion(nn.Module):
                     l_dict = self.gdino_alltn00625_tn_loss(aux_outputs, targets, indices, num_boxes)
                     l_dict = {k + f'_{idx}': v for k, v in l_dict.items()}
                     losses.update(l_dict)
-                if self.gdino_tn_token_neg_weight > 0:
+                if (
+                    self.gdino_tn_token_neg_weight > 0
+                    or self.gdino_tn_token_content_weight > 0
+                    or self.gdino_tn_token_canonical_weight > 0
+                ):
                     l_dict = self.gdino_tn_token_loss(aux_outputs, targets, indices, num_boxes)
                     l_dict = {k + f'_{idx}': v for k, v in l_dict.items()}
                     losses.update(l_dict)
@@ -1162,7 +1219,11 @@ class SetCriterion(nn.Module):
                 l_dict = self.gdino_alltn00625_tn_loss(interm_outputs, targets, indices, num_boxes)
                 l_dict = {k + f'_interm': v for k, v in l_dict.items()}
                 losses.update(l_dict)
-            if self.gdino_tn_token_neg_weight > 0:
+            if (
+                self.gdino_tn_token_neg_weight > 0
+                or self.gdino_tn_token_content_weight > 0
+                or self.gdino_tn_token_canonical_weight > 0
+            ):
                 l_dict = self.gdino_tn_token_loss(interm_outputs, targets, indices, num_boxes)
                 l_dict = {k + f'_interm': v for k, v in l_dict.items()}
                 losses.update(l_dict)
@@ -1447,6 +1508,7 @@ def build_groundingdino(args):
                 stage_b_tn_neg_weight=float(getattr(args, "lambda_tn_neg", getattr(args, "stage_b_tn_neg_weight", 1.0))),
                 stage_b_tn_content_weight=float(getattr(args, "lambda_tn_content", getattr(args, "stage_b_tn_content_weight", 1.0))),
                 stage_b_tn_canonical_weight=float(getattr(args, "lambda_tn_canonical", getattr(args, "stage_b_tn_canonical_weight", 1.0))),
+                stage_b_tn_neg_weight_mode=getattr(args, "stage_b_tn_neg_weight_mode", "fixed"),
                 stage_b_tn_content_target=float(getattr(args, "tn_content_target", getattr(args, "stage_b_tn_content_target", 1.0))),
                 stage_b_tn_canonical_target=float(getattr(args, "tn_canonical_target", getattr(args, "stage_b_tn_canonical_target", 1.0))),
                 stage_b_rank_margin=float(getattr(args, "stage_b_rank_margin", 0.3)),
@@ -1587,7 +1649,14 @@ def build_groundingdino(args):
                 weight_dict["loss_tn_alltn_interm"] = gdino_tn_alltn_weight * interm_loss_coef
 
         gdino_tn_token_neg_weight = float(getattr(args, "gdino_tn_token_neg_weight", getattr(args, "lambda_tn_neg", 0.0)))
-        if gdino_tn_token_neg_weight > 0:
+        gdino_tn_token_content_weight = float(getattr(args, "gdino_tn_token_content_weight", getattr(args, "lambda_tn_content", 0.0)))
+        gdino_tn_token_canonical_weight = float(getattr(args, "gdino_tn_token_canonical_weight", getattr(args, "lambda_tn_canonical", 0.0)))
+        gdino_tn_token_enabled = (
+            gdino_tn_token_neg_weight > 0
+            or gdino_tn_token_content_weight > 0
+            or gdino_tn_token_canonical_weight > 0
+        )
+        if gdino_tn_token_enabled:
             weight_dict["loss_tn_tokens"] = 1.0
             if args.aux_loss:
                 for i in range(args.dec_layers - 1):
@@ -1611,8 +1680,9 @@ def build_groundingdino(args):
                                  gdino_tn_alltn_lse_tau=getattr(args, "gdino_tn_alltn_lse_tau", 0.2),
                                  gdino_tn_alltn_text_agg=getattr(args, "gdino_tn_alltn_text_agg", "mean"),
                                  gdino_tn_token_neg_weight=gdino_tn_token_neg_weight,
-                                 gdino_tn_token_content_weight=float(getattr(args, "gdino_tn_token_content_weight", getattr(args, "lambda_tn_content", 0.0))),
-                                 gdino_tn_token_canonical_weight=float(getattr(args, "gdino_tn_token_canonical_weight", getattr(args, "lambda_tn_canonical", 0.0))),
+                                 gdino_tn_token_content_weight=gdino_tn_token_content_weight,
+                                 gdino_tn_token_canonical_weight=gdino_tn_token_canonical_weight,
+                                 gdino_tn_token_neg_weight_mode=getattr(args, "gdino_tn_token_neg_weight_mode", "fixed"),
                                  )
         criterion.to(device)
         postprocessors = {'bbox': PostProcess(num_select=args.num_select  , text_encoder_type=args.text_encoder_type,nms_iou_threshold=args.nms_iou_threshold,args=args)}

@@ -61,6 +61,7 @@ class StageBCriterion(nn.Module):
         stage_b_tn_neg_weight: float = 1.0,
         stage_b_tn_content_weight: float = 1.0,
         stage_b_tn_canonical_weight: float = 1.0,
+        stage_b_tn_neg_weight_mode: str = "fixed",
         stage_b_tn_content_target: float = 1.0,
         stage_b_tn_canonical_target: float = 1.0,
         stage_b_rank_margin: float = 0.3,
@@ -86,8 +87,7 @@ class StageBCriterion(nn.Module):
         stage_b_score_calib_neg_lse_tau: float = 0.5,
         stage_b_score_calib_aux_loss: bool = False,
         stage_b_aux_loss_start_idx: int = 0,
-        # Deprecated compatibility args. Content-positive and TN-negative tokens
-        # are fixed at weight 1.0, and softmin phrase TN loss is disabled.
+        # Deprecated compatibility args. Softmin phrase TN loss is disabled.
         attr_pos_weight: Optional[float] = None,
         tn_shared_attr_pos_weight: Optional[float] = None,
         attr_neg_weight: Optional[float] = None,
@@ -120,6 +120,12 @@ class StageBCriterion(nn.Module):
         self.stage_b_tn_neg_weight = float(stage_b_tn_neg_weight)
         self.stage_b_tn_content_weight = float(stage_b_tn_content_weight)
         self.stage_b_tn_canonical_weight = float(stage_b_tn_canonical_weight)
+        self.stage_b_tn_neg_weight_mode = str(stage_b_tn_neg_weight_mode).lower().strip()
+        if self.stage_b_tn_neg_weight_mode not in {"fixed", "token_count"}:
+            raise ValueError(
+                "stage_b_tn_neg_weight_mode must be 'fixed' or 'token_count', "
+                f"got {stage_b_tn_neg_weight_mode!r}"
+            )
         self.stage_b_tn_content_target = float(stage_b_tn_content_target)
         self.stage_b_tn_canonical_target = float(stage_b_tn_canonical_target)
         self.stage_b_rank_margin = float(stage_b_rank_margin)
@@ -200,6 +206,11 @@ class StageBCriterion(nn.Module):
         if not torch.is_tensor(is_tn):
             return None
         return is_tn.to(device=device, dtype=torch.bool).view(-1)
+
+    def _tn_neg_effective_weight(self, token_count: int) -> float:
+        if self.stage_b_tn_neg_weight_mode == "token_count":
+            return float(max(int(token_count), 1))
+        return 1.0
 
     def _is_tn_target_index(self, target: Dict[str, torch.Tensor], target_idx: int, device: torch.device) -> bool:
         tn_mask = self._target_tn_mask(target, device)
@@ -499,9 +510,15 @@ class StageBCriterion(nn.Module):
                     0.0,
                 )
                 if neg_loss is not None:
+                    neg_token_count = int(effective_negative_mask.sum().item())
+                    phrase_token_count = int(phrase_mask.sum().item())
+                    neg_loss = (
+                        neg_loss
+                        * self.stage_b_tn_neg_weight
+                        * self._tn_neg_effective_weight(phrase_token_count)
+                    )
                     tn_neg_slot_losses.append(neg_loss)
                     tn_group_slot_losses[tn_group_name].append(neg_loss)
-                    neg_token_count = int(effective_negative_mask.sum().item())
                     effective_tn_negative_token_count += neg_token_count
                     tn_group_token_counts[tn_group_name] += neg_token_count
                     tn_group_nonempty_counts[tn_group_name] += 1
@@ -548,6 +565,12 @@ class StageBCriterion(nn.Module):
             "effective_tn_negative_token_count": torch.as_tensor(float(effective_tn_negative_token_count), device=device),
             "empty_content_mask_count": torch.as_tensor(float(empty_content_mask_count), device=device),
             "empty_tn_negative_mask_count": torch.as_tensor(float(empty_tn_negative_mask_count), device=device),
+            "text_tn_neg_weight": torch.as_tensor(float(self.stage_b_tn_neg_weight), device=device),
+            "text_tn_neg_weight_mode_token_count": torch.as_tensor(
+                float(self.stage_b_tn_neg_weight_mode == "token_count"), device=device
+            ),
+            "text_tn_content_weight": torch.as_tensor(float(self.stage_b_tn_content_weight), device=device),
+            "text_tn_canonical_weight": torch.as_tensor(float(self.stage_b_tn_canonical_weight), device=device),
             "spatial_like_tn_count": torch.as_tensor(float(tn_group_slot_counts["spatial_like"]), device=device),
             "relation_action_like_tn_count": torch.as_tensor(
                 float(tn_group_slot_counts["relation_action_like"]), device=device
@@ -663,6 +686,16 @@ class StageBCriterion(nn.Module):
                 else:
                     negative_weight = negative_attr_mask.to(dtype=pred_logits_text.dtype)
                 effective_negative_mask = negative_attr_mask & (negative_weight > 0)
+                if is_tn_slot and effective_negative_mask.any():
+                    phrase_token_count = int(phrase_mask.sum().item())
+                    weight_map[b, query_idx, effective_negative_mask] = torch.maximum(
+                        weight_map[b, query_idx, effective_negative_mask],
+                        torch.as_tensor(
+                            self.stage_b_tn_neg_weight * self._tn_neg_effective_weight(phrase_token_count),
+                            dtype=weight_map.dtype,
+                            device=device,
+                        ),
+                    )
                 if is_tn_slot and not effective_negative_mask.any():
                     empty_tn_negative_mask_count += 1
 
@@ -730,6 +763,12 @@ class StageBCriterion(nn.Module):
             "effective_tn_negative_token_count": torch.as_tensor(float(tn_neg_count), device=device),
             "empty_content_mask_count": torch.as_tensor(float(empty_content_mask_count), device=device),
             "empty_tn_negative_mask_count": torch.as_tensor(float(empty_tn_negative_mask_count), device=device),
+            "text_tn_neg_weight": torch.as_tensor(float(self.stage_b_tn_neg_weight), device=device),
+            "text_tn_neg_weight_mode_token_count": torch.as_tensor(
+                float(self.stage_b_tn_neg_weight_mode == "token_count"), device=device
+            ),
+            "text_tn_content_weight": torch.as_tensor(float(self.stage_b_tn_content_weight), device=device),
+            "text_tn_canonical_weight": torch.as_tensor(float(self.stage_b_tn_canonical_weight), device=device),
             "spatial_like_tn_count": torch.as_tensor(float(tn_group_slot_counts["spatial_like"]), device=device),
             "relation_action_like_tn_count": torch.as_tensor(
                 float(tn_group_slot_counts["relation_action_like"]), device=device
@@ -959,9 +998,11 @@ class StageBCriterion(nn.Module):
                         0.0,
                     )
                     if neg_loss is not None:
+                        neg_token_count = int(effective_negative_mask.sum().item())
+                        phrase_token_count = int(phrase_mask.sum().item())
+                        neg_loss = neg_loss * self._tn_neg_effective_weight(phrase_token_count)
                         tn_neg_slot_losses.append(neg_loss)
                         tn_group_slot_losses[tn_group_name].append(neg_loss)
-                        neg_token_count = int(effective_negative_mask.sum().item())
                         tn_neg_count += neg_token_count
                         tn_group_token_counts[tn_group_name] += neg_token_count
                         tn_group_nonempty_counts[tn_group_name] += 1
@@ -1045,6 +1086,12 @@ class StageBCriterion(nn.Module):
             "effective_tn_negative_token_count": torch.as_tensor(float(tn_neg_count), device=device),
             "empty_content_mask_count": torch.as_tensor(float(empty_content_mask_count), device=device),
             "empty_tn_negative_mask_count": torch.as_tensor(float(empty_tn_negative_mask_count), device=device),
+            "text_tn_neg_weight": torch.as_tensor(float(self.stage_b_tn_neg_weight), device=device),
+            "text_tn_neg_weight_mode_token_count": torch.as_tensor(
+                float(self.stage_b_tn_neg_weight_mode == "token_count"), device=device
+            ),
+            "text_tn_content_weight": torch.as_tensor(float(self.stage_b_tn_content_weight), device=device),
+            "text_tn_canonical_weight": torch.as_tensor(float(self.stage_b_tn_canonical_weight), device=device),
             "spatial_like_tn_count": torch.as_tensor(float(tn_group_slot_counts["spatial_like"]), device=device),
             "relation_action_like_tn_count": torch.as_tensor(
                 float(tn_group_slot_counts["relation_action_like"]), device=device
@@ -1096,6 +1143,7 @@ class StageBCriterion(nn.Module):
 
         device = pred_logits_text.device
         target_map = torch.zeros_like(pred_logits_text, dtype=pred_logits_text.dtype, device=device)
+        weight_map = torch.ones_like(pred_logits_text, dtype=pred_logits_text.dtype, device=device)
         valid_text_mask = self._get_valid_text_mask(outputs, pred_logits_text)
         dense_valid_map = valid_text_mask[:, None, :].expand_as(pred_logits_text)
         zero = pred_logits_text.new_zeros(())
@@ -1128,6 +1176,9 @@ class StageBCriterion(nn.Module):
             canonical_to_token_mask = masks["canonical_to_token_mask"]
             content_to_token_mask = masks["content_to_token_mask"]
             attr_pos_to_token_mask = masks["attr_pos_to_token_mask"]
+            attr_neg_to_token_mask = masks["attr_neg_to_token_mask"]
+            negative_to_token_mask = masks["negative_to_token_mask"]
+            attr_neg_weight_mask = masks["attr_neg_weight_mask"]
             is_tn_mask = masks["is_tn_mask"]
             tn_group_ids = masks["tn_group_ids"]
 
@@ -1147,6 +1198,30 @@ class StageBCriterion(nn.Module):
                     tn_patch_matched_query_count += 1
                     tn_group_slot_counts[tn_group_name] += 1
                     tn_phrase_mask = phrase_to_token_mask[slot_idx] & valid_text_mask[b]
+                    tn_canonical_mask = canonical_to_token_mask[slot_idx] & tn_phrase_mask
+                    if attr_neg_to_token_mask is not None:
+                        tn_negative_mask = attr_neg_to_token_mask[slot_idx] & tn_phrase_mask & (~tn_canonical_mask)
+                    elif negative_to_token_mask is not None:
+                        tn_negative_mask = negative_to_token_mask[slot_idx] & tn_phrase_mask & (~tn_canonical_mask)
+                    else:
+                        tn_negative_mask = torch.zeros_like(tn_phrase_mask)
+                    if attr_neg_weight_mask is not None:
+                        tn_negative_weight = (
+                            attr_neg_weight_mask[slot_idx].to(dtype=pred_logits_text.dtype)
+                            * tn_negative_mask.to(dtype=pred_logits_text.dtype)
+                        )
+                    else:
+                        tn_negative_weight = tn_negative_mask.to(dtype=pred_logits_text.dtype)
+                    tn_effective_negative_mask = tn_negative_mask & (tn_negative_weight > 0)
+                    if tn_effective_negative_mask.any():
+                        tn_phrase_token_count = int(tn_phrase_mask.sum().item())
+                        tn_weight = self.stage_b_tn_neg_weight * self._tn_neg_effective_weight(
+                            tn_phrase_token_count
+                        )
+                        weight_map[b, :, tn_effective_negative_mask] = torch.maximum(
+                            weight_map[b, :, tn_effective_negative_mask],
+                            torch.as_tensor(tn_weight, dtype=weight_map.dtype, device=device),
+                        )
                     tn_text_positive_token_count += int(target_map[b, query_idx, tn_phrase_mask].sum().item())
                     continue
 
@@ -1172,6 +1247,7 @@ class StageBCriterion(nn.Module):
 
         valid_logits = pred_logits_text[dense_valid_map]
         valid_targets = target_map[dense_valid_map]
+        valid_weights = weight_map[dense_valid_map]
         if valid_logits.numel() == 0:
             loss_text = zero
         else:
@@ -1181,6 +1257,7 @@ class StageBCriterion(nn.Module):
                 alpha=self.stage_b_text_focal_alpha,
                 gamma=self.stage_b_text_focal_gamma,
             )
+            valid_loss = valid_loss * valid_weights
             normalizer = max(float(det_supervised_query_count), 1.0)
             loss_text = valid_loss.sum() / normalizer
 
@@ -1214,6 +1291,12 @@ class StageBCriterion(nn.Module):
             "effective_tn_negative_token_count": torch.as_tensor(float(tn_dense_valid_token_count), device=device),
             "empty_content_mask_count": torch.as_tensor(float(empty_content_mask_count), device=device),
             "empty_tn_negative_mask_count": zero.detach(),
+            "text_tn_neg_weight": torch.as_tensor(float(self.stage_b_tn_neg_weight), device=device),
+            "text_tn_neg_weight_mode_token_count": torch.as_tensor(
+                float(self.stage_b_tn_neg_weight_mode == "token_count"), device=device
+            ),
+            "text_tn_content_weight": torch.as_tensor(float(self.stage_b_tn_content_weight), device=device),
+            "text_tn_canonical_weight": torch.as_tensor(float(self.stage_b_tn_canonical_weight), device=device),
             "spatial_like_tn_count": torch.as_tensor(float(tn_group_slot_counts["spatial_like"]), device=device),
             "relation_action_like_tn_count": torch.as_tensor(
                 float(tn_group_slot_counts["relation_action_like"]), device=device
@@ -1681,6 +1764,10 @@ class StageBCriterion(nn.Module):
             "effective_tn_negative_token_count": z,
             "empty_content_mask_count": z,
             "empty_tn_negative_mask_count": z,
+            "text_tn_neg_weight": z,
+            "text_tn_neg_weight_mode_token_count": z,
+            "text_tn_content_weight": z,
+            "text_tn_canonical_weight": z,
             "spatial_like_tn_count": z,
             "relation_action_like_tn_count": z,
         }
