@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple
 import torch
 import torch.nn.functional as F
 from torch import nn
+from scipy.optimize import linear_sum_assignment
 
 from groundingdino.util import box_ops
 from util.misc import get_world_size, is_dist_avail_and_initialized
@@ -195,6 +196,8 @@ class PatchHungarianCriterion(nn.Module):
             raise KeyError("PatchHungarianCriterion requires outputs['pred_boxes'] (B,Q,4).")
 
         pred_logits_patch = outputs["pred_logits_patch"]
+        pred_scores_match = outputs.get("pred_scores_match", None)
+        pred_match_cost = outputs.get("pred_match_cost", None)
         pred_boxes = outputs["pred_boxes"]
         device = pred_boxes.device
 
@@ -206,6 +209,32 @@ class PatchHungarianCriterion(nn.Module):
             B, Q, K = pred_logits_patch.shape
         else:
             raise ValueError(f"pred_logits_patch must be (B,Q) or (B,Q,K), got {tuple(pred_logits_patch.shape)}")
+        if pred_scores_match is not None:
+            if pred_scores_match.dim() == 2:
+                pred_scores_match = pred_scores_match.unsqueeze(-1)
+            elif pred_scores_match.dim() != 3:
+                raise ValueError(
+                    f"pred_scores_match must be (B,Q) or (B,Q,K), got {tuple(pred_scores_match.shape)}"
+                )
+            if pred_scores_match.shape != pred_logits_patch.shape:
+                raise ValueError(
+                    "pred_scores_match must match pred_logits_patch shape after unsqueeze, got "
+                    f"{tuple(pred_scores_match.shape)} vs {tuple(pred_logits_patch.shape)}"
+                )
+            pred_scores_match = pred_scores_match.to(device=device, dtype=pred_logits_patch.dtype)
+        if pred_match_cost is not None:
+            if pred_match_cost.dim() == 2:
+                pred_match_cost = pred_match_cost.unsqueeze(-1)
+            elif pred_match_cost.dim() != 3:
+                raise ValueError(
+                    f"pred_match_cost must be (B,Q) or (B,Q,K), got {tuple(pred_match_cost.shape)}"
+                )
+            if pred_match_cost.shape != pred_logits_patch.shape:
+                raise ValueError(
+                    "pred_match_cost must match pred_logits_patch shape after unsqueeze, got "
+                    f"{tuple(pred_match_cost.shape)} vs {tuple(pred_logits_patch.shape)}"
+                )
+            pred_match_cost = pred_match_cost.to(device=device, dtype=pred_logits_patch.dtype)
 
         patch_mask = outputs.get("patch_mask", None)
         if patch_mask is not None:
@@ -260,10 +289,39 @@ class PatchHungarianCriterion(nn.Module):
             max_row = int(max(int(tgt_labels.max().item()), int(support_classes[valid_k].max().item()))) + 1
             label_map = self._build_label_map(support_classes[keep], K=int(keep.numel()), num_rows=max_row)
 
-            for_match = {"pred_logits": logits_b.unsqueeze(0), "pred_boxes": boxes_b.unsqueeze(0)}
-            src_idx, tgt_idx = self.matcher(
-                for_match, [{"labels": tgt_labels, "boxes": tgt_boxes}], label_map
-            )[0]
+            if pred_match_cost is None and pred_scores_match is None:
+                for_match = {"pred_logits": logits_b.unsqueeze(0), "pred_boxes": boxes_b.unsqueeze(0)}
+                src_idx, tgt_idx = self.matcher(
+                    for_match, [{"labels": tgt_labels, "boxes": tgt_boxes}], label_map
+                )[0]
+            else:
+                matched_labels_for_cost = tgt_labels.to(device=device)
+                local_slots = []
+                for label in matched_labels_for_cost.tolist():
+                    slot = (support_classes[keep] == int(label)).nonzero(as_tuple=False).flatten()
+                    if slot.numel() == 0:
+                        local_slots.append(0)
+                    else:
+                        local_slots.append(int(slot[0].item()))
+                slot_idx = torch.as_tensor(local_slots, dtype=torch.long, device=device)
+                if pred_match_cost is not None:
+                    match_cost_b = torch.nan_to_num(pred_match_cost[b][:, keep], nan=0.0, posinf=1e6, neginf=-1e6)
+                    cost_class = match_cost_b[:, slot_idx]
+                else:
+                    match_scores_b = torch.nan_to_num(pred_scores_match[b][:, keep], nan=0.0, posinf=1e6, neginf=-1e6)
+                    cost_class = -match_scores_b[:, slot_idx]
+                cost_bbox = torch.cdist(boxes_b, tgt_boxes, p=1)
+                cost_giou = -box_ops.generalized_box_iou(
+                    box_ops.box_cxcywh_to_xyxy(boxes_b),
+                    box_ops.box_cxcywh_to_xyxy(tgt_boxes),
+                )
+                cost = self.matcher.cost_class * cost_class + self.matcher.cost_bbox * cost_bbox + self.matcher.cost_giou * cost_giou
+                cost = cost.detach().cpu()
+                cost[torch.isnan(cost)] = 0.0
+                cost[torch.isinf(cost)] = 0.0
+                src_np, tgt_np = linear_sum_assignment(cost)
+                src_idx = torch.as_tensor(src_np, dtype=torch.int64, device=device)
+                tgt_idx = torch.as_tensor(tgt_np, dtype=torch.int64, device=device)
             all_indices.append((src_idx, tgt_idx))
 
             cid_to_local_k = {}

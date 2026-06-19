@@ -39,7 +39,7 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 
 def _score_components(outputs: Dict[str, torch.Tensor], cfg, beta: float) -> Dict[str, torch.Tensor]:
-    patch = outputs["pred_logits_patch"].detach().float()
+    patch = outputs["pred_logits_patch"].detach().float().sigmoid()
     if patch.dim() == 2:
         patch = patch.unsqueeze(-1)
 

@@ -11,6 +11,7 @@ from groundingdino.util import box_ops
 
 from .patch_hungarian_criterion import PatchHungarianCriterion
 from .stage_b_score import compute_stage_b_slot_logits
+from .stage_b_score import compute_stage_b_slot_match_cost
 
 
 _TN_GROUP_NAMES = ("color_like", "attr_like", "spatial_like", "relation_action_like", "other")
@@ -171,7 +172,18 @@ class StageBCriterion(nn.Module):
         )
 
     def compute_matching(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
-        return self.patch_criterion.compute_matching(outputs, targets)
+        matching_outputs = dict(outputs)
+        if outputs.get("pred_logits_text", None) is not None and outputs.get("phrase_to_token_mask", None) is not None:
+            with torch.no_grad():
+                matching_outputs["pred_match_cost"] = compute_stage_b_slot_match_cost(
+                    outputs,
+                    beta=self.stage_b_rank_beta,
+                    canonical_weight=1.0,
+                    focal_alpha=self.stage_b_text_focal_alpha,
+                    focal_gamma=self.stage_b_text_focal_gamma,
+                    detach_patch=False,
+                )
+        return self.patch_criterion.compute_matching(matching_outputs, targets)
 
     def _target_tn_mask(self, target: Dict[str, torch.Tensor], device: torch.device) -> Optional[torch.Tensor]:
         is_tn = target.get("is_tn", None)
@@ -1278,7 +1290,7 @@ class StageBCriterion(nn.Module):
                 f"rank_pos_targets length must match rank_pair_map, got {len(rank_pos_targets)} vs {rank_pair_map.numel()}"
             )
 
-        match_ctx_pos = self.patch_criterion.compute_matching(rank_pos_outputs, rank_pos_targets)
+        match_ctx_pos = self.compute_matching(rank_pos_outputs, rank_pos_targets)
         score_neg = compute_stage_b_slot_logits(
             outputs,
             beta=self.stage_b_rank_beta,
@@ -1532,7 +1544,7 @@ class StageBCriterion(nn.Module):
                 f"rank_pos_targets length must match rank_pair_map, got {len(rank_pos_targets)} vs {rank_pair_map.numel()}"
             )
 
-        match_ctx_pos = self.patch_criterion.compute_matching(rank_pos_outputs, rank_pos_targets)
+        match_ctx_pos = self.compute_matching(rank_pos_outputs, rank_pos_targets)
         score_neg = compute_stage_b_slot_logits(
             outputs,
             beta=self.stage_b_rank_beta,
@@ -1671,7 +1683,7 @@ class StageBCriterion(nn.Module):
         return out
 
     def forward(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
-        match_ctx = self.patch_criterion.compute_matching(outputs, targets)
+        match_ctx = self.compute_matching(outputs, targets)
         losses = self.patch_criterion.compute_losses_from_matching(
             match_ctx,
             targets,
@@ -1691,7 +1703,7 @@ class StageBCriterion(nn.Module):
         for aux_idx, aux_outputs in enumerate(outputs.get("aux_outputs", []) or []):
             if aux_idx < self.stage_b_aux_loss_start_idx:
                 continue
-            aux_match_ctx = self.patch_criterion.compute_matching(aux_outputs, targets)
+            aux_match_ctx = self.compute_matching(aux_outputs, targets)
             aux_suffix = f"_{aux_idx}"
             aux_patch_losses = self.patch_criterion.compute_losses_from_matching(
                 aux_match_ctx,

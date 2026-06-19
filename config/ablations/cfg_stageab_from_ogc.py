@@ -12,7 +12,7 @@ stage_b_infer_text_beta = 1.0
 stage_b_infer_canonical_weight = 0.15
 stage_b_infer_text_agg = "mean"
 stage_b_infer_softmin_tau = 0.7
-stage_b_infer_sigmoid_scores = True
+stage_b_infer_sigmoid_scores = False
 
 # OGC has no trained patch branch. Match Stage A's decoder adaptation while also
 # training the Stage B text projection/head.

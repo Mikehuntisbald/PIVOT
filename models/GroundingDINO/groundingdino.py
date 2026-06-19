@@ -1270,7 +1270,7 @@ class PostProcessStageB(nn.Module):
         text_agg: str = "mean",
         softmin_tau: float = 0.7,
         mean_softmin_alpha: float = 0.5,
-        output_sigmoid_scores: bool = True,
+        output_sigmoid_scores: bool = False,
     ) -> None:
         super().__init__()
         self.num_select = int(num_select)
@@ -1531,7 +1531,7 @@ def build_groundingdino(args):
                     text_agg=str(getattr(args, "stage_b_infer_text_agg", "mean")),
                     softmin_tau=float(getattr(args, "stage_b_infer_softmin_tau", getattr(args, "softmin_tau", 0.7))),
                     mean_softmin_alpha=float(getattr(args, "stage_b_infer_mean_softmin_alpha", 0.5)),
-                    output_sigmoid_scores=bool(getattr(args, "stage_b_infer_sigmoid_scores", True)),
+                    output_sigmoid_scores=bool(getattr(args, "stage_b_infer_sigmoid_scores", False)),
                 )
             }
         else:

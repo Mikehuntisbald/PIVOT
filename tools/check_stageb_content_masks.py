@@ -20,8 +20,12 @@ from datasets.patch_episode import (
 )
 from models.GroundingDINO.groundingdino import PostProcessStageB
 from models.GroundingDINO.groundingdino import GroundingDINO
+from models.GroundingDINO.matcher import HungarianMatcher
+from models.GroundingDINO.patch_hungarian_criterion import PatchHungarianCriterion
 from models.GroundingDINO.stage_b_score import compute_stage_b_slot_logits
+from models.GroundingDINO.stage_b_score import compute_stage_b_slot_match_cost
 from models.GroundingDINO.stage_b_score import aggregate_stage_b_tokens
+from models.GroundingDINO.stage_b_score import gdino_focal_match_cost_from_logits
 from models.GroundingDINO.stage_b_criterion import StageBCriterion
 from util.misc import NestedTensor
 import engine
@@ -391,10 +395,10 @@ def check_mean_normalized_softmin_scorer() -> None:
         softmin_tau=tau,
         mean_softmin_alpha=alpha,
     )
-    token_logits = torch.tensor([1.0, 3.0, -1.0])
-    mean_score = token_logits.mean()
-    softmin_score = -tau * torch.logsumexp(-token_logits / tau, dim=0)
-    normalized_softmin = softmin_score + tau * torch.log(torch.tensor(float(token_logits.numel())))
+    token_scores = torch.tensor([1.0, 3.0, -1.0]).sigmoid()
+    mean_score = token_scores.mean()
+    softmin_score = -tau * torch.logsumexp(-token_scores / tau, dim=0)
+    normalized_softmin = softmin_score + tau * torch.log(torch.tensor(float(token_scores.numel())))
     expected = alpha * mean_score + (1.0 - alpha) * normalized_softmin
     assert torch.allclose(score[0, 0, 0], expected)
 
@@ -407,7 +411,81 @@ def check_mean_normalized_softmin_scorer() -> None:
         softmin_tau=0.3,
         mean_softmin_alpha=0.0,
     )
-    assert torch.allclose(equal_score[0, 0, 0], torch.tensor(2.5), atol=1e-6)
+    assert torch.allclose(equal_score[0, 0, 0], torch.tensor(2.5).sigmoid(), atol=1e-6)
+
+
+def check_stage_b_matching_uses_fused_patch_text_score() -> None:
+    class DummyPatchCriterion:
+        def compute_matching(self, outputs, targets):
+            costs = outputs["pred_match_cost"][0, :, 0]
+            query = int(costs.argmin().item())
+            return {
+                "all_indices": [(torch.tensor([query]), torch.tensor([0]))],
+                "matched_patch_idx_list": [torch.tensor([0])],
+            }
+
+    criterion = StageBCriterion(
+        patch_criterion=DummyPatchCriterion(),
+        lambda_text=1.0,
+        stage_b_rank_beta=1.0,
+        stage_b_rank_canonical_weight=0.0,
+    )
+    outputs = {
+        "pred_logits_patch": torch.tensor([[[4.0], [-4.0]]], dtype=torch.float32),
+        "pred_logits_text": torch.tensor([[[-6.0], [6.0]]], dtype=torch.float32),
+        "pred_boxes": torch.zeros(1, 2, 4),
+        "phrase_to_token_mask": torch.tensor([[[1]]], dtype=torch.bool),
+        "canonical_to_token_mask": torch.zeros(1, 1, 1, dtype=torch.bool),
+    }
+    targets = [{"labels": torch.tensor([5]), "boxes": torch.zeros(1, 4), "support_class": torch.tensor([5])}]
+    match_ctx = criterion.compute_matching(outputs, targets)
+    assert int(match_ctx["all_indices"][0][0][0].item()) == 1
+
+
+def check_stage_b_matching_cost_matches_gdino_focal_mean() -> None:
+    outputs = {
+        "pred_logits_patch": torch.tensor([[[0.2]]], dtype=torch.float32),
+        "pred_logits_text": torch.tensor([[[1.0, 3.0, -1.0, 9.0]]], dtype=torch.float32),
+        "phrase_to_token_mask": torch.tensor([[[1, 1, 1, 0]]], dtype=torch.bool),
+        "canonical_to_token_mask": torch.zeros(1, 1, 4, dtype=torch.bool),
+    }
+    cost = compute_stage_b_slot_match_cost(
+        outputs,
+        beta=1.0,
+        canonical_weight=0.0,
+        focal_alpha=0.25,
+        focal_gamma=2.0,
+    )
+    expected = gdino_focal_match_cost_from_logits(outputs["pred_logits_patch"])[0, 0, 0]
+    expected = expected + gdino_focal_match_cost_from_logits(outputs["pred_logits_text"][0, 0, :3]).mean()
+    assert torch.allclose(cost[0, 0, 0], expected)
+
+
+def check_patch_hungarian_matching_uses_pred_scores_match() -> None:
+    matcher = HungarianMatcher(cost_class=1.0, cost_bbox=0.0, cost_giou=0.0, focal_alpha=0.25)
+    criterion = PatchHungarianCriterion(
+        matcher=matcher,
+        weight_dict={"loss_patch_ce": 1.0},
+        focal_alpha=0.25,
+        focal_gamma=2.0,
+    )
+    outputs = {
+        "pred_logits_patch": torch.tensor([[[4.0], [-4.0]]], dtype=torch.float32),
+        "pred_scores_match": torch.tensor([[[0.05], [0.95]]], dtype=torch.float32),
+        "pred_boxes": torch.zeros(1, 2, 4),
+    }
+    targets = [{"labels": torch.tensor([5]), "boxes": torch.zeros(1, 4), "support_class": torch.tensor([5])}]
+    match_ctx = criterion.compute_matching(outputs, targets)
+    assert int(match_ctx["all_indices"][0][0][0].item()) == 1
+
+    outputs["pred_scores_match"] = torch.tensor([[[1.05], [1.95]]], dtype=torch.float32)
+    match_ctx = criterion.compute_matching(outputs, targets)
+    assert int(match_ctx["all_indices"][0][0][0].item()) == 1
+
+    outputs.pop("pred_scores_match")
+    outputs["pred_match_cost"] = torch.tensor([[[0.2], [-0.4]]], dtype=torch.float32)
+    match_ctx = criterion.compute_matching(outputs, targets)
+    assert int(match_ctx["all_indices"][0][0][0].item()) == 1
 
 
 def check_phrase_rank_loss_independent_and_match_by_target() -> None:
@@ -467,7 +545,7 @@ def check_phrase_rank_loss_independent_and_match_by_target() -> None:
     match_ctx = DummyPatchCriterion().compute_matching(outputs, targets)
     rank_losses = criterion._compute_phrase_rank_loss(outputs, targets, match_ctx)
     # Match-by-target should use neg query 2 for original target 1, not neg query 0.
-    expected = torch.relu(torch.tensor(0.9 - 0.4 + 0.3))
+    expected = torch.relu(torch.tensor(0.9).sigmoid() - torch.tensor(0.4).sigmoid() + torch.tensor(0.3))
     assert torch.allclose(rank_losses["loss_phrase_rank"], expected)
     text_losses = criterion._compute_text_loss(
         {"pred_logits_text": torch.tensor([[[0.2, 0.7, -0.6]]])},
@@ -543,7 +621,7 @@ def check_phrase_rank_violation_count() -> None:
         targets = [{"labels": torch.tensor([5]), "boxes": torch.zeros(1, 4)}]
         return criterion._compute_phrase_rank_loss(outputs, targets, patch_criterion.compute_matching(outputs, targets))
 
-    no_violation = run_case(s_pos=1.0, s_neg=0.0)
+    no_violation = run_case(s_pos=2.0, s_neg=-2.0)
     assert torch.allclose(no_violation["loss_phrase_rank"], torch.tensor(0.0))
     assert no_violation["phrase_rank_used_pair_count"].item() == 1.0
     assert no_violation["phrase_rank_violation_count"].item() == 0.0
@@ -638,6 +716,9 @@ def main() -> None:
     check_rank_positive_uses_positive_phrase_only()
     check_shared_score_helper_matches_postprocess()
     check_mean_normalized_softmin_scorer()
+    check_stage_b_matching_uses_fused_patch_text_score()
+    check_stage_b_matching_cost_matches_gdino_focal_mean()
+    check_patch_hungarian_matching_uses_pred_scores_match()
     check_phrase_rank_loss_independent_and_match_by_target()
     check_phrase_rank_violation_count()
     check_rank_forward_disables_patch_dn()
