@@ -212,6 +212,7 @@ def _summarize_tn_arrays(
     pos_iou: np.ndarray,
     neg_iou: np.ndarray,
     threshold_tprs: List[float],
+    score_thresholds: List[float],
 ) -> Dict[str, Any]:
     valid = np.isfinite(pos_scores) & np.isfinite(neg_scores)
     pos_scores = pos_scores[valid]
@@ -236,12 +237,22 @@ def _summarize_tn_arrays(
         out[f"threshold_at_{key}tpr"] = threshold
         out[f"actual_tpr_at_{key}tpr"] = float(np.mean(pos_scores >= threshold)) if pos_scores.size else 0.0
         out[f"fpr{key}tpr"] = float(np.mean(neg_scores >= threshold)) if neg_scores.size else 0.0
+    for threshold in score_thresholds:
+        key = f"{float(threshold):.2f}".replace(".", "p")
+        out[f"tpr_at_score_{key}"] = float(np.mean(pos_scores >= float(threshold))) if pos_scores.size else 0.0
+        out[f"fpr_at_score_{key}"] = float(np.mean(neg_scores >= float(threshold))) if neg_scores.size else 0.0
     out.setdefault("fpr95tpr", 0.0)
     out["tn_fpr"] = float(out.get("fpr95tpr", 0.0))
     return out
 
 
-def _summarize_tn_by_meta(records: List[Dict[str, float]], metas: List[Dict[str, Any]], key: str, threshold_tprs: List[float]):
+def _summarize_tn_by_meta(
+    records: List[Dict[str, float]],
+    metas: List[Dict[str, Any]],
+    key: str,
+    threshold_tprs: List[float],
+    score_thresholds: List[float],
+):
     groups: Dict[str, List[int]] = {}
     for i, meta in enumerate(metas):
         groups.setdefault(str(meta.get(key, "unknown")), []).append(i)
@@ -253,6 +264,7 @@ def _summarize_tn_by_meta(records: List[Dict[str, float]], metas: List[Dict[str,
             np.asarray([records[i]["pos_iou"] for i in idxs], dtype=np.float32),
             np.asarray([records[i]["tn_iou"] for i in idxs], dtype=np.float32),
             threshold_tprs,
+            score_thresholds,
         )
     return out
 
@@ -353,6 +365,7 @@ def evaluate_tn_dataset(
     num_workers: int,
     seed: int,
     threshold_tprs: List[float],
+    score_thresholds: List[float],
     amp: bool,
     max_batches: int,
     log_every: int,
@@ -422,6 +435,7 @@ def evaluate_tn_dataset(
         np.asarray([r["pos_iou"] for r in records], dtype=np.float32),
         np.asarray([r["tn_iou"] for r in records], dtype=np.float32),
         threshold_tprs,
+        score_thresholds,
     )
     row.update(
         {
@@ -435,8 +449,8 @@ def evaluate_tn_dataset(
             "max_batches": int(max_batches),
             "invalid_positive_pairs": int(invalid_positive),
             "invalid_negative_pairs": int(invalid_negative),
-            "by_split": _summarize_tn_by_meta(records, valid_metas, "eval_split", threshold_tprs),
-            "by_category": _summarize_tn_by_meta(records, valid_metas, "category", threshold_tprs),
+            "by_split": _summarize_tn_by_meta(records, valid_metas, "eval_split", threshold_tprs, score_thresholds),
+            "by_category": _summarize_tn_by_meta(records, valid_metas, "category", threshold_tprs, score_thresholds),
         }
     )
     return row
@@ -458,6 +472,10 @@ def _write_summary(output_dir: Path, ref_rows: List[Dict[str, Any]], tn_rows: Li
         if row["run_id"] not in seen:
             seen.add(row["run_id"])
             run_ids.append(row["run_id"])
+    for row in tn_rows:
+        if row["run_id"] not in seen:
+            seen.add(row["run_id"])
+            run_ids.append(row["run_id"])
     datasets: List[str] = []
     seen_ds = set()
     for row in ref_rows:
@@ -467,13 +485,17 @@ def _write_summary(output_dir: Path, ref_rows: List[Dict[str, Any]], tn_rows: Li
     by_run_ds = {(row["run_id"], row["dataset"]): row for row in ref_rows}
     tn_by_run = {row["run_id"]: row for row in tn_rows}
     ranked = sorted(run_ids, key=lambda rid: _mean_metric(ref_rows, rid, "acc50"), reverse=True)
+    dataset_header = "".join(f" | {ds} acc50" for ds in datasets)
+    dataset_align = "".join("|---:" for _ in datasets)
     lines = [
         "# Text GroundingDINO RefCOCO/TN Evaluation",
         "",
-        "| rank | run | mean RefCOCO acc50 | TN fpr@95tpr | TN fpr@90tpr | TN pair win | TN gap | "
-        + " | ".join(f"{ds} acc50" for ds in datasets)
+        "| rank | run | mean RefCOCO acc50 | TN fpr@95tpr | TN fpr@90tpr | TN fpr@score0.50 | TN tpr@score0.50 | TN pair win | TN gap"
+        + dataset_header
         + " |",
-        "|---:|---|---:|---:|---:|---:|---:|" + "|".join("---:" for _ in datasets) + "|",
+        "|---:|---|---:|---:|---:|---:|---:|---:|---:"
+        + dataset_align
+        + "|",
     ]
     for i, run_id in enumerate(ranked, start=1):
         tn = tn_by_run.get(run_id, {})
@@ -481,8 +503,9 @@ def _write_summary(output_dir: Path, ref_rows: List[Dict[str, Any]], tn_rows: Li
         lines.append(
             f"| {i} | `{run_id}` | {float(_mean_metric(ref_rows, run_id, 'acc50')):.6f} | "
             f"{float(tn.get('fpr95tpr', 0.0)):.6f} | {float(tn.get('fpr90tpr', 0.0)):.6f} | "
-            f"{float(tn.get('pair_win_rate', 0.0)):.6f} | {float(tn.get('score_gap_mean', 0.0)):.6f} | "
-            + " | ".join(ds_vals)
+            f"{float(tn.get('fpr_at_score_0p50', 0.0)):.6f} | {float(tn.get('tpr_at_score_0p50', 0.0)):.6f} | "
+            f"{float(tn.get('pair_win_rate', 0.0)):.6f} | {float(tn.get('score_gap_mean', 0.0)):.6f}"
+            + (" | " + " | ".join(ds_vals) if ds_vals else "")
             + " |"
         )
     (output_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -502,9 +525,11 @@ def main() -> None:
     parser.add_argument("--amp", action="store_true")
     parser.add_argument("--ref_splits", nargs="+", default=["refcoco_val", "refcocop_val", "refcocog_val"])
     parser.add_argument("--tn_splits", nargs="+", default=["refcocop_val", "refcocog_val"])
+    parser.add_argument("--skip_ref", action="store_true", help="Only run TN pair evaluation and skip RefCOCO splits.")
     parser.add_argument("--skip_tn", action="store_true", help="Only run RefCOCO splits and skip TN pair evaluation.")
     parser.add_argument("--topk", nargs="+", type=int, default=[1])
     parser.add_argument("--threshold_tprs", nargs="+", type=float, default=[0.75, 0.9, 0.95])
+    parser.add_argument("--score_thresholds", nargs="+", type=float, default=[0.5])
     parser.add_argument("--max_ref_batches", type=int, default=0)
     parser.add_argument("--max_tn_batches", type=int, default=0)
     parser.add_argument("--log_every", type=int, default=50)
@@ -545,21 +570,22 @@ def main() -> None:
         raise KeyError(f"Unknown ref split names: {unknown}; available={list(split_specs)}")
 
     ref_datasetinfos = []
-    for name in wanted_ref:
-        spec = split_specs[name]
-        jsonl_path, count = _build_split_jsonl(
-            data_root=data_root,
-            output_dir=output_dir,
-            dataset=spec["dataset"],
-            splitby=spec["splitby"],
-            split=spec["split"],
-            phrase_sources=list(spec["sources"]),
-            phrase_maps=phrase_maps,
-            name_to_id=name_to_id,
-            id_to_name=id_to_name,
-        )
-        print(f"[INFO] built RefCOCO split {name}: {count} expressions -> {jsonl_path}", flush=True)
-        ref_datasetinfos.append((name, _make_datasetinfo(data_root, name, jsonl_path)))
+    if not bool(args.skip_ref):
+        for name in wanted_ref:
+            spec = split_specs[name]
+            jsonl_path, count = _build_split_jsonl(
+                data_root=data_root,
+                output_dir=output_dir,
+                dataset=spec["dataset"],
+                splitby=spec["splitby"],
+                split=spec["split"],
+                phrase_sources=list(spec["sources"]),
+                phrase_maps=phrase_maps,
+                name_to_id=name_to_id,
+                id_to_name=id_to_name,
+            )
+            print(f"[INFO] built RefCOCO split {name}: {count} expressions -> {jsonl_path}", flush=True)
+            ref_datasetinfos.append((name, _make_datasetinfo(data_root, name, jsonl_path)))
 
     tn_meta_rows: List[Dict[str, Any]] = []
     tn_datasetinfo = None
@@ -620,6 +646,7 @@ def main() -> None:
                 num_workers=int(args.num_workers),
                 seed=int(args.seed),
                 threshold_tprs=list(args.threshold_tprs),
+                score_thresholds=list(args.score_thresholds),
                 amp=bool(args.amp),
                 max_batches=int(args.max_tn_batches),
                 log_every=int(args.log_every),
