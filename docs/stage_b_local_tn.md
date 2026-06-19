@@ -588,6 +588,68 @@ FT on either TN rejection or RefCOCO localization.
 Decision status for the v2-initialized fair v6 probe remains pending; keep that
 separate from the completed Stage-A0006 epoch-1 run above.
 
+## Pure GroundingDINO allTN Calibration
+
+The pure GroundingDINO Stage-B data-FT allTN ablation is separate from the
+Stage-B wrapper v5/v6 lineage. It uses:
+
+```text
+patch_only = False
+stage_b = False
+enable_patch_branch = False
+config/ablations/cfg_stageb_from_gdino_ft_with_tn_alltn_tau05605_w036.py
+```
+
+It keeps original GroundingDINO all-query sigmoid focal text loss and original
+Hungarian matching. TN rows are zero-region/all-negative rows for the dense
+focal objective, with two added TN-only terms:
+
+```text
+loss_tn_tokens: TN negative/content/canonical token BCE
+loss_tn_alltn: top-10 sigmoid-mean query score suppression
+```
+
+The selected allTN aggregate threshold is:
+
+```text
+gdino_tn_alltn_topk = 10
+gdino_tn_alltn_lse_tau = 0.2
+gdino_tn_alltn_tau_neg = 0.5605
+```
+
+`0.5605` is not a raw query threshold. It is the logsumexp aggregate
+corresponding to ten top queries all scoring about `0.1` under sigmoid-mean
+token scoring:
+
+```text
+0.1 + 0.2 * log(10) ~= 0.5605
+```
+
+The measured train-mix calibration selected:
+
+```text
+gdino_tn_alltn_weight = 0.36
+```
+
+Evidence:
+
+```text
+outputs/gdino_alltn_calibration_stagea0001_tau05605_mix120/calibration.json
+outputs/text_gdino_alltn_tau05605_weight_probe303_eval/summary.md
+```
+
+303-iter probe summary:
+
+| config | mean RefCOCO acc50 | TN FPR@95 | TN FPR@90 | TN pair win |
+|---|---:|---:|---:|---:|
+| baseline `tau=0.0625,w=0.0625` | 0.622222 | 0.888378 | 0.810619 | 0.636706 |
+| `tau=0.5605,w=0.1809` | 0.624306 | 0.913880 | 0.836120 | 0.628763 |
+| selected `tau=0.5605,w=0.36` | 0.625278 | 0.883779 | 0.806856 | 0.631689 |
+
+Decision: `tau=0.5605,w=0.36` is the current selected pure-GDINO allTN setting.
+The weaker `w=0.1809` raises RefCOCO but lets TN FPR degrade, so it should not
+be used for the full data-FT run.
+
 ## Inference
 
 `PostProcessStageB.compute_slot_logits` does not use `content_to_token_mask` or `phrase_semantic_token_mask`. Inference scoring uses phrase-level token spans from `phrase_to_token_mask`, with the canonical mask only for the configured canonical contribution.

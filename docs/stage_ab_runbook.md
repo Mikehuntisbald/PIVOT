@@ -1182,6 +1182,112 @@ CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
   --options batch_size=19
 ```
 
+### Calibrated Pure-GDINO allTN Run
+
+The selected pure-GDINO allTN variant keeps the same no-patch GroundingDINO
+Stage-B data-FT path as `cfg_stageb_from_gdino_ft_with_tn.py`. It is not a
+Stage-B wrapper/v5/v6 run. The only intended deltas over the with-TN pure-GDINO
+baseline are TN token BCE plus top-k allTN suppression:
+
+```text
+config/ablations/cfg_stageb_from_gdino_ft_with_tn_alltn_tau05605_w036.py
+patch_only = False
+stage_b = False
+enable_patch_branch = False
+gdino_tn_loss_type = "alltn00625"
+gdino_tn_alltn_topk = 10
+gdino_tn_alltn_lse_tau = 0.2
+gdino_tn_alltn_tau_neg = 0.5605
+gdino_tn_alltn_weight = 0.36
+lambda_tn_neg = 10.0
+lambda_tn_content = 1.0
+lambda_tn_canonical = 1.0
+```
+
+`tau_neg=0.5605` is in the allTN aggregate space, not the single-query score
+space. With `topk=10` and `lse_tau=0.2`, ten queries at sigmoid-mean score
+`0.1` map to:
+
+```text
+0.1 + 0.2 * log(10) ~= 0.5605
+```
+
+The calibrated weight comes from the actual Stage-B train mix:
+
+```text
+calibration:
+outputs/gdino_alltn_calibration_stagea0001_tau05605_mix120/calibration.json
+
+base weighted loss = 15.2554
+effective raw allTN at tau=0.5605 = 4.2167
+target allTN/base ratio 10% -> weight = 0.3618
+```
+
+303-iter capped-probe evidence, all initialized from
+`outputs/ogc_original_finetune_stage_a/checkpoint0001.pth` and evaluated on
+100 batches per RefCOCO split plus 100 TN batches:
+
+```text
+outputs/text_gdino_alltn_tau05605_weight_probe303_eval/summary.md
+```
+
+| config | mean RefCOCO acc50 | TN FPR@95 | TN FPR@90 | TN pair win |
+|---|---:|---:|---:|---:|
+| baseline `tau=0.0625,w=0.0625` | 0.622222 | 0.888378 | 0.810619 | 0.636706 |
+| `tau=0.5605,w=0.1809` | 0.624306 | 0.913880 | 0.836120 | 0.628763 |
+| selected `tau=0.5605,w=0.36` | 0.625278 | 0.883779 | 0.806856 | 0.631689 |
+
+Decision: `w=0.1809` is too weak for TN rejection despite better RefCOCO.
+Use `tau=0.5605,w=0.36` for the full pure-GDINO Stage-B data-FT allTN run.
+
+Run one full Stage-B data epoch:
+
+```bash
+export GDINO_ALLTN_OUT=outputs/gdino_ft_stageb_from_stagea0001_with_tn_alltn_tau05605_w036
+
+CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
+"${PY}" -u main.py \
+  -c config/ablations/cfg_stageb_from_gdino_ft_with_tn_alltn_tau05605_w036.py \
+  --datasets config/ablations/datasets_gdino_ft_stageb_with_tn_local.json \
+  --output_dir "${GDINO_ALLTN_OUT}" \
+  --pretrain_model_path outputs/ogc_original_finetune_stage_a/checkpoint0001.pth \
+  --num_workers 8 \
+  --prefetch_factor 1 \
+  --amp
+```
+
+Resume the same run from an interrupted iteration checkpoint:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 DATA_ROOT="${DATA_ROOT}" TOKENIZERS_PARALLELISM=false \
+"${PY}" -u main.py \
+  -c config/ablations/cfg_stageb_from_gdino_ft_with_tn_alltn_tau05605_w036.py \
+  --datasets config/ablations/datasets_gdino_ft_stageb_with_tn_local.json \
+  --output_dir "${GDINO_ALLTN_OUT}" \
+  --resume "${GDINO_ALLTN_OUT}/checkpoint_iter.pth" \
+  --num_workers 8 \
+  --prefetch_factor 1 \
+  --amp
+```
+
+Evaluate RefCOCO/TN on the pure text GroundingDINO scorer:
+
+```bash
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u tools/eval_text_groundingdino_refcoco_tn.py \
+  --config config/ablations/cfg_stageb_from_gdino_ft_with_tn_alltn_tau05605_w036.py \
+  --ckpts "${GDINO_ALLTN_OUT}/checkpoint0000.pth" \
+  --output_dir outputs/text_gdino_alltn_tau05605_w036_epoch0_eval \
+  --data_root "${DATA_ROOT}" \
+  --batch_size 24 \
+  --num_workers 8 \
+  --amp \
+  --ref_splits refcoco_val refcocop_val refcocog_val \
+  --tn_splits refcocop_val refcocog_val \
+  --score_thresholds 0.5 \
+  --log_every 25
+```
+
 Run the no-TN companion:
 
 ```bash
