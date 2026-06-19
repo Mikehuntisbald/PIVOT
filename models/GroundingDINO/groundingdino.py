@@ -680,7 +680,21 @@ class GroundingDINO(nn.Module):
 
 
 class SetCriterion(nn.Module):
-    def __init__(self, matcher, weight_dict, focal_alpha,focal_gamma, losses):
+    def __init__(
+        self,
+        matcher,
+        weight_dict,
+        focal_alpha,
+        focal_gamma,
+        losses,
+        *,
+        gdino_tn_loss_type: str = "dense_focal",
+        gdino_tn_alltn_weight: float = 0.0,
+        gdino_tn_alltn_topk: int = 10,
+        gdino_tn_alltn_tau_neg: float = -2.4,
+        gdino_tn_alltn_lse_tau: float = 0.2,
+        gdino_tn_alltn_text_agg: str = "mean",
+    ):
         """ Create the criterion.
         Parameters:
             matcher: module able to compute a matching between targets and proposals
@@ -694,6 +708,28 @@ class SetCriterion(nn.Module):
         self.losses = losses
         self.focal_alpha = focal_alpha
         self.focal_gamma= focal_gamma
+        self.gdino_tn_loss_type = str(gdino_tn_loss_type).lower().strip()
+        if self.gdino_tn_loss_type not in {"dense_focal", "alltn00625"}:
+            raise ValueError(
+                "gdino_tn_loss_type must be 'dense_focal' or 'alltn00625', "
+                f"got {gdino_tn_loss_type!r}"
+            )
+        self.gdino_tn_alltn_weight = float(gdino_tn_alltn_weight)
+        self.gdino_tn_alltn_topk = max(1, int(gdino_tn_alltn_topk))
+        self.gdino_tn_alltn_tau_neg = float(gdino_tn_alltn_tau_neg)
+        self.gdino_tn_alltn_lse_tau = max(float(gdino_tn_alltn_lse_tau), 1e-6)
+        self.gdino_tn_alltn_text_agg = str(gdino_tn_alltn_text_agg).lower().strip()
+        if self.gdino_tn_alltn_text_agg not in {"mean", "max"}:
+            raise ValueError(
+                "gdino_tn_alltn_text_agg must be 'mean' or 'max', "
+                f"got {gdino_tn_alltn_text_agg!r}"
+            )
+
+    def _target_is_tn(self, target: dict, *, device: torch.device) -> bool:
+        flag = target.get("is_negative", None)
+        if torch.is_tensor(flag):
+            return bool(flag.to(device=device).view(-1).any().item())
+        return False
 
     @torch.no_grad()
     def loss_cardinality(self, outputs, targets, indices, num_boxes):
@@ -752,11 +788,20 @@ class SetCriterion(nn.Module):
         gamma=self.focal_gamma
         if text_mask is not None:
             # ODVG: each sample has different mask 
-            text_mask = text_mask.repeat(1, pred_logits.size(1)).view(outputs['text_mask'].shape[0],-1,outputs['text_mask'].shape[1])
-            pred_logits = torch.masked_select(pred_logits, text_mask)
-            new_targets = torch.masked_select(new_targets, text_mask)
+            text_mask = text_mask.clone()
+            if self.gdino_tn_loss_type == "alltn00625":
+                for b, target in enumerate(targets):
+                    if self._target_is_tn(target, device=pred_logits.device):
+                        text_mask[b].fill_(False)
+            expanded_text_mask = text_mask.repeat(1, pred_logits.size(1)).view(
+                outputs['text_mask'].shape[0], -1, outputs['text_mask'].shape[1]
+            )
+            pred_logits = torch.masked_select(pred_logits, expanded_text_mask)
+            new_targets = torch.masked_select(new_targets, expanded_text_mask)
 
         new_targets=new_targets.float()
+        if pred_logits.numel() == 0:
+            return {'loss_ce': outputs['pred_logits'].sum() * 0.0}
         p = torch.sigmoid(pred_logits)
         ce_loss = F.binary_cross_entropy_with_logits(pred_logits, new_targets, reduction="none")
         p_t = p * new_targets + (1 - p) * (1 - new_targets)
@@ -775,6 +820,74 @@ class SetCriterion(nn.Module):
         losses = {'loss_ce': loss}
         return losses
 
+    def gdino_alltn00625_tn_loss(self, outputs, targets, indices, num_boxes):
+        pred_logits = outputs["pred_logits"]
+        text_mask = outputs.get("text_mask", None)
+        zero = pred_logits.new_zeros(())
+        if self.gdino_tn_loss_type != "alltn00625" or self.gdino_tn_alltn_weight <= 0:
+            return {
+                "loss_tn_alltn": zero,
+                "tn_alltn_loss_raw": zero.detach(),
+                "tn_alltn_sample_count": zero.detach(),
+                "tn_alltn_score": zero.detach(),
+                "tn_alltn_topk_max_score": zero.detach(),
+            }
+        if text_mask is None:
+            text_mask = torch.ones(
+                pred_logits.shape[0],
+                pred_logits.shape[-1],
+                dtype=torch.bool,
+                device=pred_logits.device,
+            )
+        else:
+            text_mask = text_mask.to(device=pred_logits.device, dtype=torch.bool)
+        losses = []
+        agg_scores = []
+        topk_max_scores = []
+        for b, target in enumerate(targets):
+            if not self._target_is_tn(target, device=pred_logits.device):
+                continue
+            mask = text_mask[b]
+            if not bool(mask.any().item()):
+                continue
+            logits_b = pred_logits[b]
+            if self.gdino_tn_alltn_text_agg == "max":
+                query_scores = logits_b.masked_fill(~mask[None, :], torch.finfo(logits_b.dtype).min).max(dim=-1).values
+            else:
+                denom = mask.to(dtype=logits_b.dtype).sum().clamp(min=1.0)
+                query_scores = logits_b.masked_fill(~mask[None, :], 0.0).sum(dim=-1) / denom
+            k = min(self.gdino_tn_alltn_topk, int(query_scores.numel()))
+            if k <= 0:
+                continue
+            topk_scores = torch.topk(query_scores, k=k, largest=True).values
+            agg = self.gdino_tn_alltn_lse_tau * torch.logsumexp(topk_scores / self.gdino_tn_alltn_lse_tau, dim=0)
+            losses.append(F.softplus(agg - self.gdino_tn_alltn_tau_neg))
+            agg_scores.append(agg.detach().reshape(1))
+            topk_max_scores.append(topk_scores.max().detach().reshape(1))
+
+        if not losses:
+            raw = zero
+            count = 0
+        else:
+            raw = torch.stack([x.reshape(()) for x in losses]).mean()
+            count = len(losses)
+
+        def _cat_mean(values):
+            if not values:
+                return zero.detach()
+            return torch.cat(values).mean().detach()
+
+        return {
+            "loss_tn_alltn": raw,
+            "tn_alltn_loss_raw": raw.detach(),
+            "tn_alltn_sample_count": torch.as_tensor(float(count), device=pred_logits.device),
+            "tn_alltn_score": _cat_mean(agg_scores),
+            "tn_alltn_topk_max_score": _cat_mean(topk_max_scores),
+            "tn_alltn_topk": torch.as_tensor(float(self.gdino_tn_alltn_topk), device=pred_logits.device),
+            "tn_alltn_tau_neg": torch.as_tensor(float(self.gdino_tn_alltn_tau_neg), device=pred_logits.device),
+            "tn_alltn_lse_tau": torch.as_tensor(float(self.gdino_tn_alltn_lse_tau), device=pred_logits.device),
+        }
+
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
@@ -791,6 +904,7 @@ class SetCriterion(nn.Module):
     def get_loss(self, loss, outputs, targets, indices, num_boxes, **kwargs):
         loss_map = {
             'labels': self.token_sigmoid_binary_focal_loss,
+            'tn_alltn': self.gdino_alltn00625_tn_loss,
             'cardinality': self.loss_cardinality,
             'boxes': self.loss_boxes,
         }
@@ -854,6 +968,8 @@ class SetCriterion(nn.Module):
         losses = {}
         for loss in self.losses:
             losses.update(self.get_loss(loss, outputs, targets, indices, num_boxes))
+        if self.gdino_tn_loss_type == "alltn00625" and self.gdino_tn_alltn_weight > 0:
+            losses.update(self.gdino_alltn00625_tn_loss(outputs, targets, indices, num_boxes))
 
         # In case of auxiliary losses, we repeat this process with the output of each intermediate layer.
         if 'aux_outputs' in outputs:
@@ -1210,6 +1326,7 @@ def build_groundingdino(args):
                 stage_b_score_calib_detach_patch=bool(getattr(args, "stage_b_score_calib_detach_patch", True)),
                 stage_b_score_calib_neg_agg=str(getattr(args, "stage_b_score_calib_neg_agg", "mean")),
                 stage_b_score_calib_neg_lse_tau=float(getattr(args, "stage_b_score_calib_neg_lse_tau", 0.5)),
+                stage_b_aux_loss_start_idx=int(getattr(args, "stage_b_aux_loss_start_idx", 0)),
             )
         else:
             weight_dict = {
@@ -1311,11 +1428,21 @@ def build_groundingdino(args):
             interm_weight_dict.update({k + f'_interm': v * interm_loss_coef * _coeff_weight_dict[k] for k, v in clean_weight_dict_wo_dn.items()})
             weight_dict.update(interm_weight_dict)
 
+        gdino_tn_alltn_weight = float(getattr(args, "gdino_tn_alltn_weight", 0.0))
+        if gdino_tn_alltn_weight > 0:
+            weight_dict["loss_tn_alltn"] = gdino_tn_alltn_weight
+
         # losses = ['labels', 'boxes', 'cardinality']
         losses = ['labels', 'boxes']
 
         criterion = SetCriterion(matcher=matcher, weight_dict=weight_dict,
-                                 focal_alpha=args.focal_alpha, focal_gamma=args.focal_gamma,losses=losses
+                                 focal_alpha=args.focal_alpha, focal_gamma=args.focal_gamma,losses=losses,
+                                 gdino_tn_loss_type=getattr(args, "gdino_tn_loss_type", "dense_focal"),
+                                 gdino_tn_alltn_weight=gdino_tn_alltn_weight,
+                                 gdino_tn_alltn_topk=getattr(args, "gdino_tn_alltn_topk", 10),
+                                 gdino_tn_alltn_tau_neg=getattr(args, "gdino_tn_alltn_tau_neg", -2.4),
+                                 gdino_tn_alltn_lse_tau=getattr(args, "gdino_tn_alltn_lse_tau", 0.2),
+                                 gdino_tn_alltn_text_agg=getattr(args, "gdino_tn_alltn_text_agg", "mean"),
                                  )
         criterion.to(device)
         postprocessors = {'bbox': PostProcess(num_select=args.num_select  , text_encoder_type=args.text_encoder_type,nms_iou_threshold=args.nms_iou_threshold,args=args)}

@@ -65,6 +65,7 @@ class ODVGDataset(VisionDataset):
             raise FileNotFoundError(f"{abs_path} not found.")
         image = Image.open(abs_path).convert('RGB')
         w, h = image.size
+        is_negative = False
         if self.dataset_mode == "OD":
             anno = meta["detection"]
             instances = [obj for obj in anno["instances"]]
@@ -96,6 +97,7 @@ class ODVGDataset(VisionDataset):
             classes = torch.tensor(classes, dtype=torch.int64)
         elif self.dataset_mode == "VG":
             anno = meta["grounding"]
+            is_negative = bool(anno.get("is_negative", meta.get("is_negative", False)))
             instances = [obj for obj in anno["regions"]]
             boxes = [obj["bbox"] for obj in instances]
             caption_list = [obj["phrase"] for obj in instances]
@@ -134,6 +136,7 @@ class ODVGDataset(VisionDataset):
         target["caption"] = caption
         target["boxes"] = boxes
         target["labels"] = classes
+        target["is_negative"] = torch.as_tensor([1 if self.dataset_mode == "VG" and is_negative else 0], dtype=torch.int64)
         # size, cap_list, caption, bboxes, labels
 
         if self.transforms is not None:
