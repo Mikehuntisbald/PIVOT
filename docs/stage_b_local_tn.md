@@ -238,7 +238,7 @@ Stage-B 5.x lineage:
 | v5.3 | v5.2 | `lambda_text=1.0` |
 | v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
 | v5.5 | v5.2 | restrict decoder trainable scope to layers 3/4/5 and aux losses to layers 3/4 only; final layer 5 keeps main loss |
-| v5.2 calibrated allTN | v5.2 | use calibrated allTN `tau=0.5605,w=0.36`; restore TN token weights to `10/1/1` with content/canonical targets at 0 |
+| v5.2 calibrated allTN | v5.2 | use calibrated allTN `tau=0.5605,w=0.36`; make TN text rows all-negative focal; apply score/allTN calibration on aux layers too |
 
 The selected score calibration uses the final Stage-B inference score:
 
@@ -441,26 +441,24 @@ config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py
 ```
 
 It keeps the established v5.2 wrapper recipe and replaces the historical
-`alltn00625` score-calibration tail with the same selected run setting used for
-the pure-GDINO allTN full run:
+`alltn00625` TN text/calibration contract with the current selected run setting:
 
 ```text
+stage_b_text_loss_type = "allquery_focal_tn_empty_det"
+stage_b_extra_iou_match_thr = 0.0
 stage_b_score_calib_topk = 10
 stage_b_score_calib_neg_agg = "logsumexp"
 stage_b_score_calib_neg_lse_tau = 0.2
 stage_b_score_calib_tau_neg = 0.5605
 stage_b_score_calib_all_tn_neg_weight = 0.36
+stage_b_score_calib_aux_loss = True
 ```
 
-It also uses the current TN-token contract:
-
-```text
-lambda_tn_neg = 10.0
-lambda_tn_content = 1.0
-lambda_tn_canonical = 1.0
-tn_content_target = 0.0
-tn_canonical_target = 0.0
-```
+`allquery_focal_tn_empty_det` makes TN samples no-positive/all-negative rows for
+the all-query focal text loss; they no longer use the older matched-query TN
+BCE token path. `stage_b_score_calib_aux_loss=True` adds weighted
+`loss_score_calib_0..4`, so allTN score calibration participates at each v5.2
+aux decoder layer, not only the final layer.
 
 This is not a drop-in numeric equivalence to pure GDINO. Pure GDINO's allTN
 term is `loss_tn_alltn` over text-only sigmoid-mean query scores; Stage-B v5.x

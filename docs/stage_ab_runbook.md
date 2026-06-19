@@ -642,7 +642,7 @@ Stage-B 5.x lineage:
 | v5.3 | v5.2 | `lambda_text=1.0` |
 | v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
 | v5.5 | v5.2 | restrict decoder trainable scope to layers 3/4/5 and aux losses to layers 3/4 only; final layer 5 keeps main loss |
-| v5.2 calibrated allTN | v5.2 | use the calibrated allTN tail threshold/weight `tau=0.5605,w=0.36` and current TN token weights `10/1/1` |
+| v5.2 calibrated allTN | v5.2 | use calibrated allTN `tau=0.5605,w=0.36`; make TN text rows all-negative focal; apply score/allTN calibration on aux layers too |
 
 ### Stage B v5.1 RefCOCO Patch-Positive CE Probe
 
@@ -838,8 +838,8 @@ or the `0.40` FPR-focused point.
 ### Stage B v5.2 Calibrated allTN
 
 This is the v5.x counterpart of the calibrated pure-GDINO allTN run. It keeps
-the established v5.2 wrapper recipe and changes only the allTN tail-suppression
-setting plus the current TN-token contract:
+the established v5.2 wrapper recipe and changes the TN text/calibration contract
+to match the current direction:
 
 ```text
 config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py
@@ -848,14 +848,19 @@ config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py
 Compared with historical v5 `alltn00625`, this file updates:
 
 ```text
+stage_b_text_loss_type = "allquery_focal_tn_empty_det"
+stage_b_extra_iou_match_thr = 0.0
 stage_b_score_calib_tau_neg = 0.5605
 stage_b_score_calib_all_tn_neg_weight = 0.36
-lambda_tn_neg = 10.0
-lambda_tn_content = 1.0
-lambda_tn_canonical = 1.0
-tn_content_target = 0.0
-tn_canonical_target = 0.0
+stage_b_score_calib_aux_loss = True
 ```
+
+`allquery_focal_tn_empty_det` means TN samples are no-positive/all-negative
+rows for the all-query focal text loss. They no longer use the older v5
+matched-query TN BCE token path. `stage_b_score_calib_aux_loss=True` makes
+`loss_score_calib_0..4` participate with the same weight as the final
+`loss_score_calib`, so the allTN tail penalty is applied at every decoder aux
+layer that v5.2 supervises.
 
 The parameter names differ from the pure-GDINO config because v5.x implements
 allTN inside `loss_score_calib`:

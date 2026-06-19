@@ -1470,6 +1470,7 @@ def build_groundingdino(args):
                 stage_b_score_calib_detach_patch=bool(getattr(args, "stage_b_score_calib_detach_patch", True)),
                 stage_b_score_calib_neg_agg=str(getattr(args, "stage_b_score_calib_neg_agg", "mean")),
                 stage_b_score_calib_neg_lse_tau=float(getattr(args, "stage_b_score_calib_neg_lse_tau", 0.5)),
+                stage_b_score_calib_aux_loss=bool(getattr(args, "stage_b_score_calib_aux_loss", False)),
                 stage_b_aux_loss_start_idx=int(getattr(args, "stage_b_aux_loss_start_idx", 0)),
             )
         else:

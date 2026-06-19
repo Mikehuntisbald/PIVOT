@@ -84,6 +84,7 @@ class StageBCriterion(nn.Module):
         stage_b_score_calib_detach_patch: bool = True,
         stage_b_score_calib_neg_agg: str = "mean",
         stage_b_score_calib_neg_lse_tau: float = 0.5,
+        stage_b_score_calib_aux_loss: bool = False,
         stage_b_aux_loss_start_idx: int = 0,
         # Deprecated compatibility args. Content-positive and TN-negative tokens
         # are fixed at weight 1.0, and softmin phrase TN loss is disabled.
@@ -147,6 +148,7 @@ class StageBCriterion(nn.Module):
                 f"got {stage_b_score_calib_neg_agg!r}"
             )
         self.stage_b_score_calib_neg_lse_tau = max(float(stage_b_score_calib_neg_lse_tau), 1e-6)
+        self.stage_b_score_calib_aux_loss = bool(stage_b_score_calib_aux_loss)
         self.stage_b_aux_loss_start_idx = max(0, int(stage_b_aux_loss_start_idx))
         patch_weight_dict = getattr(patch_criterion, "weight_dict", {}) or {}
         self.weight_dict = {
@@ -170,6 +172,14 @@ class StageBCriterion(nn.Module):
                 )
             }
         )
+        if self.stage_b_score_calib_aux_loss:
+            self.weight_dict.update(
+                {
+                    f"loss_score_calib_{i}": float(stage_b_score_calib_loss_coef)
+                    for i in range(5)
+                    if i >= self.stage_b_aux_loss_start_idx
+                }
+            )
 
     def compute_matching(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
         matching_outputs = dict(outputs)
@@ -1275,33 +1285,12 @@ class StageBCriterion(nn.Module):
             zero = pred_logits_patch.sum() * 0.0
         else:
             zero = outputs["pred_boxes"].sum() * 0.0
-        if (
-            self.stage_b_score_calib_loss_coef <= 0
-            or rank_pos_outputs is None
-            or rank_pos_targets is None
-            or rank_pair_map is None
-        ):
+        if self.stage_b_score_calib_loss_coef <= 0:
             return self._zero_score_calib_loss_dict(zero)
 
         device = zero.device
-        rank_pair_map = rank_pair_map.to(device=device, dtype=torch.long).view(-1)
-        if len(rank_pos_targets) != int(rank_pair_map.numel()):
-            raise ValueError(
-                f"rank_pos_targets length must match rank_pair_map, got {len(rank_pos_targets)} vs {rank_pair_map.numel()}"
-            )
-
-        match_ctx_pos = self.compute_matching(rank_pos_outputs, rank_pos_targets)
         score_neg = compute_stage_b_slot_logits(
             outputs,
-            beta=self.stage_b_rank_beta,
-            canonical_weight=self.stage_b_rank_canonical_weight,
-            text_agg=self.stage_b_rank_text_agg,
-            softmin_tau=self.stage_b_rank_softmin_tau,
-            mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
-            detach_patch=self.stage_b_score_calib_detach_patch,
-        )
-        score_pos = compute_stage_b_slot_logits(
-            rank_pos_outputs,
             beta=self.stage_b_rank_beta,
             canonical_weight=self.stage_b_rank_canonical_weight,
             text_agg=self.stage_b_rank_text_agg,
@@ -1326,97 +1315,116 @@ class StageBCriterion(nn.Module):
         used_count = 0
         skipped_count = 0
         all_tn_neg_count = 0
-        pair_count = int(rank_pair_map.numel())
         topk = max(1, int(self.stage_b_score_calib_topk))
+        pair_count = 0
+        if rank_pos_outputs is not None and rank_pos_targets is not None and rank_pair_map is not None:
+            rank_pair_map = rank_pair_map.to(device=device, dtype=torch.long).view(-1)
+            if len(rank_pos_targets) != int(rank_pair_map.numel()):
+                raise ValueError(
+                    "rank_pos_targets length must match rank_pair_map, "
+                    f"got {len(rank_pos_targets)} vs {rank_pair_map.numel()}"
+                )
 
-        neg_indices = match_ctx_neg["all_indices"]
-        neg_slots = match_ctx_neg["matched_patch_idx_list"]
-        pos_indices = match_ctx_pos["all_indices"]
-        pos_slots = match_ctx_pos["matched_patch_idx_list"]
+            match_ctx_pos = self.compute_matching(rank_pos_outputs, rank_pos_targets)
+            score_pos = compute_stage_b_slot_logits(
+                rank_pos_outputs,
+                beta=self.stage_b_rank_beta,
+                canonical_weight=self.stage_b_rank_canonical_weight,
+                text_agg=self.stage_b_rank_text_agg,
+                softmin_tau=self.stage_b_rank_softmin_tau,
+                mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
+                detach_patch=self.stage_b_score_calib_detach_patch,
+            )
+            pair_count = int(rank_pair_map.numel())
 
-        for rank_row, batch_idx_t in enumerate(rank_pair_map.tolist()):
-            batch_idx = int(batch_idx_t)
-            if batch_idx < 0 or batch_idx >= len(targets):
-                skipped_count += 1
-                continue
-            rank_source_slot = rank_pos_targets[rank_row].get("rank_source_slot", None)
-            if torch.is_tensor(rank_source_slot) and rank_source_slot.numel() > 0:
-                source_slot = int(rank_source_slot.view(-1)[0].item())
-            else:
-                source_slot = 0
+            neg_indices = match_ctx_neg["all_indices"]
+            neg_slots = match_ctx_neg["matched_patch_idx_list"]
+            pos_indices = match_ctx_pos["all_indices"]
+            pos_slots = match_ctx_pos["matched_patch_idx_list"]
 
-            src_neg, tgt_neg = neg_indices[batch_idx]
-            slot_neg = neg_slots[batch_idx]
-            src_pos, tgt_pos = pos_indices[rank_row]
-            slot_pos = pos_slots[rank_row]
-            if src_neg.numel() == 0 or src_pos.numel() == 0:
-                skipped_count += 1
-                continue
-
-            neg_by_target = {}
-            for query_idx, target_idx, slot_idx in zip(src_neg.tolist(), tgt_neg.tolist(), slot_neg.tolist()):
-                if int(slot_idx) == source_slot:
-                    neg_by_target[int(target_idx)] = (int(query_idx), int(slot_idx))
-
-            pos_by_target = {}
-            rank_target_ids = rank_pos_targets[rank_row].get("rank_target_ids", None)
-            if torch.is_tensor(rank_target_ids):
-                rank_target_ids = rank_target_ids.to(device=device, dtype=torch.long).view(-1)
-            for query_idx, target_idx, slot_idx in zip(src_pos.tolist(), tgt_pos.tolist(), slot_pos.tolist()):
-                local_target_idx = int(target_idx)
-                if rank_target_ids is not None and local_target_idx < int(rank_target_ids.numel()):
-                    original_target_idx = int(rank_target_ids[local_target_idx].item())
+            for rank_row, batch_idx_t in enumerate(rank_pair_map.tolist()):
+                batch_idx = int(batch_idx_t)
+                if batch_idx < 0 or batch_idx >= len(targets):
+                    skipped_count += 1
+                    continue
+                rank_source_slot = rank_pos_targets[rank_row].get("rank_source_slot", None)
+                if torch.is_tensor(rank_source_slot) and rank_source_slot.numel() > 0:
+                    source_slot = int(rank_source_slot.view(-1)[0].item())
                 else:
-                    original_target_idx = local_target_idx
-                pos_by_target[original_target_idx] = (int(query_idx), int(slot_idx))
+                    source_slot = 0
 
-            common_targets = sorted(set(neg_by_target.keys()) & set(pos_by_target.keys()))
-            if not common_targets:
-                skipped_count += 1
-                continue
-
-            for target_idx in common_targets:
-                q_neg, k_neg = neg_by_target[target_idx]
-                q_pos, k_pos = pos_by_target[target_idx]
-                if k_neg < 0 or k_neg >= score_neg.shape[2] or k_pos < 0 or k_pos >= score_pos.shape[2]:
+                src_neg, tgt_neg = neg_indices[batch_idx]
+                slot_neg = neg_slots[batch_idx]
+                src_pos, tgt_pos = pos_indices[rank_row]
+                slot_pos = pos_slots[rank_row]
+                if src_neg.numel() == 0 or src_pos.numel() == 0:
                     skipped_count += 1
                     continue
 
-                s_neg = score_neg[batch_idx, q_neg, k_neg]
-                s_pos = score_pos[rank_row, q_pos, k_pos]
-                pos_losses.append(F.softplus(self.stage_b_score_calib_tau_pos - s_pos))
-                pos_scores.append(s_pos.detach().reshape(1))
-                neg_matched_scores.append(s_neg.detach().reshape(1))
+                neg_by_target = {}
+                for query_idx, target_idx, slot_idx in zip(src_neg.tolist(), tgt_neg.tolist(), slot_neg.tolist()):
+                    if int(slot_idx) == source_slot:
+                        neg_by_target[int(target_idx)] = (int(query_idx), int(slot_idx))
 
-                neg_scores = score_neg[batch_idx].reshape(-1)
-                neg_k = min(topk, int(neg_scores.numel()))
-                if neg_k > 0:
-                    neg_topk = torch.topk(neg_scores, k=neg_k, largest=True).values
-                    if self.stage_b_score_calib_neg_agg in {"logsumexp", "lse"}:
-                        tau = float(self.stage_b_score_calib_neg_lse_tau)
-                        neg_agg = tau * torch.logsumexp(neg_topk / tau, dim=0)
-                    elif self.stage_b_score_calib_neg_agg == "max":
-                        neg_agg = neg_topk.max()
+                pos_by_target = {}
+                rank_target_ids = rank_pos_targets[rank_row].get("rank_target_ids", None)
+                if torch.is_tensor(rank_target_ids):
+                    rank_target_ids = rank_target_ids.to(device=device, dtype=torch.long).view(-1)
+                for query_idx, target_idx, slot_idx in zip(src_pos.tolist(), tgt_pos.tolist(), slot_pos.tolist()):
+                    local_target_idx = int(target_idx)
+                    if rank_target_ids is not None and local_target_idx < int(rank_target_ids.numel()):
+                        original_target_idx = int(rank_target_ids[local_target_idx].item())
                     else:
-                        neg_agg = neg_topk.mean()
-                    neg_losses.append(F.softplus(neg_agg - self.stage_b_score_calib_tau_neg))
-                    gap_losses.append(F.softplus(self.stage_b_score_calib_margin - s_pos + neg_agg))
-                    neg_topk_scores.append(neg_topk.detach())
-                    neg_agg_scores.append(neg_agg.detach().reshape(1))
-                    neg_topk_max_scores.append(neg_topk.max().detach().reshape(1))
+                        original_target_idx = local_target_idx
+                    pos_by_target[original_target_idx] = (int(query_idx), int(slot_idx))
 
-                pos_slot_scores = score_pos[rank_row, :, k_pos]
-                if int(pos_slot_scores.numel()) > 1:
-                    masked_pos_scores = pos_slot_scores.clone()
-                    masked_pos_scores[q_pos] = torch.finfo(masked_pos_scores.dtype).min
-                    pos_k = min(topk, int(masked_pos_scores.numel()) - 1)
-                    if pos_k > 0:
-                        pos_other = torch.topk(masked_pos_scores, k=pos_k, largest=True).values
-                        pos_query_losses.append(
-                            F.softplus(self.stage_b_score_calib_margin - s_pos + pos_other).mean()
-                        )
-                        pos_other_topk_scores.append(pos_other.detach())
-                used_count += 1
+                common_targets = sorted(set(neg_by_target.keys()) & set(pos_by_target.keys()))
+                if not common_targets:
+                    skipped_count += 1
+                    continue
+
+                for target_idx in common_targets:
+                    q_neg, k_neg = neg_by_target[target_idx]
+                    q_pos, k_pos = pos_by_target[target_idx]
+                    if k_neg < 0 or k_neg >= score_neg.shape[2] or k_pos < 0 or k_pos >= score_pos.shape[2]:
+                        skipped_count += 1
+                        continue
+
+                    s_neg = score_neg[batch_idx, q_neg, k_neg]
+                    s_pos = score_pos[rank_row, q_pos, k_pos]
+                    pos_losses.append(F.softplus(self.stage_b_score_calib_tau_pos - s_pos))
+                    pos_scores.append(s_pos.detach().reshape(1))
+                    neg_matched_scores.append(s_neg.detach().reshape(1))
+
+                    neg_scores = score_neg[batch_idx].reshape(-1)
+                    neg_k = min(topk, int(neg_scores.numel()))
+                    if neg_k > 0:
+                        neg_topk = torch.topk(neg_scores, k=neg_k, largest=True).values
+                        if self.stage_b_score_calib_neg_agg in {"logsumexp", "lse"}:
+                            tau = float(self.stage_b_score_calib_neg_lse_tau)
+                            neg_agg = tau * torch.logsumexp(neg_topk / tau, dim=0)
+                        elif self.stage_b_score_calib_neg_agg == "max":
+                            neg_agg = neg_topk.max()
+                        else:
+                            neg_agg = neg_topk.mean()
+                        neg_losses.append(F.softplus(neg_agg - self.stage_b_score_calib_tau_neg))
+                        gap_losses.append(F.softplus(self.stage_b_score_calib_margin - s_pos + neg_agg))
+                        neg_topk_scores.append(neg_topk.detach())
+                        neg_agg_scores.append(neg_agg.detach().reshape(1))
+                        neg_topk_max_scores.append(neg_topk.max().detach().reshape(1))
+
+                    pos_slot_scores = score_pos[rank_row, :, k_pos]
+                    if int(pos_slot_scores.numel()) > 1:
+                        masked_pos_scores = pos_slot_scores.clone()
+                        masked_pos_scores[q_pos] = torch.finfo(masked_pos_scores.dtype).min
+                        pos_k = min(topk, int(masked_pos_scores.numel()) - 1)
+                        if pos_k > 0:
+                            pos_other = torch.topk(masked_pos_scores, k=pos_k, largest=True).values
+                            pos_query_losses.append(
+                                F.softplus(self.stage_b_score_calib_margin - s_pos + pos_other).mean()
+                            )
+                            pos_other_topk_scores.append(pos_other.detach())
+                    used_count += 1
 
         if self.stage_b_score_calib_all_tn_neg_weight > 0:
             for batch_idx, target in enumerate(targets):
@@ -1723,6 +1731,14 @@ class StageBCriterion(nn.Module):
             else:
                 aux_text_losses = self._compute_text_loss(aux_outputs, targets, aux_match_ctx)
             losses[f"loss_text{aux_suffix}"] = aux_text_losses["loss_text"]
+            if self.stage_b_score_calib_aux_loss:
+                aux_score_outputs = dict(aux_outputs)
+                for key in ("rank_pos_outputs", "rank_pos_targets", "rank_pair_map"):
+                    if key in outputs:
+                        aux_score_outputs[key] = outputs[key]
+                aux_score_losses = self._compute_score_calib_loss(aux_score_outputs, targets, aux_match_ctx)
+                for key, value in aux_score_losses.items():
+                    losses[f"{key}{aux_suffix}"] = value
         losses.update(self._compute_score_calib_loss(outputs, targets, match_ctx))
         losses.update(self._compute_phrase_rank_loss(outputs, targets, match_ctx))
         return losses
