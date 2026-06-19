@@ -642,7 +642,8 @@ Stage-B 5.x lineage:
 | v5.3 | v5.2 | `lambda_text=1.0` |
 | v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
 | v5.5 | v5.2 | restrict decoder trainable scope to layers 3/4/5 and aux losses to layers 3/4 only; final layer 5 keeps main loss |
-| v5.2 calibrated allTN | v5.2 | use calibrated allTN `tau=0.5605,w=0.36`; make TN text rows all-negative focal; apply score/allTN calibration on aux layers too |
+| v5.1 calibrated allTN | v5.1 | use calibrated allTN `tau=0.5605,w=0.36`; make TN text rows all-negative focal; no aux losses |
+| v5.2 calibrated allTN | v5.1 calibrated allTN | enable decoder aux losses and score/allTN calibration on aux layers; otherwise identical to calibrated v5.1 |
 
 ### Stage B v5.1 RefCOCO Patch-Positive CE Probe
 
@@ -835,32 +836,51 @@ mean near the default (`0.586394` vs `0.586751`) while improving TN-best FPR
 default unless the next longer run explicitly targets the `0.30` balanced point
 or the `0.40` FPR-focused point.
 
-### Stage B v5.2 Calibrated allTN
+### Stage B v5.1/v5.2 Calibrated allTN
 
-This is the v5.x counterpart of the calibrated pure-GDINO allTN run. It keeps
-the established v5.2 wrapper recipe and changes the TN text/calibration contract
-to match the current direction:
+This is the v5.x counterpart of the calibrated pure-GDINO allTN run. The
+calibrated v5.1/v5.2 pair is intentionally aligned: v5.1 is the no-aux config,
+and v5.2 inherits v5.1 and only enables aux supervision.
 
 ```text
+config/ablations/cfg_stageb_v5_1_refcoco_patchpos_alltn_tau05605_w036.py
 config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py
 ```
 
-Compared with historical v5 `alltn00625`, this file updates:
+Compared with historical v5 `alltn00625`, the shared calibrated contract
+updates:
 
 ```text
 stage_b_text_loss_type = "allquery_focal_tn_empty_det"
 stage_b_extra_iou_match_thr = 0.0
 stage_b_score_calib_tau_neg = 0.5605
 stage_b_score_calib_all_tn_neg_weight = 0.36
-stage_b_score_calib_aux_loss = True
+lambda_tn_neg = 1.0
+lambda_tn_content = 1.0
+lambda_tn_canonical = 1.0
+stage_b_tn_neg_weight_mode = "token_count"
 ```
 
 `allquery_focal_tn_empty_det` means TN samples are no-positive/all-negative
 rows for the all-query focal text loss. They no longer use the older v5
-matched-query TN BCE token path. `stage_b_score_calib_aux_loss=True` makes
-`loss_score_calib_0..4` participate with the same weight as the final
-`loss_score_calib`, so the allTN tail penalty is applied at every decoder aux
-layer that v5.2 supervises.
+matched-query TN BCE token path. The calibrated token-weight contract keeps
+content/canonical weights at `1.0`; TN negative tokens use `token_count` mode,
+so the effective negative-token coefficient is the number of tokens in the TN
+phrase, not the old fixed `10`. For example, `white shirt man` gives TN-neg
+weight `3`.
+
+The only intended difference between the two calibrated configs is aux:
+
+```text
+v5.1 calibrated: aux_loss=False, stage_b_score_calib_aux_loss=False
+v5.2 calibrated: aux_loss=True,  stage_b_score_calib_aux_loss=True
+```
+
+`stage_b_score_calib_aux_loss=True` in v5.2 makes `loss_score_calib_0..4`
+participate with the same weight as the final `loss_score_calib`, so the allTN
+tail penalty is applied at every decoder aux layer that v5.2 supervises. The
+v5.1 calibrated config has no decoder aux outputs and no aux score-calibration
+terms.
 
 The parameter names differ from the pure-GDINO config because v5.x implements
 allTN inside `loss_score_calib`:
@@ -877,7 +897,7 @@ score that combines patch and text. The shared `topk=10`, `lse_tau=0.2`,
 `tau=0.5605`, and `w=0.36` are therefore a calibrated run setting, not a claim
 that the two losses are numerically interchangeable.
 
-Run from the selected v5.2 lineage checkpoint:
+Run the aux v5.2 point from the selected v5.2 lineage checkpoint:
 
 ```bash
 export STAGE_B_V52_CAL_OUT=outputs/stageB_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036
@@ -891,6 +911,13 @@ TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
   --output_dir "${STAGE_B_V52_CAL_OUT}" \
   --num_workers 8 \
   --amp
+```
+
+For the aligned no-aux v5.1 point, change only the config and output directory:
+
+```text
+config/ablations/cfg_stageb_v5_1_refcoco_patchpos_alltn_tau05605_w036.py
+outputs/stageB_v5_1_refcoco_patchpos_alltn_tau05605_w036
 ```
 
 ### Stage B v6 GDINO-like Text + v5.2 Patch CE Probe
@@ -1258,10 +1285,16 @@ gdino_tn_alltn_topk = 10
 gdino_tn_alltn_lse_tau = 0.2
 gdino_tn_alltn_tau_neg = 0.5605
 gdino_tn_alltn_weight = 0.36
-lambda_tn_neg = 10.0
+lambda_tn_neg = 1.0
 lambda_tn_content = 1.0
 lambda_tn_canonical = 1.0
+gdino_tn_token_neg_weight_mode = "token_count"
 ```
+
+`gdino_tn_token_neg_weight_mode="token_count"` means the effective TN negative
+token coefficient is `lambda_tn_neg * tn_phrase_token_count`. With
+`lambda_tn_neg=1.0`, `white shirt man` contributes TN-neg coefficient `3`;
+content and canonical token BCE each keep coefficient `1.0`.
 
 `tau_neg=0.5605` is in the allTN aggregate space, not the single-query score
 space. With `topk=10` and `lse_tau=0.2`, ten queries at sigmoid-mean score
