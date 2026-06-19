@@ -826,7 +826,43 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                         )
                 loss_dict = criterion(outputs, targets)
             else:
-                outputs = model(samples, captions=captions, patches=patches, patch_global=patch_global)
+                gdino_mask_kwargs = {}
+                for mask_key in (
+                    "phrase_to_token_mask",
+                    "canonical_to_token_mask",
+                    "content_to_token_mask",
+                    "attr_pos_to_token_mask",
+                    "attr_neg_to_token_mask",
+                    "negative_to_token_mask",
+                    "is_tn",
+                ):
+                    if all(mask_key in t for t in targets):
+                        values = [t[mask_key] for t in targets]
+                        if all(torch.is_tensor(v) for v in values):
+                            if len({tuple(v.shape) for v in values}) == 1:
+                                gdino_mask_kwargs[mask_key] = torch.stack(values, dim=0).to(
+                                    device, non_blocking=True
+                                )
+                            elif all(v.dim() == 2 for v in values):
+                                kmax = max(int(v.shape[0]) for v in values)
+                                tmax = max(int(v.shape[1]) for v in values)
+                                padded = values[0].new_zeros((len(values), kmax, tmax))
+                                for i, v in enumerate(values):
+                                    padded[i, : int(v.shape[0]), : int(v.shape[1])] = v
+                                gdino_mask_kwargs[mask_key] = padded.to(device, non_blocking=True)
+                            elif all(v.dim() == 1 for v in values):
+                                kmax = max(int(v.shape[0]) for v in values)
+                                padded = values[0].new_zeros((len(values), kmax))
+                                for i, v in enumerate(values):
+                                    padded[i, : int(v.shape[0])] = v
+                                gdino_mask_kwargs[mask_key] = padded.to(device, non_blocking=True)
+                outputs = model(
+                    samples,
+                    captions=captions,
+                    patches=patches,
+                    patch_global=patch_global,
+                    **gdino_mask_kwargs,
+                )
                 loss_dict = criterion(outputs, targets, cap_list, captions)
 
             weight_dict = criterion.weight_dict

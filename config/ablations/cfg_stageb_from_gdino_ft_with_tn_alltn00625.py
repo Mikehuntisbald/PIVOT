@@ -13,5 +13,6 @@ gdino_tn_loss_type = "alltn00625"
 gdino_tn_alltn_weight = 0.0625
 gdino_tn_alltn_topk = 10
 gdino_tn_alltn_lse_tau = 0.2
-gdino_tn_alltn_tau_neg = -2.4
+# Query scores are probability-space mean(sigmoid(token logits)).
+gdino_tn_alltn_tau_neg = 0.0625
 gdino_tn_alltn_text_agg = "mean"

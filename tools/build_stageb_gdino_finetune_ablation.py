@@ -114,14 +114,43 @@ def _convert_phrase_jsonl(
 
             if is_negative:
                 phrases = []
+                tn_records = []
                 seen = set()
                 for inst in instances:
                     phrase = _clean_phrase(inst.get("raw_phrase") or inst.get("negative_phrase") or inst.get("phrase"))
                     if phrase and phrase not in seen:
                         seen.add(phrase)
                         phrases.append(phrase)
+                        tn_records.append(
+                            {
+                                "phrase": phrase,
+                                "head_phrase": _clean_phrase(inst.get("head_phrase") or inst.get("head") or inst.get("canonical_name")),
+                                "head": _clean_phrase(inst.get("head") or inst.get("canonical_name")),
+                                "canonical_name": _clean_phrase(inst.get("canonical_name") or inst.get("head") or inst.get("head_phrase")),
+                                "positive_phrase": _clean_phrase(inst.get("positive_phrase") or inst.get("try_tn_head_phrase")),
+                                "try_tn_head_phrase": _clean_phrase(inst.get("try_tn_head_phrase")),
+                                "text_is_negative": True,
+                                "replace_from": inst.get("replace_from", []),
+                                "replace_to": inst.get("replace_to", []),
+                                "replace_category": inst.get("replace_category", []),
+                            }
+                        )
                 if not phrases:
                     phrases = ["object"]
+                    tn_records = [
+                        {
+                            "phrase": "object",
+                            "head_phrase": "object",
+                            "head": "object",
+                            "canonical_name": "object",
+                            "positive_phrase": "",
+                            "try_tn_head_phrase": "",
+                            "text_is_negative": True,
+                            "replace_from": [],
+                            "replace_to": [],
+                            "replace_category": [],
+                        }
+                    ]
                 row = {
                     "filename": str(meta["filename"]),
                     "image_id": int(meta.get("image_id", rows_out)),
@@ -130,6 +159,7 @@ def _convert_phrase_jsonl(
                         "caption": _caption_from_phrases(phrases),
                         "caption_list": phrases,
                         "is_negative": True,
+                        "tn_records": tn_records,
                     },
                 }
                 negative_rows += 1
