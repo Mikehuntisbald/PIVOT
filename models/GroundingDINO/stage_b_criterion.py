@@ -83,6 +83,7 @@ class StageBCriterion(nn.Module):
         stage_b_score_calib_detach_patch: bool = True,
         stage_b_score_calib_neg_agg: str = "mean",
         stage_b_score_calib_neg_lse_tau: float = 0.5,
+        stage_b_aux_loss_start_idx: int = 0,
         # Deprecated compatibility args. Content-positive and TN-negative tokens
         # are fixed at weight 1.0, and softmin phrase TN loss is disabled.
         attr_pos_weight: Optional[float] = None,
@@ -145,6 +146,7 @@ class StageBCriterion(nn.Module):
                 f"got {stage_b_score_calib_neg_agg!r}"
             )
         self.stage_b_score_calib_neg_lse_tau = max(float(stage_b_score_calib_neg_lse_tau), 1e-6)
+        self.stage_b_aux_loss_start_idx = max(0, int(stage_b_aux_loss_start_idx))
         patch_weight_dict = getattr(patch_criterion, "weight_dict", {}) or {}
         self.weight_dict = {
             "loss_patch_ce": float(lambda_patch),
@@ -158,6 +160,7 @@ class StageBCriterion(nn.Module):
             {
                 f"{key}_{i}": value
                 for i in range(5)
+                if i >= self.stage_b_aux_loss_start_idx
                 for key, value in (
                     ("loss_patch_ce", float(lambda_patch)),
                     ("loss_text", float(lambda_text)),
@@ -1686,6 +1689,8 @@ class StageBCriterion(nn.Module):
         else:
             losses.update(self._compute_text_loss(outputs, targets, match_ctx))
         for aux_idx, aux_outputs in enumerate(outputs.get("aux_outputs", []) or []):
+            if aux_idx < self.stage_b_aux_loss_start_idx:
+                continue
             aux_match_ctx = self.patch_criterion.compute_matching(aux_outputs, targets)
             aux_suffix = f"_{aux_idx}"
             aux_patch_losses = self.patch_criterion.compute_losses_from_matching(
