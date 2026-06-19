@@ -16,7 +16,7 @@ gdino_tn_alltn_weight = 0.0625
 gdino_tn_alltn_topk = 10
 gdino_tn_alltn_lse_tau = 0.2
 # Query scores are probability-space mean(sigmoid(token logits)); suppress the
-# hardest top-10 TN queries below a low probability threshold.
+# logsumexp tail of the hardest top-10 TN queries below a low threshold.
 gdino_tn_alltn_tau_neg = 0.0625
 gdino_tn_alltn_text_agg = "mean"
 

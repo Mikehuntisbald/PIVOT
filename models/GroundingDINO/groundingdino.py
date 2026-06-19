@@ -863,7 +863,8 @@ class SetCriterion(nn.Module):
             if k <= 0:
                 continue
             topk_scores = torch.topk(query_scores, k=k, largest=True).values
-            agg = topk_scores.mean()
+            tau = max(float(self.gdino_tn_alltn_lse_tau), 1e-6)
+            agg = tau * torch.logsumexp(topk_scores / tau, dim=0)
             losses.append(F.softplus(agg - self.gdino_tn_alltn_tau_neg))
             agg_scores.append(agg.detach().reshape(1))
             topk_max_scores.append(topk_scores.max().detach().reshape(1))
