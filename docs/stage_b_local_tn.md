@@ -237,6 +237,7 @@ Stage-B 5.x lineage:
 | v5.2 text sweep | v5.2 | only sweep `lambda_text` (`0.30` to `0.75`) |
 | v5.3 | v5.2 | `lambda_text=1.0` |
 | v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
+| v5.5 | v5.2 | restrict decoder trainable scope to layers 3/4/5 and aux losses to layers 3/4 only; final layer 5 keeps main loss |
 
 The selected score calibration uses the final Stage-B inference score:
 
