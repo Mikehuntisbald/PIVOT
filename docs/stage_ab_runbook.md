@@ -642,6 +642,7 @@ Stage-B 5.x lineage:
 | v5.3 | v5.2 | `lambda_text=1.0` |
 | v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
 | v5.5 | v5.2 | restrict decoder trainable scope to layers 3/4/5 and aux losses to layers 3/4 only; final layer 5 keeps main loss |
+| v5.2 calibrated allTN | v5.2 | use the calibrated allTN tail threshold/weight `tau=0.5605,w=0.36` and current TN token weights `10/1/1` |
 
 ### Stage B v5.1 RefCOCO Patch-Positive CE Probe
 
@@ -833,6 +834,59 @@ mean near the default (`0.586394` vs `0.586751`) while improving TN-best FPR
 (`0.754237` vs `0.757126`). Keep v5.2 `lambda_text=0.25` as the established
 default unless the next longer run explicitly targets the `0.30` balanced point
 or the `0.40` FPR-focused point.
+
+### Stage B v5.2 Calibrated allTN
+
+This is the v5.x counterpart of the calibrated pure-GDINO allTN run. It keeps
+the established v5.2 wrapper recipe and changes only the allTN tail-suppression
+setting plus the current TN-token contract:
+
+```text
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py
+```
+
+Compared with historical v5 `alltn00625`, this file updates:
+
+```text
+stage_b_score_calib_tau_neg = 0.5605
+stage_b_score_calib_all_tn_neg_weight = 0.36
+lambda_tn_neg = 10.0
+lambda_tn_content = 1.0
+lambda_tn_canonical = 1.0
+tn_content_target = 0.0
+tn_canonical_target = 0.0
+```
+
+The parameter names differ from the pure-GDINO config because v5.x implements
+allTN inside `loss_score_calib`:
+
+```text
+pure GDINO: loss_tn_alltn, gdino_tn_alltn_tau_neg, gdino_tn_alltn_weight
+Stage-B v5.x: loss_score_calib, stage_b_score_calib_tau_neg,
+              stage_b_score_calib_all_tn_neg_weight
+```
+
+The score space is also not identical: pure GDINO suppresses a text-only
+sigmoid-mean query score, while Stage-B v5.x suppresses the final Stage-B slot
+score that combines patch and text. The shared `topk=10`, `lse_tau=0.2`,
+`tau=0.5605`, and `w=0.36` are therefore a calibrated run setting, not a claim
+that the two losses are numerically interchangeable.
+
+Run from the selected v5.2 lineage checkpoint:
+
+```bash
+export STAGE_B_V52_CAL_OUT=outputs/stageB_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036
+
+DATA_ROOT="${DATA_ROOT}" PYTHONPATH="${GDINO_ROOT}:${PYTHONPATH:-}" \
+TOKENIZERS_PARALLELISM=false CUDA_VISIBLE_DEVICES=0 \
+"${PY}" -u main.py \
+  --config_file config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py \
+  --datasets config/datasets_patch_stage_b_lvis_coco_refexp_tn_local.json \
+  --pretrain_model_path outputs/stageB_local_tn_v2_no_phrase_loss/checkpoint0003.pth \
+  --output_dir "${STAGE_B_V52_CAL_OUT}" \
+  --num_workers 8 \
+  --amp
+```
 
 ### Stage B v6 GDINO-like Text + v5.2 Patch CE Probe
 

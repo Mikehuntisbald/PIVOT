@@ -238,6 +238,7 @@ Stage-B 5.x lineage:
 | v5.3 | v5.2 | `lambda_text=1.0` |
 | v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
 | v5.5 | v5.2 | restrict decoder trainable scope to layers 3/4/5 and aux losses to layers 3/4 only; final layer 5 keeps main loss |
+| v5.2 calibrated allTN | v5.2 | use calibrated allTN `tau=0.5605,w=0.36`; restore TN token weights to `10/1/1` with content/canonical targets at 0 |
 
 The selected score calibration uses the final Stage-B inference score:
 
@@ -430,6 +431,42 @@ is the best balanced fine-sweep point: it keeps Ref accuracy near the default
 `0.757126`). For the current TN-rejection objective, keep v5.2
 `lambda_text=0.25` as the established default unless the next longer run chooses
 the `0.30` balanced candidate or the `0.40` FPR-focused candidate explicitly.
+
+### Stage-B v5.2 Calibrated allTN
+
+The v5.x branch also has a calibrated allTN config:
+
+```text
+config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py
+```
+
+It keeps the established v5.2 wrapper recipe and replaces the historical
+`alltn00625` score-calibration tail with the same selected run setting used for
+the pure-GDINO allTN full run:
+
+```text
+stage_b_score_calib_topk = 10
+stage_b_score_calib_neg_agg = "logsumexp"
+stage_b_score_calib_neg_lse_tau = 0.2
+stage_b_score_calib_tau_neg = 0.5605
+stage_b_score_calib_all_tn_neg_weight = 0.36
+```
+
+It also uses the current TN-token contract:
+
+```text
+lambda_tn_neg = 10.0
+lambda_tn_content = 1.0
+lambda_tn_canonical = 1.0
+tn_content_target = 0.0
+tn_canonical_target = 0.0
+```
+
+This is not a drop-in numeric equivalence to pure GDINO. Pure GDINO's allTN
+term is `loss_tn_alltn` over text-only sigmoid-mean query scores; Stage-B v5.x
+uses `loss_score_calib` over final Stage-B slot scores that include patch and
+text. The shared `0.5605/0.36` setting should be treated as the selected
+calibrated run point for both branches, while eval remains the source of truth.
 
 The RefCOCO gain should be interpreted as ranking/calibration improvement, not
 as proof that the frozen proposal pool changed by itself. v5 alltn00625 does
