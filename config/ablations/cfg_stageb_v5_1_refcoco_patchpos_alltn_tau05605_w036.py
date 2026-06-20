@@ -1,12 +1,12 @@
 from config.ablations.cfg_stageb_v5_1_refcoco_patchpos_from_v5_alltn00625 import *  # noqa: F401,F403
 
-# Stage-B v5.1 calibrated allTN setting.
+# Stage-B v5.1 normalized-score allTN setting.
 #
 # This is the no-aux counterpart of
 # cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py. Keep the v5.1
 # RefCOCO-family patch-positive CE and v5 decoder/box-head optimization scope,
-# but align TN text supervision and allTN tail calibration with the calibrated
-# pure-GDINO allTN run.
+# but align TN text supervision and allTN tail calibration with the normalized
+# Stage-B fused score.
 
 stage_b_text_loss_type = "allquery_focal_tn_empty_det"
 stage_b_extra_iou_match_thr = 0.0
@@ -15,9 +15,10 @@ stage_b_score_calib_topk = 10
 stage_b_score_calib_neg_agg = "logsumexp"
 stage_b_score_calib_neg_lse_tau = 0.2
 stage_b_score_calib_tau_neg = 0.5605
-stage_b_score_calib_all_tn_neg_weight = 0.36
+stage_b_score_calib_margin = 0.10
+stage_b_score_calib_all_tn_neg_weight = 0.05
 
-# v5.1 is intentionally the no-aux member of the calibrated v5.x pair.
+# v5.1 is intentionally the no-aux member of the v5.x pair.
 aux_loss = False
 use_checkpoint = False
 stage_b_score_calib_aux_loss = False

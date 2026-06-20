@@ -643,8 +643,8 @@ Stage-B 5.x lineage:
 | v5.3 | v5.2 | `lambda_text=1.0` |
 | v5.4 | v5.2 | additionally unfreeze `backbone.0`, `input_proj`, and `transformer.encoder`; patch branch and BERT remain frozen |
 | v5.5 | v5.2 | restrict decoder trainable scope to layers 3/4/5 and aux losses to layers 3/4 only; final layer 5 keeps main loss |
-| v5.1 calibrated allTN | v5.1 | use calibrated allTN `tau=0.5605,w=0.36`; make TN text rows all-negative focal; no aux losses |
-| v5.2 calibrated allTN | v5.1 calibrated allTN | enable decoder aux losses and score/allTN calibration on aux layers; otherwise identical to calibrated v5.1 |
+| v5.1 normalized allTN | v5.1 | use normalized-score allTN with `margin=0.10,w=0.05`; make TN text rows all-negative focal; no aux losses |
+| v5.2 normalized allTN | v5.1 normalized allTN | enable decoder aux losses and score/allTN calibration on aux layers; otherwise identical to v5.1 |
 
 ### Stage B v5.1 RefCOCO Patch-Positive CE Probe
 
@@ -837,25 +837,26 @@ mean near the default (`0.586394` vs `0.586751`) while improving TN-best FPR
 default unless the next longer run explicitly targets the `0.30` balanced point
 or the `0.40` FPR-focused point.
 
-### Stage B v5.1/v5.2 Calibrated allTN
+### Stage B v5.1/v5.2 Normalized allTN
 
-This is the v5.x counterpart of the calibrated pure-GDINO allTN run. The
-calibrated v5.1/v5.2 pair is intentionally aligned: v5.1 is the no-aux config,
-and v5.2 inherits v5.1 and only enables aux supervision.
+This is the v5.x allTN branch on the normalized Stage-B fused score. The
+v5.1/v5.2 pair is intentionally aligned: v5.1 is the no-aux config, and v5.2
+inherits v5.1 and only enables aux supervision.
 
 ```text
 config/ablations/cfg_stageb_v5_1_refcoco_patchpos_alltn_tau05605_w036.py
 config/ablations/cfg_stageb_v5_2_refcoco_patchpos_aux_alltn_tau05605_w036.py
 ```
 
-Compared with historical v5 `alltn00625`, the shared calibrated contract
+Compared with historical v5 `alltn00625`, the normalized-score contract
 updates:
 
 ```text
 stage_b_text_loss_type = "allquery_focal_tn_empty_det"
 stage_b_extra_iou_match_thr = 0.0
 stage_b_score_calib_tau_neg = 0.5605
-stage_b_score_calib_all_tn_neg_weight = 0.36
+stage_b_score_calib_margin = 0.10
+stage_b_score_calib_all_tn_neg_weight = 0.05
 lambda_tn_neg = 1.0
 lambda_tn_content = 1.0
 lambda_tn_canonical = 1.0
@@ -870,17 +871,17 @@ so the effective negative-token coefficient is the number of tokens in the TN
 phrase, not the old fixed `10`. For example, `white shirt man` gives TN-neg
 weight `3`.
 
-The only intended difference between the two calibrated configs is aux:
+The only intended difference between the two normalized allTN configs is aux:
 
 ```text
-v5.1 calibrated: aux_loss=False, stage_b_score_calib_aux_loss=False
-v5.2 calibrated: aux_loss=True,  stage_b_score_calib_aux_loss=True
+v5.1 normalized allTN: aux_loss=False, stage_b_score_calib_aux_loss=False
+v5.2 normalized allTN: aux_loss=True,  stage_b_score_calib_aux_loss=True
 ```
 
 `stage_b_score_calib_aux_loss=True` in v5.2 makes `loss_score_calib_0..4`
 participate with the same weight as the final `loss_score_calib`, so the allTN
 tail penalty is applied at every decoder aux layer that v5.2 supervises. The
-v5.1 calibrated config has no decoder aux outputs and no aux score-calibration
+v5.1 normalized config has no decoder aux outputs and no aux score-calibration
 terms.
 
 The parameter names differ from the pure-GDINO config because v5.x implements
@@ -893,10 +894,10 @@ Stage-B v5.x: loss_score_calib, stage_b_score_calib_tau_neg,
 ```
 
 The score space is also not identical: pure GDINO suppresses a text-only
-sigmoid-mean query score, while Stage-B v5.x suppresses the final Stage-B slot
-score that combines patch and text. The shared `topk=10`, `lse_tau=0.2`,
-`tau=0.5605`, and `w=0.36` are therefore a calibrated run setting, not a claim
-that the two losses are numerically interchangeable.
+sigmoid-mean query score, while Stage-B v5.x suppresses the final normalized
+Stage-B slot score that combines patch and text. The current normalized-score
+starting point uses `margin=0.10` and
+`stage_b_score_calib_all_tn_neg_weight=0.05`.
 
 Run the aux v5.2 point from the selected v5.2 lineage checkpoint:
 
