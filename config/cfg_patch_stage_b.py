@@ -30,7 +30,7 @@ stage_b_score_calib_gap_weight = 0.1
 stage_b_score_calib_pos_query_weight = 0.1
 stage_b_score_calib_detach_patch = True
 tn_loss_profile = "standard"
-canonical_pos_weight = 0.15
+canonical_pos_weight = 1.0
 
 use_tn_category_weights = True
 default_tn_category_weight = 1.0
@@ -44,11 +44,12 @@ tn_balance_cap = 5.0
 
 # Inference only: slot-level fusion keeps model fused_logits untouched.
 stage_b_infer_text_beta = 1.0
-stage_b_infer_canonical_weight = 0.15
+stage_b_infer_canonical_weight = 1.0
 stage_b_infer_text_agg = "mean"
 stage_b_infer_softmin_tau = 0.7
 stage_b_infer_mean_softmin_alpha = 0.5
 stage_b_infer_sigmoid_scores = False
+stage_b_infer_normalize_fused_score = True
 
 skip_tn_if_neg_overlaps_canonical = True
 skip_ambiguous_tn = True

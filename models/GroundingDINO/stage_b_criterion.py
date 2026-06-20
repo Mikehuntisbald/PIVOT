@@ -53,7 +53,7 @@ class StageBCriterion(nn.Module):
         patch_criterion: PatchHungarianCriterion,
         lambda_patch: float = 1.0,
         lambda_text: float = 0.25,
-        canonical_pos_weight: float = 0.15,
+        canonical_pos_weight: float = 1.0,
         stage_b_text_loss_type: str = "matched_bce",
         stage_b_text_focal_alpha: float = 0.25,
         stage_b_text_focal_gamma: float = 2.0,
@@ -68,7 +68,7 @@ class StageBCriterion(nn.Module):
         stage_b_rank_loss_coef: float = 0.0,
         stage_b_rank_detach_patch: bool = True,
         stage_b_rank_beta: float = 1.0,
-        stage_b_rank_canonical_weight: float = 0.15,
+        stage_b_rank_canonical_weight: float = 1.0,
         stage_b_rank_text_agg: str = "mean",
         stage_b_rank_softmin_tau: float = 0.7,
         stage_b_rank_mean_softmin_alpha: float = 0.5,
@@ -1380,6 +1380,7 @@ class StageBCriterion(nn.Module):
             softmin_tau=self.stage_b_rank_softmin_tau,
             mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
             detach_patch=self.stage_b_score_calib_detach_patch,
+            normalize_fused_score=True,
         )
 
         pos_losses: List[torch.Tensor] = []
@@ -1417,6 +1418,7 @@ class StageBCriterion(nn.Module):
                 softmin_tau=self.stage_b_rank_softmin_tau,
                 mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
                 detach_patch=self.stage_b_score_calib_detach_patch,
+                normalize_fused_score=True,
             )
             pair_count = int(rank_pair_map.numel())
 
@@ -1644,6 +1646,7 @@ class StageBCriterion(nn.Module):
             softmin_tau=self.stage_b_rank_softmin_tau,
             mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
             detach_patch=self.stage_b_rank_detach_patch,
+            normalize_fused_score=True,
         )
         score_pos = compute_stage_b_slot_logits(
             rank_pos_outputs,
@@ -1653,6 +1656,7 @@ class StageBCriterion(nn.Module):
             softmin_tau=self.stage_b_rank_softmin_tau,
             mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
             detach_patch=self.stage_b_rank_detach_patch,
+            normalize_fused_score=True,
         )
 
         losses: List[torch.Tensor] = []

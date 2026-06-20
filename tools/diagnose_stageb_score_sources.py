@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from groundingdino.util import box_ops  # noqa: E402
 from models.GroundingDINO.stage_b_score import aggregate_stage_b_tokens  # noqa: E402
+from models.GroundingDINO.stage_b_score import stage_b_weighted_phrase_mask  # noqa: E402
 from tools.eval_refcoco_stageb import (  # noqa: E402
     _build_split_jsonl,
     _build_loader,
@@ -52,24 +53,22 @@ def _score_components(outputs: Dict[str, torch.Tensor], cfg, beta: float) -> Dic
         canonical = torch.zeros_like(phrase)
     else:
         canonical = canonical.to(device=text_logits.device, dtype=torch.bool)[:, :K, :] & phrase
-    attr = phrase & ~canonical
-
-    text_attr = aggregate_stage_b_tokens(
-        text_logits,
-        attr,
-        text_agg=str(getattr(cfg, "stage_b_infer_text_agg", "mean")),
-        softmin_tau=float(getattr(cfg, "stage_b_infer_softmin_tau", 0.7)),
-        mean_softmin_alpha=float(getattr(cfg, "stage_b_infer_mean_softmin_alpha", 0.5)),
-    )
-    text_canon = aggregate_stage_b_tokens(
-        text_logits,
+    phrase_score_mask, phrase_token_weight = stage_b_weighted_phrase_mask(
+        phrase,
         canonical,
+        canonical_weight=float(getattr(cfg, "stage_b_infer_canonical_weight", 1.0)),
+    )
+    text = aggregate_stage_b_tokens(
+        text_logits,
+        phrase_score_mask,
+        token_weight=phrase_token_weight,
         text_agg=str(getattr(cfg, "stage_b_infer_text_agg", "mean")),
         softmin_tau=float(getattr(cfg, "stage_b_infer_softmin_tau", 0.7)),
         mean_softmin_alpha=float(getattr(cfg, "stage_b_infer_mean_softmin_alpha", 0.5)),
     )
-    text = text_attr + float(getattr(cfg, "stage_b_infer_canonical_weight", 0.15)) * text_canon
     fused = patch.to(text.device) + float(beta) * text
+    if bool(getattr(cfg, "stage_b_infer_normalize_fused_score", True)):
+        fused = fused / max(1.0 + float(beta), 1e-6)
 
     mask = outputs.get("patch_mask", outputs.get("patch_phrase_mask", None))
     if mask is not None:

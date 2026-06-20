@@ -9,10 +9,11 @@ lambda_text = 0.25
 
 # Current Stage A+B fusion policy used by Stage B post-processing.
 stage_b_infer_text_beta = 1.0
-stage_b_infer_canonical_weight = 0.15
+stage_b_infer_canonical_weight = 1.0
 stage_b_infer_text_agg = "mean"
 stage_b_infer_softmin_tau = 0.7
 stage_b_infer_sigmoid_scores = False
+stage_b_infer_normalize_fused_score = True
 
 # OGC has no trained patch branch. Match Stage A's decoder adaptation while also
 # training the Stage B text projection/head.

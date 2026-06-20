@@ -558,7 +558,19 @@ Design reason:
 Stage-B postprocess should use inference-style phrase scoring only.
 
 `PostProcessStageB.compute_slot_logits` uses `phrase_to_token_mask` and the
-configured scorer. It must not read:
+configured scorer. It folds canonical tokens into the same phrase-level
+weighted sigmoid mean instead of adding a separate canonical score:
+
+```text
+text_score = weighted_mean(sigmoid(token_logits), phrase_tokens, canonical_weight)
+slot_score = (sigmoid(patch_logit) + beta * text_score) / (1 + beta)
+```
+
+The default `canonical_weight` is `1.0`. Stage-B normalizes the fused score by
+`1 + beta` by default; allTN thresholds for Stage-B should be calibrated on this
+normalized score rather than inherited from text-only GDINO calibration.
+
+The scorer must not read:
 
 - `content_to_token_mask`
 - `phrase_semantic_token_mask`

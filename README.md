@@ -414,13 +414,27 @@ build_text_token_masks = True
 
 lambda_patch = 1.0
 lambda_text = 0.25
-canonical_pos_weight = 0.15
+canonical_pos_weight = 1.0
 attr_pos_weight = 1.0
 
 unfreeze_decoder_last_n_layers = 0
 only_train_keywords = ["feat_map", "class_embed"]
 patch_text_augment = False
 ```
+
+Stage-B fused inference scores use sigmoid probabilities, not raw logits:
+
+```python
+text_score = weighted_mean(sigmoid(token_logits), phrase_tokens, canonical_weight)
+slot_score = (sigmoid(patch_logit) + beta * text_score) / (1 + beta)
+```
+
+`canonical_pos_weight` and `stage_b_infer_canonical_weight` default to `1.0`, so
+canonical tokens are folded into the same phrase-token mean. Stage-B normalizes
+the fused score by default with `stage_b_infer_normalize_fused_score=True`;
+calibration thresholds should be fitted on this normalized score. Do not use
+`stage_b_infer_sigmoid_scores` for this normalization because the fused value is
+already a probability-space score, not a raw logit.
 
 Typical Stage B command:
 

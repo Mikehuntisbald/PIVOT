@@ -372,7 +372,8 @@ lambda_patch = 1.0
 lambda_text = 0.25
 stage_b_enable_phrase_rank = False
 stage_b_rank_loss_coef = 0.0
-canonical_pos_weight = 0.15
+canonical_pos_weight = 1.0
+stage_b_infer_canonical_weight = 1.0
 only_train_keywords = ["feat_map", "class_embed"]
 ```
 
@@ -951,6 +952,8 @@ patch_ce_positive_only_for_datasets = ("refcoco", "refcocoplus", "refcocog", "re
 stage_b_extra_iou_match_thr = 0.0
 stage_b_score_calib_loss_coef = 0.0
 ```
+
+Shared Stage-B scoring contract: text scores are `weighted_mean(sigmoid(token_logits), phrase_tokens, canonical_weight)`, with canonical tokens folded into the same phrase-token mean. The default canonical weight is `1.0`. The fused score used by Stage-B calibration is `(sigmoid(patch_logit) + beta * text_score) / (1 + beta)` by default, so Stage-B allTN tau must be re-estimated on the normalized score rather than inherited from text-only GDINO calibration.
 
 Run the 1k probe from the same Stage-B v2 checkpoint used by the v5.x fair
 probes:

@@ -1328,11 +1328,12 @@ class PostProcessStageB(nn.Module):
         nms_iou_threshold=-1,
         *,
         beta: float = 1.0,
-        canonical_weight: float = 0.15,
+        canonical_weight: float = 1.0,
         text_agg: str = "mean",
         softmin_tau: float = 0.7,
         mean_softmin_alpha: float = 0.5,
         output_sigmoid_scores: bool = False,
+        normalize_fused_score: bool = True,
     ) -> None:
         super().__init__()
         self.num_select = int(num_select)
@@ -1343,6 +1344,7 @@ class PostProcessStageB(nn.Module):
         self.softmin_tau = float(softmin_tau)
         self.mean_softmin_alpha = float(mean_softmin_alpha)
         self.output_sigmoid_scores = bool(output_sigmoid_scores)
+        self.normalize_fused_score = bool(normalize_fused_score)
 
     def _aggregate_tokens(self, logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         from .stage_b_score import aggregate_stage_b_tokens
@@ -1364,6 +1366,7 @@ class PostProcessStageB(nn.Module):
             softmin_tau=self.softmin_tau,
             mean_softmin_alpha=self.mean_softmin_alpha,
             detach_patch=False,
+            normalize_fused_score=self.normalize_fused_score,
         )
 
     @torch.no_grad()
@@ -1500,7 +1503,7 @@ def build_groundingdino(args):
                 patch_criterion=patch_criterion,
                 lambda_patch=float(getattr(args, "lambda_patch", 1.0)),
                 lambda_text=float(getattr(args, "lambda_text", 0.25)),
-                canonical_pos_weight=float(getattr(args, "canonical_pos_weight", 0.15)),
+                canonical_pos_weight=float(getattr(args, "canonical_pos_weight", 1.0)),
                 stage_b_text_loss_type=str(getattr(args, "stage_b_text_loss_type", "matched_bce")),
                 stage_b_text_focal_alpha=float(getattr(args, "stage_b_text_focal_alpha", args.focal_alpha)),
                 stage_b_text_focal_gamma=float(getattr(args, "stage_b_text_focal_gamma", args.focal_gamma)),
@@ -1515,7 +1518,7 @@ def build_groundingdino(args):
                 stage_b_rank_loss_coef=float(getattr(args, "stage_b_rank_loss_coef", 0.0)),
                 stage_b_rank_detach_patch=bool(getattr(args, "stage_b_rank_detach_patch", True)),
                 stage_b_rank_beta=float(getattr(args, "stage_b_infer_text_beta", 1.0)),
-                stage_b_rank_canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 0.15)),
+                stage_b_rank_canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 1.0)),
                 stage_b_rank_text_agg=str(getattr(args, "stage_b_infer_text_agg", "mean")),
                 stage_b_rank_softmin_tau=float(getattr(args, "stage_b_infer_softmin_tau", getattr(args, "softmin_tau", 0.7))),
                 stage_b_rank_mean_softmin_alpha=float(getattr(args, "stage_b_infer_mean_softmin_alpha", 0.5)),
@@ -1591,11 +1594,12 @@ def build_groundingdino(args):
                     num_select=args.num_select,
                     nms_iou_threshold=args.nms_iou_threshold,
                     beta=float(getattr(args, "stage_b_infer_text_beta", 1.0)),
-                    canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 0.15)),
+                    canonical_weight=float(getattr(args, "stage_b_infer_canonical_weight", 1.0)),
                     text_agg=str(getattr(args, "stage_b_infer_text_agg", "mean")),
                     softmin_tau=float(getattr(args, "stage_b_infer_softmin_tau", getattr(args, "softmin_tau", 0.7))),
                     mean_softmin_alpha=float(getattr(args, "stage_b_infer_mean_softmin_alpha", 0.5)),
                     output_sigmoid_scores=bool(getattr(args, "stage_b_infer_sigmoid_scores", False)),
+                    normalize_fused_score=bool(getattr(args, "stage_b_infer_normalize_fused_score", True)),
                 )
             }
         else:

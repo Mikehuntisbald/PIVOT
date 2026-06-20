@@ -361,10 +361,11 @@ def _slot_scores(outputs: Dict[str, torch.Tensor], cfg, beta: float) -> torch.Te
     return compute_stage_b_slot_logits(
         outputs,
         beta=float(beta),
-        canonical_weight=float(getattr(cfg, "stage_b_infer_canonical_weight", 0.15)),
+        canonical_weight=float(getattr(cfg, "stage_b_infer_canonical_weight", 1.0)),
         text_agg=str(getattr(cfg, "stage_b_infer_text_agg", "mean")),
         softmin_tau=float(getattr(cfg, "stage_b_infer_softmin_tau", 0.7)),
         mean_softmin_alpha=float(getattr(cfg, "stage_b_infer_mean_softmin_alpha", 0.5)),
+        normalize_fused_score=bool(getattr(cfg, "stage_b_infer_normalize_fused_score", True)),
     )
 
 

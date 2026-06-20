@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -21,6 +21,7 @@ def aggregate_stage_b_tokens(
     logits: torch.Tensor,
     mask: torch.Tensor,
     *,
+    token_weight: Optional[torch.Tensor] = None,
     text_agg: str = "mean",
     softmin_tau: float = 0.7,
     mean_softmin_alpha: float = 0.5,
@@ -36,29 +37,41 @@ def aggregate_stage_b_tokens(
 
     text_agg = str(text_agg).lower().strip()
     mask = mask.to(device=logits.device, dtype=torch.bool)
+    weight = None
+    if token_weight is not None:
+        if token_weight.shape != mask.shape:
+            raise ValueError(
+                "token_weight must have the same shape as mask, "
+                f"got weight={tuple(token_weight.shape)} mask={tuple(mask.shape)}"
+            )
+        weight = token_weight.to(device=logits.device, dtype=logits.dtype).masked_fill(~mask, 0.0)
     token_scores = logits.sigmoid()
     z = token_scores[:, :, None, :]  # (B,Q,1,T)
     m = mask[:, None, :, :]  # (B,1,K,T)
-    valid = m.any(dim=-1)  # (B,1,K)
+    w = weight[:, None, :, :] if weight is not None else m.to(logits.dtype)
+    valid = (w > 0).any(dim=-1)  # (B,1,K)
 
     if text_agg == "mean":
-        denom = m.to(logits.dtype).sum(dim=-1).clamp(min=1.0)
-        score = z.masked_fill(~m, 0.0).sum(dim=-1) / denom
+        denom = w.sum(dim=-1).clamp(min=1e-6)
+        score = (z.masked_fill(~m, 0.0) * w).sum(dim=-1) / denom
     elif text_agg == "max":
-        score = z.masked_fill(~m, torch.finfo(logits.dtype).min).max(dim=-1).values
+        effective = m & (w > 0)
+        score = z.masked_fill(~effective, torch.finfo(logits.dtype).min).max(dim=-1).values
     elif text_agg == "softmin":
         tau = max(float(softmin_tau), 1e-6)
+        weighted_logits = w.clamp(min=1e-12).log() - z / tau
         score = -tau * torch.logsumexp(
-            z.masked_fill(~m, torch.finfo(logits.dtype).max).neg() / tau,
+            weighted_logits.masked_fill(w <= 0, torch.finfo(logits.dtype).min),
             dim=-1,
         )
     elif text_agg in {"mean_norm_softmin", "mean_normalized_softmin"}:
         tau = max(float(softmin_tau), 1e-6)
         alpha = min(1.0, max(0.0, float(mean_softmin_alpha)))
-        denom = m.to(logits.dtype).sum(dim=-1).clamp(min=1.0)
-        mean_score = z.masked_fill(~m, 0.0).sum(dim=-1) / denom
+        denom = w.sum(dim=-1).clamp(min=1e-6)
+        mean_score = (z.masked_fill(~m, 0.0) * w).sum(dim=-1) / denom
+        weighted_logits = w.clamp(min=1e-12).log() - z / tau
         softmin_score = -tau * torch.logsumexp(
-            z.masked_fill(~m, torch.finfo(logits.dtype).max).neg() / tau,
+            weighted_logits.masked_fill(w <= 0, torch.finfo(logits.dtype).min),
             dim=-1,
         )
         normalized_softmin_score = softmin_score + tau * denom.log()
@@ -73,6 +86,7 @@ def aggregate_stage_b_token_match_cost(
     logits: torch.Tensor,
     mask: torch.Tensor,
     *,
+    token_weight: Optional[torch.Tensor] = None,
     alpha: float = 0.25,
     gamma: float = 2.0,
 ) -> torch.Tensor:
@@ -86,24 +100,59 @@ def aggregate_stage_b_token_match_cost(
         )
 
     mask = mask.to(device=logits.device, dtype=torch.bool)
+    weight = None
+    if token_weight is not None:
+        if token_weight.shape != mask.shape:
+            raise ValueError(
+                "token_weight must have the same shape as mask, "
+                f"got weight={tuple(token_weight.shape)} mask={tuple(mask.shape)}"
+            )
+        weight = token_weight.to(device=logits.device, dtype=logits.dtype).masked_fill(~mask, 0.0)
     token_cost = gdino_focal_match_cost_from_logits(logits, alpha=alpha, gamma=gamma)
     z = token_cost[:, :, None, :]  # (B,Q,1,T)
     m = mask[:, None, :, :]  # (B,1,K,T)
-    valid = m.any(dim=-1)  # (B,1,K)
-    denom = m.to(logits.dtype).sum(dim=-1).clamp(min=1.0)
-    cost = z.masked_fill(~m, 0.0).sum(dim=-1) / denom
+    w = weight[:, None, :, :] if weight is not None else m.to(logits.dtype)
+    valid = (w > 0).any(dim=-1)  # (B,1,K)
+    denom = w.sum(dim=-1).clamp(min=1e-6)
+    cost = (z.masked_fill(~m, 0.0) * w).sum(dim=-1) / denom
     return cost.masked_fill(~valid, 0.0)  # (B,Q,K)
+
+
+def stage_b_weighted_phrase_mask(
+    phrase_to_token_mask: torch.Tensor,
+    canonical_to_token_mask: Optional[torch.Tensor],
+    *,
+    canonical_weight: float = 1.0,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    phrase_to_token_mask = phrase_to_token_mask.to(dtype=torch.bool)
+    if canonical_to_token_mask is None:
+        canonical_to_token_mask = torch.zeros_like(phrase_to_token_mask)
+    else:
+        canonical_to_token_mask = canonical_to_token_mask.to(
+            device=phrase_to_token_mask.device,
+            dtype=torch.bool,
+        )
+    canonical_to_token_mask = canonical_to_token_mask & phrase_to_token_mask
+    token_weight = torch.ones(
+        phrase_to_token_mask.shape,
+        device=phrase_to_token_mask.device,
+        dtype=torch.float32,
+    )
+    token_weight = token_weight.masked_fill(canonical_to_token_mask, float(canonical_weight))
+    token_weight = token_weight.masked_fill(~phrase_to_token_mask, 0.0)
+    return phrase_to_token_mask, token_weight
 
 
 def compute_stage_b_slot_logits(
     outputs: Dict[str, torch.Tensor],
     *,
     beta: float = 1.0,
-    canonical_weight: float = 0.15,
+    canonical_weight: float = 1.0,
     text_agg: str = "mean",
     softmin_tau: float = 0.7,
     mean_softmin_alpha: float = 0.5,
     detach_patch: bool = False,
+    normalize_fused_score: bool = True,
 ) -> torch.Tensor:
     pred_logits_patch = outputs.get("pred_logits_patch", None)
     pred_logits_text = outputs.get("pred_logits_text", None)
@@ -154,25 +203,24 @@ def compute_stage_b_slot_logits(
             )
         canonical_to_token_mask = canonical_to_token_mask[:, :K, :] & phrase_to_token_mask
 
-    attr_mask = phrase_to_token_mask & ~canonical_to_token_mask
-    text_attr_score = aggregate_stage_b_tokens(
-        pred_logits_text,
-        attr_mask,
-        text_agg=text_agg,
-        softmin_tau=softmin_tau,
-        mean_softmin_alpha=mean_softmin_alpha,
-    )
-    text_canon_score = aggregate_stage_b_tokens(
-        pred_logits_text,
+    phrase_score_mask, phrase_token_weight = stage_b_weighted_phrase_mask(
+        phrase_to_token_mask,
         canonical_to_token_mask,
+        canonical_weight=canonical_weight,
+    )
+    text_score = aggregate_stage_b_tokens(
+        pred_logits_text,
+        phrase_score_mask,
+        token_weight=phrase_token_weight,
         text_agg=text_agg,
         softmin_tau=softmin_tau,
         mean_softmin_alpha=mean_softmin_alpha,
     )
-    text_score = text_attr_score + float(canonical_weight) * text_canon_score
 
     patch_score = pred_logits_patch.to(pred_logits_text.device).sigmoid()
     slot_logits = patch_score + float(beta) * text_score
+    if normalize_fused_score:
+        slot_logits = slot_logits / max(1.0 + float(beta), 1e-6)
     patch_mask = outputs.get("patch_mask", outputs.get("patch_phrase_mask", None))
     if patch_mask is not None:
         patch_mask = patch_mask.to(device=slot_logits.device, dtype=torch.bool)
@@ -185,7 +233,7 @@ def compute_stage_b_slot_match_cost(
     outputs: Dict[str, torch.Tensor],
     *,
     beta: float = 1.0,
-    canonical_weight: float = 0.15,
+    canonical_weight: float = 1.0,
     focal_alpha: float = 0.25,
     focal_gamma: float = 2.0,
     detach_patch: bool = False,
@@ -239,20 +287,18 @@ def compute_stage_b_slot_match_cost(
             )
         canonical_to_token_mask = canonical_to_token_mask[:, :K, :] & phrase_to_token_mask
 
-    attr_mask = phrase_to_token_mask & ~canonical_to_token_mask
-    text_attr_cost = aggregate_stage_b_token_match_cost(
-        pred_logits_text,
-        attr_mask,
-        alpha=focal_alpha,
-        gamma=focal_gamma,
-    )
-    text_canon_cost = aggregate_stage_b_token_match_cost(
-        pred_logits_text,
+    phrase_cost_mask, phrase_token_weight = stage_b_weighted_phrase_mask(
+        phrase_to_token_mask,
         canonical_to_token_mask,
+        canonical_weight=canonical_weight,
+    )
+    text_cost = aggregate_stage_b_token_match_cost(
+        pred_logits_text,
+        phrase_cost_mask,
+        token_weight=phrase_token_weight,
         alpha=focal_alpha,
         gamma=focal_gamma,
     )
-    text_cost = text_attr_cost + float(canonical_weight) * text_canon_cost
 
     patch_cost = gdino_focal_match_cost_from_logits(
         pred_logits_patch.to(pred_logits_text.device),

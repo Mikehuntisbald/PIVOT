@@ -712,11 +712,20 @@ be used for the full data-FT run.
 
 ## Inference
 
-`PostProcessStageB.compute_slot_logits` does not use `content_to_token_mask` or `phrase_semantic_token_mask`. Inference scoring uses phrase-level token spans from `phrase_to_token_mask`, with the canonical mask only for the configured canonical contribution.
+`PostProcessStageB.compute_slot_logits` does not use `content_to_token_mask` or `phrase_semantic_token_mask`. Inference scoring uses phrase-level token spans from `phrase_to_token_mask`. `canonical_to_token_mask` only supplies per-token weights inside that same phrase-level aggregation; canonical tokens are no longer scored as a separate add-on term.
 
 Training-only content masks therefore cannot change demo/postprocess scoring.
 
-The phrase scorer is configured by `stage_b_infer_text_agg`. The default remains `mean`. The optional mixed scorer is:
+The phrase scorer is configured by `stage_b_infer_text_agg`. The default remains `mean`. The default canonical token weight is `1.0`, so text scoring is a plain sigmoid mean over all phrase tokens:
+
+```text
+text_score = weighted_mean(sigmoid(token_logits), phrase_tokens, canonical_weight)
+slot_score = (sigmoid(patch_logit) + beta * text_score) / (1 + beta)
+```
+
+Stage-B now normalizes the fused score by `1 + beta` by default (`stage_b_infer_normalize_fused_score=True`). This makes confidence comparable across beta values and keeps the score in probability space. The GDINO allTN `tau_neg=0.5605` was calibrated on a text-only/raw fused scale and should be treated as historical evidence, not reused directly for Stage-B; Stage-B allTN tau must be re-estimated on the normalized score. Do not use `stage_b_infer_sigmoid_scores` for this normalization; the fused value is already a probability-space score, not a raw logit.
+
+The optional mixed scorer is:
 
 ```python
 stage_b_infer_text_agg = "mean_norm_softmin"
@@ -729,16 +738,18 @@ where:
 normalized_softmin_score = softmin_score + tau * log(num_tokens)
 ```
 
-This normalization keeps the score equal to the common token logit when all selected token logits are equal. The rank-enabled ablation path uses the same scorer config as inference.
+This normalization keeps the score equal to the common token sigmoid score when all selected token logits are equal. The rank-enabled ablation path uses the same scorer config as inference.
 
 ## Default Config
 
 ```python
 tn_loss_profile = "standard"
-canonical_pos_weight = 0.15
+canonical_pos_weight = 1.0
+stage_b_infer_canonical_weight = 1.0
 stage_b_infer_text_agg = "mean"
 stage_b_infer_softmin_tau = 0.7
 stage_b_infer_mean_softmin_alpha = 0.5
+stage_b_infer_normalize_fused_score = True
 stage_b_enable_phrase_rank = False
 stage_b_rank_margin = 0.3
 stage_b_rank_loss_coef = 0.0

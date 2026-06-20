@@ -383,6 +383,21 @@ def check_shared_score_helper_matches_postprocess() -> None:
     assert torch.allclose(from_post_mix, from_helper_mix)
 
 
+def check_stage_b_canonical_weight_inside_token_mean() -> None:
+    outputs = {
+        "pred_logits_patch": torch.tensor([[[0.0]]], dtype=torch.float32),
+        "pred_logits_text": torch.tensor([[[0.0, 2.0, -2.0]]], dtype=torch.float32),
+        "phrase_to_token_mask": torch.tensor([[[1, 1, 1]]], dtype=torch.bool),
+        "canonical_to_token_mask": torch.tensor([[[0, 1, 0]]], dtype=torch.bool),
+    }
+    score = compute_stage_b_slot_logits(outputs, beta=1.0, canonical_weight=0.25, text_agg="mean")
+    patch_score = torch.tensor(0.0).sigmoid()
+    token_scores = torch.tensor([0.0, 2.0, -2.0]).sigmoid()
+    token_weight = torch.tensor([1.0, 0.25, 1.0])
+    expected_text = (token_scores * token_weight).sum() / token_weight.sum()
+    assert torch.allclose(score[0, 0, 0], (patch_score + expected_text) / 2.0)
+
+
 def check_mean_normalized_softmin_scorer() -> None:
     logits = torch.tensor([[[1.0, 3.0, -1.0, 9.0]]])
     mask = torch.tensor([[[1, 1, 1, 0]]], dtype=torch.bool)
@@ -545,7 +560,10 @@ def check_phrase_rank_loss_independent_and_match_by_target() -> None:
     match_ctx = DummyPatchCriterion().compute_matching(outputs, targets)
     rank_losses = criterion._compute_phrase_rank_loss(outputs, targets, match_ctx)
     # Match-by-target should use neg query 2 for original target 1, not neg query 0.
-    expected = torch.relu(torch.tensor(0.9).sigmoid() - torch.tensor(0.4).sigmoid() + torch.tensor(0.3))
+    patch_score = torch.tensor(0.0).sigmoid()
+    s_neg = (patch_score + torch.tensor(0.9).sigmoid()) / 2.0
+    s_pos = (patch_score + torch.tensor(0.4).sigmoid()) / 2.0
+    expected = torch.relu(s_neg - s_pos + torch.tensor(0.3))
     assert torch.allclose(rank_losses["loss_phrase_rank"], expected)
     text_losses = criterion._compute_text_loss(
         {"pred_logits_text": torch.tensor([[[0.2, 0.7, -0.6]]])},
@@ -715,6 +733,7 @@ def main() -> None:
     check_phrase_loss_disabled()
     check_rank_positive_uses_positive_phrase_only()
     check_shared_score_helper_matches_postprocess()
+    check_stage_b_canonical_weight_inside_token_mean()
     check_mean_normalized_softmin_scorer()
     check_stage_b_matching_uses_fused_patch_text_score()
     check_stage_b_matching_cost_matches_gdino_focal_mean()
