@@ -67,6 +67,18 @@ def _make_grad_scaler(enabled: bool):
     return torch.cuda.amp.GradScaler(enabled=enabled)
 
 
+def _maybe_sync_stage_b_v7_verifier_from_text_branch(model, state_dict, logger) -> None:
+    verifier = getattr(model, "stage_b_verifier", None)
+    if verifier is None or not hasattr(verifier, "load_from_text_branch"):
+        return
+    if any(str(k).startswith("stage_b_verifier.") for k in state_dict.keys()):
+        return
+    verifier.load_from_text_branch(model)
+    verifier.freeze_bert()
+    if logger is not None:
+        logger.info("Initialized stage_b_verifier text branch from loaded GroundingDINO text branch.")
+
+
 def _env_int(name: str, default: int) -> int:
     try:
         return int(os.environ.get(name, default))
@@ -434,6 +446,9 @@ def main(args):
             raise RuntimeError(f"Unexpected trainable parameters outside only_train_keywords: {unexpected[:20]}")
 
     trainable_params, trainable_modules = _trainable_param_summary(model_without_ddp)
+    if bool(getattr(args, "stage_b_v7", False)) and getattr(model_without_ddp, "stage_b_verifier", None) is not None:
+        model_without_ddp.stage_b_verifier.freeze_bert()
+        trainable_params, trainable_modules = _trainable_param_summary(model_without_ddp)
     logger.info("params after freezing:\n" + json.dumps(trainable_params, indent=2))
     logger.info("trainable module summary:\n" + json.dumps(trainable_modules, indent=2))
     if only_train_keywords and (not trainable_params):
@@ -621,7 +636,10 @@ def main(args):
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = _torch_load_compat(args.resume, map_location="cpu")
-        load_output = model_without_ddp.load_state_dict(clean_state_dict(checkpoint['model']),strict=False)
+        resume_state = clean_state_dict(checkpoint['model'])
+        load_output = model_without_ddp.load_state_dict(resume_state,strict=False)
+        if bool(getattr(args, "stage_b_v7", False)):
+            _maybe_sync_stage_b_v7_verifier_from_text_branch(model_without_ddp, resume_state, logger)
         logger.info(f"Loaded resume model state: {load_output}")
 
 
@@ -685,6 +703,8 @@ def main(args):
         _tmp_st = OrderedDict({k:v for k, v in utils.clean_state_dict(checkpoint).items() if check_keep(k, _ignorekeywordlist)})
 
         _load_output = model_without_ddp.load_state_dict(_tmp_st, strict=False)
+        if bool(getattr(args, "stage_b_v7", False)):
+            _maybe_sync_stage_b_v7_verifier_from_text_branch(model_without_ddp, _tmp_st, logger)
         logger.info(str(_load_output))
 
  

@@ -188,6 +188,7 @@ class GroundingDINO(nn.Module):
             self.query_proj_for_patch = None
             self.patch_logit_scale = None
             self.patch_logit_scale_max = float(patch_logit_scale_max)
+        self.stage_b_verifier = None
 
         # Patch-only DN / GT-guided queries: add extra queries initialized from GT boxes (+noise)
         # to guarantee some positives when box head is imperfect or iou_thr is strict.
@@ -279,6 +280,7 @@ class GroundingDINO(nn.Module):
             captions = [t["caption"] for t in targets]
         else:
             raise KeyError("groundingdino.forward requires `captions` (kw) or targets with `caption`.")
+        bs = len(captions)
         # encoder texts
 
         tokenized = self.tokenizer(captions, padding="longest", return_tensors="pt").to(
@@ -519,6 +521,28 @@ class GroundingDINO(nn.Module):
             "pred_logits_patch": score_patch,
             "pred_boxes": outputs_coord_list[-1],
         }
+        stage_b_v7_verifier_captions = kw.get("stage_b_v7_verifier_captions", None)
+        if bool(kw.get("return_stage_b_v7_features", False)) or stage_b_v7_verifier_captions is not None:
+            out["hs"] = hs[-1]
+            out["patch_score"] = score_patch.sigmoid() if score_patch is not None else None
+            out["stage_b_v7_roi_feature_map"] = srcs[0]
+        if stage_b_v7_verifier_captions is not None:
+            if self.stage_b_verifier is None:
+                raise RuntimeError("stage_b_v7_verifier_captions were provided but stage_b_verifier is not built.")
+            verifier_out = self.stage_b_verifier(
+                query_feats=out["hs"].detach(),
+                boxes=out["pred_boxes"].detach(),
+                roi_feature_map=out["stage_b_v7_roi_feature_map"].detach(),
+                predicate_text=stage_b_v7_verifier_captions,
+                phrase_to_token_mask=kw.get("phrase_to_token_mask", None),
+                canonical_to_token_mask=kw.get("canonical_to_token_mask", None),
+                patch_mask=patch_mask_in,
+            )
+            out["stage_b_v7_predicate_logits"] = verifier_out["predicate_logits"]
+            out["stage_b_v7_predicate_token_logits"] = verifier_out["predicate_token_logits"]
+            out["stage_b_v7_predicate_score"] = verifier_out["predicate_logits"].sigmoid()
+            if out["patch_score"] is not None:
+                out["stage_b_v7_final_score"] = out["patch_score"] * out["stage_b_v7_predicate_score"]
         if patch_mask_in is not None:
             out["patch_mask"] = patch_mask_in
         if (score_patch is not None) and (not patch_only) and ((patches is not None) or (patch_global_in is not None)):
@@ -536,6 +560,7 @@ class GroundingDINO(nn.Module):
             "content_to_token_mask",
             "attr_pos_to_token_mask",
             "attr_neg_to_token_mask",
+            "attr_neg_weight_mask",
             "negative_to_token_mask",
             "phrase_semantic_token_mask",
             "tn_group_ids",
@@ -551,12 +576,7 @@ class GroundingDINO(nn.Module):
         if patch_mask_in is not None and isinstance(text_dict, dict) and ("phrase_mask" in text_dict):
             pm = patch_mask_in.to(torch.bool)
             tm = text_dict["phrase_mask"].to(torch.bool)
-            if pm.shape[0] == tm.shape[0]:
-                if pm.shape[1] != tm.shape[1]:
-                    raise ValueError(
-                        f"patch_mask (B,K)={tuple(pm.shape)} and phrase_mask (B,P)={tuple(tm.shape)} mismatch; "
-                        "make sure Stage A captions repeat 'object .' per patch."
-                    )
+            if pm.shape == tm.shape:
                 out["patch_phrase_mask"] = pm & tm
 
         # Used to calculate losses
@@ -1433,10 +1453,11 @@ def build_groundingdino(args):
 
     patch_only = bool(getattr(args, "patch_only", False))
     stage_b = bool(getattr(args, "stage_b", False))
+    stage_b_v7 = bool(getattr(args, "stage_b_v7", False))
     patch_gate_with_text = bool(getattr(args, "patch_gate_with_text", not patch_only))
     if patch_only:
         patch_gate_with_text = False
-    enable_patch_branch = bool(getattr(args, "enable_patch_branch", patch_only or stage_b))
+    enable_patch_branch = bool(getattr(args, "enable_patch_branch", patch_only or stage_b or stage_b_v7))
 
     model = GroundingDINO(
         backbone,
@@ -1469,13 +1490,51 @@ def build_groundingdino(args):
         max_text_len=args.max_text_len,
     )
 
+    if stage_b_v7:
+        from .stage_b_v7 import StageBVerifier
+
+        model.stage_b_verifier = StageBVerifier.from_groundingdino(
+            model,
+            canonical_token_weight=float(getattr(args, "stage_b_v7_canonical_token_weight", 0.15)),
+            use_neighbor_geometry=bool(getattr(args, "stage_b_v7_use_neighbor_geometry", False)),
+        )
 
     if patch_only:
         patch_matching = str(getattr(args, "patch_matching", "hungarian")).lower().strip()
-        if stage_b and patch_matching != "hungarian":
+        if (stage_b or stage_b_v7) and patch_matching != "hungarian":
             raise ValueError("Stage B requires patch_matching='hungarian'.")
 
-        if stage_b:
+        if stage_b_v7:
+            from .patch_hungarian_criterion import PatchHungarianCriterion
+            from .stage_b_v7 import StageBV7Criterion
+
+            matcher = build_matcher(args)
+            patch_criterion = PatchHungarianCriterion(
+                matcher=matcher,
+                weight_dict={
+                    "loss_patch_ce": 0.0,
+                    "loss_bbox": 0.0,
+                    "loss_giou": 0.0,
+                },
+                focal_alpha=args.focal_alpha,
+                focal_gamma=args.focal_gamma,
+                patch_ce_reduction=str(getattr(args, "patch_ce_reduction", "legacy")),
+                patch_lambda_neg=float(getattr(args, "patch_lambda_neg", 0.25)),
+                patch_ce_neg_topk=int(getattr(args, "patch_ce_neg_topk", 0)),
+                patch_ce_neg_topk_ratio=float(getattr(args, "patch_ce_neg_topk_ratio", 0.0)),
+                patch_rank_margin=float(getattr(args, "patch_rank_margin", 0.3)),
+                patch_rank_hard_negatives=int(getattr(args, "patch_rank_hard_negatives", 16)),
+                patch_rank_include_wrong_slots=bool(getattr(args, "patch_rank_include_wrong_slots", True)),
+                patch_rank_wrong_slot_weight=float(getattr(args, "patch_rank_wrong_slot_weight", 0.5)),
+                patch_ce_positive_only_for_datasets=getattr(args, "patch_ce_positive_only_for_datasets", ()),
+            )
+            criterion = StageBV7Criterion(
+                patch_criterion=patch_criterion,
+                min_matched_iou=float(getattr(args, "stage_b_v7_min_matched_iou", 0.5)),
+                canonical_token_weight=float(getattr(args, "stage_b_v7_canonical_token_weight", 0.15)),
+                tn_token_weight=float(getattr(args, "stage_b_v7_tn_token_weight", getattr(args, "lambda_tn_neg", 1.0))),
+            )
+        elif stage_b:
             from .patch_hungarian_criterion import PatchHungarianCriterion
             from .stage_b_criterion import StageBCriterion
 
