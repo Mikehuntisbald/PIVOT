@@ -3054,6 +3054,15 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             target["orig_size"] = torch.as_tensor([int(h), int(w)])
             target["size"] = torch.as_tensor([int(h), int(w)])
             target["caption"] = caption
+            target["verifier_caption"] = caption
+            if int(self.cfg.support_num_patches_max) > 1:
+                if len(slot_canonical_texts) == len(phrases):
+                    canonical_phrases = list(slot_canonical_texts)
+                else:
+                    canonical_phrases = [self._get_canonical_name(int(cid)) for cid in support_classes_t.tolist()]
+            else:
+                canonical_phrases = [self._get_canonical_name(int(support_class.item()))]
+            target["stage_a_caption"] = self._build_caption_from_phrases(canonical_phrases)[0]
             dataset_name = (
                 meta.get("dataset_name", None)
                 or meta.get("source", None)

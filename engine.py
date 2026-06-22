@@ -203,6 +203,30 @@ def _build_stage_b_rank_subbatch(args, samples, targets, captions, patches, patc
     }
 
 
+def _stack_stage_b_v7_mask(targets, mask_key: str, device):
+    if not all(mask_key in t for t in targets):
+        return None
+    values = [t[mask_key] for t in targets]
+    if not all(torch.is_tensor(v) for v in values):
+        return None
+    if len({tuple(v.shape) for v in values}) == 1:
+        return torch.stack(values, dim=0).to(device, non_blocking=True)
+    if all(v.dim() == 2 for v in values):
+        kmax = max(int(v.shape[0]) for v in values)
+        tmax = max(int(v.shape[1]) for v in values)
+        padded = values[0].new_zeros((len(values), kmax, tmax))
+        for i, v in enumerate(values):
+            padded[i, : int(v.shape[0]), : int(v.shape[1])] = v
+        return padded.to(device, non_blocking=True)
+    if all(v.dim() == 1 for v in values):
+        kmax = max(int(v.shape[0]) for v in values)
+        padded = values[0].new_zeros((len(values), kmax))
+        for i, v in enumerate(values):
+            padded[i, : int(v.shape[0])] = v
+        return padded.to(device, non_blocking=True)
+    return None
+
+
 def _restore_rng_state(rng_state) -> None:
     if not rng_state:
         return
@@ -721,6 +745,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             Kmax = int(patch_mask.shape[1]) if (patch_mask is not None and torch.is_tensor(patch_mask)) else None
             for t in targets:
                 t2 = {k: v.to(device) for k, v in t.items() if torch.is_tensor(v) and k not in {"patch", "patches", "patch_global"}}
+                for text_key in ("stage_a_caption", "verifier_caption", "caption", "cap_list"):
+                    if text_key in t:
+                        t2[text_key] = t[text_key]
                 if Kmax is not None and "support_classes" in t2 and torch.is_tensor(t2["support_classes"]):
                     sc = t2["support_classes"].view(-1)
                     if sc.numel() < Kmax:
@@ -745,86 +772,136 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             ]
         with torch.cuda.amp.autocast(enabled=args.amp):
             if patch_only:
-                # Pass `targets` so the model can optionally build GT-guided (DN) queries in patch-only mode.
-                stage_b_mask_kwargs = {}
-                for mask_key in (
-                    "phrase_to_token_mask",
-                    "canonical_to_token_mask",
-                    "content_to_token_mask",
-                    "attr_pos_to_token_mask",
-                    "attr_neg_to_token_mask",
-                    "phrase_semantic_token_mask",
-                ):
-                    if all(mask_key in t for t in targets):
-                        values = [t[mask_key] for t in targets]
-                        if all(torch.is_tensor(v) for v in values):
-                            if len({tuple(v.shape) for v in values}) == 1:
-                                stage_b_mask_kwargs[mask_key] = torch.stack(values, dim=0).to(
-                                    device, non_blocking=True
-                                )
-                            elif all(v.dim() == 2 for v in values):
-                                kmax = max(int(v.shape[0]) for v in values)
-                                tmax = max(int(v.shape[1]) for v in values)
-                                padded = values[0].new_zeros((len(values), kmax, tmax))
-                                for i, v in enumerate(values):
-                                    padded[i, : int(v.shape[0]), : int(v.shape[1])] = v
-                                stage_b_mask_kwargs[mask_key] = padded.to(device, non_blocking=True)
-                rank_subbatch = _build_stage_b_rank_subbatch(
-                    args,
-                    samples,
-                    targets,
-                    captions,
-                    patches,
-                    patch_global,
-                    patch_mask,
-                )
-                has_rank_pairs = bool(rank_subbatch is not None and rank_subbatch.get("indices"))
-                outputs = model(
-                    samples,
-                    targets=targets,
-                    captions=captions,
-                    patches=patches,
-                    patch_global=patch_global,
-                    patch_mask=patch_mask,
-                    patch_only=True,
-                    disable_patch_dn=has_rank_pairs,
-                    patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
-                    **stage_b_mask_kwargs,
-                )
-                if rank_subbatch is not None:
-                    outputs["rank_candidate_tn_count"] = torch.as_tensor(
-                        float(rank_subbatch.get("rank_candidate_tn_count", 0)), device=device
+                if bool(getattr(args, "stage_b_v7", False)):
+                    stage_a_captions = [
+                        t.get("stage_a_caption", t.get("caption", "object ."))
+                        for t in targets
+                    ]
+                    verifier_captions = [
+                        t.get("verifier_caption", t.get("caption", "object ."))
+                        for t in targets
+                    ]
+                    phrase_to_token_mask = _stack_stage_b_v7_mask(targets, "phrase_to_token_mask", device)
+                    canonical_to_token_mask = _stack_stage_b_v7_mask(targets, "canonical_to_token_mask", device)
+                    content_to_token_mask = _stack_stage_b_v7_mask(targets, "content_to_token_mask", device)
+                    attr_pos_to_token_mask = _stack_stage_b_v7_mask(targets, "attr_pos_to_token_mask", device)
+                    attr_neg_to_token_mask = _stack_stage_b_v7_mask(targets, "attr_neg_to_token_mask", device)
+                    negative_to_token_mask = _stack_stage_b_v7_mask(targets, "negative_to_token_mask", device)
+                    attr_neg_weight_mask = _stack_stage_b_v7_mask(targets, "attr_neg_weight_mask", device)
+                    is_tn = _stack_stage_b_v7_mask(targets, "is_tn", device)
+                    outputs = model(
+                        samples,
+                        targets=targets,
+                        captions=stage_a_captions,
+                        patches=patches,
+                        patch_global=patch_global,
+                        patch_mask=patch_mask,
+                        patch_only=True,
+                        disable_patch_dn=True,
+                        patch_only_compute_text_logits=False,
+                        return_stage_b_v7_features=True,
+                        stage_b_v7_verifier_captions=verifier_captions,
+                        phrase_to_token_mask=phrase_to_token_mask,
+                        canonical_to_token_mask=canonical_to_token_mask,
+                        content_to_token_mask=content_to_token_mask,
+                        attr_pos_to_token_mask=attr_pos_to_token_mask,
+                        attr_neg_to_token_mask=attr_neg_to_token_mask,
+                        negative_to_token_mask=negative_to_token_mask,
+                        attr_neg_weight_mask=attr_neg_weight_mask,
+                        is_tn=is_tn,
                     )
-                    outputs["rank_missing_positive_count"] = torch.as_tensor(
-                        float(rank_subbatch.get("rank_missing_positive_count", 0)), device=device
+                    outputs["stage_a_captions"] = stage_a_captions
+                    outputs["verifier_captions"] = verifier_captions
+                    outputs["phrase_to_token_mask"] = phrase_to_token_mask
+                    outputs["canonical_to_token_mask"] = canonical_to_token_mask
+                    outputs["content_to_token_mask"] = content_to_token_mask
+                    outputs["attr_pos_to_token_mask"] = attr_pos_to_token_mask
+                    outputs["attr_neg_to_token_mask"] = attr_neg_to_token_mask
+                    outputs["negative_to_token_mask"] = negative_to_token_mask
+                    outputs["attr_neg_weight_mask"] = attr_neg_weight_mask
+                    outputs["is_tn"] = is_tn
+                    loss_dict = criterion(outputs, targets)
+                else:
+                    # Pass `targets` so the model can optionally build GT-guided (DN) queries in patch-only mode.
+                    stage_b_mask_kwargs = {}
+                    for mask_key in (
+                        "phrase_to_token_mask",
+                        "canonical_to_token_mask",
+                        "content_to_token_mask",
+                        "attr_pos_to_token_mask",
+                        "attr_neg_to_token_mask",
+                        "phrase_semantic_token_mask",
+                    ):
+                        if all(mask_key in t for t in targets):
+                            values = [t[mask_key] for t in targets]
+                            if all(torch.is_tensor(v) for v in values):
+                                if len({tuple(v.shape) for v in values}) == 1:
+                                    stage_b_mask_kwargs[mask_key] = torch.stack(values, dim=0).to(
+                                        device, non_blocking=True
+                                    )
+                                elif all(v.dim() == 2 for v in values):
+                                    kmax = max(int(v.shape[0]) for v in values)
+                                    tmax = max(int(v.shape[1]) for v in values)
+                                    padded = values[0].new_zeros((len(values), kmax, tmax))
+                                    for i, v in enumerate(values):
+                                        padded[i, : int(v.shape[0]), : int(v.shape[1])] = v
+                                    stage_b_mask_kwargs[mask_key] = padded.to(device, non_blocking=True)
+                    rank_subbatch = _build_stage_b_rank_subbatch(
+                        args,
+                        samples,
+                        targets,
+                        captions,
+                        patches,
+                        patch_global,
+                        patch_mask,
                     )
-                    outputs["rank_invalid_positive_count"] = torch.as_tensor(
-                        float(rank_subbatch.get("rank_invalid_positive_count", 0)), device=device
+                    has_rank_pairs = bool(rank_subbatch is not None and rank_subbatch.get("indices"))
+                    outputs = model(
+                        samples,
+                        targets=targets,
+                        captions=captions,
+                        patches=patches,
+                        patch_global=patch_global,
+                        patch_mask=patch_mask,
+                        patch_only=True,
+                        disable_patch_dn=has_rank_pairs,
+                        patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
+                        **stage_b_mask_kwargs,
                     )
-                    if rank_subbatch["indices"]:
-                        rank_pos_outputs = model(
-                            rank_subbatch["samples"],
-                            targets=rank_subbatch["targets"],
-                            captions=rank_subbatch["captions"],
-                            patches=rank_subbatch["patches"],
-                            patch_global=rank_subbatch["patch_global"],
-                            patch_mask=rank_subbatch["patch_mask"],
-                            patch_only=True,
-                            disable_patch_dn=True,
-                            patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
-                            phrase_to_token_mask=torch.stack(
-                                [t["phrase_to_token_mask"] for t in rank_subbatch["targets"]], dim=0
-                            ),
-                            canonical_to_token_mask=torch.stack(
-                                [t["canonical_to_token_mask"] for t in rank_subbatch["targets"]], dim=0
-                            ),
+                    if rank_subbatch is not None:
+                        outputs["rank_candidate_tn_count"] = torch.as_tensor(
+                            float(rank_subbatch.get("rank_candidate_tn_count", 0)), device=device
                         )
-                        outputs["rank_pos_outputs"] = rank_pos_outputs
-                        outputs["rank_pos_targets"] = rank_subbatch["targets"]
-                        outputs["rank_pair_map"] = torch.as_tensor(
-                            rank_subbatch["indices"], dtype=torch.long, device=device
+                        outputs["rank_missing_positive_count"] = torch.as_tensor(
+                            float(rank_subbatch.get("rank_missing_positive_count", 0)), device=device
                         )
-                loss_dict = criterion(outputs, targets)
+                        outputs["rank_invalid_positive_count"] = torch.as_tensor(
+                            float(rank_subbatch.get("rank_invalid_positive_count", 0)), device=device
+                        )
+                        if rank_subbatch["indices"]:
+                            rank_pos_outputs = model(
+                                rank_subbatch["samples"],
+                                targets=rank_subbatch["targets"],
+                                captions=rank_subbatch["captions"],
+                                patches=rank_subbatch["patches"],
+                                patch_global=rank_subbatch["patch_global"],
+                                patch_mask=rank_subbatch["patch_mask"],
+                                patch_only=True,
+                                disable_patch_dn=True,
+                                patch_only_compute_text_logits=bool(getattr(args, "patch_only_compute_text_logits", False)),
+                                phrase_to_token_mask=torch.stack(
+                                    [t["phrase_to_token_mask"] for t in rank_subbatch["targets"]], dim=0
+                                ),
+                                canonical_to_token_mask=torch.stack(
+                                    [t["canonical_to_token_mask"] for t in rank_subbatch["targets"]], dim=0
+                                ),
+                            )
+                            outputs["rank_pos_outputs"] = rank_pos_outputs
+                            outputs["rank_pos_targets"] = rank_subbatch["targets"]
+                            outputs["rank_pair_map"] = torch.as_tensor(
+                                rank_subbatch["indices"], dtype=torch.long, device=device
+                            )
+                    loss_dict = criterion(outputs, targets)
             else:
                 gdino_mask_kwargs = {}
                 for mask_key in (
