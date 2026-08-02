@@ -44,6 +44,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
     _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
     _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
+    _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
     _build_split_jsonl,
     _canonical_ref_split_seed_map,
     _ckpt_run_prefix,
@@ -70,6 +71,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _validate_v55_fulltext_global_independent_absolute_config,
     _validate_v56_deployment_owned_global_config,
     _validate_v57_deployed_global_balanced_absolute_config,
+    _validate_v58_deployment_owned_stable_fpr95_active_set_config,
     _verify_v39_immutable_archived_diagnostic_files,
     _verify_v40_immutable_archived_diagnostic_files,
     _verify_v41_immutable_archived_diagnostic_files,
@@ -418,6 +420,12 @@ _DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_CONFIDENCE_U0400_CONFIG = (
     / "config/ablations/"
     "cfg_stageb_dense_duty_confidence_adapter_deployed_global_"
     "balanced_absolute_probe_u0400_20260802.py"
+)
+_DEPLOYMENT_OWNED_GLOBAL_STABLE_FPR95_ACTIVE_SET_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_global_"
+    "stable_fpr95_active_set_probe_u0400_20260802.py"
 )
 _V39_IMMUTABLE_ARCHIVED_SNAPSHOT_ROOT = (
     REPO_ROOT
@@ -1568,6 +1576,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
+        _DEPLOYMENT_OWNED_GLOBAL_STABLE_FPR95_ACTIVE_SET_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_probe = observed_config in {
@@ -1651,6 +1662,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         ),
         _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
         _DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
+        _DEPLOYMENT_OWNED_GLOBAL_STABLE_FPR95_ACTIVE_SET_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
@@ -1854,10 +1868,17 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
+    deployment_owned_global_stable_fpr95_active_set_confidence_u0400 = (
+        observed_config
+        == _DEPLOYMENT_OWNED_GLOBAL_STABLE_FPR95_ACTIVE_SET_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        )
+    )
     deployment_owned_global_confidence_u0400 = (
         observed_config
         == _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
         or deployed_global_balanced_absolute_confidence_u0400
+        or deployment_owned_global_stable_fpr95_active_set_confidence_u0400
     )
     candidate_gate_zero_offset_family = (
         candidate_gate_zero_offset_confidence_u0400
@@ -2023,6 +2044,8 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         try:
             if deployed_global_balanced_absolute_confidence_u0400:
                 _validate_v57_deployed_global_balanced_absolute_config(cfg)
+            elif deployment_owned_global_stable_fpr95_active_set_confidence_u0400:
+                _validate_v58_deployment_owned_stable_fpr95_active_set_config(cfg)
             else:
                 _validate_v56_deployment_owned_global_config(cfg)
         except (RuntimeError, TypeError, ValueError) as exc:
@@ -2283,9 +2306,13 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             )
         elif deployment_owned_global_confidence_u0400:
             expected_veto_revision = (
-                _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION
-                if deployed_global_balanced_absolute_confidence_u0400
-                else _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION
+                _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION
+                if deployment_owned_global_stable_fpr95_active_set_confidence_u0400
+                else (
+                    _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION
+                    if deployed_global_balanced_absolute_confidence_u0400
+                    else _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION
+                )
             )
     elif cross_attention_absolute_confidence_u0300:
         expected_veto_aggregation = (
