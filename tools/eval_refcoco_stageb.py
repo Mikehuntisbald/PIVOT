@@ -632,6 +632,36 @@ _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION = (
 _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_TRAINING_CONTRACT_SCHEMA = (
     "pivot.stageb.dense_duty_training_contract/v40"
 )
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION = (
+    "word_veto_rank_full_expression_deployment_owned_query_global_v59"
+)
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_HEAD_CONTRACT = (
+    "split_token_veto_deployment_owned_query_global_absolute_v10"
+)
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_POOL_FEATURE_CONTRACT = (
+    "detached_rank_full_expression_monotone_query_"
+    "deployment_owned_global_pool_v14"
+)
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_POSITIVE_TRUST = (
+    "absolute_global_confidence_logit_v2"
+)
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_TRAINABLE_PARAMS = 534_725
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_TRAINING_CONTRACT_SCHEMA = (
+    "pivot.stageb.dense_duty_training_contract/v41"
+)
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_MIGRATION_SCHEMA = (
+    "pivot.stageb.rank_to_token_confidence_adapter_"
+    "deployment_owned_query_global_absolute/v24"
+)
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_FRESH_CONFIDENCE_CONTRACT = (
+    "token_adapter_rank_full_expression_deployment_owned_monotone_"
+    "query_global_absolute_v22"
+)
+_V59_TOKEN_VETO_TENSOR_COUNT = 21
+_V59_GLOBAL_ABSOLUTE_TENSOR_COUNT = 44
+_V59_ACTIVE_PARAMETER_TENSOR_COUNT = 65
+_V59_DEPLOYED_QUERY_PARAMETER_TENSOR_COUNT = 6
+_V59_DEPLOYED_QUERY_PARAMETER_ELEMENT_COUNT = 66_561
 
 _V39_IMMUTABLE_ARCHIVED_CONFIG = (
     REPO_ROOT
@@ -3739,6 +3769,43 @@ def _validate_v58_deployment_owned_stable_fpr95_active_set_config(cfg) -> bool:
     return matched
 
 
+def _validate_v59_deployment_owned_query_global_config(cfg) -> bool:
+    """Validate V59's query-structured, deployment-owned global surface."""
+    matched = _validate_fulltext_global_absolute_config(
+        cfg,
+        revision_contract=_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
+        head_contract=_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_HEAD_CONTRACT,
+        gate_contract=_V56_DEPLOYMENT_OWNED_GLOBAL_GATE_CONTRACT,
+        pool_feature_contract=(
+            _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_POOL_FEATURE_CONTRACT
+        ),
+        routing_weight=_V56_DEPLOYMENT_OWNED_GLOBAL_ROUTING_WEIGHT,
+        routing_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_ROUTING_REDUCTION,
+        trust_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_TRUST_REDUCTION,
+        positive_trust=_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_POSITIVE_TRUST,
+        negative_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_NEGATIVE_REDUCTION,
+        carrier_selector=_V56_DEPLOYMENT_OWNED_GLOBAL_CARRIER_SELECTOR,
+        source_updates=_V56_DEPLOYMENT_OWNED_GLOBAL_SOURCE_UPDATES,
+        trainable_params=_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_TRAINABLE_PARAMS,
+        revision_label="v59",
+    )
+    if matched and (
+        float(getattr(cfg, "stage_b_v14_local_absolute_weight", -1.0)) != 0.0
+        or float(
+            getattr(
+                cfg,
+                "stage_b_dense_duty_deployed_global_absolute_weight",
+                -1.0,
+            )
+        )
+        != 0.0
+    ):
+        raise RuntimeError(
+            "v59 requires candidate-local and deployed-global BCE weights=0"
+        )
+    return matched
+
+
 def _validate_fulltext_two_owner_runtime_audit(
     runtime: Mapping[str, Any],
     *,
@@ -3899,6 +3966,22 @@ def _validate_v56_two_owner_runtime_audit(
         token_veto_tensor_count=_V56_TOKEN_VETO_TENSOR_COUNT,
         global_absolute_tensor_count=_V56_GLOBAL_ABSOLUTE_TENSOR_COUNT,
         revision_label="v56",
+    )
+
+
+def _validate_v59_two_owner_runtime_audit(
+    runtime: Mapping[str, Any],
+    *,
+    optimizer_updates: int,
+) -> None:
+    """Require exact V59 token/deployed-query-global owner evidence."""
+    _validate_fulltext_two_owner_runtime_audit(
+        runtime,
+        optimizer_updates=optimizer_updates,
+        clip_contract_schema=_V56_TWO_OWNER_CLIP_CONTRACT_SCHEMA,
+        token_veto_tensor_count=_V59_TOKEN_VETO_TENSOR_COUNT,
+        global_absolute_tensor_count=_V59_GLOBAL_ABSOLUTE_TENSOR_COUNT,
+        revision_label="v59",
     )
 
 
@@ -4211,6 +4294,8 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
             _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
             _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
+            _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
+            _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
         }
         and phrase_aggregation
         == "trace_activated_word_veto_gated_pool_absolute_cap_v5"
@@ -4292,6 +4377,9 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
     )
     word_veto_v58_revision_contract = (
         _validate_v58_deployment_owned_stable_fpr95_active_set_config(cfg)
+    )
+    word_veto_v59_revision_contract = (
+        _validate_v59_deployment_owned_query_global_config(cfg)
     )
     word_veto_v56_revision_contract = (
         _validate_v56_deployment_owned_global_config(cfg)
@@ -4585,6 +4673,62 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 "v56 checkpoint lacks the exact deployment-owned migration audit: "
                 + json.dumps(drift, sort_keys=True)
             )
+    if word_veto_v59_revision_contract:
+        saved_training_contract = saved_args.get(
+            "stage_b_dense_duty_training_contract"
+        )
+        if (
+            not isinstance(saved_training_contract, Mapping)
+            or saved_training_contract.get("schema")
+            != _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_TRAINING_CONTRACT_SCHEMA
+            or not isinstance(saved_training_contract.get("values"), Mapping)
+        ):
+            raise RuntimeError(
+                "v59 confidence checkpoint requires its exact v41 training contract"
+            )
+        migration_audit = saved_args.get(
+            "stage_b_dense_duty_confidence_adapter_migration_audit"
+        )
+        expected_migration = {
+            "schema": _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_MIGRATION_SCHEMA,
+            "source_optimizer_updates": _V56_DEPLOYMENT_OWNED_GLOBAL_SOURCE_UPDATES,
+            "fresh_confidence_contract": (
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_FRESH_CONFIDENCE_CONTRACT
+            ),
+            "head_gradient_contract": (
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_HEAD_CONTRACT
+            ),
+            "pool_feature_contract": (
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_POOL_FEATURE_CONTRACT
+            ),
+            "active_confidence_parameter_tensor_count": (
+                _V59_ACTIVE_PARAMETER_TENSOR_COUNT
+            ),
+            "active_confidence_parameter_element_count": (
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_TRAINABLE_PARAMS
+            ),
+            "deployed_query_parameter_tensor_count": (
+                _V59_DEPLOYED_QUERY_PARAMETER_TENSOR_COUNT
+            ),
+            "deployed_query_parameter_element_count": (
+                _V59_DEPLOYED_QUERY_PARAMETER_ELEMENT_COUNT
+            ),
+            "deployed_query_requires_grad_count": (
+                _V59_DEPLOYED_QUERY_PARAMETER_TENSOR_COUNT
+            ),
+        }
+        if not isinstance(migration_audit, Mapping):
+            raise RuntimeError("v59 checkpoint lacks a migration audit mapping")
+        drift = {
+            key: (migration_audit.get(key), value)
+            for key, value in expected_migration.items()
+            if migration_audit.get(key) != value
+        }
+        if drift:
+            raise RuntimeError(
+                "v59 checkpoint lacks the exact deployed-query migration audit: "
+                + json.dumps(drift, sort_keys=True)
+            )
     token_edit_query_scope = str(
         getattr(cfg, "stage_b_v21_token_edit_query_scope", "target_iou_v1")
     ).strip().lower()
@@ -4671,6 +4815,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             or word_veto_v54_revision_contract
             or word_veto_v55_revision_contract
             or word_veto_v56_revision_contract
+            or word_veto_v59_revision_contract
         )
         and expected_updates == 400
     )
@@ -4952,6 +5097,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                                                 or word_veto_v54_revision_contract
                                                 or word_veto_v55_revision_contract
                                                 or word_veto_v56_revision_contract
+                                                or word_veto_v59_revision_contract
                                             )
                                             else (
                                                 "candidate_normalized_patch_amplified_monotone_veto_absolute_logit_v12"
@@ -4987,6 +5133,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                                     or word_veto_v54_revision_contract
                                     or word_veto_v55_revision_contract
                                     or word_veto_v56_revision_contract
+                                    or word_veto_v59_revision_contract
                                 )
                                 else "token_conditioned_ungated_monotone_depth_v6"
                             )
@@ -5009,6 +5156,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                         or word_veto_v54_revision_contract
                         or word_veto_v55_revision_contract
                         or word_veto_v56_revision_contract
+                        or word_veto_v59_revision_contract
                     )
                     else (
                         "continuous_sigmoid_monotone_depth_v4"
@@ -5065,6 +5213,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         if (
             word_veto_v55_revision_contract
             or word_veto_v56_revision_contract
+            or word_veto_v59_revision_contract
         )
         else (
             "exact_frozen_rank_max_confidence_delta_v3"
@@ -5155,6 +5304,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                         or word_veto_v54_revision_contract
                         or word_veto_v55_revision_contract
                         or word_veto_v56_revision_contract
+                        or word_veto_v59_revision_contract
                     )
                     and expected_updates == 400
                 )
@@ -5254,6 +5404,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION: "v56",
             _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION: "v57",
             _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION: "v58",
+            _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION: "v59",
         }.get(confidence_revision)
         terminal_probe_label = (
             f"terminal U{expected_updates} {terminal_revision_label} probe"
@@ -5428,6 +5579,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
             _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
             _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
+            _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
         }:
             required_equal_args += (
                 "stage_b_dense_duty_raw_veto_tn_carrier_balance",
@@ -5468,6 +5620,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
                 _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
                 _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
             }:
                 required_equal_args += (
                     "stage_b_dense_duty_raw_veto_carrier_pair_weight",
@@ -5507,6 +5660,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
                 _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
                 _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
             }:
                 required_equal_args += (
                     "stage_b_dense_duty_confidence_rank_evidence_contract",
@@ -5545,6 +5699,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
                 _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
                 _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
             }:
                 required_equal_args += (
                     "stage_b_dense_duty_confidence_gate_gradient_contract",
@@ -5559,6 +5714,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 or word_veto_v54_revision_contract
                 or word_veto_v55_revision_contract
                 or word_veto_v56_revision_contract
+                or word_veto_v59_revision_contract
             ):
                 required_equal_args += (
                     "stage_b_v21_token_edit_query_scope",
@@ -5580,6 +5736,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 or word_veto_v54_revision_contract
                 or word_veto_v55_revision_contract
                 or word_veto_v56_revision_contract
+                or word_veto_v59_revision_contract
             ):
                 required_equal_args += (
                     "stage_b_dense_duty_confidence_head_gradient_contract",
@@ -5595,6 +5752,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 or word_veto_v54_revision_contract
                 or word_veto_v55_revision_contract
                 or word_veto_v56_revision_contract
+                or word_veto_v59_revision_contract
             ):
                 required_equal_args += (
                     "stage_b_v15_tail_queue_negative_reduction_contract",
@@ -5674,6 +5832,11 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         )
     if word_veto_v56_revision_contract:
         _validate_v56_two_owner_runtime_audit(
+            runtime,
+            optimizer_updates=observed_updates,
+        )
+    if word_veto_v59_revision_contract:
+        _validate_v59_two_owner_runtime_audit(
             runtime,
             optimizer_updates=observed_updates,
         )
@@ -5863,6 +6026,13 @@ def _bind_dense_duty_formal_probe_admission(cfg) -> None:
         from tools import (
             run_stageb_confidence_adapter_deployment_owned_global_stable_fpr95_active_set_probe_evaluation
             as promotion,
+        )
+    elif contract == (
+        "u400_word_veto_rank_full_expression_deployment_owned_query_"
+        "global_confidence_strict1607_v59"
+    ):
+        from tools import (
+            run_stageb_confidence_adapter_deployment_owned_query_global_probe_evaluation as promotion,
         )
     else:
         return

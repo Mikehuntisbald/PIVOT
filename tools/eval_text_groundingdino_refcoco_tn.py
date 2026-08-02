@@ -45,6 +45,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
     _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
     _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
+    _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
     _build_split_jsonl,
     _canonical_ref_split_seed_map,
     _ckpt_run_prefix,
@@ -72,6 +73,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _validate_v56_deployment_owned_global_config,
     _validate_v57_deployed_global_balanced_absolute_config,
     _validate_v58_deployment_owned_stable_fpr95_active_set_config,
+    _validate_v59_deployment_owned_query_global_config,
     _verify_v39_immutable_archived_diagnostic_files,
     _verify_v40_immutable_archived_diagnostic_files,
     _verify_v41_immutable_archived_diagnostic_files,
@@ -426,6 +428,12 @@ _DEPLOYMENT_OWNED_GLOBAL_STABLE_FPR95_ACTIVE_SET_CONFIDENCE_U0400_CONFIG = (
     / "config/ablations/"
     "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_global_"
     "stable_fpr95_active_set_probe_u0400_20260802.py"
+)
+_DEPLOYMENT_OWNED_QUERY_GLOBAL_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_query_global_"
+    "probe_u0400_20260802.py"
 )
 _V39_IMMUTABLE_ARCHIVED_SNAPSHOT_ROOT = (
     REPO_ROOT
@@ -1579,6 +1587,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _DEPLOYMENT_OWNED_GLOBAL_STABLE_FPR95_ACTIVE_SET_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
+        _DEPLOYMENT_OWNED_QUERY_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_probe = observed_config in {
@@ -1665,6 +1676,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         ),
         _DEPLOYMENT_OWNED_GLOBAL_STABLE_FPR95_ACTIVE_SET_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
+        _DEPLOYMENT_OWNED_QUERY_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
@@ -1874,11 +1888,18 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
+    deployment_owned_query_global_confidence_u0400 = (
+        observed_config
+        == _DEPLOYMENT_OWNED_QUERY_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        )
+    )
     deployment_owned_global_confidence_u0400 = (
         observed_config
         == _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
         or deployed_global_balanced_absolute_confidence_u0400
         or deployment_owned_global_stable_fpr95_active_set_confidence_u0400
+        or deployment_owned_query_global_confidence_u0400
     )
     candidate_gate_zero_offset_family = (
         candidate_gate_zero_offset_confidence_u0400
@@ -2042,7 +2063,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             errors.append(str(exc))
     if deployment_owned_global_confidence_u0400:
         try:
-            if deployed_global_balanced_absolute_confidence_u0400:
+            if deployment_owned_query_global_confidence_u0400:
+                _validate_v59_deployment_owned_query_global_config(cfg)
+            elif deployed_global_balanced_absolute_confidence_u0400:
                 _validate_v57_deployed_global_balanced_absolute_config(cfg)
             elif deployment_owned_global_stable_fpr95_active_set_confidence_u0400:
                 _validate_v58_deployment_owned_stable_fpr95_active_set_config(cfg)
@@ -2306,7 +2329,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             )
         elif deployment_owned_global_confidence_u0400:
             expected_veto_revision = (
-                _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION
+                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION
+                if deployment_owned_query_global_confidence_u0400
+                else _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION
                 if deployment_owned_global_stable_fpr95_active_set_confidence_u0400
                 else (
                     _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION
@@ -2486,46 +2511,51 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         ).strip()
         != (
             (
-                "detached_rank_full_expression_deployment_owned_global_pool_v13"
-                if deployment_owned_global_confidence_u0400
+                "detached_rank_full_expression_monotone_query_"
+                "deployment_owned_global_pool_v14"
+                if deployment_owned_query_global_confidence_u0400
                 else (
-                    "detached_rank_full_expression_local_candidate_"
-                    "frozen_rank_global_pool_v12"
-                    if fulltext_global_independent_absolute_confidence_u0400
+                    "detached_rank_full_expression_deployment_owned_global_pool_v13"
+                    if deployment_owned_global_confidence_u0400
                     else (
-                        "detached_rank_full_expression_candidate_residual_global_pool_"
-                        "exact_rank_max_reference_v11"
-                        if fulltext_global_absolute_exact_residual_confidence_u0400
+                        "detached_rank_full_expression_local_candidate_"
+                        "frozen_rank_global_pool_v12"
+                        if fulltext_global_independent_absolute_confidence_u0400
                         else (
-                            "detached_rank_full_expression_candidate_residual_global_pool_v10"
-                            if fulltext_global_absolute_confidence_u0400
+                            "detached_rank_full_expression_candidate_residual_global_pool_"
+                            "exact_rank_max_reference_v11"
+                            if fulltext_global_absolute_exact_residual_confidence_u0400
                             else (
-                                "detached_candidate_absolute_patch_invariant_"
-                                "monotone_veto_logits_v6"
-                                if candidate_calibrated_confidence_u0400
+                                "detached_rank_full_expression_candidate_residual_global_pool_v10"
+                                if fulltext_global_absolute_confidence_u0400
                                 else (
-                                    "detached_candidate_absolute_raw_patch_"
-                                    "asymmetric_veto_logits_v8"
-                                    if (
-                                        candidate_asymmetric_confidence_u0400
-                                        or candidate_q05_confidence_u0400
-                                        or candidate_tail_balanced_confidence_u0400
-                                        or candidate_tail_quarter_confidence_u0400
-                                        or candidate_tail_bounded_confidence_u0400
-                                        or candidate_tail_elementwise_confidence_u0400
-                                        or candidate_gate_zero_offset_family
-                                    )
+                                    "detached_candidate_absolute_patch_invariant_"
+                                    "monotone_veto_logits_v6"
+                                    if candidate_calibrated_confidence_u0400
                                     else (
-                                        "detached_candidate_set_attention_absolute_"
-                                        "asymmetric_veto_logits_v9"
-                                        if candidate_set_attention_confidence_u0400
+                                        "detached_candidate_absolute_raw_patch_"
+                                        "asymmetric_veto_logits_v8"
+                                        if (
+                                            candidate_asymmetric_confidence_u0400
+                                            or candidate_q05_confidence_u0400
+                                            or candidate_tail_balanced_confidence_u0400
+                                            or candidate_tail_quarter_confidence_u0400
+                                            or candidate_tail_bounded_confidence_u0400
+                                            or candidate_tail_elementwise_confidence_u0400
+                                            or candidate_gate_zero_offset_family
+                                        )
                                         else (
-                                            "detached_candidate_absolute_normalized_patch_"
-                                            "amplified_veto_logits_v7"
-                                            if candidate_normalized_confidence_u0400
+                                            "detached_candidate_set_attention_absolute_"
+                                            "asymmetric_veto_logits_v9"
+                                            if candidate_set_attention_confidence_u0400
                                             else (
-                                                "detached_query_modifier_cross_attention_"
-                                                "candidate_absolute_logits_v5"
+                                                "detached_candidate_absolute_normalized_patch_"
+                                                "amplified_veto_logits_v7"
+                                                if candidate_normalized_confidence_u0400
+                                                else (
+                                                    "detached_query_modifier_cross_attention_"
+                                                    "candidate_absolute_logits_v5"
+                                                )
                                             )
                                         )
                                     )
@@ -2988,22 +3018,26 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             getattr(cfg, "stage_b_dense_duty_positive_trust_contract", "")
         )
         != (
-            "absolute_global_pool_logit_v4"
-            if (
+            "absolute_global_confidence_logit_v2"
+            if deployment_owned_query_global_confidence_u0400
+            else (
+                "absolute_global_pool_logit_v4"
+                if (
                 fulltext_global_independent_absolute_confidence_u0400
                 or deployment_owned_global_confidence_u0400
-            )
-            else (
-                "exact_frozen_rank_max_confidence_delta_v3"
-                if fulltext_global_absolute_exact_residual_confidence_u0400
+                )
                 else (
-                    "absolute_global_confidence_logit_v2"
-                    if (
-                        independent_absolute_confidence_u0300
-                        or cross_attention_absolute_confidence_u0300
-                        or candidate_absolute_confidence_probe
+                    "exact_frozen_rank_max_confidence_delta_v3"
+                    if fulltext_global_absolute_exact_residual_confidence_u0400
+                    else (
+                        "absolute_global_confidence_logit_v2"
+                        if (
+                            independent_absolute_confidence_u0300
+                            or cross_attention_absolute_confidence_u0300
+                            or candidate_absolute_confidence_probe
+                        )
+                        else "net_total_confidence_delta_v1"
                     )
-                    else "net_total_confidence_delta_v1"
                 )
             )
         )
