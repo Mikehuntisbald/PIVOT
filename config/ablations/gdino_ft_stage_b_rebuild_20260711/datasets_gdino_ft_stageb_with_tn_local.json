@@ -1,0 +1,44 @@
+{
+  "train": [
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "data/ablations/ogc_original_finetune_stage_a_20260711/stagea_odvg_train_0_lvis.jsonl",
+      "label_map": "data/ablations/ogc_original_finetune_stage_a_20260711/stagea_odvg_canonical_label_map.json",
+      "mix_weight": 2.0
+    },
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "data/ablations/ogc_original_finetune_stage_a_20260711/stagea_odvg_train_1_coco.jsonl",
+      "label_map": "data/ablations/ogc_original_finetune_stage_a_20260711/stagea_odvg_canonical_label_map.json",
+      "mix_weight": 2.0
+    },
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/home/user/PIVOT/data/ablations/gdino_ft_stage_b_rebuild_20260711/stageb_gdino_ft_0_refcocoplus_stageb_phrase_v1_vg.jsonl",
+      "mix_weight": 2.0
+    },
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/home/user/PIVOT/data/ablations/gdino_ft_stage_b_rebuild_20260711/stageb_gdino_ft_1_refcocog_stageb_phrase_v1_vg.jsonl",
+      "mix_weight": 2.0
+    },
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/home/user/PIVOT/data/ablations/gdino_ft_stage_b_rebuild_20260711/stageb_gdino_ft_refexp_tn_stageb_v1_vg_empty.jsonl",
+      "mix_weight": 1.0
+    }
+  ],
+  "val": [
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "data/ablations/ogc_original_finetune_stage_a_20260711/stagea_odvg_val_0_lvis.jsonl",
+      "label_map": "data/ablations/ogc_original_finetune_stage_a_20260711/stagea_odvg_canonical_label_map.json"
+    }
+  ]
+}

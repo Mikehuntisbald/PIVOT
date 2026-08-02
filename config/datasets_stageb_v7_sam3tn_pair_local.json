@@ -1,0 +1,53 @@
+{
+  "train": [
+    {
+      "dataset_mode": "patch_episode",
+      "source": "sam3_tn_pair",
+      "root": "/home/user/datasets/pivot_data/COCO/coco2014/train2014",
+      "sam3_tn_image_root": "/home/user/datasets/pivot_data/COCO/coco2014/train2014",
+      "anno": "/home/user/PIVOT/sam3_and_tn/refcocoplus_sam3_washed_try_tn_llm_head.jsonl",
+      "box_format": "xywh",
+      "sam3_tn_bbox_key": "sam_bbox",
+      "canonical_classes_json": "/home/user/PIVOT/canonical_classes_with_aliases.json",
+      "support_patch_tsv": "${DATA_ROOT}/patches_quality_emb/emb_index_from_quality.tsv",
+      "support_patch_bucket": "clean",
+      "support_patch_use_embedding": false,
+      "support_patch_image_root": "${DATA_ROOT}/patches_quality",
+      "support_patch_max_per_class": 200,
+      "patch_emb_cache_size": 4096,
+      "keep_only_support_gt": true,
+      "support_min_count": 1,
+      "support_patch_size": 224,
+      "build_text_token_masks": true,
+      "text_mask_skip_invalid_canonical": false,
+      "tn_balance_sampling": true,
+      "tn_balance_cap": 5.0,
+      "mix_weight": 1.0
+    },
+    {
+      "dataset_mode": "patch_episode",
+      "source": "sam3_tn_pair",
+      "root": "/home/user/datasets/pivot_data/COCO/coco2014/train2014",
+      "sam3_tn_image_root": "/home/user/datasets/pivot_data/COCO/coco2014/train2014",
+      "anno": "/home/user/PIVOT/sam3_and_tn/refcocog_sam3_washed_try_tn_llm_head.jsonl",
+      "box_format": "xywh",
+      "sam3_tn_bbox_key": "sam_bbox",
+      "canonical_classes_json": "/home/user/PIVOT/canonical_classes_with_aliases.json",
+      "support_patch_tsv": "${DATA_ROOT}/patches_quality_emb/emb_index_from_quality.tsv",
+      "support_patch_bucket": "clean",
+      "support_patch_use_embedding": false,
+      "support_patch_image_root": "${DATA_ROOT}/patches_quality",
+      "support_patch_max_per_class": 200,
+      "patch_emb_cache_size": 4096,
+      "keep_only_support_gt": true,
+      "support_min_count": 1,
+      "support_patch_size": 224,
+      "build_text_token_masks": true,
+      "text_mask_skip_invalid_canonical": false,
+      "tn_balance_sampling": true,
+      "tn_balance_cap": 5.0,
+      "mix_weight": 1.0
+    }
+  ],
+  "val": []
+}

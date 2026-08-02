@@ -1,0 +1,87 @@
+{
+  "baseline_experiment": "gdino_stageb_data_ft_b58",
+  "bootstrap": {
+    "confidence": 0.95,
+    "iterations": 5000,
+    "seed": 20260717
+  },
+  "expected_train_seeds": [
+    42
+  ],
+  "experiments": [
+    {
+      "expected_train_seeds": [
+        42
+      ],
+      "id": "gdino_stageb_data_ft_b58",
+      "label": "GDINO Stage-B data FT b58 (historical single train seed 42)",
+      "reference_role": "fixed_historical_checkpoint",
+      "runs": [
+        {
+          "checkpoint": {
+            "path": "/media/haoyi/T9/gdino/outputs/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch/checkpoint0001.pth",
+            "sha256": "b58e5209dc07dbffb2e5ed3d792e0db70c3306ec2ed24389693b4aeeebab1157",
+            "size_bytes": 1199416771
+          },
+          "config": {
+            "path": "/media/haoyi/T9/gdino/outputs/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch/config_cfg.py",
+            "sha256": "f0dc568c6f35225176712618d5f3449b253478ef32a2b65fa9e089da1ad8a05f",
+            "size_bytes": 3110
+          },
+          "data": [
+            {
+              "label": "resolved dataset configuration",
+              "path": "/media/haoyi/T9/gdino/config/ablations/datasets_gdino_ft_stageb_with_tn_local.json",
+              "sha256": "70246f7878ddfd7aafbe253f8e88ddb49a89fef2dd0ca1fa34260da39babe38e",
+              "size_bytes": 1620
+            },
+            {
+              "label": "LVIS Stage-A ODVG train",
+              "path": "/media/haoyi/T9/gdino/data/ablations/ogc_original_finetune_stage_a/stagea_odvg_train_0_lvis.jsonl"
+            },
+            {
+              "label": "COCO Stage-A ODVG train",
+              "path": "/media/haoyi/T9/gdino/data/ablations/ogc_original_finetune_stage_a/stagea_odvg_train_1_coco.jsonl"
+            },
+            {
+              "label": "canonical label map",
+              "path": "/media/haoyi/T9/gdino/data/ablations/ogc_original_finetune_stage_a/stagea_odvg_canonical_label_map.json"
+            },
+            {
+              "label": "RefCOCO+ Stage-B positives",
+              "path": "/media/haoyi/T9/gdino/data/ablations/gdino_ft_stage_b/stageb_gdino_ft_0_refcocoplus_stageb_phrase_v1_vg.jsonl"
+            },
+            {
+              "label": "RefCOCOg Stage-B positives",
+              "path": "/media/haoyi/T9/gdino/data/ablations/gdino_ft_stage_b/stageb_gdino_ft_1_refcocog_stageb_phrase_v1_vg.jsonl"
+            },
+            {
+              "label": "Stage-B TN all-negative focal data",
+              "path": "/media/haoyi/T9/gdino/data/ablations/gdino_ft_stage_b/stageb_gdino_ft_refexp_tn_stageb_v1_vg_empty.jsonl"
+            }
+          ],
+          "ref_eval_root": "../../outputs/paper_cvpr_v1/baseline_b58_ref8_seed42",
+          "run_id": "gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch_checkpoint0001",
+          "strict1607_eval_root": "../../outputs/paper_cvpr_v1/baseline_b58_strict1607_seed42_v3_contract",
+          "strict2031_eval_root": "../../outputs/paper_cvpr_v1/baseline_b58_strict2031_seed42_v3_contract",
+          "train_seed": 42
+        }
+      ]
+    }
+  ],
+  "schema": "stageb-paper-results-build-spec-v1",
+  "strict_source_manifests": {
+    "strict1607": {
+      "expected_n": 1607,
+      "path": "../../data/eval_manifests/stageb_vlm_verified_strict_ann_umd_val_20260711/semantic_stageb_union_image_disjoint_manifest.jsonl",
+      "sha256": "f2dc97d58884b8de3ae2c8b4cefd281432e15c8952b23b5e0252eb8e5be36d25",
+      "size_bytes": 4816596
+    },
+    "strict2031": {
+      "expected_n": 2031,
+      "path": "../../data/eval_manifests/stageb_vlm_verified_strict_ann_umd_val_20260711/eval_manifest.jsonl",
+      "sha256": "0e47763c01178d63ee22430a6c93d4fc6a210848d43f32aafbb2e6cd7243e918",
+      "size_bytes": 6077740
+    }
+  }
+}

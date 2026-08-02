@@ -1,0 +1,23 @@
+{
+  "train": [
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/home/user/PIVOT/data/ablations/gdino_ft_stage_b_rebuild_three_ref_20260711/stageb_gdino_ft_refcoco_stageb_phrase_v1_vg.jsonl",
+      "mix_weight": 2.0
+    },
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/home/user/PIVOT/data/ablations/gdino_ft_stage_b_rebuild_20260711/stageb_gdino_ft_0_refcocoplus_stageb_phrase_v1_vg.jsonl",
+      "mix_weight": 2.0
+    },
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/home/user/PIVOT/data/ablations/gdino_ft_stage_b_rebuild_20260711/stageb_gdino_ft_1_refcocog_stageb_phrase_v1_vg.jsonl",
+      "mix_weight": 2.0
+    }
+  ],
+  "val": []
+}

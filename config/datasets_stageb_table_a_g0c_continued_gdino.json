@@ -1,0 +1,29 @@
+{
+  "train": [
+    {
+      "anno": "/media/haoyi/T9/pivot/data/ablations/stageb_table_a_continued_gdino_20260717/positive_0.jsonl",
+      "dataset_mode": "odvg",
+      "mix_weight": 1.0,
+      "root": "/"
+    },
+    {
+      "anno": "/media/haoyi/T9/pivot/data/ablations/stageb_table_a_continued_gdino_20260717/positive_1.jsonl",
+      "dataset_mode": "odvg",
+      "mix_weight": 1.0,
+      "root": "/"
+    },
+    {
+      "anno": "/media/haoyi/T9/pivot/data/ablations/stageb_table_a_continued_gdino_20260717/positive_2.jsonl",
+      "dataset_mode": "odvg",
+      "mix_weight": 1.0,
+      "root": "/"
+    },
+    {
+      "anno": "/media/haoyi/T9/pivot/data/ablations/stageb_table_a_continued_gdino_20260717/tn_d3_proposal_covered.jsonl",
+      "dataset_mode": "odvg",
+      "mix_weight": 3.0,
+      "root": "/"
+    }
+  ],
+  "val": []
+}

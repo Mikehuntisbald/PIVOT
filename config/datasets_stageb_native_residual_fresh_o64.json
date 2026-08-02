@@ -1,0 +1,24 @@
+{
+  "artifact_binding": {
+    "manifest": {
+      "path": "/media/haoyi/T9/pivot/data/ablations/stageb_native_residual_fresh_o64_20260724/fresh_o64_directed_vg.jsonl",
+      "sha256": "17569fc88babdfdc8b23ffb38d33983b3e64c427badce50e1f3b47f8eb5b7433",
+      "rows": 128
+    },
+    "receipt": {
+      "path": "/media/haoyi/T9/pivot/data/ablations/stageb_native_residual_fresh_o64_20260724/receipt.json",
+      "sha256": "7708f6e52a6542aa4a8a807b0b75853c74768b5c4edead1270c858fb254beeb8",
+      "schema": "pivot.stageb.native_residual.fresh_o64_receipt/v1"
+    }
+  },
+  "train": [
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/media/haoyi/T9/pivot/data/ablations/stageb_native_residual_fresh_o64_20260724/fresh_o64_directed_vg.jsonl",
+      "mix_weight": 1.0,
+      "strong_aug": false
+    }
+  ],
+  "val": []
+}

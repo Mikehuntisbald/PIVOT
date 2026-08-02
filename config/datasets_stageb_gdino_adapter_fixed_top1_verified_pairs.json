@@ -1,0 +1,26 @@
+{
+  "train": [
+    {
+      "dataset_mode": "patch_episode",
+      "source": "sam3_tn_pair",
+      "root": "${DATA_ROOT}/COCO/coco2014/train2014",
+      "sam3_tn_image_root": "${DATA_ROOT}/COCO/coco2014/train2014",
+      "anno": "/home/user/PIVOT/data/ablations/stageb_gdino_adapter_fixed_top1_verified_20260712/train_pairs.jsonl",
+      "box_format": "xywh",
+      "sam3_tn_bbox_key": "target_bbox_used",
+      "canonical_classes_json": "${DATA_ROOT}/canonical_classes_with_aliases.json",
+      "keep_only_support_gt": true,
+      "neg_episode_prob": 0.0,
+      "support_min_count": 1,
+      "support_patch_size": 224,
+      "build_text_token_masks": true,
+      "text_mask_warn_limit": 0,
+      "text_mask_skip_invalid_canonical": false,
+      "tn_balance_sampling": false,
+      "require_global_tn_verified": true,
+      "stage_b_gdino_adapter_no_support": true,
+      "mix_weight": 1.0
+    }
+  ],
+  "val": []
+}

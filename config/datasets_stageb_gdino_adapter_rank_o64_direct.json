@@ -1,0 +1,11 @@
+{
+  "train": [
+    {
+      "dataset_mode": "odvg",
+      "root": "/",
+      "anno": "/media/haoyi/T9/pivot/data/ablations/stageb_gdino_adapter_o64_direct_rank_20260723/o64_direct_rank_vg.jsonl",
+      "mix_weight": 1.0
+    }
+  ],
+  "val": []
+}

@@ -1,0 +1,24 @@
+{
+  "train": [
+    {
+      "dataset_mode": "patch_episode",
+      "source": "stage_b_gdino_adapter_benchmark_dataft_alltn",
+      "root": "/",
+      "anno": "/home/user/PIVOT/data/ablations/stageb_gdino_adapter_dataft_20260711/benchmark_dataft_alltn_pairs.jsonl",
+      "box_format": "xywh",
+      "canonical_classes_json": "${DATA_ROOT}/canonical_classes_with_aliases.json",
+      "keep_only_support_gt": true,
+      "neg_episode_prob": 0.0,
+      "support_min_count": 1,
+      "support_patch_size": 224,
+      "build_text_token_masks": true,
+      "text_mask_warn_limit": 0,
+      "text_mask_skip_invalid_canonical": false,
+      "tn_balance_sampling": false,
+      "require_benchmark_dataft_alltn": true,
+      "stage_b_gdino_adapter_no_support": true,
+      "mix_weight": 1.0
+    }
+  ],
+  "val": []
+}

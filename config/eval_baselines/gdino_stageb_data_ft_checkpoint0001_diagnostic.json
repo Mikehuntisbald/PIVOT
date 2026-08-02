@@ -1,0 +1,106 @@
+{
+  "schema": "stageb-summary-gate-baseline-v1",
+  "baseline_id": "gdino-stageb-data-ft-checkpoint0001-historical-diagnostic",
+  "checkpoint": {
+    "path": "/media/haoyi/T9/gdino/outputs/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch/checkpoint0001.pth",
+    "size_bytes": 1199416771,
+    "sha256": "b58e5209dc07dbffb2e5ed3d792e0db70c3306ec2ed24389693b4aeeebab1157"
+  },
+  "ref8": {
+    "status": "diagnostic_only",
+    "reason": "Historical full-split summary without sealed per-example records; several regenerated fixed-protocol manifest hashes differ.",
+    "source_summary": {
+      "path": "/media/haoyi/T9/gdino/outputs/text_gdino_ft_stageb_with_tn_ckpt0001_refcoco_series_eval/summary.json",
+      "size_bytes": 5159,
+      "sha256": "ae92611802ff188fa62628e62aba9938c6f45c9a49d586a8a162b4b78882b3f0"
+    },
+    "protocol": {
+      "id": "legacy-text-gdino-ref8-full-splits-v0",
+      "splits": {
+        "refcoco_val": {
+          "manifest_n": 10834,
+          "manifest_sha256": "13f0f8b3a8325c5da6b6da80f92bc5d8aab1092ac9f6bea81e6762182143bb9c",
+          "seed": 42
+        },
+        "refcoco_testA": {
+          "manifest_n": 5657,
+          "manifest_sha256": "47278ef1043382235a151cd90d1e6c18c79d30bb71cb4eb7df1932abc622946e",
+          "seed": 100042
+        },
+        "refcoco_testB": {
+          "manifest_n": 5095,
+          "manifest_sha256": "d2b4fd62c41f5f1948146ccfdb9eada9441d7f1ef6cfeb64e6e61fa1f9e07b6c",
+          "seed": 200042
+        },
+        "refcocop_val": {
+          "manifest_n": 10758,
+          "manifest_sha256": "af197da76e7e7831de75a0285430eb80fa8a4b9f1692edaa764d1503e23e15dc",
+          "seed": 300042
+        },
+        "refcocop_testA": {
+          "manifest_n": 5726,
+          "manifest_sha256": "57a0fb2342f120d49a1174084a7748cb18ff75a7b789bf2ddaf6c8555dce1105",
+          "seed": 400042
+        },
+        "refcocop_testB": {
+          "manifest_n": 4889,
+          "manifest_sha256": "49fe753d28a45cfb47f3d33cf5fbe34a1fda0ae111c7dcd24063c68e2b411d36",
+          "seed": 500042
+        },
+        "refcocog_val": {
+          "manifest_n": 4896,
+          "manifest_sha256": "0c01acf64031b408e6c67f58dd8f39234fb629899713a9a0fc0e55a932b32103",
+          "seed": 600042
+        },
+        "refcocog_test": {
+          "manifest_n": 9602,
+          "manifest_sha256": "c7b6f21a143369c17eb5348664a83c8f1aa189fc4f68ca7b22d95cff4a18eda2",
+          "seed": 700042
+        }
+      }
+    },
+    "metrics": {
+      "refcoco_val": {"acc50": 0.6454679712017722},
+      "refcoco_testA": {"acc50": 0.7139826763302104},
+      "refcoco_testB": {"acc50": 0.5786064769381747},
+      "refcocop_val": {"acc50": 0.6908347276445436},
+      "refcocop_testA": {"acc50": 0.7499126790080335},
+      "refcocop_testB": {"acc50": 0.6281448148905707},
+      "refcocog_val": {"acc50": 0.8069852941176471},
+      "refcocog_test": {"acc50": 0.8172255780045824}
+    }
+  },
+  "tn": {
+    "strict2031": {
+      "status": "formal_baseline_unavailable",
+      "reason": "The historical 0.5283018868 result used a different 5,209-row legacy overlap input with 5,194 valid pairs, not strict2031."
+    },
+    "strict1607": {
+      "status": "formal_baseline_unavailable",
+      "reason": "The historical 0.5283018868 result used a different 5,209-row legacy overlap input with 5,194 valid pairs, not strict1607."
+    }
+  },
+  "diagnostics": {
+    "legacy_tn_overlap": {
+      "kind": "tn_summary_reference_v1",
+      "status": "diagnostic_only",
+      "formal_gate_eligible": false,
+      "protocol_id": "legacy-refcocop-val-refcocog-val-overlap-v0",
+      "fpr95tpr": 0.5283018867924528,
+      "actual_tpr_at_95tpr": 0.9499422410473624,
+      "num_source_rows": 5209,
+      "num_valid_pairs": 5194,
+      "invalid_positive_pairs": 15,
+      "source_summary": {
+        "path": "/media/haoyi/T9/gdino/outputs/text_gdino_ft_stageb_with_tn_ckpt0001_tn_eval/summary.json",
+        "size_bytes": 164525,
+        "sha256": "ca02dcb58c84de1917d418dae3a1712466d78e10a7b4663d0e014381fb7a060b"
+      },
+      "source_manifest": {
+        "path": "/media/haoyi/T9/gdino/outputs/text_gdino_ft_stageb_with_tn_ckpt0001_tn_eval/tn_eval_inputs/tn_refcocop_val_refcocog_val.jsonl",
+        "size_bytes": 9413503,
+        "sha256": "d05a2f823e15aab27ccdbf505c6e723d8d5eec19368b3391868f8b9469e814d8"
+      }
+    }
+  }
+}
