@@ -1330,6 +1330,36 @@ class TnPairAccumulator:
                                 "stage_b_dense_duty_global_confidence_logits",
                                 i,
                             ),
+                            "pos_pool_absolute_logit": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_confidence_pool_absolute_logits",
+                                i,
+                            ),
+                            "neg_pool_absolute_logit": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_confidence_pool_absolute_logits",
+                                i,
+                            ),
+                            "pos_deployed_query_veto_depth": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_deployed_query_veto_depth",
+                                i,
+                            ),
+                            "neg_deployed_query_veto_depth": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_deployed_query_veto_depth",
+                                i,
+                            ),
+                            "pos_deployed_query_veto_gate": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_deployed_query_veto_gate",
+                                i,
+                            ),
+                            "neg_deployed_query_veto_gate": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_deployed_query_veto_gate",
+                                i,
+                            ),
                             "pos_veto_sample_gate": diagnostic_value(
                                 pos_outputs,
                                 "stage_b_dense_duty_confidence_veto_sample_gate",

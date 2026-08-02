@@ -664,7 +664,60 @@ def _load_model_with_checkpoint_contract(
 ):
     summary_fields = _merged_eval_checkpoint_summary_fields(cfg, checkpoint)
     model = _load_model(cfg, str(checkpoint), device)
+    if bool(
+        getattr(cfg, "stage_b_dense_duty_confidence_full_decoder_verifier", False)
+    ):
+        _attach_full_decoder_decomposition_diagnostics(model)
     return model, summary_fields
+
+
+def _attach_full_decoder_decomposition_diagnostics(model: torch.nn.Module) -> None:
+    """Expose scorer-only V61 decomposition tensors without changing train code.
+
+    Terminal probes validate the checkpoint's exact recursive training-source
+    closure before this helper runs.  Keeping this evaluator-only hook outside
+    ``models/`` preserves that fail-closed check while making the pool/veto
+    decomposition auditable in per-example records.
+    """
+    scorer = getattr(model, "stage_b_fixed_text_scorer", None)
+    if not isinstance(scorer, torch.nn.Module) or not bool(
+        getattr(scorer, "confidence_full_decoder_verifier", False)
+    ):
+        raise RuntimeError("full-decoder decomposition requires the V61 scorer")
+    captured: Dict[str, Mapping[str, torch.Tensor]] = {}
+
+    def capture(_module, _inputs, output):
+        if not isinstance(output, Mapping):
+            raise RuntimeError("full-decoder scorer returned a non-mapping output")
+        captured["scorer"] = output
+
+    scorer.register_forward_hook(capture)
+    original_forward = model.forward
+
+    def forward_with_decomposition(*args, **kwargs):
+        captured.clear()
+        output = original_forward(*args, **kwargs)
+        scorer_output = captured.pop("scorer", None)
+        if not isinstance(output, dict) or not isinstance(scorer_output, Mapping):
+            raise RuntimeError("full-decoder decomposition hook did not observe a forward")
+        mapping = {
+            "final_deployed_query_veto_depth": (
+                "stage_b_dense_duty_deployed_query_veto_depth"
+            ),
+            "final_deployed_query_veto_gate": (
+                "stage_b_dense_duty_deployed_query_veto_gate"
+            ),
+        }
+        for scorer_key, output_key in mapping.items():
+            value = scorer_output.get(scorer_key)
+            if not torch.is_tensor(value):
+                raise RuntimeError(
+                    f"full-decoder decomposition is missing {scorer_key!r}"
+                )
+            output[output_key] = value
+        return output
+
+    model.forward = forward_with_decomposition
 
 
 def _bind_checkpoint_summary_fields(
@@ -5058,6 +5111,36 @@ def evaluate_tn_dataset(
                         "neg_global_logit": diagnostic_value(
                             neg_outputs,
                             "stage_b_dense_duty_global_confidence_logits",
+                            i,
+                        ),
+                        "pos_pool_absolute_logit": diagnostic_value(
+                            pos_outputs,
+                            "stage_b_dense_duty_confidence_pool_absolute_logits",
+                            i,
+                        ),
+                        "neg_pool_absolute_logit": diagnostic_value(
+                            neg_outputs,
+                            "stage_b_dense_duty_confidence_pool_absolute_logits",
+                            i,
+                        ),
+                        "pos_deployed_query_veto_depth": diagnostic_value(
+                            pos_outputs,
+                            "stage_b_dense_duty_deployed_query_veto_depth",
+                            i,
+                        ),
+                        "neg_deployed_query_veto_depth": diagnostic_value(
+                            neg_outputs,
+                            "stage_b_dense_duty_deployed_query_veto_depth",
+                            i,
+                        ),
+                        "pos_deployed_query_veto_gate": diagnostic_value(
+                            pos_outputs,
+                            "stage_b_dense_duty_deployed_query_veto_gate",
+                            i,
+                        ),
+                        "neg_deployed_query_veto_gate": diagnostic_value(
+                            neg_outputs,
+                            "stage_b_dense_duty_deployed_query_veto_gate",
                             i,
                         ),
                         "pos_veto_sample_gate": diagnostic_value(
