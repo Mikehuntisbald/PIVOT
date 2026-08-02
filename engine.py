@@ -468,6 +468,7 @@ def _clip_stage_b_dense_duty_grad_norms(
         "split_token_veto_fulltext_global_absolute_v7",
         "split_token_veto_local_candidate_global_absolute_v8",
         "split_token_veto_deployment_owned_global_absolute_v9",
+        "split_token_veto_deployment_owned_query_global_absolute_v10",
     }:
         candidate_sample_contract = head_contract == (
             "split_token_veto_candidate_absolute_sample_calibrator_v6"
@@ -587,6 +588,7 @@ def _clip_stage_b_dense_duty_grad_norms(
             "split_token_veto_fulltext_global_absolute_v7",
             "split_token_veto_local_candidate_global_absolute_v8",
             "split_token_veto_deployment_owned_global_absolute_v9",
+            "split_token_veto_deployment_owned_query_global_absolute_v10",
         }:
             # Every independently supervised owner receives the full max norm.
             for live in live_by_owner.values():
@@ -622,6 +624,7 @@ def _clip_stage_b_dense_duty_grad_norms(
         "split_token_veto_fulltext_global_absolute_v7",
         "split_token_veto_local_candidate_global_absolute_v8",
         "split_token_veto_deployment_owned_global_absolute_v9",
+        "split_token_veto_deployment_owned_query_global_absolute_v10",
     }:
         clip_contract_owner_labels = ("token_veto", "global_absolute")
     if clip_contract_owner_labels is not None:
@@ -1150,11 +1153,15 @@ _V55_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE_CONTRACT = (
 _V56_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_CONTRACT = (
     "split_token_veto_deployment_owned_global_absolute_v9"
 )
+_V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_CONTRACT = (
+    "split_token_veto_deployment_owned_query_global_absolute_v10"
+)
 _CANDIDATE_AND_SAMPLE_CONFIDENCE_CONTRACTS = {
     _V52_CANDIDATE_ABSOLUTE_SAMPLE_CALIBRATOR_CONTRACT,
     _V53_FULLTEXT_GLOBAL_ABSOLUTE_CONTRACT,
     _V55_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE_CONTRACT,
     _V56_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_CONTRACT,
+    _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_CONTRACT,
 }
 
 

@@ -23,6 +23,7 @@ from models.GroundingDINO.stage_b_dense_duty_scorer import (
     CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
     CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
     CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+    CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
     CONFIDENCE_RANK_EVIDENCE_CONTRACT_AFFINE,
     CONFIDENCE_RANK_EVIDENCE_CONTRACT_GATE_MARGIN,
     CONFIDENCE_RANK_EVIDENCE_CONTRACT_OFF,
@@ -33,6 +34,7 @@ from models.GroundingDINO.stage_b_dense_duty_scorer import (
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_CANDIDATE_SAMPLE,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+    CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
     TokenAwareConfidenceAdapter,
 )
 from util.stage_b_confidence_adapter_migration import (
@@ -68,6 +70,10 @@ from util.stage_b_confidence_adapter_migration import (
     FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT,
     FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA,
     FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_POOL_FEATURE_CONTRACT,
+    DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT,
+    DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT,
+    DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA,
+    DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT,
     EXPECTED_FULLTEXT_GLOBAL_ABSOLUTE_ADAPTER_TENSOR_COUNT,
     EXPECTED_FULLTEXT_GLOBAL_ABSOLUTE_CONFIDENCE_PARAMETER_ELEMENT_COUNT,
     EXPECTED_FULLTEXT_GLOBAL_ABSOLUTE_CONFIDENCE_PARAMETER_TENSOR_COUNT,
@@ -260,6 +266,14 @@ class _ProductionFreshScorer(nn.Module):
             "_dense_duty_contract_version", torch.tensor(3, dtype=torch.int64)
         )
 
+    def confidence_parameters(self):
+        return tuple(self.confidence_adapter.parameters()) + tuple(
+            self.confidence_pool.parameters()
+        )
+
+    def candidate_diagnostic_parameters(self):
+        return self.confidence_adapter.candidate_diagnostic_parameters()
+
 
 class _ProductionFreshModel(nn.Module):
     def __init__(
@@ -340,6 +354,25 @@ def _v55_production_model() -> _ProductionFreshModel:
     )
 
 
+def _v59_production_model() -> _ProductionFreshModel:
+    return _ProductionFreshModel(
+        CONFIDENCE_PHRASE_AGGREGATION_WORD_VETO_GATED_POOL_ABSOLUTE_CAP,
+        rank_evidence_contract=(
+            CONFIDENCE_RANK_EVIDENCE_CONTRACT_SPARSE_RANK_CHANNEL_MISMATCH
+        ),
+        pool_feature_contract=(
+            CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE
+        ),
+        residual_parameterization_gain=0.25 / 0.03,
+        gate_gradient_contract=(
+            CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_LOGIT
+        ),
+        head_gradient_contract=(
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE
+        ),
+    )
+
+
 class _ProductionV53MigrationModel(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -406,6 +439,14 @@ class _ProductionV55MigrationModel(nn.Module):
                 CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE
             ),
         )
+        self.stage_b_fixed_text_scorer.rank_tower = nn.Linear(4, 3)
+
+
+class _ProductionV59MigrationModel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.backbone = nn.Linear(5, 4)
+        self.stage_b_fixed_text_scorer = _v59_production_model().stage_b_fixed_text_scorer
         self.stage_b_fixed_text_scorer.rank_tower = nn.Linear(4, 3)
 
 
@@ -2738,3 +2779,83 @@ def test_v55_independent_absolute_v22_migrates_u6551_without_rank_drift():
     )
     assert audit["confidence_parameter_tensor_count"] == 65
     assert audit["confidence_parameter_element_count"] == 534_725
+
+
+def test_v59_deployment_owned_query_global_v24_preserves_fresh_surface():
+    v55_state = _v55_production_model().state_dict()
+    v59_state = _v59_production_model().state_dict()
+    assert tuple(v55_state) == tuple(v59_state)
+    assert all(torch.equal(v55_state[name], v59_state[name]) for name in v55_state)
+
+
+def test_v59_deployment_owned_query_global_v24_migrates_and_validates():
+    model = _ProductionV59MigrationModel()
+    runtime = model.state_dict()
+    source = _legacy_state(model)
+    rank_sha, transferred_sha = _fingerprints(model, source)
+
+    migrated, audit = migrate_legacy_rank_to_confidence_adapter(
+        model,
+        source,
+        checkpoint_label="U6551 to V59 fresh deployed query-global confidence",
+        source_checkpoint_sha256="a" * 64,
+        source_optimizer_updates=6551,
+        source_checkpoint_reason="signal",
+        expected_rank_sha256=rank_sha,
+        expected_transferred_sha256=transferred_sha,
+    )
+
+    rank_names = sorted(
+        name
+        for name in runtime
+        if name.startswith("stage_b_fixed_text_scorer.rank_tower.")
+    )
+    assert all(torch.equal(migrated[name], source[name]) for name in rank_names)
+    assert audit["schema"] == (
+        DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+    )
+    assert audit["fresh_confidence_contract"] == (
+        DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
+    )
+    assert audit["head_gradient_contract"] == (
+        DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+    )
+    assert audit["pool_feature_contract"] == (
+        DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
+    )
+    assert audit["active_confidence_parameter_tensor_count"] == 65
+    assert audit["active_confidence_parameter_element_count"] == 534_725
+    assert audit["deployed_query_parameter_tensor_count"] == 6
+    assert audit["deployed_query_parameter_element_count"] == 66_561
+    assert audit["deployed_query_requires_grad_count"] == 6
+
+
+def test_v59_deployment_owned_query_global_v24_validates_production_audit():
+    audit = _v55_independent_absolute_migration_audit()
+    audit.update(
+        {
+            "schema": DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA,
+            "fresh_confidence_contract": (
+                DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
+            ),
+            "head_gradient_contract": (
+                DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+            ),
+            "pool_feature_contract": (
+                DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
+            ),
+            "active_confidence_parameter_tensor_count": 65,
+            "active_confidence_parameter_element_count": 534_725,
+            "deployed_query_parameter_tensor_count": 6,
+            "deployed_query_parameter_element_count": 66_561,
+            "deployed_query_requires_grad_count": 6,
+        }
+    )
+    assert validate_confidence_adapter_migration_audit(
+        audit,
+        source_checkpoint_sha256="a" * 64,
+        source_optimizer_updates=6551,
+        source_checkpoint_reason="signal",
+        rank_sha256="b" * 64,
+        transferred_sha256="c" * 64,
+    ) == audit
