@@ -478,6 +478,18 @@ def make_coco_transforms(image_set, fix_size=False, strong_aug=False, args=None)
     max_size = getattr(args, 'data_aug_max_size', max_size)
     scales2_resize = getattr(args, 'data_aug_scales2_resize', scales2_resize)
     scales2_crop = getattr(args, 'data_aug_scales2_crop', scales2_crop)
+    hflip_prob = float(getattr(args, 'data_aug_hflip_prob', 0.5))
+    if not 0.0 <= hflip_prob <= 1.0:
+        raise ValueError(
+            f"data_aug_hflip_prob must be in [0, 1], got {hflip_prob}"
+        )
+    deterministic_aspect_resize = getattr(
+        args, 'data_aug_train_deterministic_aspect_resize', False
+    )
+    if type(deterministic_aspect_resize) is not bool:
+        raise ValueError(
+            "data_aug_train_deterministic_aspect_resize must be a boolean"
+        )
 
     # resize them
     data_aug_scale_overlap = getattr(args, 'data_aug_scale_overlap', None)
@@ -497,9 +509,20 @@ def make_coco_transforms(image_set, fix_size=False, strong_aug=False, args=None)
     # print("data_aug_params:", json.dumps(datadict_for_print, indent=2))
 
     if image_set == 'train':
+        if deterministic_aspect_resize:
+            if fix_size or strong_aug:
+                raise ValueError(
+                    "data_aug_train_deterministic_aspect_resize requires "
+                    "fix_size=False and strong_aug=False"
+                )
+            return T.Compose([
+                T.RandomHorizontalFlip(p=hflip_prob),
+                T.RandomResize([max(scales)], max_size=max_size),
+                normalize,
+            ])
         if fix_size:
             return T.Compose([
-                T.RandomHorizontalFlip(),
+                T.RandomHorizontalFlip(p=hflip_prob),
                 T.RandomResize([(max_size, max(scales))]),
                 # T.RandomResize([(512, 512)]),
                 normalize,
@@ -509,7 +532,7 @@ def make_coco_transforms(image_set, fix_size=False, strong_aug=False, args=None)
             import datasets.sltransform as SLT
             
             return T.Compose([
-                T.RandomHorizontalFlip(),
+                T.RandomHorizontalFlip(p=hflip_prob),
                 T.RandomSelect(
                     T.RandomResize(scales, max_size=max_size),
                     T.Compose([
@@ -528,7 +551,7 @@ def make_coco_transforms(image_set, fix_size=False, strong_aug=False, args=None)
             ])
         
         return T.Compose([
-            T.RandomHorizontalFlip(),
+            T.RandomHorizontalFlip(p=hflip_prob),
             T.RandomSelect(
                 T.RandomResize(scales, max_size=max_size),
                 T.Compose([

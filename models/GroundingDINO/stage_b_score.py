@@ -153,6 +153,7 @@ def compute_stage_b_slot_logits(
     mean_softmin_alpha: float = 0.5,
     detach_patch: bool = False,
     normalize_fused_score: bool = True,
+    score_mode: str = "patch_text",
 ) -> torch.Tensor:
     pred_logits_patch = outputs.get("pred_logits_patch", None)
     pred_logits_text = outputs.get("pred_logits_text", None)
@@ -217,10 +218,21 @@ def compute_stage_b_slot_logits(
         mean_softmin_alpha=mean_softmin_alpha,
     )
 
-    patch_score = pred_logits_patch.to(pred_logits_text.device).sigmoid()
-    slot_logits = patch_score + float(beta) * text_score
-    if normalize_fused_score:
-        slot_logits = slot_logits / max(1.0 + float(beta), 1e-6)
+    score_mode = str(score_mode).lower().replace("-", "_").strip()
+    if score_mode in {"patch_text", "patch_plus_text", "fused"}:
+        patch_score = pred_logits_patch.to(pred_logits_text.device).sigmoid()
+        slot_logits = patch_score + float(beta) * text_score
+        if normalize_fused_score:
+            slot_logits = slot_logits / max(1.0 + float(beta), 1e-6)
+    elif score_mode in {"text", "text_only"}:
+        slot_logits = text_score
+    elif score_mode in {"patch", "patch_only"}:
+        slot_logits = pred_logits_patch.to(pred_logits_text.device).sigmoid()
+    else:
+        raise ValueError(
+            "score_mode must be 'patch_text', 'text', or 'patch', "
+            f"got {score_mode!r}"
+        )
     patch_mask = outputs.get("patch_mask", outputs.get("patch_phrase_mask", None))
     if patch_mask is not None:
         patch_mask = patch_mask.to(device=slot_logits.device, dtype=torch.bool)

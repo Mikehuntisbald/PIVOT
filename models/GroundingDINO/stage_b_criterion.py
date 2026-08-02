@@ -72,6 +72,7 @@ class StageBCriterion(nn.Module):
         stage_b_rank_text_agg: str = "mean",
         stage_b_rank_softmin_tau: float = 0.7,
         stage_b_rank_mean_softmin_alpha: float = 0.5,
+        stage_b_score_mode: str = "patch_text",
         stage_b_score_calib_loss_coef: float = 0.0,
         stage_b_score_calib_tau_pos: float = 0.1,
         stage_b_score_calib_tau_neg: float = 1.4,
@@ -136,6 +137,7 @@ class StageBCriterion(nn.Module):
         self.stage_b_rank_text_agg = str(stage_b_rank_text_agg)
         self.stage_b_rank_softmin_tau = float(stage_b_rank_softmin_tau)
         self.stage_b_rank_mean_softmin_alpha = float(stage_b_rank_mean_softmin_alpha)
+        self.stage_b_score_mode = str(stage_b_score_mode).lower().replace("-", "_").strip()
         self.stage_b_score_calib_loss_coef = float(stage_b_score_calib_loss_coef)
         self.stage_b_score_calib_tau_pos = float(stage_b_score_calib_tau_pos)
         self.stage_b_score_calib_tau_neg = float(stage_b_score_calib_tau_neg)
@@ -187,7 +189,13 @@ class StageBCriterion(nn.Module):
                 }
             )
 
-    def compute_matching(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
+    def compute_matching(
+        self,
+        outputs: Dict[str, torch.Tensor],
+        targets: List[Dict[str, torch.Tensor]],
+        *,
+        sync_num_boxes: bool = True,
+    ):
         matching_outputs = dict(outputs)
         if outputs.get("pred_logits_text", None) is not None and outputs.get("phrase_to_token_mask", None) is not None:
             with torch.no_grad():
@@ -199,7 +207,11 @@ class StageBCriterion(nn.Module):
                     focal_gamma=self.stage_b_text_focal_gamma,
                     detach_patch=False,
                 )
-        return self.patch_criterion.compute_matching(matching_outputs, targets)
+        return self.patch_criterion.compute_matching(
+            matching_outputs,
+            targets,
+            sync_num_boxes=sync_num_boxes,
+        )
 
     def _target_tn_mask(self, target: Dict[str, torch.Tensor], device: torch.device) -> Optional[torch.Tensor]:
         is_tn = target.get("is_tn", None)
@@ -273,18 +285,19 @@ class StageBCriterion(nn.Module):
             tgt_boxes_list.append(boxes_b.index_select(0, tgt_t))
             det_box_count += int(src_t.numel())
 
+        num_boxes = torch.as_tensor([det_box_count], dtype=torch.float32, device=device)
+        if dist.is_available() and dist.is_initialized():
+            dist.all_reduce(num_boxes)
+            world_size = dist.get_world_size()
+        else:
+            world_size = 1
+        num_boxes = torch.clamp(num_boxes / max(1, world_size), min=1.0).item()
+
         if not src_boxes_list:
             out = {f"loss_bbox{suffix}": zero, f"loss_giou{suffix}": zero}
         else:
             src_boxes = torch.cat(src_boxes_list, dim=0)
             tgt_boxes = torch.cat(tgt_boxes_list, dim=0)
-            num_boxes = torch.as_tensor([det_box_count], dtype=torch.float32, device=device)
-            if dist.is_available() and dist.is_initialized():
-                dist.all_reduce(num_boxes)
-                world_size = dist.get_world_size()
-            else:
-                world_size = 1
-            num_boxes = torch.clamp(num_boxes / max(1, world_size), min=1.0).item()
             loss_bbox = F.l1_loss(src_boxes, tgt_boxes, reduction="none").sum() / num_boxes
             loss_giou = 1.0 - torch.diag(
                 box_ops.generalized_box_iou(
@@ -1350,6 +1363,7 @@ class StageBCriterion(nn.Module):
             "score_calib_pos_other_topk_score": z,
             "score_calib_all_tn_neg_score": z,
             "score_calib_all_tn_neg_topk_max_score": z,
+            "score_calib_truncated_positive_count": z,
             "score_calib_tau_pos": torch.as_tensor(float(self.stage_b_score_calib_tau_pos), device=zero.device),
             "score_calib_tau_neg": torch.as_tensor(float(self.stage_b_score_calib_tau_neg), device=zero.device),
             "score_calib_margin": torch.as_tensor(float(self.stage_b_score_calib_margin), device=zero.device),
@@ -1372,6 +1386,7 @@ class StageBCriterion(nn.Module):
             return self._zero_score_calib_loss_dict(zero)
 
         device = zero.device
+        truncated_positive_count = outputs.get("rank_truncated_positive_count", zero.detach()).to(device=device)
         score_neg = compute_stage_b_slot_logits(
             outputs,
             beta=self.stage_b_rank_beta,
@@ -1381,6 +1396,7 @@ class StageBCriterion(nn.Module):
             mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
             detach_patch=self.stage_b_score_calib_detach_patch,
             normalize_fused_score=True,
+            score_mode=self.stage_b_score_mode,
         )
 
         pos_losses: List[torch.Tensor] = []
@@ -1409,7 +1425,11 @@ class StageBCriterion(nn.Module):
                     f"got {len(rank_pos_targets)} vs {rank_pair_map.numel()}"
                 )
 
-            match_ctx_pos = self.compute_matching(rank_pos_outputs, rank_pos_targets)
+            match_ctx_pos = self.compute_matching(
+                rank_pos_outputs,
+                rank_pos_targets,
+                sync_num_boxes=False,
+            )
             score_pos = compute_stage_b_slot_logits(
                 rank_pos_outputs,
                 beta=self.stage_b_rank_beta,
@@ -1419,6 +1439,7 @@ class StageBCriterion(nn.Module):
                 mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
                 detach_patch=self.stage_b_score_calib_detach_patch,
                 normalize_fused_score=True,
+                score_mode=self.stage_b_score_mode,
             )
             pair_count = int(rank_pair_map.numel())
 
@@ -1576,6 +1597,7 @@ class StageBCriterion(nn.Module):
             "score_calib_used_pair_count": torch.as_tensor(float(used_count), device=device),
             "score_calib_skipped_pair_count": torch.as_tensor(float(skipped_count), device=device),
             "score_calib_all_tn_neg_count": torch.as_tensor(float(all_tn_neg_count), device=device),
+            "score_calib_truncated_positive_count": truncated_positive_count.detach(),
             "score_calib_pos_score": _cat_mean(pos_scores),
             "score_calib_neg_matched_score": _cat_mean(neg_matched_scores),
             "score_calib_neg_topk_score": _cat_mean(neg_topk_scores),
@@ -1603,6 +1625,7 @@ class StageBCriterion(nn.Module):
             "phrase_rank_candidate_tn_count": z,
             "phrase_rank_missing_positive_count": z,
             "phrase_rank_invalid_positive_count": z,
+            "phrase_rank_truncated_positive_count": z,
             "phrase_rank_margin": torch.as_tensor(float(self.stage_b_rank_margin), device=zero.device),
         }
 
@@ -1619,6 +1642,7 @@ class StageBCriterion(nn.Module):
         candidate_tn_count = outputs.get("rank_candidate_tn_count", zero.detach()).to(device=device)
         missing_positive_count = outputs.get("rank_missing_positive_count", zero.detach()).to(device=device)
         invalid_positive_count = outputs.get("rank_invalid_positive_count", zero.detach()).to(device=device)
+        truncated_positive_count = outputs.get("rank_truncated_positive_count", zero.detach()).to(device=device)
         if (
             rank_pos_outputs is None
             or rank_pos_targets is None
@@ -1629,6 +1653,7 @@ class StageBCriterion(nn.Module):
             metrics["phrase_rank_candidate_tn_count"] = candidate_tn_count.detach()
             metrics["phrase_rank_missing_positive_count"] = missing_positive_count.detach()
             metrics["phrase_rank_invalid_positive_count"] = invalid_positive_count.detach()
+            metrics["phrase_rank_truncated_positive_count"] = truncated_positive_count.detach()
             return metrics
 
         rank_pair_map = rank_pair_map.to(device=device, dtype=torch.long).view(-1)
@@ -1637,7 +1662,11 @@ class StageBCriterion(nn.Module):
                 f"rank_pos_targets length must match rank_pair_map, got {len(rank_pos_targets)} vs {rank_pair_map.numel()}"
             )
 
-        match_ctx_pos = self.compute_matching(rank_pos_outputs, rank_pos_targets)
+        match_ctx_pos = self.compute_matching(
+            rank_pos_outputs,
+            rank_pos_targets,
+            sync_num_boxes=False,
+        )
         score_neg = compute_stage_b_slot_logits(
             outputs,
             beta=self.stage_b_rank_beta,
@@ -1647,6 +1676,7 @@ class StageBCriterion(nn.Module):
             mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
             detach_patch=self.stage_b_rank_detach_patch,
             normalize_fused_score=True,
+            score_mode=self.stage_b_score_mode,
         )
         score_pos = compute_stage_b_slot_logits(
             rank_pos_outputs,
@@ -1657,6 +1687,7 @@ class StageBCriterion(nn.Module):
             mean_softmin_alpha=self.stage_b_rank_mean_softmin_alpha,
             detach_patch=self.stage_b_rank_detach_patch,
             normalize_fused_score=True,
+            score_mode=self.stage_b_score_mode,
         )
 
         losses: List[torch.Tensor] = []
@@ -1743,6 +1774,7 @@ class StageBCriterion(nn.Module):
             "phrase_rank_candidate_tn_count": candidate_tn_count.detach(),
             "phrase_rank_missing_positive_count": missing_positive_count.detach(),
             "phrase_rank_invalid_positive_count": invalid_positive_count.detach(),
+            "phrase_rank_truncated_positive_count": truncated_positive_count.detach(),
             "phrase_rank_margin": torch.as_tensor(float(self.stage_b_rank_margin), device=device),
         }
         return metrics
@@ -1830,6 +1862,10 @@ class StageBCriterion(nn.Module):
                 aux_score_losses = self._compute_score_calib_loss(aux_score_outputs, targets, aux_match_ctx)
                 for key, value in aux_score_losses.items():
                     losses[f"{key}{aux_suffix}"] = value
-        losses.update(self._compute_score_calib_loss(outputs, targets, match_ctx))
+        score_calib_losses = self._compute_score_calib_loss(outputs, targets, match_ctx)
+        dummy_loss = outputs.get("rank_pos_dummy_loss", None)
+        if torch.is_tensor(dummy_loss):
+            score_calib_losses["loss_score_calib"] = score_calib_losses["loss_score_calib"] + dummy_loss
+        losses.update(score_calib_losses)
         losses.update(self._compute_phrase_rank_loss(outputs, targets, match_ctx))
         return losses

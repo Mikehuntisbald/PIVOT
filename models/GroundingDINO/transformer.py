@@ -208,7 +208,17 @@ class Transformer(nn.Module):
     def init_ref_points(self, use_num_queries):
         self.refpoint_embed = nn.Embedding(use_num_queries, 4)
 
-    def forward(self, srcs, masks, refpoint_embed, pos_embeds, tgt, attn_mask=None, text_dict=None):
+    def forward(
+        self,
+        srcs,
+        masks,
+        refpoint_embed,
+        pos_embeds,
+        tgt,
+        attn_mask=None,
+        text_dict=None,
+        return_predecoder_state=False,
+    ):
         """
         Input:
             - srcs: List of multi features [bs, ci, hi, wi]
@@ -399,6 +409,19 @@ class Transformer(nn.Module):
         # ref_enc: (n_enc+1, bs, nq, query_dim) or (1, bs, nq, query_dim) or (n_enc, bs, nq, d_model) or None
         #########################################################
 
+        if return_predecoder_state:
+            # Dense-duty Stage B replays the original decoder from its native
+            # input distribution. Returning detached snapshots prevents that
+            # scorer from backpropagating into the Stage-A proposal tower.
+            return (
+                hs,
+                references,
+                hs_enc,
+                ref_enc,
+                init_box_proposal,
+                tgt.detach(),
+                refpoint_embed.detach().sigmoid(),
+            )
         return hs, references, hs_enc, ref_enc, init_box_proposal
         # hs: (n_dec, bs, nq, d_model)
         # references: sigmoid coordinates. (n_dec+1, bs, bq, 4)
@@ -635,6 +658,121 @@ class TransformerDecoder(nn.Module):
         self.d_model = d_model
 
         self.ref_anchor_head = None
+
+    def forward_fixed_external(
+        self,
+        *,
+        tgt: Tensor,
+        reference_boxes: Tensor,
+        memory: Tensor,
+        memory_key_padding_mask: Optional[Tensor],
+        level_start_index: Tensor,
+        spatial_shapes: Tensor,
+        valid_ratios: Tensor,
+        memory_text: Tensor,
+        text_attention_mask: Tensor,
+        memory_pos: Optional[Tensor] = None,
+        tgt_mask: Optional[Tensor] = None,
+    ):
+        """Decode external queries without allowing iterative box refinement.
+
+        All public tensors use batch-first layout. ``reference_boxes`` are
+        normalized cxcywh boxes and are used only as immutable sampling
+        references. The returned references contain the initial boxes only.
+        """
+        if self.bbox_embed is not None:
+            raise RuntimeError(
+                "forward_fixed_external requires decoder.bbox_embed=None; "
+                "a scoring decoder must not update Stage-A boxes."
+            )
+        if tgt.dim() != 3:
+            raise ValueError(f"tgt must be (B,N,D), got {tuple(tgt.shape)}")
+        if reference_boxes.dim() != 3 or reference_boxes.shape[-1] != 4:
+            raise ValueError(
+                "reference_boxes must be normalized cxcywh (B,N,4), got "
+                f"{tuple(reference_boxes.shape)}"
+            )
+        if tgt.shape[:2] != reference_boxes.shape[:2]:
+            raise ValueError(
+                "tgt/reference_boxes must share (B,N), got "
+                f"{tuple(tgt.shape)} vs {tuple(reference_boxes.shape)}"
+            )
+        if memory.dim() != 3 or memory.shape[0] != tgt.shape[0]:
+            raise ValueError(
+                f"memory must be (B,S,D) with B={tgt.shape[0]}, got {tuple(memory.shape)}"
+            )
+        if memory.shape[-1] != tgt.shape[-1]:
+            raise ValueError(
+                f"memory/tgt hidden dimensions differ: {memory.shape[-1]} vs {tgt.shape[-1]}"
+            )
+        if (
+            memory_key_padding_mask is not None
+            and memory_key_padding_mask.shape != memory.shape[:2]
+        ):
+            raise ValueError(
+                "memory_key_padding_mask must be (B,S), got "
+                f"{tuple(memory_key_padding_mask.shape)} for memory {tuple(memory.shape)}"
+            )
+        if memory_pos is not None and memory_pos.shape != memory.shape:
+            raise ValueError(
+                "memory_pos must match memory, got "
+                f"{tuple(memory_pos.shape)} vs {tuple(memory.shape)}"
+            )
+        if memory_text.dim() != 3 or memory_text.shape[0] != tgt.shape[0]:
+            raise ValueError(
+                "memory_text must be (B,T,D) with the query batch size, got "
+                f"{tuple(memory_text.shape)}"
+            )
+        if memory_text.shape[-1] != tgt.shape[-1]:
+            raise ValueError(
+                "memory_text/tgt hidden dimensions differ: "
+                f"{memory_text.shape[-1]} vs {tgt.shape[-1]}"
+            )
+        if text_attention_mask.shape != memory_text.shape[:2]:
+            raise ValueError(
+                "text_attention_mask must be (B,T), got "
+                f"{tuple(text_attention_mask.shape)} for text {tuple(memory_text.shape)}"
+            )
+        if spatial_shapes.dim() != 2 or spatial_shapes.shape[-1] != 2:
+            raise ValueError(f"spatial_shapes must be (F,2), got {tuple(spatial_shapes.shape)}")
+        if level_start_index.dim() != 1 or level_start_index.shape[0] != spatial_shapes.shape[0]:
+            raise ValueError(
+                "level_start_index must be (F,) and align with spatial_shapes, got "
+                f"{tuple(level_start_index.shape)} vs {tuple(spatial_shapes.shape)}"
+            )
+        expected_valid_ratios = (tgt.shape[0], spatial_shapes.shape[0], 2)
+        if tuple(valid_ratios.shape) != expected_valid_ratios:
+            raise ValueError(
+                f"valid_ratios must be {expected_valid_ratios}, got {tuple(valid_ratios.shape)}"
+            )
+
+        # Detaching both inputs is the autograd boundary between the frozen
+        # Stage-A proposal tower and the trainable text scoring tower.
+        fixed_tgt = tgt.detach()
+        box_dtype = reference_boxes.dtype
+        upper_eps = max(float(torch.finfo(box_dtype).eps) / 2.0, 1e-6)
+        fixed_boxes = reference_boxes.detach().clamp(min=1e-6, max=1.0 - upper_eps)
+        outputs, references = self.forward(
+            tgt=fixed_tgt.transpose(0, 1),
+            memory=memory.transpose(0, 1),
+            memory_key_padding_mask=memory_key_padding_mask,
+            pos=memory_pos.transpose(0, 1) if memory_pos is not None else None,
+            refpoints_unsigmoid=torch.logit(fixed_boxes).transpose(0, 1),
+            level_start_index=level_start_index,
+            spatial_shapes=spatial_shapes,
+            valid_ratios=valid_ratios,
+            tgt_mask=tgt_mask,
+            memory_text=memory_text,
+            text_attention_mask=text_attention_mask.to(dtype=torch.bool),
+        )
+        if len(references) != 1:
+            raise RuntimeError(
+                "Fixed-box decoder returned updated references; expected exactly the "
+                "initial reference set."
+            )
+        # The internal clamp only protects logit conversion at exact 0/1. The
+        # public reference remains the original detached Stage-A box tensor.
+        return outputs, [reference_boxes.detach()]
 
     def forward(
         self,

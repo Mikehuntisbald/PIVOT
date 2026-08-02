@@ -2,12 +2,15 @@ import json
 import os
 import random
 import time
+from array import array
 from collections import Counter
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import csv
+import hashlib
 import math
 import pickle
 import re
@@ -24,11 +27,323 @@ import fcntl
 
 import datasets.transforms as T
 from datasets.coco import make_coco_transforms as make_query_transforms
+from util.path_compat import remap_legacy_path
+from util.stageb_exact_topk_contract import (
+    EXACT_TOPK_TN_SCOPE,
+    ExactTopKContractError,
+    normalize_exact_contract,
+    sha256_file,
+    validate_exact_pair_collection,
+)
+from util.stage_b_table_b_contract import (
+    TABLE_B_PAIR_SCHEMA,
+    TableBContractError,
+    validate_table_b_dataset_binding,
+)
 
 _WS_RE = re.compile(r"\s+")
 _PUNC_RE = re.compile(r"[^a-z0-9 _-]+")
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
 _TN_CATEGORY_SEP_RE = re.compile(r"[_/,\-]+")
+_DATA_DRIVEN_SAME_CATEGORY_RANK_SUPERVISIONS = {
+    "primary_vs_same_category_aux_v1",
+    "primary_vs_same_category_aux_plus_gap3_coverage_v1",
+    "official_same_image_same_category_assignment_v1",
+    "role_routed_official_assignment_top1_v1",
+    "role_routed_official_assignment_all_exclusive_nonowned_v2",
+}
+_DATA_DRIVEN_ASSIGNMENT_RANK_SUPERVISIONS = {
+    "official_same_image_same_category_assignment_v1",
+    "role_routed_official_assignment_top1_v1",
+    "role_routed_official_assignment_all_exclusive_nonowned_v2",
+}
+_DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA = (
+    "pivot.stageb.data_driven.official_assignment_pair/v1"
+)
+_DATA_DRIVEN_ASSIGNMENT_RECEIPT_SCHEMA = (
+    "pivot.stageb.data_driven.official_assignment_pair_receipt/v1"
+)
+_DATA_DRIVEN_ASSIGNMENT_OVERFIT_RECEIPT_SCHEMA = (
+    "pivot.stageb.data_driven.assignment_overfit64_receipt/v1"
+)
+_DATA_DRIVEN_ROLE_ROUTED_CLEAN_ASSIGNMENT_RECEIPT_SCHEMA = (
+    "pivot.stageb.data_driven.role_routed_clean_assignment_receipt/v1"
+)
+_DATA_DRIVEN_ROLE_ROUTED_CLEAN_ASSIGNMENT_SCOPE = (
+    "official_assignment_clean_train_263661_v1"
+)
+_DATA_DRIVEN_NEW_HEAD_PARTITION_RECEIPT_SCHEMA = (
+    "pivot.stageb.data_driven.new_head_partition_receipt/v1"
+)
+_DATA_DRIVEN_SUPPORT_PARTITION_RECEIPT_SCHEMA = (
+    "pivot.stageb.data_driven.support_partition_receipt/v1"
+)
+_NATIVE_PATCH_CATEGORY_D1_RECEIPT_SCHEMA = (
+    "pivot.stageb.native_patch_category_d1_receipt/v1"
+)
+_NATIVE_PATCH_CATEGORY_D1_ROW_SCHEMA = (
+    "pivot.stageb.native_patch_category_d1_row/v1"
+)
+_NATIVE_PATCH_CATEGORY_D2_RECEIPT_SCHEMA = (
+    "pivot.stageb.native_patch_category_d2_receipt/v1"
+)
+_NATIVE_PATCH_CATEGORY_D2_ROW_SCHEMA = (
+    "pivot.stageb.native_patch_category_d2_row/v1"
+)
+_NATIVE_PATCH_CATEGORY_D2_SAMPLING_CONTRACT = (
+    "source_mix_2_2_1_group_dedup_capped_sqrt_class_v1"
+)
+_NATIVE_PATCH_CATEGORY_D2_WEIGHT_FIELD = (
+    "native_patch_category_sampling_weight"
+)
+_DATA_DRIVEN_SUPPORT_REQUIRED_SETTINGS = {
+    "patch_bank_cache": False,
+    "patch_bank_cache_write": False,
+    "support_patch_use_embedding": False,
+    "support_patch_max_per_class": 200,
+}
+_DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS = (
+    "refcoco_stageb_phrase_v1.jsonl",
+    "refcocoplus_stageb_phrase_v1.jsonl",
+    "refcocog_stageb_phrase_v1.jsonl",
+)
+_DATA_DRIVEN_NEW_HEAD_VARIANTS = (
+    "d0_ordinary_primary",
+    "d1_category_complete",
+)
+_DATA_DRIVEN_NEW_HEAD_VARIANT_BY_DATASET_VARIANT = {
+    "dd0_ordinary_primary": "d0_ordinary_primary",
+    "dd1_category_complete": "d1_category_complete",
+}
+_DATA_DRIVEN_NEW_HEAD_PARTITIONS = (
+    "train",
+    "dev_full",
+    "dev_screen",
+    "quarantine",
+)
+_LOWER_SHA256_RE = re.compile(r"[0-9a-f]{64}")
+
+_NATIVE_PATCH_SUPPORT_WITNESS_KEYS = {
+    "candidate_id",
+    "class_assignment",
+    "class_id",
+    "coco_id",
+    "content_sha256",
+    "path",
+    "selection_priority_sha256",
+    "size_bytes",
+    "source",
+    "source_cache_class_id",
+    "source_class",
+    "source_image_id",
+    "source_image_identity",
+    "source_row_number",
+    "source_row_sha256",
+    "support_partition_receipt_sha256",
+    "train_filtered",
+}
+_NATIVE_PATCH_CATEGORY_D2_SUPPORT_ROTATION_CONTRACT = (
+    "pivot.stageb.native_patch_category_d2.support_rotation/v1"
+)
+_NATIVE_PATCH_CATEGORY_D2_SUPPORT_WITNESS_KEYS = (
+    _NATIVE_PATCH_SUPPORT_WITNESS_KEYS - {"selection_priority_sha256"}
+) | {
+    "rotation_key_sha256",
+    "rotation_offset",
+    "rotation_pool_size",
+    "rotation_selected_index",
+    "rotation_start_index",
+    "selection_contract",
+}
+
+
+def _validate_native_patch_category_meta(
+    meta: Dict[str, Any],
+    row_index: int,
+    *,
+    variant: str = "d1",
+    expected_source_dataset: Optional[str] = None,
+    alias_bridges: Optional[Dict[int, int]] = None,
+) -> None:
+    context = f"native patch-category row {row_index}"
+    instances = meta.get("instances")
+    witness = meta.get("support_patch_witness")
+    query_witness = meta.get("query_image_witness")
+    d1_contract = (
+        variant == "d1"
+        and meta.get("stage_b_native_patch_category_d1") is True
+        and meta.get("stage_b_native_patch_category_d1_schema")
+        == _NATIVE_PATCH_CATEGORY_D1_ROW_SCHEMA
+        and meta.get("stage_b_u2_category_complete") is True
+        and meta.get("stage_b_u2_category_complete_schema")
+        == "pivot.stageb.u2_category_complete_ref/v1"
+    )
+    d2_contract = (
+        variant == "d2"
+        and meta.get("stage_b_native_patch_category_d2") is True
+        and meta.get("stage_b_native_patch_category_d2_schema")
+        == _NATIVE_PATCH_CATEGORY_D2_ROW_SCHEMA
+        and all(
+            key not in meta
+            for key in (
+                "stage_b_native_patch_category_d1",
+                "stage_b_native_patch_category_d1_schema",
+                "stage_b_u2_category_complete",
+                "stage_b_u2_category_complete_schema",
+            )
+        )
+    )
+    if not (
+        (d1_contract or d2_contract)
+        and meta.get("primary_support_instance_index") == 0
+        and isinstance(instances, list)
+        and bool(instances)
+        and all(isinstance(instance, dict) for instance in instances)
+    ):
+        raise ValueError(f"{context} lost its sealed category-complete contract")
+    class_ids = [instance.get("class_id") for instance in instances]
+    if (
+        any(isinstance(class_id, bool) or not isinstance(class_id, int) for class_id in class_ids)
+        or len(set(class_ids)) != 1
+        or instances[0].get("category_complete_primary") is not True
+        or not isinstance(instances[0].get("raw_phrase"), str)
+        or not instances[0]["raw_phrase"].strip()
+    ):
+        raise ValueError(f"{context} has invalid same-category full-text instances")
+    expected_witness_keys = (
+        _NATIVE_PATCH_SUPPORT_WITNESS_KEYS
+        if variant == "d1"
+        else _NATIVE_PATCH_CATEGORY_D2_SUPPORT_WITNESS_KEYS
+    )
+    if not (
+        isinstance(witness, dict)
+        and set(witness) == expected_witness_keys
+        and witness.get("train_filtered") is True
+        and witness.get("class_id") == class_ids[0]
+        and isinstance(witness.get("path"), str)
+        and bool(witness["path"].strip())
+        and type(witness.get("size_bytes")) is int
+        and witness["size_bytes"] > 0
+        and isinstance(witness.get("content_sha256"), str)
+        and _LOWER_SHA256_RE.fullmatch(witness["content_sha256"]) is not None
+    ):
+        raise ValueError(f"{context} has an invalid row-locked support witness")
+    assignment = witness.get("class_assignment")
+    source_class_id = witness.get("source_cache_class_id")
+    if assignment == "sealed_cache_identity_v1":
+        valid_assignment = source_class_id == class_ids[0]
+    elif assignment == "canonical_compact_alias_bridge_v1":
+        valid_assignment = bool(
+            isinstance(alias_bridges, dict)
+            and alias_bridges.get(int(class_ids[0])) == source_class_id
+            and source_class_id != class_ids[0]
+        )
+    else:
+        valid_assignment = False
+    if not valid_assignment:
+        raise ValueError(f"{context} support class assignment is not sealed")
+    if variant == "d2":
+        rotation_pool_size = witness.get("rotation_pool_size")
+        rotation_start_index = witness.get("rotation_start_index")
+        rotation_offset = witness.get("rotation_offset")
+        rotation_selected_index = witness.get("rotation_selected_index")
+        rotation_payload = {
+            "namespace": _NATIVE_PATCH_CATEGORY_D2_SUPPORT_ROTATION_CONTRACT,
+            "group_id": meta.get("native_patch_category_group_id"),
+            "source_identity_sha256": meta.get(
+                "native_patch_category_source_identity_sha256"
+            ),
+        }
+        expected_rotation_key = hashlib.sha256(
+            json.dumps(
+                rotation_payload,
+                ensure_ascii=True,
+                allow_nan=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        ).hexdigest()
+        valid_rotation = (
+            witness.get("selection_contract")
+            == _NATIVE_PATCH_CATEGORY_D2_SUPPORT_ROTATION_CONTRACT
+            and witness.get("rotation_key_sha256") == expected_rotation_key
+            and type(rotation_pool_size) is int
+            and rotation_pool_size > 0
+            and type(rotation_start_index) is int
+            and 0 <= rotation_start_index < rotation_pool_size
+            and type(rotation_offset) is int
+            and 0 <= rotation_offset < rotation_pool_size
+            and type(rotation_selected_index) is int
+            and 0 <= rotation_selected_index < rotation_pool_size
+            and rotation_selected_index
+            == (rotation_start_index + rotation_offset) % rotation_pool_size
+        )
+        if not valid_rotation:
+            raise ValueError(f"{context} support rotation proof drifted")
+    if not (
+        isinstance(query_witness, dict)
+        and set(query_witness)
+        == {"content_sha256", "path", "size_bytes", "source_filename"}
+        and isinstance(query_witness.get("content_sha256"), str)
+        and _LOWER_SHA256_RE.fullmatch(query_witness["content_sha256"])
+        is not None
+        and query_witness["content_sha256"] != witness["content_sha256"]
+    ):
+        raise ValueError(f"{context} has an invalid query-image witness")
+    query_image_id = meta.get("image_id")
+    d1_identity = (
+        variant == "d1"
+        and type(meta.get("native_patch_category_variant_index")) is int
+        and meta["native_patch_category_variant_index"] in {0, 1, 2}
+    )
+    d2_weight = meta.get(_NATIVE_PATCH_CATEGORY_D2_WEIGHT_FIELD)
+    d2_source_dataset = meta.get("native_patch_category_source_dataset")
+    d2_source_mix_weight = meta.get(
+        "native_patch_category_source_mix_weight"
+    )
+    expected_d2_mix_weight = {
+        "refcoco": 2,
+        "refcocoplus": 2,
+        "refcocog": 1,
+    }.get(d2_source_dataset)
+    d2_identity = (
+        variant == "d2"
+        and meta.get("native_patch_category_class_id") == class_ids[0]
+        and d2_source_dataset in {"refcoco", "refcocoplus", "refcocog"}
+        and (
+            expected_source_dataset is None
+            or d2_source_dataset == expected_source_dataset
+        )
+        and isinstance(
+            meta.get("native_patch_category_source_identity_sha256"), str
+        )
+        and _LOWER_SHA256_RE.fullmatch(
+            meta["native_patch_category_source_identity_sha256"]
+        )
+        is not None
+        and type(meta.get("native_patch_category_source_line_number")) is int
+        and meta["native_patch_category_source_line_number"] > 0
+        and type(
+            meta.get("native_patch_category_source_group_expression_count")
+        )
+        is int
+        and meta["native_patch_category_source_group_expression_count"] > 0
+        and type(d2_source_mix_weight) is int
+        and d2_source_mix_weight == expected_d2_mix_weight
+        and meta.get("native_patch_category_sampling_contract")
+        == _NATIVE_PATCH_CATEGORY_D2_SAMPLING_CONTRACT
+        and isinstance(d2_weight, float)
+        and math.isfinite(d2_weight)
+        and d2_weight > 0.0
+    )
+    if (
+        type(query_image_id) is not int
+        or witness.get("coco_id") == query_image_id
+        or not (d1_identity or d2_identity)
+        or not isinstance(meta.get("native_patch_category_group_id"), str)
+        or not meta["native_patch_category_group_id"]
+    ):
+        raise ValueError(f"{context} support/query identity contract drifted")
 
 
 def _norm_text(s: str) -> str:
@@ -128,6 +443,65 @@ def _as_list(value: Any) -> List[Any]:
     if isinstance(value, list):
         return value
     return [value]
+
+
+def _validate_single_edit_token_provenance(
+    row: Dict[str, Any], *, context: str
+) -> None:
+    """Validate the immutable single-edit contract before granting supervision."""
+    edits = row.get("tn_edits")
+    if not (
+        isinstance(edits, list)
+        and len(edits) == 1
+        and isinstance(edits[0], dict)
+    ):
+        raise ValueError(
+            f"single-edit token provenance requires exactly one tn_edits entry at {context}"
+        )
+    edit = edits[0]
+    category = edit.get("category")
+    replace_from = edit.get("replace_from")
+    replace_to = edit.get("replace_to")
+    replace_span = edit.get("replace_span")
+    if not all(
+        isinstance(value, str) and bool(value.strip())
+        for value in (category, replace_from, replace_to)
+    ):
+        raise ValueError(
+            f"single-edit token provenance has invalid text fields at {context}"
+        )
+    normalized_from = _WS_RE.sub(" ", replace_from.strip().lower())
+    normalized_to = _WS_RE.sub(" ", replace_to.strip().lower())
+    if normalized_from == normalized_to:
+        raise ValueError(
+            f"single-edit token provenance does not change text at {context}"
+        )
+    if not (
+        isinstance(replace_span, list)
+        and len(replace_span) == 2
+        and all(
+            isinstance(value, int) and not isinstance(value, bool)
+            for value in replace_span
+        )
+        and 0 <= replace_span[0] < replace_span[1]
+    ):
+        raise ValueError(
+            f"single-edit token provenance has an invalid replace_span at {context}"
+        )
+    expected = {
+        "replace_category": [category],
+        "replace_from": [replace_from],
+        "replace_to": [replace_to],
+        "replace_span": [replace_span],
+    }
+    inconsistent = [
+        key for key, value in expected.items() if row.get(key) != value
+    ]
+    if inconsistent:
+        raise ValueError(
+            "single-edit token provenance disagrees with top-level "
+            f"{', '.join(inconsistent)} at {context}"
+        )
 
 
 _TN_CATEGORY_WEIGHTS = {name: 1.0 for name in _TN_GROUP_NAMES}
@@ -252,7 +626,7 @@ def _expand_path_like(value):
             out = out.replace(f"${key}", default_value)
         out = os.path.expandvars(out)
         out = os.path.expanduser(out)
-        return out
+        return str(remap_legacy_path(out))
     if isinstance(value, list):
         return [_expand_path_like(v) for v in value]
     return value
@@ -548,6 +922,109 @@ def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
     return metas
 
 
+class _LazyJsonlRows(Sequence[Dict[str, Any]]):
+    """Read immutable JSONL rows by byte offset without retaining decoded rows."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path.resolve(strict=True)
+        before = self.path.stat()
+        offsets = array("Q")
+        lengths = array("Q")
+        offset = 0
+        with self.path.open("rb", buffering=0) as handle:
+            while True:
+                line = handle.readline()
+                if not line:
+                    break
+                if line.strip():
+                    offsets.append(offset)
+                    lengths.append(len(line))
+                offset += len(line)
+        after = self.path.stat()
+        before_identity = (
+            before.st_dev,
+            before.st_ino,
+            before.st_size,
+            before.st_mtime_ns,
+            before.st_ctime_ns,
+        )
+        after_identity = (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+        )
+        if before_identity != after_identity or offset != after.st_size:
+            raise RuntimeError(f"JSONL changed while indexing: {self.path}")
+        self._identity = after_identity
+        self._offsets = offsets
+        self._lengths = lengths
+        self._fd: Optional[int] = None
+
+    def __len__(self) -> int:
+        return len(self._offsets)
+
+    def _open_fd(self) -> int:
+        if self._fd is None:
+            self._fd = os.open(self.path, os.O_RDONLY | os.O_CLOEXEC)
+        stat = os.fstat(self._fd)
+        identity = (
+            stat.st_dev,
+            stat.st_ino,
+            stat.st_size,
+            stat.st_mtime_ns,
+            stat.st_ctime_ns,
+        )
+        if identity != self._identity:
+            self.close()
+            raise RuntimeError(f"JSONL changed after indexing: {self.path}")
+        return self._fd
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self[position] for position in range(*index.indices(len(self)))]
+        if not isinstance(index, int):
+            raise TypeError(f"JSONL row index must be int or slice, got {type(index)}")
+        if index < 0:
+            index += len(self)
+        if index < 0 or index >= len(self):
+            raise IndexError(index)
+        length = int(self._lengths[index])
+        payload = os.pread(self._open_fd(), length, int(self._offsets[index]))
+        if len(payload) != length:
+            raise RuntimeError(f"JSONL row {index} became truncated: {self.path}")
+        try:
+            row = json.loads(payload)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise RuntimeError(
+                f"JSONL row {index} became unreadable: {self.path}"
+            ) from error
+        if not isinstance(row, dict):
+            raise RuntimeError(f"JSONL row {index} is not an object: {self.path}")
+        return row
+
+    def __iter__(self) -> Iterator[Dict[str, Any]]:
+        for index in range(len(self)):
+            yield self[index]
+
+    def close(self) -> None:
+        if self._fd is not None:
+            os.close(self._fd)
+            self._fd = None
+
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        state["_fd"] = None
+        return state
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
 def _read_json(path: Path) -> List[Dict[str, Any]]:
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
@@ -636,6 +1113,28 @@ class PatchEpisodeConfig:
     skip_relation_like_tn_in_v1: bool = False
     tn_balance_sampling: bool = True
     tn_balance_cap: float = 5.0
+    sam3_tn_image_root: Optional[str] = None
+    sam3_tn_bbox_key: str = "sam_bbox"
+    sam3_tn_keep_failed: bool = False
+    require_global_tn_verified: bool = False
+    require_fixed_stagea_topk_exact_verified: bool = False
+    fixed_stagea_topk_exact_audit: Optional[str] = None
+    fixed_stagea_topk_expected_contract: Optional[Dict[str, Any]] = None
+    require_proposalset_proxy_verified: bool = False
+    require_benchmark_dataft_alltn: bool = False
+    require_vlm_strict_tn: bool = False
+    require_single_edit_token_provenance: bool = False
+    table_b_id: Optional[str] = None
+    table_b_scope: Optional[str] = None
+    table_b_audit_sha256: Optional[str] = None
+    stage_b_gdino_adapter_ref_eval: bool = False
+    stage_b_gdino_adapter_no_support: bool = False
+    native_patch_category_row_locked_support: bool = False
+    native_patch_category_variant: Optional[str] = None
+    native_patch_category_source_dataset: Optional[str] = None
+    native_patch_category_alias_bridges: Optional[Dict[int, int]] = None
+    strict_sample_identity: bool = False
+    lazy_jsonl: bool = False
 
 
 class PatchEpisodeJsonlDataset(VisionDataset):
@@ -728,6 +1227,28 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         skip_relation_like_tn_in_v1: bool = False,
         tn_balance_sampling: bool = True,
         tn_balance_cap: float = 5.0,
+        sam3_tn_image_root: Optional[str] = None,
+        sam3_tn_bbox_key: str = "sam_bbox",
+        sam3_tn_keep_failed: bool = False,
+        require_global_tn_verified: bool = False,
+        require_fixed_stagea_topk_exact_verified: bool = False,
+        fixed_stagea_topk_exact_audit: Optional[str] = None,
+        fixed_stagea_topk_expected_contract: Optional[Dict[str, Any]] = None,
+        require_proposalset_proxy_verified: bool = False,
+        require_benchmark_dataft_alltn: bool = False,
+        require_vlm_strict_tn: bool = False,
+        require_single_edit_token_provenance: bool = False,
+        table_b_id: Optional[str] = None,
+        table_b_scope: Optional[str] = None,
+        table_b_audit_sha256: Optional[str] = None,
+        stage_b_gdino_adapter_ref_eval: bool = False,
+        stage_b_gdino_adapter_no_support: bool = False,
+        native_patch_category_row_locked_support: bool = False,
+        native_patch_category_variant: Optional[str] = None,
+        native_patch_category_source_dataset: Optional[str] = None,
+        native_patch_category_alias_bridges: Optional[Dict[int, int]] = None,
+        strict_sample_identity: bool = False,
+        lazy_jsonl: bool = False,
     ) -> None:
         root = _expand_path_like(root)
         anno = _expand_path_like(anno)
@@ -742,6 +1263,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         phrase_classifier_ckpt = _expand_path_like(phrase_classifier_ckpt)
         patch_bank_cache_path = _expand_path_like(patch_bank_cache_path)
         anno_cache_path = _expand_path_like(anno_cache_path)
+        sam3_tn_image_root = _expand_path_like(sam3_tn_image_root)
+        fixed_stagea_topk_exact_audit = _expand_path_like(
+            fixed_stagea_topk_exact_audit
+        )
 
         super().__init__(root=root, transforms=transforms)
         self.root = str(root)
@@ -750,6 +1275,97 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         self._canonical_classes_json = canonical_classes_json
         self._support_patch_class_map_json = support_patch_class_map_json
         self._alt_image_roots = [Path(p) for p in (vg_image_roots or [])]
+        if not isinstance(lazy_jsonl, bool):
+            raise ValueError("lazy_jsonl must be an exact boolean")
+        if lazy_jsonl and (
+            not strict_sample_identity
+            or require_fixed_stagea_topk_exact_verified
+            or native_patch_category_row_locked_support
+            or lvis_neg_category_only
+            or str(self.source or "").lower()
+            in {"sam3_tn_pair", "sam3_paired_tn", "sam3_and_tn"}
+        ):
+            raise ValueError(
+                "lazy_jsonl is restricted to immutable strict-identity JSONL rows"
+            )
+        if require_fixed_stagea_topk_exact_verified:
+            if str(self.source or "").lower() not in {
+                "sam3_tn_pair",
+                "sam3_paired_tn",
+                "sam3_and_tn",
+            }:
+                raise ValueError(
+                    "fixed Stage-A exact Top-K rows require a paired TN source"
+                )
+            if not fixed_stagea_topk_exact_audit:
+                raise ValueError(
+                    "require_fixed_stagea_topk_exact_verified requires an exact "
+                    "verification sidecar audit"
+                )
+            try:
+                fixed_stagea_topk_expected_contract = normalize_exact_contract(
+                    fixed_stagea_topk_expected_contract
+                )
+            except ExactTopKContractError as error:
+                raise ValueError(
+                    "require_fixed_stagea_topk_exact_verified requires a complete "
+                    f"expected provenance contract: {error}"
+                ) from error
+            if (
+                float(neg_episode_prob) != 0.0
+                or int(support_num_patches_min) != 1
+                or int(support_num_patches_max) != 1
+                or bool(support_patch_use_embedding)
+            ):
+                raise ValueError(
+                    "fixed Stage-A exact Top-K rows require neg_episode_prob=0 and "
+                    "exactly one row-locked image support patch"
+                )
+        if require_single_edit_token_provenance:
+            if str(self.source or "").lower() not in {
+                "sam3_tn_pair",
+                "sam3_paired_tn",
+                "sam3_and_tn",
+            }:
+                raise ValueError(
+                    "single-edit token provenance requires a paired TN source"
+                )
+            if not build_text_token_masks:
+                raise ValueError(
+                    "single-edit token provenance requires build_text_token_masks=True"
+                )
+        if stage_b_gdino_adapter_no_support and not (
+            require_benchmark_dataft_alltn
+            or require_global_tn_verified
+            or require_fixed_stagea_topk_exact_verified
+            or require_vlm_strict_tn
+            or stage_b_gdino_adapter_ref_eval
+        ):
+            raise ValueError(
+                "stage_b_gdino_adapter_no_support is restricted to explicitly "
+                "verified adapter training or evaluation datasets"
+            )
+        if native_patch_category_row_locked_support and (
+            float(neg_episode_prob) != 0.0
+            or int(support_num_patches_min) != 1
+            or int(support_num_patches_max) != 1
+            or bool(support_patch_use_embedding)
+            or not bool(build_text_token_masks)
+            or not bool(strict_sample_identity)
+        ):
+            raise ValueError(
+                "native patch-category row-locked support requires one pixel "
+                "support, full-text masks, zero negative episodes, and strict identity"
+            )
+        native_patch_category_variant = str(
+            native_patch_category_variant or ""
+        ).strip().lower()
+        if native_patch_category_row_locked_support and (
+            native_patch_category_variant not in {"d1", "d2"}
+        ):
+            raise ValueError(
+                "native patch-category rows require an exact d1/d2 variant"
+            )
         self.cfg = PatchEpisodeConfig(
             box_format=box_format,
             neg_episode_prob=neg_episode_prob,
@@ -802,6 +1418,68 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             skip_relation_like_tn_in_v1=bool(skip_relation_like_tn_in_v1),
             tn_balance_sampling=bool(tn_balance_sampling),
             tn_balance_cap=float(tn_balance_cap),
+            sam3_tn_image_root=str(sam3_tn_image_root) if sam3_tn_image_root else None,
+            sam3_tn_bbox_key=str(sam3_tn_bbox_key),
+            sam3_tn_keep_failed=bool(sam3_tn_keep_failed),
+            require_global_tn_verified=bool(require_global_tn_verified),
+            require_fixed_stagea_topk_exact_verified=bool(
+                require_fixed_stagea_topk_exact_verified
+            ),
+            fixed_stagea_topk_exact_audit=(
+                str(fixed_stagea_topk_exact_audit)
+                if fixed_stagea_topk_exact_audit
+                else None
+            ),
+            fixed_stagea_topk_expected_contract=(
+                dict(fixed_stagea_topk_expected_contract)
+                if fixed_stagea_topk_expected_contract is not None
+                else None
+            ),
+            require_proposalset_proxy_verified=bool(
+                require_proposalset_proxy_verified
+            ),
+            require_benchmark_dataft_alltn=bool(
+                require_benchmark_dataft_alltn
+            ),
+            require_vlm_strict_tn=bool(require_vlm_strict_tn),
+            require_single_edit_token_provenance=bool(
+                require_single_edit_token_provenance
+            ),
+            table_b_id=(str(table_b_id) if table_b_id is not None else None),
+            table_b_scope=(
+                str(table_b_scope) if table_b_scope is not None else None
+            ),
+            table_b_audit_sha256=(
+                str(table_b_audit_sha256)
+                if table_b_audit_sha256 is not None
+                else None
+            ),
+            stage_b_gdino_adapter_ref_eval=bool(
+                stage_b_gdino_adapter_ref_eval
+            ),
+            stage_b_gdino_adapter_no_support=bool(
+                stage_b_gdino_adapter_no_support
+            ),
+            native_patch_category_row_locked_support=bool(
+                native_patch_category_row_locked_support
+            ),
+            native_patch_category_variant=(
+                native_patch_category_variant
+                if native_patch_category_row_locked_support
+                else None
+            ),
+            native_patch_category_source_dataset=(
+                native_patch_category_source_dataset
+                if native_patch_category_variant == "d2"
+                else None
+            ),
+            native_patch_category_alias_bridges=(
+                dict(native_patch_category_alias_bridges)
+                if native_patch_category_alias_bridges is not None
+                else None
+            ),
+            strict_sample_identity=bool(strict_sample_identity),
+            lazy_jsonl=bool(lazy_jsonl),
         )
 
         self.name2cid = _build_name_to_canonical_id(canonical_classes_json)
@@ -826,9 +1504,47 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     f"build_text_token_masks=True requires a fast tokenizer, got {type(self._text_tokenizer)}"
                 )
 
+        self._fixed_stagea_exact_rows: Dict[str, Dict[str, Any]] = {}
+        self._fixed_support_patch_sha_cache: Dict[Path, Tuple[int, int, str]] = {}
+        self._native_patch_support_sha_cache: Dict[
+            Path, Tuple[int, int, int, int, str]
+        ] = {}
         anno_path = Path(anno)
+        if (
+            self.cfg.require_fixed_stagea_topk_exact_verified
+            and anno_path.suffix.lower() != ".jsonl"
+        ):
+            raise ValueError(
+                "fixed Stage-A exact Top-K datasets require canonical JSONL plus "
+                "a sidecar audit"
+            )
         if anno_path.suffix.lower() == ".jsonl":
-            self.metas = _read_jsonl(anno_path)
+            self.metas = (
+                _LazyJsonlRows(anno_path)
+                if self.cfg.lazy_jsonl
+                else _read_jsonl(anno_path)
+            )
+            if self.cfg.require_fixed_stagea_topk_exact_verified:
+                try:
+                    validated = validate_exact_pair_collection(
+                        self.metas,
+                        annotation_path=anno_path,
+                        audit_path=Path(self.cfg.fixed_stagea_topk_exact_audit),
+                        expected_contract=self.cfg.fixed_stagea_topk_expected_contract,
+                    )
+                except ExactTopKContractError as error:
+                    raise ValueError(
+                        f"fixed Stage-A exact Top-K dataset failed closed: {error}"
+                    ) from error
+                self._fixed_stagea_exact_rows = {
+                    str(row["sample_id"]): summary
+                    for row, summary in zip(self.metas, validated)
+                }
+            if str(self.source or "").lower() in {"sam3_tn_pair", "sam3_paired_tn", "sam3_and_tn"}:
+                self.metas = self._normalize_sam3_tn_pair_metas(self.metas)
+                # Normalized metas retain only the runtime replay tensors and
+                # support binding, not the full per-candidate judgment payload.
+                self._fixed_stagea_exact_rows = {}
         elif anno_path.suffix.lower() == ".json":
             if source in {"lvis", "coco", "vg_region_descriptions"}:
                 self.metas = self._load_metas_cached(
@@ -896,10 +1612,79 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     )
                 elif src == "prebuilt":
                     self.metas = anno_data
+                elif src in {"sam3_tn_pair", "sam3_paired_tn", "sam3_and_tn"}:
+                    self.metas = self._normalize_sam3_tn_pair_metas(anno_data)
                 else:
                     raise ValueError(f"Unsupported source={src} detected={detected} for anno={anno_path}")
         else:
             raise ValueError(f"Unsupported anno extension: {anno_path.suffix}")
+
+        if self.cfg.native_patch_category_row_locked_support:
+            for row_index, meta in enumerate(self.metas):
+                if not isinstance(meta, dict):
+                    raise ValueError(
+                        f"native patch-category row {row_index} is not an object"
+                    )
+                _validate_native_patch_category_meta(
+                    meta,
+                    row_index,
+                    variant=str(self.cfg.native_patch_category_variant),
+                    expected_source_dataset=(
+                        self.cfg.native_patch_category_source_dataset
+                    ),
+                    alias_bridges=self.cfg.native_patch_category_alias_bridges,
+                )
+
+        if self.cfg.require_benchmark_dataft_alltn:
+            for row_index, meta in enumerate(self.metas):
+                if (
+                    not isinstance(meta, dict)
+                    or meta.get("benchmark_dataft_alltn", None) is not True
+                    or meta.get("tn_scope", None) != "benchmark_dataft_alltn"
+                    or meta.get("proposalset_proxy_verified", None) is not False
+                ):
+                    raise ValueError(
+                        "benchmark data-FT adapter rows require exact boolean "
+                        "benchmark_dataft_alltn=true, "
+                        "tn_scope='benchmark_dataft_alltn', and no proposal proxy; "
+                        f"invalid row {row_index} in {self.anno}"
+                    )
+
+        if self.cfg.require_vlm_strict_tn:
+            for row_index, meta in enumerate(self.metas):
+                audit = meta.get("proposal_audit", None) if isinstance(meta, dict) else None
+                if (
+                    not isinstance(meta, dict)
+                    or meta.get("manifest_schema", None)
+                    != "stageb_vlm_verified_strict_tn_v2"
+                    or meta.get("visual_verified_negative", None) is not True
+                    or meta.get("coverage_pass", None) is not True
+                    or meta.get("coverage_policy", None) != "target_plus_proposal"
+                    or not isinstance(audit, dict)
+                    or audit.get("target_verified_no", None) is not True
+                    or audit.get("target_plus_proposal_covered", None) is not True
+                ):
+                    raise ValueError(
+                        "VLM strict-v2 TN rows require the exact verified-negative "
+                        f"coverage contract; invalid row {row_index} in {self.anno}"
+                    )
+
+        if self.cfg.stage_b_gdino_adapter_ref_eval:
+            for row_index, meta in enumerate(self.metas):
+                instances = meta.get("instances", None) if isinstance(meta, dict) else None
+                instance = instances[0] if isinstance(instances, list) and len(instances) == 1 else None
+                if (
+                    not isinstance(meta, dict)
+                    or not all(meta.get(key, None) is not None for key in ("image_id", "ann_id", "ref_id", "sent_id"))
+                    or not isinstance(instance, dict)
+                    or instance.get("text_is_negative", None) is not False
+                    or not isinstance(instance.get("positive_phrase", None), str)
+                    or not instance["positive_phrase"].strip()
+                ):
+                    raise ValueError(
+                        "GDINO adapter Ref evaluation rows require one positive "
+                        f"identified expression; invalid row {row_index} in {self.anno}"
+                    )
 
         if (self.cfg.vg_phrase_labeler in {"classifier", "hybrid"}) and (not self.cfg.phrase_classifier_ckpt):
             raise ValueError("vg_phrase_labeler requires phrase_classifier_ckpt when using classifier/hybrid.")
@@ -915,13 +1700,13 @@ class PatchEpisodeJsonlDataset(VisionDataset):
 
         self.patch_bank: Optional[Dict[int, List[str]]] = None
         self.patch_class_map: Optional[Dict[str, int]] = None
-        if support_patch_class_map_json:
+        if support_patch_class_map_json and not self.cfg.stage_b_gdino_adapter_no_support:
             with Path(support_patch_class_map_json).open("r", encoding="utf-8") as f:
                 raw = json.load(f)
             if not isinstance(raw, dict):
                 raise ValueError("support_patch_class_map_json must be a JSON object mapping class_name -> canonical_id.")
             self.patch_class_map = {_norm_text(str(k)): int(v) for k, v in raw.items()}
-        if support_patch_tsv:
+        if support_patch_tsv and not self.cfg.stage_b_gdino_adapter_no_support:
             self.patch_bank = self._load_patch_bank_cached(Path(support_patch_tsv))
             if not self.patch_bank:
                 print(
@@ -932,7 +1717,19 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         self._patch_emb_cache: "OrderedDict[str, torch.Tensor]" = OrderedDict()
         self._filter_lvis_neg_category_metas_if_needed()
         self.tn_category_stats = self._compute_tn_category_stats()
-        self.sample_weights = self._build_tn_balanced_sample_weights()
+        tn_sample_weights = self._build_tn_balanced_sample_weights()
+        native_patch_sample_weights = (
+            self._build_native_patch_category_sample_weights()
+        )
+        if tn_sample_weights is not None and native_patch_sample_weights is not None:
+            raise ValueError(
+                "TN balancing and native patch-category D2 balancing are mutually exclusive"
+            )
+        self.sample_weights = (
+            native_patch_sample_weights
+            if native_patch_sample_weights is not None
+            else tn_sample_weights
+        )
         if self.tn_category_stats["total_edits"] > 0:
             print("[INFO] TN category stats for {}:\n{}".format(self.anno, json.dumps(self.tn_category_stats, indent=2)))
 
@@ -1064,7 +1861,9 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         for obj in instances:
             if not isinstance(obj, dict):
                 continue
-            if bool(obj.get("text_is_negative", obj.get("is_text_negative", False))):
+            if bool(obj.get("text_is_negative", obj.get("is_text_negative", False))) or bool(
+                obj.get("sam3_tn_pair", False)
+            ):
                 out.append(obj)
         return out
 
@@ -1142,6 +1941,84 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             print("[INFO] TN balanced sampling for {}:\n{}".format(self.anno, json.dumps(self.tn_balance_stats, indent=2)))
         return weights
 
+    def _build_native_patch_category_sample_weights(
+        self,
+    ) -> Optional[List[float]]:
+        if self.cfg.native_patch_category_variant != "d2":
+            self.native_patch_category_sampling_stats = {
+                "enabled": False,
+                "reason": "not_d2",
+            }
+            return None
+        if bool(self.cfg.tn_balance_sampling):
+            raise ValueError(
+                "native patch-category D2 requires tn_balance_sampling=False"
+            )
+        weights: List[float] = []
+        sources: Counter[str] = Counter()
+        classes: Counter[int] = Counter()
+        groups: set[str] = set()
+        for row_index, meta in enumerate(self.metas):
+            value = meta.get(_NATIVE_PATCH_CATEGORY_D2_WEIGHT_FIELD)
+            if (
+                not isinstance(value, float)
+                or not math.isfinite(value)
+                or value <= 0.0
+            ):
+                raise ValueError(
+                    f"native patch-category D2 row {row_index} has an invalid sampling weight"
+                )
+            source = meta.get("native_patch_category_source_dataset")
+            class_id = meta.get("native_patch_category_class_id")
+            group_id = meta.get("native_patch_category_group_id")
+            if (
+                source not in {"refcoco", "refcocoplus", "refcocog"}
+                or type(class_id) is not int
+                or not isinstance(group_id, str)
+                or not group_id
+            ):
+                raise ValueError(
+                    f"native patch-category D2 row {row_index} lost sampling identity"
+                )
+            weights.append(float(value))
+            sources[str(source)] += 1
+            classes[int(class_id)] += 1
+            groups.add(group_id)
+        mean_weight = math.fsum(weights) / len(weights) if weights else 0.0
+        if not weights or not math.isclose(
+            mean_weight, 1.0, rel_tol=0.0, abs_tol=1e-12
+        ):
+            raise ValueError(
+                "native patch-category D2 per-source sampling weights must have exact mean one"
+            )
+        self.native_patch_category_sampling_stats = {
+            "enabled": True,
+            "contract": _NATIVE_PATCH_CATEGORY_D2_SAMPLING_CONTRACT,
+            "rows": len(weights),
+            "groups": len(groups),
+            "classes": len(classes),
+            "source_counts": dict(sorted(sources.items())),
+            "weight_mean": mean_weight,
+            "weight_min": min(weights),
+            "weight_max": max(weights),
+        }
+        expected_source = self.cfg.native_patch_category_source_dataset
+        if set(sources) != {expected_source}:
+            raise ValueError(
+                "native patch-category D2 rows do not match their bound source manifest"
+            )
+        print(
+            "[INFO] Native patch-category D2 sampling for {}:\n{}".format(
+                self.anno,
+                json.dumps(
+                    self.native_patch_category_sampling_stats,
+                    indent=2,
+                    sort_keys=True,
+                ),
+            )
+        )
+        return weights
+
     def _clean_caption_phrase(self, s: str) -> str:
         s = str(s).replace("_", " ").replace(".", " ").strip()
         s = " ".join(s.split())
@@ -1151,6 +2028,264 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         if (not self.cfg.build_text_token_masks) and max_words > 0:
             s = " ".join(s.split()[:max_words])
         return s
+
+    def _sam3_tn_image_path(self, row: Dict[str, Any]) -> str:
+        image_root = self.cfg.sam3_tn_image_root or self.root
+        image_path = row.get("image_path", None)
+        if isinstance(image_path, str) and image_path.strip() and Path(image_path).exists():
+            return image_path
+        image_id = row.get("image_id", None)
+        if image_id is not None:
+            try:
+                return str(Path(image_root) / f"COCO_train2014_{int(image_id):012d}.jpg")
+            except Exception:
+                pass
+        file_name = row.get("file_name", row.get("filename", None))
+        if isinstance(file_name, str) and file_name.strip():
+            return str(Path(image_root) / Path(file_name).name)
+        return str(Path(image_root) / "")
+
+    def _sam3_tn_bbox(self, row: Dict[str, Any]) -> Optional[List[float]]:
+        preferred = str(self.cfg.sam3_tn_bbox_key or "sam_bbox")
+        keys = [preferred]
+        for key in ("sam_bbox", "bbox", "gt_bbox", "target_bbox_used"):
+            if key not in keys:
+                keys.append(key)
+        for key in keys:
+            value = row.get(key, None)
+            if not isinstance(value, (list, tuple)) or len(value) != 4:
+                continue
+            try:
+                box = [float(x) for x in value]
+            except Exception:
+                continue
+            if box[2] <= 0 or box[3] <= 0:
+                continue
+            return box
+        return None
+
+    def _sam3_tn_canonical_id(self, row: Dict[str, Any], positive_phrase: str) -> Optional[int]:
+        class_id = row.get("class_id", None)
+        if class_id is not None:
+            try:
+                return int(class_id)
+            except Exception:
+                pass
+        for key in ("class_norm_name", "category_name", "try_tn_head", "try_tn_head_phrase", "sent"):
+            value = row.get(key, None)
+            if isinstance(value, str) and value.strip():
+                cid = self._phrase_to_canonical_id(value)
+                if cid is not None:
+                    return int(cid)
+        return self._phrase_to_canonical_id(positive_phrase)
+
+    def _normalize_sam3_tn_pair_metas(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        metas: List[Dict[str, Any]] = []
+        skipped = 0
+        table_b_id = getattr(self.cfg, "table_b_id", None)
+        table_b_scope = getattr(self.cfg, "table_b_scope", None)
+        table_b_audit_sha256 = getattr(
+            self.cfg, "table_b_audit_sha256", None
+        )
+        for row in rows:
+            if not isinstance(row, dict):
+                skipped += 1
+                continue
+            if table_b_id is not None:
+                if row.get("table_b_pair_schema") != TABLE_B_PAIR_SCHEMA:
+                    raise ValueError(
+                        "Table-B TN row has an unexpected pair schema at "
+                        f"{row.get('sample_id', f'row {len(metas)}')}"
+                    )
+                if row.get("table_b_id") != table_b_id:
+                    raise ValueError(
+                        "Table-B TN row ID does not match the enabled dataset "
+                        f"contract: {row.get('table_b_id')!r} != "
+                        f"{table_b_id!r}"
+                    )
+                if row.get("tn_scope") != table_b_scope:
+                    raise ValueError(
+                        "Table-B TN row scope does not match the enabled dataset "
+                        f"contract: {row.get('tn_scope')!r} != "
+                        f"{table_b_scope!r}"
+                    )
+                if row.get("global_tn_verified") is not False:
+                    raise ValueError(
+                        "Table-B weak-scope rows must retain exact boolean "
+                        "global_tn_verified=false"
+                    )
+            if self.cfg.require_single_edit_token_provenance:
+                _validate_single_edit_token_provenance(
+                    row,
+                    context=str(row.get("sample_id", f"row {len(metas)}")),
+                )
+            tn_scope = row.get("tn_scope", None)
+            semantic_global_verified = (
+                row.get("global_tn_verified", None) is True
+                and tn_scope == "image_global_topk_verified"
+            )
+            exact_summary = self._fixed_stagea_exact_rows.get(
+                str(row.get("sample_id", ""))
+            )
+            exact_global_verified = (
+                self.cfg.require_fixed_stagea_topk_exact_verified
+                and exact_summary is not None
+                and row.get("global_tn_verified", None) is True
+                and row.get("fixed_stagea_topk_exact_verified", None) is True
+                and tn_scope == EXACT_TOPK_TN_SCOPE
+            )
+            global_verified = semantic_global_verified or exact_global_verified
+            proposalset_proxy_verified = (
+                row.get("proposalset_proxy_verified", None) is True
+                and tn_scope == "proposal_set_verified"
+            )
+            # This runtime flag is granted by the datasetinfo contract after
+            # validating the immutable row, never by a row-authored boolean.
+            token_supervision_valid = bool(
+                self.cfg.require_single_edit_token_provenance
+            )
+            data_driven_trace = None
+            if token_supervision_valid:
+                data_driven_trace = dict(row["tn_edits"][0])
+            if bool(getattr(self.cfg, "require_global_tn_verified", False)) and not global_verified:
+                raise ValueError(
+                    "SAM3 TN row must carry exact boolean global_tn_verified=true "
+                    "and tn_scope='image_global_topk_verified' while "
+                    f"require_global_tn_verified is enabled: {self.anno}"
+                )
+            if (
+                bool(self.cfg.require_fixed_stagea_topk_exact_verified)
+                and not exact_global_verified
+            ):
+                raise ValueError(
+                    "SAM3 TN row must carry the exact fixed Stage-A Top-K scope, "
+                    "sidecar-validated provenance, and exact boolean "
+                    "fixed_stagea_topk_exact_verified=true while the strict "
+                    f"loader is enabled: {self.anno}"
+                )
+            if (
+                bool(getattr(self.cfg, "require_proposalset_proxy_verified", False))
+                and not proposalset_proxy_verified
+            ):
+                raise ValueError(
+                    "SAM3 TN row must carry exact boolean "
+                    "proposalset_proxy_verified=true and "
+                    "tn_scope='proposal_set_verified' while "
+                    f"require_proposalset_proxy_verified is enabled: {self.anno}"
+                )
+            raw_negative_phrase = row.get("try_tn", None)
+            if not isinstance(raw_negative_phrase, str) or not raw_negative_phrase.strip():
+                skipped += 1
+                continue
+            negative_phrase = self._clean_caption_phrase(raw_negative_phrase)
+            if not negative_phrase or negative_phrase.lower() in {"object", "none", "null"}:
+                skipped += 1
+                continue
+            # Train the verifier on the complete referring expression. The generated
+            # head phrase may omit relation/action words that still appear in the TN.
+            raw_positive_phrase = row.get("sent", None) or row.get("try_tn_head_phrase", None)
+            if not isinstance(raw_positive_phrase, str) or not raw_positive_phrase.strip():
+                skipped += 1
+                continue
+            positive_phrase = self._clean_caption_phrase(raw_positive_phrase)
+            if not positive_phrase or positive_phrase.lower() in {"object", "none", "null"}:
+                skipped += 1
+                continue
+            canonical_id = self._sam3_tn_canonical_id(row, positive_phrase)
+            if canonical_id is None:
+                skipped += 1
+                continue
+            bbox = self._sam3_tn_bbox(row)
+            if bbox is None:
+                skipped += 1
+                continue
+            instance = {
+                "bbox": bbox,
+                "class_id": int(canonical_id),
+                "raw_phrase": positive_phrase,
+                "phrase": positive_phrase,
+                "head_phrase": row.get("class_norm_name", None)
+                or row.get("category_name", None)
+                or row.get("try_tn_head", None),
+                "head": row.get("class_norm_name", None)
+                or row.get("category_name", None)
+                or row.get("try_tn_head", None),
+                "canonical_name": row.get("class_norm_name", None) or row.get("category_name", None),
+                "positive_phrase": positive_phrase,
+                "negative_phrase": negative_phrase,
+                "try_tn": negative_phrase,
+                "try_tn_head": row.get("try_tn_head", None),
+                "try_tn_head_phrase": positive_phrase,
+                "replace_from": row.get("replace_from", None),
+                "replace_to": row.get("replace_to", None),
+                "replace_category": row.get("replace_category", None),
+                "replace_span": row.get("replace_span", None),
+                "text_is_negative": False,
+                "pair_source": row.get("pair_source", None),
+                "category_name": row.get("category_name", None),
+                "visual_filter_status": row.get("visual_filter_status", None),
+                "global_tn_verified": global_verified,
+                "fixed_stagea_topk_exact_verified": exact_global_verified,
+                "proposalset_proxy_verified": proposalset_proxy_verified,
+                "stage_b_v21_token_supervision_valid": token_supervision_valid,
+                "tn_scope": tn_scope,
+                "sam3_tn_pair": True,
+            }
+            if table_b_id is not None:
+                instance["table_b_id"] = table_b_id
+                instance["table_b_audit_sha256"] = table_b_audit_sha256
+            if exact_global_verified:
+                instance["fixed_stagea_support_patch"] = row[
+                    "fixed_stagea_support_patch"
+                ]
+            normalized_meta = {
+                    "filename": self._sam3_tn_image_path(row),
+                    "source": row.get("pair_source", row.get("dataset", self.source)),
+                    "dataset_name": row.get("dataset", self.source),
+                    "image_id": row.get("image_id", None),
+                    "ann_id": row.get("ann_id", None),
+                    "ref_id": row.get("ref_id", None),
+                    "sent_id": row.get("sent_id", None),
+                    "split": row.get("split", "train"),
+                    "instances": [instance],
+                    "sam3_tn_pair": True,
+                    "global_tn_verified": global_verified,
+                    "fixed_stagea_topk_exact_verified": exact_global_verified,
+                    "proposalset_proxy_verified": proposalset_proxy_verified,
+                    "stage_b_v21_token_supervision_valid": token_supervision_valid,
+                    "stage_b_data_driven_trace": data_driven_trace,
+                    "tn_scope": tn_scope,
+                    **(
+                        {
+                            "fixed_stagea_candidate_indices": exact_summary[
+                                "candidate_indices"
+                            ],
+                            "fixed_stagea_candidate_boxes": exact_summary[
+                                "candidate_boxes"
+                            ],
+                            "fixed_stagea_candidate_box_atol": exact_summary[
+                                "contract"
+                            ]["candidate_box_atol"],
+                            "fixed_stagea_candidate_set_sha256": row[
+                                "fixed_stagea_candidate_set_sha256"
+                            ],
+                            "fixed_stagea_support_patch": row[
+                                "fixed_stagea_support_patch"
+                            ],
+                        }
+                        if exact_global_verified
+                        else {}
+                    ),
+                }
+            if table_b_id is not None:
+                normalized_meta["table_b_id"] = table_b_id
+                normalized_meta["table_b_audit_sha256"] = table_b_audit_sha256
+            metas.append(normalized_meta)
+        print(
+            f"[INFO] normalized SAM3 paired TN metas for {self.anno}: "
+            f"kept {len(metas)} / {len(rows)} rows, skipped {skipped}."
+        )
+        return metas
 
     def _sample_text_phrases(self, k: int) -> List[str]:
         k = max(1, int(k))
@@ -1526,6 +2661,75 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             zip(slot_spans, slot_phrases, slot_canonical_texts, slot_aliases)
         ):
             record = slot_records[k] if k < len(slot_records) and isinstance(slot_records[k], dict) else {}
+            is_text_negative = bool(record.get("text_is_negative", record.get("is_text_negative", False)))
+            is_tn[k] = bool(is_text_negative)
+
+            candidates: List[str] = []
+            seen = set()
+            for cand in [canonical_text] + list(aliases or []):
+                cleaned = self._clean_caption_phrase(cand)
+                if not cleaned:
+                    continue
+                key = cleaned.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                candidates.append(cleaned)
+
+            # Positive counterfactual scoring is an independent path.  It must
+            # survive even when TN changed-span supervision below fails closed.
+            positive_phrase = record.get("positive_phrase", None)
+            positive_phrase_clean = self._clean_caption_phrase(positive_phrase)
+            if positive_phrase_clean:
+                positive_caption, positive_spans = self._build_caption_from_phrases(
+                    [positive_phrase_clean]
+                )
+                positive_tokenized = self._text_tokenizer(
+                    positive_caption,
+                    truncation=True,
+                    max_length=int(self.cfg.max_text_len),
+                )
+                positive_phrase_mask = self._char_span_to_token_mask(
+                    positive_tokenized, positive_spans[0], T
+                )
+                positive_canonical_span = None
+                for cand in candidates:
+                    positive_canonical_span = self._find_word_span(
+                        positive_phrase_clean, cand, ignore_case=False
+                    )
+                    if positive_canonical_span is not None:
+                        break
+                if positive_canonical_span is None:
+                    for cand in candidates:
+                        positive_canonical_span = self._find_word_span(
+                            positive_phrase_clean, cand, ignore_case=True
+                        )
+                        if positive_canonical_span is not None:
+                            break
+                if positive_phrase_mask.any():
+                    positive_canonical_mask = torch.zeros_like(
+                        positive_phrase_mask
+                    )
+                    if positive_canonical_span is not None:
+                        pos_abs_span = (
+                            positive_spans[0][0]
+                            + int(positive_canonical_span[0]),
+                            positive_spans[0][0]
+                            + int(positive_canonical_span[1]),
+                        )
+                        positive_canonical_mask = self._char_span_to_token_mask(
+                            positive_tokenized, pos_abs_span, T
+                        )
+                        positive_canonical_mask = (
+                            positive_canonical_mask & positive_phrase_mask
+                        )
+                    rank_positive_phrase_to_token_mask[k] = positive_phrase_mask
+                    rank_positive_canonical_to_token_mask[k] = (
+                        positive_canonical_mask
+                    )
+                    has_rank_positive[k] = True
+                    rank_positive_captions[k] = positive_caption
+
             phrase_mask = self._char_span_to_token_mask(tokenized, slot_spans[k], T)
             phrase_to_token_mask[k] = phrase_mask
             if not phrase_mask.any():
@@ -1543,18 +2747,6 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 )
                 continue
 
-            candidates: List[str] = []
-            seen = set()
-            for cand in [canonical_text] + list(aliases or []):
-                cleaned = self._clean_caption_phrase(cand)
-                if not cleaned:
-                    continue
-                key = cleaned.lower()
-                if key in seen:
-                    continue
-                seen.add(key)
-                candidates.append(cleaned)
-
             local_span = None
             for cand in candidates:
                 local_span = self._find_word_span(phrase_text, cand, ignore_case=False)
@@ -1566,6 +2758,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     if local_span is not None:
                         break
 
+            canonical_mask = torch.zeros_like(phrase_mask)
             if local_span is None:
                 self._warn_text_mask(
                     f"canonical_to_token_mask fallback to zero for slot={k} phrase={phrase_text!r} canonical={canonical_text!r}"
@@ -1580,33 +2773,29 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         "alias_candidates": candidates,
                     }
                 )
-                continue
-
-            canonical_span = (span_start + int(local_span[0]), span_start + int(local_span[1]))
-            canonical_mask = self._char_span_to_token_mask(tokenized, canonical_span, T)
-            canonical_mask = canonical_mask & phrase_mask
-            if not canonical_mask.any():
-                self._warn_text_mask(
-                    f"canonical_to_token_mask is empty after tokenization for slot={k} phrase={phrase_text!r} canonical={canonical_text!r}"
-                )
-                invalid_records.append(
-                    {
-                        "reason": "canonical_to_token_mask_empty_after_tokenization",
-                        "slot_idx": int(k),
-                        "phrase": phrase_text,
-                        "canonical": canonical_text,
-                        "caption": caption,
-                        "alias_candidates": candidates,
-                    }
-                )
-                continue
+            else:
+                canonical_span = (span_start + int(local_span[0]), span_start + int(local_span[1]))
+                canonical_mask = self._char_span_to_token_mask(tokenized, canonical_span, T)
+                canonical_mask = canonical_mask & phrase_mask
+                if not canonical_mask.any():
+                    self._warn_text_mask(
+                        f"canonical_to_token_mask is empty after tokenization for slot={k} phrase={phrase_text!r} canonical={canonical_text!r}"
+                    )
+                    invalid_records.append(
+                        {
+                            "reason": "canonical_to_token_mask_empty_after_tokenization",
+                            "slot_idx": int(k),
+                            "phrase": phrase_text,
+                            "canonical": canonical_text,
+                            "caption": caption,
+                            "alias_candidates": candidates,
+                        }
+                    )
             canonical_to_token_mask[k] = canonical_mask
 
             relation_mask = self._build_relation_token_mask(tokenized, phrase_text, slot_spans[k], phrase_mask, T)
             relation_to_token_mask[k] = relation_mask
 
-            is_text_negative = bool(record.get("text_is_negative", record.get("is_text_negative", False)))
-            is_tn[k] = bool(is_text_negative)
             if not is_text_negative:
                 content_mask = self._build_content_attr_mask(
                     tokenized, phrase_text, slot_spans[k], phrase_mask, canonical_mask, T
@@ -1746,7 +2935,6 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 canonical_mask,
                 T,
             )
-            positive_phrase = record.get("positive_phrase", None)
             shared_positive_phrase = positive_phrase or record.get("try_tn_head_phrase", None)
             attr_pos_mask = self._build_shared_attr_mask(
                 tokenized,
@@ -1764,38 +2952,6 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             # Compatibility alias: attr_pos now means positive content tokens,
             # not only attribute words. TN negative tokens stay in attr_neg.
             attr_pos_to_token_mask[k] = content_mask & (~neg_mask)
-
-            positive_phrase_clean = self._clean_caption_phrase(positive_phrase)
-            if positive_phrase_clean:
-                positive_caption, positive_spans = self._build_caption_from_phrases([positive_phrase_clean])
-                positive_tokenized = self._text_tokenizer(
-                    positive_caption,
-                    truncation=True,
-                    max_length=int(self.cfg.max_text_len),
-                )
-                positive_phrase_mask = self._char_span_to_token_mask(positive_tokenized, positive_spans[0], T)
-                positive_canonical_span = None
-                for cand in candidates:
-                    positive_canonical_span = self._find_word_span(positive_phrase_clean, cand, ignore_case=False)
-                    if positive_canonical_span is not None:
-                        break
-                if positive_canonical_span is None:
-                    for cand in candidates:
-                        positive_canonical_span = self._find_word_span(positive_phrase_clean, cand, ignore_case=True)
-                        if positive_canonical_span is not None:
-                            break
-                if positive_phrase_mask.any() and positive_canonical_span is not None:
-                    pos_abs_span = (
-                        positive_spans[0][0] + int(positive_canonical_span[0]),
-                        positive_spans[0][0] + int(positive_canonical_span[1]),
-                    )
-                    positive_canonical_mask = self._char_span_to_token_mask(positive_tokenized, pos_abs_span, T)
-                    positive_canonical_mask = positive_canonical_mask & positive_phrase_mask
-                    if positive_canonical_mask.any():
-                        rank_positive_phrase_to_token_mask[k] = positive_phrase_mask
-                        rank_positive_canonical_to_token_mask[k] = positive_canonical_mask
-                        has_rank_positive[k] = True
-                        rank_positive_captions[k] = positive_caption
 
         return (
             caption,
@@ -2433,14 +3589,31 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 ),
             }
             for key in (
+                "coco_ann_id",
+                "refcoco_category_id",
+                "category_complete_primary",
+                "category_complete_auxiliary",
                 "positive_phrase",
                 "replace_from",
                 "replace_to",
                 "replace_category",
                 "try_tn_head",
                 "try_tn_head_phrase",
+                "negative_phrase",
+                "try_tn",
                 "tn_type",
                 "visual_filter_status",
+                "global_tn_verified",
+                "fixed_stagea_topk_exact_verified",
+                "fixed_stagea_support_patch",
+                "proposalset_proxy_verified",
+                "stage_b_v21_token_supervision_valid",
+                "benchmark_dataft_alltn",
+                "tn_scope",
+                "replace_span",
+                "sam3_tn_pair",
+                "sam3_tn_pair_positive",
+                "sam3_tn_pair_negative",
             ):
                 if key in obj:
                     rec[key] = obj.get(key)
@@ -2468,6 +3641,32 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             raise ValueError(f"Unsupported box_format: {self.cfg.box_format}")
 
         return boxes_t, labels_t
+
+    @staticmethod
+    def _resolve_primary_support_instance(
+        meta: Dict[str, Any],
+        labels: torch.Tensor,
+        forbidden_classes: Optional[set[int]] = None,
+    ) -> Optional[Tuple[int, int]]:
+        """Resolve an explicitly designated expression-bearing support instance."""
+        raw_index = meta.get("primary_support_instance_index", None)
+        if raw_index is None:
+            return None
+        if isinstance(raw_index, bool) or not isinstance(raw_index, int):
+            raise ValueError("primary_support_instance_index must be an integer")
+        support_i = int(raw_index)
+        if support_i < 0 or support_i >= int(labels.numel()):
+            raise ValueError(
+                "primary_support_instance_index is outside the instance list: "
+                f"index={support_i}, instances={int(labels.numel())}"
+            )
+        support_class = int(labels[support_i].item())
+        if support_class in (forbidden_classes or set()):
+            raise ValueError(
+                "primary_support_instance_index selects a forbidden class: "
+                f"class_id={support_class}"
+            )
+        return support_class, support_i
 
     def _get_slot_text_for_record(self, record: Dict[str, Any], canonical_id: int) -> Tuple[str, str, List[str]]:
         canonical_source = record.get("head", None)
@@ -2498,6 +3697,54 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             seen.add(key)
             alias_candidates.append(cleaned)
         return phrase_text, canonical_text, alias_candidates
+
+    def _paired_tn_slot_payload(
+        self,
+        slot_record: Dict[str, Any],
+        phrase_text: str,
+        canonical_text: str,
+        alias_candidates: List[str],
+    ) -> Optional[Tuple[List[str], List[str], List[List[str]], List[Dict[str, Any]], List[bool]]]:
+        if not bool(slot_record.get("sam3_tn_pair", False)):
+            return None
+        raw_negative_phrase = slot_record.get("negative_phrase", slot_record.get("try_tn", ""))
+        if not isinstance(raw_negative_phrase, str) or not raw_negative_phrase.strip():
+            return None
+        negative_phrase = self._clean_caption_phrase(raw_negative_phrase)
+        if not negative_phrase or negative_phrase.lower() in {"object", "none", "null"}:
+            return None
+        pos_record = dict(slot_record)
+        pos_record.update(
+            {
+                "phrase": phrase_text,
+                "raw_phrase": phrase_text,
+                "head": canonical_text,
+                "head_phrase": canonical_text,
+                "text_is_negative": False,
+                "is_text_negative": False,
+                "positive_phrase": phrase_text,
+                "sam3_tn_pair_positive": True,
+            }
+        )
+        neg_record = dict(slot_record)
+        neg_record.update(
+            {
+                "phrase": negative_phrase,
+                "raw_phrase": negative_phrase,
+                "text_is_negative": True,
+                "is_text_negative": True,
+                "positive_phrase": phrase_text,
+                "try_tn_head_phrase": phrase_text,
+                "sam3_tn_pair_negative": True,
+            }
+        )
+        return (
+            [phrase_text, negative_phrase],
+            [canonical_text, canonical_text],
+            [list(alias_candidates), list(alias_candidates)],
+            [pos_record, neg_record],
+            [False, True],
+        )
 
     def _get_phrase_classifier(self) -> _PhraseClassifierLabeler:
         if self._phrase_cls_labeler is not None:
@@ -2557,6 +3804,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
     def _open_image(self, rel_path: str) -> Image.Image:
         rel_p = Path(rel_path)
         abs_path = rel_p if rel_p.is_absolute() else (Path(self.root) / rel_p)
+        abs_path = remap_legacy_path(abs_path)
         if not abs_path.exists() and (not rel_p.is_absolute()) and self._alt_image_roots:
             for r in self._alt_image_roots:
                 cand = r / rel_p
@@ -2662,6 +3910,11 @@ class PatchEpisodeJsonlDataset(VisionDataset):
         fallback_boxes_xyxy: Optional[torch.Tensor] = None,
         fallback_labels: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        if self.cfg.stage_b_gdino_adapter_no_support:
+            # The ordinary GDINO adapter never consumes support pixels.  Keep a
+            # private sentinel only long enough to reuse the episode text/box
+            # construction; it is removed from the returned target below.
+            return torch.empty((0,), dtype=torch.float32)
         if self.patch_bank is not None:
             candidates = self.patch_bank.get(int(support_class), [])
             if candidates:
@@ -2675,6 +3928,113 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             raise RuntimeError("No patch_bank entry and no fallback crop inputs were provided.")
         _, patch = self._sample_support_from_image(fallback_img, fallback_boxes_xyxy, fallback_labels)
         return patch
+
+    def _load_native_patch_category_support(
+        self, meta: Dict[str, Any], support_class: int
+    ) -> torch.Tensor:
+        if not self.cfg.native_patch_category_row_locked_support:
+            raise RuntimeError("native patch-category row-locked support is disabled")
+        witness = meta.get("support_patch_witness")
+        if not isinstance(witness, dict) or witness.get("class_id") != int(
+            support_class
+        ):
+            raise RuntimeError("native patch-category support class drifted")
+        path = Path(str(witness.get("path", ""))).expanduser().resolve(strict=True)
+        if not path.is_file():
+            raise RuntimeError(
+                f"native patch-category support is not a file: {path}"
+            )
+        before = path.stat()
+        expected_size = witness.get("size_bytes")
+        expected_sha = witness.get("content_sha256")
+        if before.st_size != expected_size:
+            raise RuntimeError(
+                f"native patch-category support size drifted: {path}"
+            )
+        cache_key = (
+            int(before.st_dev),
+            int(before.st_ino),
+            int(before.st_size),
+            int(before.st_mtime_ns),
+        )
+        cached = self._native_patch_support_sha_cache.get(path)
+        if cached is not None and cached[:4] == cache_key:
+            observed_sha = cached[4]
+        else:
+            digest = hashlib.sha256()
+            with path.open("rb") as handle:
+                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            observed_sha = digest.hexdigest()
+            after = path.stat()
+            after_key = (
+                int(after.st_dev),
+                int(after.st_ino),
+                int(after.st_size),
+                int(after.st_mtime_ns),
+            )
+            if after_key != cache_key:
+                raise RuntimeError(
+                    f"native patch-category support changed while hashing: {path}"
+                )
+            self._native_patch_support_sha_cache[path] = (
+                cache_key[0],
+                cache_key[1],
+                cache_key[2],
+                cache_key[3],
+                observed_sha,
+            )
+        if observed_sha != expected_sha:
+            raise RuntimeError(
+                f"native patch-category support content hash drifted: {path}"
+            )
+        with Image.open(path) as image:
+            return self.patch_tfm(image.convert("RGB"))
+
+    def _load_fixed_stagea_support_patch(
+        self, support_record: Optional[Dict[str, Any]], support_class: int
+    ) -> torch.Tensor:
+        if not isinstance(support_record, dict):
+            raise RuntimeError("fixed Stage-A exact row has no support record")
+        value = support_record.get("fixed_stagea_support_patch")
+        if not isinstance(value, dict):
+            raise RuntimeError("fixed Stage-A exact row has no support patch binding")
+        if int(value.get("class_id", -1)) != int(support_class):
+            raise RuntimeError("fixed Stage-A support patch class drifted at runtime")
+        expected_contract = self.cfg.fixed_stagea_topk_expected_contract
+        if (
+            not isinstance(expected_contract, dict)
+            or value.get("transform_contract_sha256")
+            != expected_contract.get("support_transform_contract_sha256")
+        ):
+            raise RuntimeError("fixed Stage-A support transform contract drifted")
+        path = remap_legacy_path(str(value.get("path", ""))).expanduser().resolve()
+        if not path.is_file():
+            raise RuntimeError(f"fixed Stage-A support patch is missing: {path}")
+        before = path.stat()
+        cache_key = (int(before.st_size), int(before.st_mtime_ns))
+        cached = self._fixed_support_patch_sha_cache.get(path)
+        if cached is not None and cached[:2] == cache_key:
+            observed_sha = cached[2]
+        else:
+            observed_sha = sha256_file(path)
+            after = path.stat()
+            if (after.st_size, after.st_mtime_ns) != (
+                before.st_size,
+                before.st_mtime_ns,
+            ):
+                raise RuntimeError(
+                    f"fixed Stage-A support patch changed while hashing: {path}"
+                )
+            self._fixed_support_patch_sha_cache[path] = (
+                cache_key[0],
+                cache_key[1],
+                observed_sha,
+            )
+        if observed_sha != value.get("sha256"):
+            raise RuntimeError(f"fixed Stage-A support patch hash drifted: {path}")
+        with Image.open(path) as image:
+            return self.patch_tfm(image.convert("RGB"))
 
     def _load_patch_embedding(self, emb_path: str) -> torch.Tensor:
         if emb_path in self._patch_emb_cache:
@@ -2735,7 +4095,9 @@ class PatchEpisodeJsonlDataset(VisionDataset):
     def __getitem__(self, index: int):
         # Some LVIS images mark certain category_ids as "not_exhaustive" (not guaranteed fully annotated).
         # For patch-only training we must skip episodes where support_class is in that list.
-        max_resample = 20
+        # Formal data-driven runs bind the sampler ledger to the requested row.
+        # A bad row must fail instead of silently returning another identity.
+        max_resample = 1 if self.cfg.strict_sample_identity else 20
         for attempt in range(max_resample):
             meta = self.metas[index] if attempt == 0 else self.metas[random.randrange(0, len(self.metas))]
             rel_path = meta.get("filename", meta.get("file_name", None))
@@ -2754,6 +4116,16 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             if not instance_records:
                 continue
             boxes_xyxy, labels = self._extract_instances(meta)
+            primary_support = self._resolve_primary_support_instance(
+                meta, labels, forbidden_classes=not_exhaustive
+            )
+            primary_instance_mask = torch.zeros_like(labels, dtype=torch.bool)
+            if primary_support is not None:
+                primary_instance_mask[int(primary_support[1])] = True
+            if primary_support is not None and int(self.cfg.support_num_patches_max) > 1:
+                raise ValueError(
+                    "primary_support_instance_index currently requires a single support patch"
+                )
 
             # Dummy/augmented caption to keep the standard text pipeline intact.
             # NOTE: mask builder uses "." as a separator; we repeat one phrase per patch so Stage A is
@@ -2773,7 +4145,22 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 # Metas for LVIS/COCO should not have empty instances; if they do, just resample.
                 continue
             else:
-                if int(self.cfg.support_num_patches_max) > 1:
+                if self.cfg.native_patch_category_row_locked_support:
+                    if primary_support is None:
+                        raise RuntimeError(
+                            "native patch-category row lost its primary support"
+                        )
+                    support_class, support_i = primary_support
+                    patch = self._load_native_patch_category_support(
+                        meta, support_class
+                    )
+                    support = (
+                        torch.as_tensor([support_class], dtype=torch.int64),
+                        patch,
+                    )
+                    support_record = instance_records[support_i]
+                    is_negative = False
+                elif int(self.cfg.support_num_patches_max) > 1:
                     # Multi-patch: choose multiple support classes (canonical ids) and sample one patch per class.
                     try:
                         if lvis_neg_category_only:
@@ -2825,11 +4212,22 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                             phrase_text, canonical_text, alias_candidates = self._get_slot_text_for_record(
                                 slot_record, int(cid)
                             )
-                        slot_phrases.append(phrase_text)
-                        slot_canonical_texts.append(canonical_text)
-                        slot_aliases.append(alias_candidates)
-                        slot_text_is_negative.append(bool(slot_record.get("text_is_negative", False)))
-                        slot_records.append(slot_record)
+                        paired_payload = self._paired_tn_slot_payload(
+                            slot_record, phrase_text, canonical_text, alias_candidates
+                        )
+                        if paired_payload is not None:
+                            pair_phrases, pair_canonical_texts, pair_aliases, pair_records, pair_is_negative = paired_payload
+                            slot_phrases.extend(pair_phrases)
+                            slot_canonical_texts.extend(pair_canonical_texts)
+                            slot_aliases.extend(pair_aliases)
+                            slot_text_is_negative.extend(pair_is_negative)
+                            slot_records.extend(pair_records)
+                        else:
+                            slot_phrases.append(phrase_text)
+                            slot_canonical_texts.append(canonical_text)
+                            slot_aliases.append(alias_candidates)
+                            slot_text_is_negative.append(bool(slot_record.get("text_is_negative", False)))
+                            slot_records.append(slot_record)
                     if (not ok) or (len(patch_list) != int(support_classes_t.numel())):
                         continue
 
@@ -2869,9 +4267,17 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                                 # No trustworthy positive class in this image; resample another image.
                                 continue
                             else:
-                                support_class = int(random.choice(eligible))
-                                idxs = (labels == support_class).nonzero(as_tuple=False).flatten()
-                                support_i = int(idxs[torch.randint(len(idxs), (1,)).item()].item())
+                                if primary_support is not None:
+                                    support_class, support_i = primary_support
+                                    if support_class not in eligible:
+                                        raise ValueError(
+                                            "primary support class has no eligible support patch: "
+                                            f"class_id={support_class}"
+                                        )
+                                else:
+                                    support_class = int(random.choice(eligible))
+                                    idxs = (labels == support_class).nonzero(as_tuple=False).flatten()
+                                    support_i = int(idxs[torch.randint(len(idxs), (1,)).item()].item())
                                 patch = self._sample_support_patch_for_class(
                                     support_class,
                                     fallback_img=img,
@@ -2882,16 +4288,25 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                                 support_record = instance_records[support_i]
                                 is_negative = False
                         else:
-                            try:
-                                support_class, support_i = self._choose_support(labels, forbidden_classes=not_exhaustive)
-                            except Exception:
-                                continue
-                            patch = self._sample_support_patch_for_class(
-                                support_class,
-                                fallback_img=img,
-                                fallback_boxes_xyxy=boxes_xyxy[support_i : support_i + 1],
-                                fallback_labels=labels[support_i : support_i + 1],
-                            )
+                            if primary_support is not None:
+                                support_class, support_i = primary_support
+                            else:
+                                try:
+                                    support_class, support_i = self._choose_support(labels, forbidden_classes=not_exhaustive)
+                                except Exception:
+                                    continue
+                            if self.cfg.require_fixed_stagea_topk_exact_verified:
+                                support_record = instance_records[support_i]
+                                patch = self._load_fixed_stagea_support_patch(
+                                    support_record, support_class
+                                )
+                            else:
+                                patch = self._sample_support_patch_for_class(
+                                    support_class,
+                                    fallback_img=img,
+                                    fallback_boxes_xyxy=boxes_xyxy[support_i : support_i + 1],
+                                    fallback_labels=labels[support_i : support_i + 1],
+                                )
                             support = (torch.as_tensor([support_class], dtype=torch.int64), patch)
                             support_record = instance_records[support_i]
                             is_negative = False
@@ -2905,6 +4320,8 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             attr_neg_to_token_mask = None
             relation_to_token_mask = None
             content_to_token_mask = None
+            verifier_pair_stride = 1
+            verifier_num_patch_slots = 1
             is_tn = None
             attr_neg_weight_mask = None
             tn_group_ids = None
@@ -2918,8 +4335,18 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 if any(int(x) in not_exhaustive for x in support_classes_t.tolist()):
                     continue
                 K = int(support_classes_t.numel())
+                verifier_num_patch_slots = K
                 if self.cfg.build_text_token_masks:
-                    if len(slot_phrases) != K:
+                    verifier_pair_stride = 2 if (
+                        len(slot_phrases) == K * 2
+                        and len(slot_records) == K * 2
+                        and all(
+                            bool(slot_records[2 * idx].get("sam3_tn_pair_positive", False))
+                            and bool(slot_records[2 * idx + 1].get("sam3_tn_pair_negative", False))
+                            for idx in range(K)
+                        )
+                    ) else 1
+                    if verifier_pair_stride == 1 and len(slot_phrases) != K:
                         slot_phrases = [self._get_canonical_name(int(cid)) for cid in support_classes_t.tolist()]
                         slot_canonical_texts = [self._get_canonical_name(int(cid)) for cid in support_classes_t.tolist()]
                         slot_aliases = [self._get_canonical_aliases(int(cid)) for cid in support_classes_t.tolist()]
@@ -2952,6 +4379,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 else:
                     phrases = self._sample_text_phrases(K)
                     caption = " ".join([f"{p} ." for p in phrases])
+                    verifier_pair_stride = 1
             else:
                 support_class, patch = support
                 if int(support_class.item()) in not_exhaustive:
@@ -2967,12 +4395,49 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                             support_record, support_cid
                         )
                     slot_text_is_negative = [bool(support_record.get("text_is_negative", False))] if support_record is not None else [False]
+                    slot_phrases_for_masks = [phrase_text]
+                    slot_canonical_texts_for_masks = [canonical_text]
+                    slot_aliases_for_masks = [alias_candidates]
                     slot_records = [
                         support_record
                         if support_record is not None
                         else {"phrase": phrase_text, "head_phrase": canonical_text, "text_is_negative": False}
                     ]
-                    phrases = [phrase_text]
+                    if support_record is not None and bool(support_record.get("sam3_tn_pair", False)):
+                        negative_phrase = self._clean_caption_phrase(
+                            support_record.get("negative_phrase", support_record.get("try_tn", ""))
+                        )
+                        if isinstance(negative_phrase, str) and negative_phrase.strip():
+                            neg_record = dict(support_record)
+                            neg_record.update(
+                                {
+                                    "phrase": negative_phrase,
+                                    "raw_phrase": negative_phrase,
+                                    "text_is_negative": True,
+                                    "is_text_negative": True,
+                                    "positive_phrase": phrase_text,
+                                    "try_tn_head_phrase": phrase_text,
+                                    "sam3_tn_pair_negative": True,
+                                }
+                            )
+                            slot_records = [
+                                {
+                                    "phrase": phrase_text,
+                                    "raw_phrase": phrase_text,
+                                    "head": canonical_text,
+                                    "head_phrase": canonical_text,
+                                    "text_is_negative": False,
+                                    "positive_phrase": phrase_text,
+                                    "sam3_tn_pair_positive": True,
+                                },
+                                neg_record,
+                            ]
+                            slot_phrases_for_masks = [phrase_text, negative_phrase]
+                            slot_canonical_texts_for_masks = [canonical_text, canonical_text]
+                            slot_aliases_for_masks = [alias_candidates, alias_candidates]
+                            slot_text_is_negative = [False, True]
+                            verifier_pair_stride = 2
+                    phrases = list(slot_phrases_for_masks)
                     (
                         caption,
                         phrase_to_token_mask,
@@ -2990,7 +4455,10 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                         rank_positive_captions,
                         invalid_text_mask_records,
                     ) = self._build_slot_text_masks(
-                        phrases, [canonical_text], [alias_candidates], slot_records=slot_records
+                        phrases,
+                        slot_canonical_texts_for_masks,
+                        slot_aliases_for_masks,
+                        slot_records=slot_records,
                     )
                     negative_to_token_mask = attr_neg_to_token_mask
                 else:
@@ -3002,6 +4470,7 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     m = labels == int(support_class.item())
                     boxes_xyxy = boxes_xyxy[m]
                     labels = labels[m]
+                    primary_instance_mask = primary_instance_mask[m]
                     if labels.numel() == 0:
                         # Shouldn't happen for positive episodes; treat as invalid and resample.
                         continue
@@ -3051,12 +4520,92 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             target: Dict[str, Any] = {}
             target["boxes"] = boxes_xyxy
             target["labels"] = labels
+            if primary_support is not None:
+                if int(primary_instance_mask.sum().item()) != 1:
+                    raise ValueError(
+                        "primary support instance was lost before geometric transforms"
+                    )
+                target["primary_instance_mask"] = primary_instance_mask
+            if meta.get("stage_b_data_driven_assignment_pair") is True:
+                pair = meta.get("assignment_pair")
+                anchor = pair.get("anchor") if isinstance(pair, dict) else None
+                partner = pair.get("partner") if isinstance(pair, dict) else None
+                pair_valid = meta.get("assignment_pair_valid")
+                if not (
+                    meta.get("stage_b_data_driven_assignment_pair_schema")
+                    == _DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA
+                    and isinstance(pair_valid, bool)
+                    and isinstance(anchor, dict)
+                    and isinstance(anchor.get("expression"), str)
+                    and bool(anchor["expression"].strip())
+                    and len(instance_records) == int(labels.numel())
+                ):
+                    raise ValueError("official assignment runtime payload drifted")
+                roles = torch.full_like(labels, -1, dtype=torch.int64)
+                anchor_ann_id = int(anchor["coco_ann_id"])
+                anchor_matches = [
+                    record_index
+                    for record_index, record in enumerate(instance_records)
+                    if int(record.get("coco_ann_id", -1)) == anchor_ann_id
+                ]
+                if len(anchor_matches) != 1:
+                    raise ValueError(
+                        "official assignment anchor is not one exact instance"
+                    )
+                roles[anchor_matches[0]] = 0
+                partner_expression = anchor["expression"]
+                if pair_valid:
+                    if not (
+                        isinstance(partner, dict)
+                        and isinstance(partner.get("expression"), str)
+                        and bool(partner["expression"].strip())
+                    ):
+                        raise ValueError(
+                            "valid official assignment row lost its partner"
+                        )
+                    partner_ann_id = int(partner["coco_ann_id"])
+                    partner_matches = [
+                        record_index
+                        for record_index, record in enumerate(instance_records)
+                        if int(record.get("coco_ann_id", -1))
+                        == partner_ann_id
+                    ]
+                    if len(partner_matches) != 1 or partner_matches == anchor_matches:
+                        raise ValueError(
+                            "official assignment partner is not one distinct instance"
+                        )
+                    roles[partner_matches[0]] = 1
+                    partner_expression = partner["expression"]
+                elif partner is not None:
+                    raise ValueError(
+                        "invalid official assignment row unexpectedly has a partner"
+                    )
+                target["stage_b_data_driven_assignment_valid"] = torch.as_tensor(
+                    [pair_valid], dtype=torch.bool
+                )
+                target["stage_b_data_driven_assignment_role"] = roles
+                target["stage_b_data_driven_assignment_pair_schema"] = (
+                    _DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA
+                )
+                target["stage_b_data_driven_assignment_expressions"] = [
+                    anchor["expression"],
+                    partner_expression,
+                ]
             target["orig_size"] = torch.as_tensor([int(h), int(w)])
             target["size"] = torch.as_tensor([int(h), int(w)])
+            for identity_key in ("image_id", "ann_id", "ref_id", "sent_id"):
+                identity_value = meta.get(identity_key, None)
+                if identity_value is not None:
+                    target[identity_key] = torch.as_tensor(
+                        [int(identity_value)], dtype=torch.int64
+                    )
+            sample_id = meta.get("sample_id", None)
+            if isinstance(sample_id, str) and sample_id:
+                target["sample_id"] = sample_id
             target["caption"] = caption
             target["verifier_caption"] = caption
             if int(self.cfg.support_num_patches_max) > 1:
-                if len(slot_canonical_texts) == len(phrases):
+                if verifier_pair_stride == 1 and len(slot_canonical_texts) == len(phrases):
                     canonical_phrases = list(slot_canonical_texts)
                 else:
                     canonical_phrases = [self._get_canonical_name(int(cid)) for cid in support_classes_t.tolist()]
@@ -3071,10 +4620,59 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 or Path(self.anno).stem
             )
             target["dataset_name"] = dataset_name
+            target["global_tn_verified"] = torch.as_tensor(
+                [meta.get("global_tn_verified", None) is True], dtype=torch.bool
+            )
+            target["fixed_stagea_topk_exact_verified"] = torch.as_tensor(
+                [meta.get("fixed_stagea_topk_exact_verified", None) is True],
+                dtype=torch.bool,
+            )
+            if meta.get("fixed_stagea_topk_exact_verified", None) is True:
+                target["fixed_stagea_candidate_indices"] = torch.as_tensor(
+                    meta["fixed_stagea_candidate_indices"], dtype=torch.int64
+                )
+                target["fixed_stagea_candidate_boxes"] = torch.as_tensor(
+                    meta["fixed_stagea_candidate_boxes"], dtype=torch.float32
+                )
+                target["fixed_stagea_candidate_box_atol"] = torch.as_tensor(
+                    [float(meta["fixed_stagea_candidate_box_atol"])],
+                    dtype=torch.float32,
+                )
+                target["fixed_stagea_candidate_set_sha256"] = meta[
+                    "fixed_stagea_candidate_set_sha256"
+                ]
+            target["proposalset_proxy_verified"] = torch.as_tensor(
+                [meta.get("proposalset_proxy_verified", None) is True],
+                dtype=torch.bool,
+            )
+            target["stage_b_v21_token_supervision_valid"] = torch.as_tensor(
+                [
+                    self.cfg.require_single_edit_token_provenance
+                    and meta.get("stage_b_v21_token_supervision_valid", None)
+                    is True
+                ],
+                dtype=torch.bool,
+            )
+            if isinstance(meta.get("stage_b_data_driven_trace"), dict):
+                target["stage_b_data_driven_trace"] = dict(
+                    meta["stage_b_data_driven_trace"]
+                )
+            target["benchmark_dataft_alltn"] = torch.as_tensor(
+                [meta.get("benchmark_dataft_alltn", None) is True],
+                dtype=torch.bool,
+            )
+            target["tn_scope"] = meta.get("tn_scope", None)
+            if meta.get("table_b_id") is not None:
+                target["table_b_id"] = meta["table_b_id"]
+                target["table_b_audit_sha256"] = meta[
+                    "table_b_audit_sha256"
+                ]
             target["patch_ce_positive_only"] = torch.as_tensor(
                 [1 if self._patch_ce_positive_only_source_flag(dataset_name) else 0],
                 dtype=torch.int64,
             )
+            target["verifier_pair_stride"] = torch.as_tensor([int(verifier_pair_stride)], dtype=torch.int64)
+            target["verifier_num_patch_slots"] = torch.as_tensor([int(verifier_num_patch_slots)], dtype=torch.int64)
             # cap_list is used by other pipelines; keep it aligned to the number of phrases in `caption`.
             target["cap_list"] = phrases
             if phrase_to_token_mask is not None:
@@ -3116,27 +4714,1553 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     target["patches"] = patches_or_emb
             else:
                 target["support_class"] = support_class
-                if self.cfg.support_patch_use_embedding:
-                    target["patch_global"] = patch
-                else:
-                    target["patch"] = patch
+                if not self.cfg.stage_b_gdino_adapter_no_support:
+                    if self.cfg.support_patch_use_embedding:
+                        target["patch_global"] = patch
+                    else:
+                        target["patch"] = patch
             target["is_negative_episode"] = torch.as_tensor([1 if is_negative else 0], dtype=torch.int64)
             target["is_lvis_neg_category_episode"] = torch.as_tensor(
                 [1 if lvis_neg_category_only else 0],
                 dtype=torch.int64,
             )
+            if primary_support is not None:
+                if (
+                    self.cfg.native_patch_category_row_locked_support
+                    and self.cfg.native_patch_category_variant == "d2"
+                ):
+                    target["stage_b_native_patch_category_d2"] = torch.as_tensor(
+                        [meta.get("stage_b_native_patch_category_d2") is True],
+                        dtype=torch.bool,
+                    )
+                else:
+                    target["stage_b_u2_category_complete"] = torch.as_tensor(
+                        [meta.get("stage_b_u2_category_complete", None) is True],
+                        dtype=torch.bool,
+                    )
+                    target["stage_b_native_patch_category_d1"] = torch.as_tensor(
+                        [meta.get("stage_b_native_patch_category_d1", None) is True],
+                        dtype=torch.bool,
+                    )
 
             if self.transforms is not None:
                 img, target = self.transforms(img, target)
 
             return img, target
 
+        if self.cfg.strict_sample_identity:
+            raise RuntimeError(
+                "requested patch-episode row is invalid while strict sample "
+                f"identity is enabled: index={index}; resampling is forbidden"
+            )
         raise RuntimeError(
             f"Failed to sample a valid episode after {max_resample} attempts (likely too many not_exhaustive-only images)."
         )
 
 
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _validate_data_driven_new_head_partition_receipt(
+    receipt: Dict[str, Any],
+    datasetinfo: Dict[str, Any],
+    *,
+    anno_path: Path,
+    expected_variant: str,
+    manifest_sha: str,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    if datasetinfo.get("stage_b_data_driven_partition") != "train":
+        raise ValueError(
+            "new-head partition receipt is training-only and requires explicit "
+            "stage_b_data_driven_partition='train'"
+        )
+
+    canonical_sha = receipt.get("canonical_payload_sha256")
+    if not (
+        isinstance(canonical_sha, str)
+        and _LOWER_SHA256_RE.fullmatch(canonical_sha) is not None
+    ):
+        raise ValueError("new-head partition receipt canonical hash is invalid")
+    canonical_payload = dict(receipt)
+    del canonical_payload["canonical_payload_sha256"]
+    try:
+        canonical_bytes = json.dumps(
+            canonical_payload,
+            ensure_ascii=True,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    except (TypeError, ValueError, UnicodeEncodeError) as error:
+        raise ValueError(
+            "new-head partition receipt canonical payload is invalid"
+        ) from error
+    if hashlib.sha256(canonical_bytes).hexdigest() != canonical_sha:
+        raise ValueError("new-head partition receipt canonical hash drifted")
+
+    invariants = receipt.get("invariants")
+    if not isinstance(invariants, dict) or not invariants or any(
+        value is not True for value in invariants.values()
+    ):
+        raise ValueError("new-head partition receipt invariants drifted")
+    if receipt.get("output_layout") != "<variant>/<partition>/<source_manifest>":
+        raise ValueError("new-head partition receipt output layout drifted")
+    if (
+        receipt.get("output_stream_encoding")
+        != "raw_input_record_including_original_line_ending_v1"
+    ):
+        raise ValueError("new-head partition receipt stream encoding drifted")
+
+    source_order = receipt.get("source_manifest_order")
+    if source_order != list(_DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS):
+        raise ValueError("new-head partition receipt source manifest order drifted")
+    source_names = set(_DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS)
+    source_manifests = receipt.get("source_manifests")
+    if not isinstance(source_manifests, dict) or set(source_manifests) != source_names:
+        raise ValueError("new-head partition receipt source manifests drifted")
+    for name in _DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS:
+        source = source_manifests[name]
+        if (
+            not isinstance(source, dict)
+            or type(source.get("rows")) is not int
+            or source["rows"] <= 0
+        ):
+            raise ValueError(
+                f"new-head partition source manifest is invalid: {name}"
+            )
+        for variant in _DATA_DRIVEN_NEW_HEAD_VARIANTS:
+            sealed = source.get(variant)
+            if not isinstance(sealed, dict):
+                raise ValueError(
+                    f"new-head partition source binding is missing: {variant}/{name}"
+                )
+            sealed_path = sealed.get("path")
+            if not (
+                isinstance(sealed_path, str)
+                and bool(sealed_path.strip())
+                and Path(_expand_path_like(sealed_path)).expanduser().is_absolute()
+                and Path(_expand_path_like(sealed_path)).name == name
+                and type(sealed.get("size_bytes")) is int
+                and sealed["size_bytes"] > 0
+                and isinstance(sealed.get("sha256"), str)
+                and _LOWER_SHA256_RE.fullmatch(sealed["sha256"]) is not None
+            ):
+                raise ValueError(
+                    f"new-head partition source binding drifted: {variant}/{name}"
+                )
+
+    outputs = receipt.get("outputs")
+    if not isinstance(outputs, dict) or set(outputs) != set(
+        _DATA_DRIVEN_NEW_HEAD_VARIANTS
+    ):
+        raise ValueError("new-head partition receipt output variants drifted")
+    records: Dict[str, Dict[str, Dict[str, Dict[str, Any]]]] = {}
+    for variant in _DATA_DRIVEN_NEW_HEAD_VARIANTS:
+        variant_outputs = outputs[variant]
+        if not isinstance(variant_outputs, dict) or set(variant_outputs) != set(
+            _DATA_DRIVEN_NEW_HEAD_PARTITIONS
+        ):
+            raise ValueError(
+                f"new-head partition receipt output partitions drifted: {variant}"
+            )
+        records[variant] = {}
+        for partition in _DATA_DRIVEN_NEW_HEAD_PARTITIONS:
+            partition_outputs = variant_outputs[partition]
+            if not isinstance(partition_outputs, dict) or set(
+                partition_outputs
+            ) != source_names:
+                raise ValueError(
+                    "new-head partition receipt output manifest set drifted: "
+                    f"{variant}/{partition}"
+                )
+            records[variant][partition] = partition_outputs
+            for name in _DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS:
+                record = partition_outputs[name]
+                if not isinstance(record, dict):
+                    raise ValueError(
+                        "new-head partition output record is invalid: "
+                        f"{variant}/{partition}/{name}"
+                    )
+                record_path = record.get("path")
+                path = (
+                    Path(_expand_path_like(record_path)).expanduser()
+                    if isinstance(record_path, str) and record_path.strip()
+                    else None
+                )
+                rows = record.get("rows")
+                identities = record.get("unique_identities")
+                images = record.get("unique_image_keys")
+                size_bytes = record.get("size_bytes")
+                if not (
+                    path is not None
+                    and path.is_absolute()
+                    and path.name == name
+                    and path.parent.name == partition
+                    and path.parent.parent.name == variant
+                    and type(rows) is int
+                    and rows >= 0
+                    and type(identities) is int
+                    and identities == rows
+                    and type(images) is int
+                    and 0 <= images <= rows
+                    and (rows == 0 or images > 0)
+                    and type(size_bytes) is int
+                    and size_bytes >= 0
+                    and isinstance(record.get("sha256"), str)
+                    and _LOWER_SHA256_RE.fullmatch(record["sha256"]) is not None
+                    and isinstance(
+                        record.get("ordered_identity_stream_sha256"), str
+                    )
+                    and _LOWER_SHA256_RE.fullmatch(
+                        record["ordered_identity_stream_sha256"]
+                    )
+                    is not None
+                ):
+                    raise ValueError(
+                        "new-head partition output record drifted: "
+                        f"{variant}/{partition}/{name}"
+                    )
+
+    partition_summary = receipt.get("partition_summary")
+    if not isinstance(partition_summary, dict) or set(partition_summary) != set(
+        _DATA_DRIVEN_NEW_HEAD_PARTITIONS
+    ):
+        raise ValueError("new-head partition summary drifted")
+    for partition in _DATA_DRIVEN_NEW_HEAD_PARTITIONS:
+        summary = partition_summary[partition]
+        rows_by_manifest = (
+            summary.get("rows_by_manifest") if isinstance(summary, dict) else None
+        )
+        if not (
+            isinstance(summary, dict)
+            and type(summary.get("rows")) is int
+            and summary["rows"] >= 0
+            and type(summary.get("unique_image_keys")) is int
+            and 0 <= summary["unique_image_keys"] <= summary["rows"]
+            and (summary["rows"] == 0 or summary["unique_image_keys"] > 0)
+            and isinstance(summary.get("ordered_image_key_stream_sha256"), str)
+            and _LOWER_SHA256_RE.fullmatch(
+                summary["ordered_image_key_stream_sha256"]
+            )
+            is not None
+            and isinstance(rows_by_manifest, dict)
+            and set(rows_by_manifest) == source_names
+            and all(
+                type(value) is int and value >= 0
+                for value in rows_by_manifest.values()
+            )
+            and summary["rows"] == sum(rows_by_manifest.values())
+        ):
+            raise ValueError(
+                f"new-head partition summary is invalid: {partition}"
+            )
+        for name in _DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS:
+            d0 = records["d0_ordinary_primary"][partition][name]
+            d1 = records["d1_category_complete"][partition][name]
+            if any(
+                d0[field] != d1[field]
+                for field in (
+                    "rows",
+                    "unique_identities",
+                    "unique_image_keys",
+                    "ordered_identity_stream_sha256",
+                )
+            ) or rows_by_manifest[name] != d0["rows"]:
+                raise ValueError(
+                    "new-head partition paired output summary drifted: "
+                    f"{partition}/{name}"
+                )
+            if d0["unique_image_keys"] > summary["unique_image_keys"]:
+                raise ValueError(
+                    "new-head partition image summary drifted: "
+                    f"{partition}/{name}"
+                )
+
+    for name in _DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS:
+        main_rows = sum(
+            records["d0_ordinary_primary"][partition][name]["rows"]
+            for partition in ("train", "dev_full", "quarantine")
+        )
+        if main_rows != source_manifests[name]["rows"]:
+            raise ValueError(
+                f"new-head partition main row accounting drifted: {name}"
+            )
+        if (
+            records["d0_ordinary_primary"]["dev_screen"][name]["rows"]
+            > records["d0_ordinary_primary"]["dev_full"][name]["rows"]
+        ):
+            raise ValueError(
+                f"new-head partition dev-screen accounting drifted: {name}"
+            )
+    if (
+        partition_summary["train"]["rows"] <= 0
+        or partition_summary["train"]["unique_image_keys"] <= 0
+        or partition_summary["dev_screen"]["rows"]
+        > partition_summary["dev_full"]["rows"]
+        or partition_summary["dev_screen"]["unique_image_keys"]
+        > partition_summary["dev_full"]["unique_image_keys"]
+    ):
+        raise ValueError("new-head partition summary accounting drifted")
+
+    receipt_variant = _DATA_DRIVEN_NEW_HEAD_VARIANT_BY_DATASET_VARIANT.get(
+        expected_variant
+    )
+    if receipt_variant is None:
+        raise ValueError(
+            f"new-head partition does not support variant {expected_variant!r}"
+        )
+    record = records[receipt_variant]["train"].get(anno_path.name)
+    if not isinstance(record, dict):
+        raise ValueError("new-head training manifest is absent from its receipt")
+    record_path = Path(_expand_path_like(record["path"])).resolve(strict=True)
+    if record_path != anno_path:
+        raise ValueError("new-head training manifest path drifted")
+    if not (
+        record["rows"] > 0
+        and record["unique_identities"] == record["rows"]
+        and record["unique_image_keys"] > 0
+        and record["size_bytes"] == anno_path.stat().st_size
+        and record["sha256"] == manifest_sha
+    ):
+        raise ValueError("new-head training manifest binding drifted")
+    return record, record
+
+
+def _validate_data_driven_new_head_support_receipt(
+    datasetinfo: Dict[str, Any],
+    *,
+    partition_receipt: Dict[str, Any],
+    partition_receipt_path: Path,
+    partition_receipt_sha: str,
+) -> None:
+    support_receipt_value = datasetinfo.get(
+        "stage_b_data_driven_support_receipt"
+    )
+    support_receipt_sha = datasetinfo.get(
+        "stage_b_data_driven_support_receipt_sha256"
+    )
+    if not (
+        isinstance(support_receipt_value, str)
+        and support_receipt_value.strip()
+        and isinstance(support_receipt_sha, str)
+        and _LOWER_SHA256_RE.fullmatch(support_receipt_sha) is not None
+    ):
+        raise ValueError("new-head support receipt/hash binding is incomplete")
+
+    support_receipt_path = Path(
+        _expand_path_like(support_receipt_value)
+    ).resolve(strict=True)
+    if _sha256_path(support_receipt_path) != support_receipt_sha:
+        raise ValueError("new-head support receipt SHA drifted")
+    support_receipt = json.loads(
+        support_receipt_path.read_text(encoding="utf-8")
+    )
+    if not (
+        isinstance(support_receipt, dict)
+        and support_receipt.get("schema")
+        == _DATA_DRIVEN_SUPPORT_PARTITION_RECEIPT_SCHEMA
+    ):
+        raise ValueError("new-head support receipt contract drifted")
+
+    canonical_sha = support_receipt.get("canonical_payload_sha256")
+    if not (
+        isinstance(canonical_sha, str)
+        and _LOWER_SHA256_RE.fullmatch(canonical_sha) is not None
+    ):
+        raise ValueError("new-head support receipt canonical hash is invalid")
+    canonical_payload = dict(support_receipt)
+    del canonical_payload["canonical_payload_sha256"]
+    try:
+        canonical_bytes = json.dumps(
+            canonical_payload,
+            ensure_ascii=True,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    except (TypeError, ValueError, UnicodeEncodeError) as error:
+        raise ValueError(
+            "new-head support receipt canonical payload is invalid"
+        ) from error
+    if hashlib.sha256(canonical_bytes).hexdigest() != canonical_sha:
+        raise ValueError("new-head support receipt canonical hash drifted")
+
+    invariants = support_receipt.get("invariants")
+    if not isinstance(invariants, dict) or not invariants or any(
+        value is not True for value in invariants.values()
+    ):
+        raise ValueError("new-head support receipt invariants drifted")
+
+    expected_partition_record = {
+        "path": str(partition_receipt_path),
+        "sha256": partition_receipt_sha,
+        "size_bytes": partition_receipt_path.stat().st_size,
+    }
+    inputs = support_receipt.get("inputs")
+    input_partition_record = (
+        inputs.get("partition_receipt")
+        if isinstance(inputs, dict)
+        else None
+    )
+    partition = support_receipt.get("partition")
+    summarized_partition_record = (
+        partition.get("receipt")
+        if isinstance(partition, dict)
+        else None
+    )
+    summarized_partition_schema = (
+        partition.get("schema") if isinstance(partition, dict) else None
+    )
+    summarized_partition_canonical_sha = (
+        partition.get("canonical_payload_sha256")
+        if isinstance(partition, dict)
+        else None
+    )
+    if not (
+        input_partition_record == expected_partition_record
+        and summarized_partition_record == expected_partition_record
+        and summarized_partition_schema
+        == _DATA_DRIVEN_NEW_HEAD_PARTITION_RECEIPT_SCHEMA
+        and summarized_partition_canonical_sha
+        == partition_receipt.get("canonical_payload_sha256")
+    ):
+        raise ValueError("new-head support receipt partition lineage drifted")
+
+    filter_contract = support_receipt.get("filter_contract")
+    required_settings = (
+        filter_contract.get("required_dataset_settings")
+        if isinstance(filter_contract, dict)
+        else None
+    )
+    if not (
+        required_settings == _DATA_DRIVEN_SUPPORT_REQUIRED_SETTINGS
+        and filter_contract.get("D0_and_D1_share_identical_runtime_bank") is True
+        and filter_contract.get("bank_consumers") == ["D0", "D1"]
+    ):
+        raise ValueError("new-head support receipt runtime contract drifted")
+    for key, expected in _DATA_DRIVEN_SUPPORT_REQUIRED_SETTINGS.items():
+        observed = datasetinfo.get(key)
+        if type(observed) is not type(expected) or observed != expected:
+            raise ValueError(
+                f"new-head support dataset setting drifted: {key}"
+            )
+    if str(datasetinfo.get("patch_bank_cache_path", "") or "").strip():
+        raise ValueError(
+            "new-head support dataset must not retain a cache path"
+        )
+
+    runtime_bank = support_receipt.get("runtime_bank")
+    class_counts = (
+        runtime_bank.get("class_counts")
+        if isinstance(runtime_bank, dict)
+        else None
+    )
+    valid_class_counts = bool(
+        isinstance(class_counts, dict)
+        and class_counts
+        and all(
+            isinstance(class_id, str)
+            and class_id.isdigit()
+            and class_id == str(int(class_id))
+            and int(class_id) >= 0
+            and type(count) is int
+            and 0 < count <= 200
+            for class_id, count in class_counts.items()
+        )
+    )
+    runtime_candidate_rows = (
+        runtime_bank.get("candidate_rows")
+        if isinstance(runtime_bank, dict)
+        else None
+    )
+    if not (
+        valid_class_counts
+        and type(runtime_candidate_rows) is int
+        and runtime_candidate_rows == sum(class_counts.values())
+        and type(runtime_bank.get("class_count")) is int
+        and runtime_bank["class_count"] == len(class_counts)
+    ):
+        raise ValueError("new-head support runtime-bank summary drifted")
+
+    coverage = support_receipt.get("training_class_coverage")
+    required_ids = (
+        coverage.get("required_class_ids")
+        if isinstance(coverage, dict)
+        else None
+    )
+    covered_ids = (
+        coverage.get("covered_class_ids")
+        if isinstance(coverage, dict)
+        else None
+    )
+    support_counts = (
+        coverage.get("support_counts")
+        if isinstance(coverage, dict)
+        else None
+    )
+    if not (
+        isinstance(required_ids, list)
+        and required_ids
+        and all(
+            type(class_id) is int and class_id >= 0
+            for class_id in required_ids
+        )
+        and required_ids == sorted(set(required_ids))
+        and covered_ids == required_ids
+        and coverage.get("missing_class_ids") == []
+        and coverage.get("required_class_count") == len(required_ids)
+        and coverage.get("covered_class_count") == len(required_ids)
+        and isinstance(support_counts, dict)
+        and set(support_counts) == {str(class_id) for class_id in required_ids}
+        and all(
+            type(support_counts[str(class_id)]) is int
+            and support_counts[str(class_id)] > 0
+            and support_counts[str(class_id)]
+            == class_counts.get(str(class_id))
+            for class_id in required_ids
+        )
+    ):
+        raise ValueError("new-head support training-class coverage drifted")
+
+    outputs = support_receipt.get("outputs")
+    runtime_record = (
+        outputs.get("runtime_support_tsv")
+        if isinstance(outputs, dict)
+        else None
+    )
+    support_value = datasetinfo.get("support_patch_tsv")
+    if not (
+        isinstance(runtime_record, dict)
+        and isinstance(support_value, str)
+        and support_value.strip()
+        and isinstance(runtime_record.get("path"), str)
+        and runtime_record["path"].strip()
+        and isinstance(runtime_record.get("sha256"), str)
+        and _LOWER_SHA256_RE.fullmatch(runtime_record["sha256"]) is not None
+        and type(runtime_record.get("size_bytes")) is int
+        and runtime_record["size_bytes"] > 0
+        and type(runtime_record.get("rows")) is int
+        and runtime_record["rows"] == runtime_candidate_rows
+    ):
+        raise ValueError("new-head runtime support TSV binding is incomplete")
+    support_path = Path(_expand_path_like(support_value)).resolve(strict=True)
+    runtime_path = Path(
+        _expand_path_like(runtime_record["path"])
+    ).resolve(strict=True)
+    if not (
+        support_path == runtime_path
+        and support_path.stat().st_size == runtime_record["size_bytes"]
+        and _sha256_path(support_path) == runtime_record["sha256"]
+    ):
+        raise ValueError("new-head runtime support TSV binding drifted")
+
+
+def _validate_data_driven_role_routed_clean_assignment_receipt(
+    receipt: Dict[str, Any],
+    datasetinfo: Dict[str, Any],
+    *,
+    anno_path: Path,
+    manifest_sha: str,
+) -> Tuple[
+    Dict[str, Any],
+    Dict[str, Any],
+    Dict[str, Any],
+    Path,
+    str,
+]:
+    if datasetinfo.get("stage_b_data_driven_partition") != "train":
+        raise ValueError(
+            "role-routed clean assignment is training-only and requires explicit "
+            "stage_b_data_driven_partition='train'"
+        )
+
+    def validate_canonical_payload(value: Dict[str, Any], *, label: str) -> None:
+        claimed = value.get("canonical_payload_sha256")
+        if not (
+            isinstance(claimed, str)
+            and _LOWER_SHA256_RE.fullmatch(claimed) is not None
+        ):
+            raise ValueError(f"{label} canonical hash is invalid")
+        payload = dict(value)
+        payload.pop("canonical_payload_sha256", None)
+        try:
+            encoded = json.dumps(
+                payload,
+                ensure_ascii=True,
+                allow_nan=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("ascii")
+        except (TypeError, ValueError, UnicodeEncodeError) as error:
+            raise ValueError(f"{label} canonical payload is invalid") from error
+        if hashlib.sha256(encoded).hexdigest() != claimed:
+            raise ValueError(f"{label} canonical hash drifted")
+
+    def load_record(
+        record: Any, *, label: str
+    ) -> Tuple[Path, str, Dict[str, Any]]:
+        if not (
+            isinstance(record, dict)
+            and isinstance(record.get("path"), str)
+            and record["path"].strip()
+            and isinstance(record.get("sha256"), str)
+            and _LOWER_SHA256_RE.fullmatch(record["sha256"]) is not None
+            and type(record.get("size_bytes")) is int
+            and record["size_bytes"] > 0
+        ):
+            raise ValueError(f"{label} file binding is invalid")
+        path = Path(_expand_path_like(record["path"])).resolve(strict=True)
+        if (
+            path.stat().st_size != record["size_bytes"]
+            or _sha256_path(path) != record["sha256"]
+        ):
+            raise ValueError(f"{label} file binding drifted")
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise ValueError(f"{label} is unreadable") from error
+        if not isinstance(payload, dict):
+            raise ValueError(f"{label} must be a JSON object")
+        return path, record["sha256"], payload
+
+    validate_canonical_payload(receipt, label="role-routed clean assignment receipt")
+    invariants = receipt.get("invariants")
+    selection = receipt.get("selection_contract")
+    forbidden_inputs = (
+        set(selection.get("forbidden_inputs") or [])
+        if isinstance(selection, dict)
+        else set()
+    )
+    expected_forbidden = {
+        "teacher_scores",
+        "teacher_logits",
+        "model_scores",
+        "model_logits",
+        "checkpoint_outputs",
+    }
+    if not (
+        receipt.get("schema")
+        == _DATA_DRIVEN_ROLE_ROUTED_CLEAN_ASSIGNMENT_RECEIPT_SCHEMA
+        and receipt.get("scope")
+        == _DATA_DRIVEN_ROLE_ROUTED_CLEAN_ASSIGNMENT_SCOPE
+        and receipt.get("row_schema") == _DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA
+        and receipt.get("manifest_order")
+        == list(_DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS)
+        and receipt.get("rows") == 263661
+        and receipt.get("valid_rows") == 224723
+        and receipt.get("invalid_rows") == 38938
+        and receipt.get("unique_identities") == 263661
+        and receipt.get("unique_image_keys") == 22359
+        and receipt.get("output_layout") == "<source_manifest>"
+        and receipt.get("output_stream_encoding")
+        == "raw_upstream_assignment_record_including_line_ending_v1"
+        and isinstance(invariants, dict)
+        and invariants
+        and all(value is True for value in invariants.values())
+        and isinstance(selection, dict)
+        and selection.get("policy")
+        == "exact_seven_field_identity_train_intersection_v1"
+        and selection.get("clean_role") == "d1_category_complete/train"
+        and selection.get("identity_fields")
+        == ["source", "image_id", "ann_id", "ref_id", "sent_id", "split", "filename"]
+        and selection.get("assignment_fields_removed_only_for_base_row_validation")
+        == [
+            "stage_b_data_driven_assignment_pair",
+            "stage_b_data_driven_assignment_pair_schema",
+            "assignment_pair_valid",
+            "assignment_pair",
+            "assignment_pair_invalid_reason",
+        ]
+        and selection.get("pair_reselection_or_repair_allowed") is False
+        and selection.get("model_score_free") is True
+        and forbidden_inputs == expected_forbidden
+    ):
+        raise ValueError("role-routed clean assignment receipt contract drifted")
+
+    upstream_assignment = receipt.get("upstream_assignment_receipt")
+    assignment_record = (
+        upstream_assignment.get("record")
+        if isinstance(upstream_assignment, dict)
+        else None
+    )
+    assignment_receipt_path, _, assignment_receipt = load_record(
+        assignment_record, label="upstream assignment receipt"
+    )
+    validate_canonical_payload(
+        assignment_receipt, label="upstream assignment receipt"
+    )
+    assignment_invariants = assignment_receipt.get("invariants")
+    if not (
+        upstream_assignment.get("schema") == _DATA_DRIVEN_ASSIGNMENT_RECEIPT_SCHEMA
+        and upstream_assignment.get("row_schema")
+        == _DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA
+        and upstream_assignment.get("rows") == 321327
+        and upstream_assignment.get("valid_rows") == 274582
+        and upstream_assignment.get("invalid_rows") == 46745
+        and upstream_assignment.get("unique_identities") == 321327
+        and upstream_assignment.get("canonical_payload_sha256")
+        == assignment_receipt.get("canonical_payload_sha256")
+        and assignment_receipt.get("schema")
+        == _DATA_DRIVEN_ASSIGNMENT_RECEIPT_SCHEMA
+        and assignment_receipt.get("row_schema")
+        == _DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA
+        and assignment_receipt.get("manifest_order")
+        == list(_DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS)
+        and isinstance(assignment_invariants, dict)
+        and assignment_invariants
+        and all(value is True for value in assignment_invariants.values())
+    ):
+        raise ValueError("upstream assignment receipt lineage drifted")
+
+    upstream_partition = receipt.get("upstream_new_head_partition_receipt")
+    partition_record = (
+        upstream_partition.get("record")
+        if isinstance(upstream_partition, dict)
+        else None
+    )
+    partition_receipt_path, partition_receipt_sha, partition_receipt = load_record(
+        partition_record, label="upstream new-head partition receipt"
+    )
+    if not (
+        upstream_partition.get("schema")
+        == _DATA_DRIVEN_NEW_HEAD_PARTITION_RECEIPT_SCHEMA
+        and upstream_partition.get("canonical_payload_sha256")
+        == partition_receipt.get("canonical_payload_sha256")
+        and upstream_partition.get("train_rows") == 263661
+        and upstream_partition.get("train_unique_image_keys") == 22359
+    ):
+        raise ValueError("upstream new-head partition receipt lineage drifted")
+
+    manifests = receipt.get("manifests")
+    if not isinstance(manifests, dict) or set(manifests) != set(
+        _DATA_DRIVEN_NEW_HEAD_SOURCE_MANIFESTS
+    ):
+        raise ValueError("role-routed clean assignment manifest set drifted")
+    name = anno_path.name
+    manifest = manifests.get(name)
+    if not isinstance(manifest, dict):
+        raise ValueError("role-routed clean assignment manifest is absent")
+    output = manifest.get("output")
+    assignment_input = manifest.get("assignment_input")
+    clean_input = manifest.get("clean_train_input")
+    upstream_manifest = (assignment_receipt.get("manifests") or {}).get(name)
+    upstream_output = (
+        upstream_manifest.get("output")
+        if isinstance(upstream_manifest, dict)
+        else None
+    )
+    expected_assignment_path = (
+        Path(_expand_path_like(assignment_input.get("path"))).resolve(strict=True)
+        if isinstance(assignment_input, dict)
+        and isinstance(assignment_input.get("path"), str)
+        else None
+    )
+    if not (
+        isinstance(output, dict)
+        and isinstance(output.get("path"), str)
+        and Path(_expand_path_like(output["path"])).resolve(strict=True) == anno_path
+        and output.get("sha256") == manifest_sha
+        and output.get("size_bytes") == anno_path.stat().st_size
+        and type(manifest.get("rows")) is int
+        and manifest["rows"] > 0
+        and manifest.get("unique_identities") == manifest["rows"]
+        and type(manifest.get("valid_rows")) is int
+        and type(manifest.get("invalid_rows")) is int
+        and manifest["valid_rows"] + manifest["invalid_rows"] == manifest["rows"]
+        and manifest.get("valid_partner_rows_verified_in_clean_train")
+        == manifest["valid_rows"]
+        and isinstance(manifest.get("ordered_identity_stream_sha256"), str)
+        and _LOWER_SHA256_RE.fullmatch(
+            manifest["ordered_identity_stream_sha256"]
+        )
+        is not None
+        and isinstance(manifest.get("base_row_stream_sha256"), str)
+        and _LOWER_SHA256_RE.fullmatch(manifest["base_row_stream_sha256"])
+        is not None
+        and isinstance(assignment_input, dict)
+        and assignment_input == upstream_output
+        and expected_assignment_path is not None
+        and _sha256_path(expected_assignment_path) == assignment_input.get("sha256")
+        and expected_assignment_path.stat().st_size
+        == assignment_input.get("size_bytes")
+        and isinstance(clean_input, dict)
+        and isinstance(clean_input.get("path"), str)
+        and isinstance(clean_input.get("sha256"), str)
+    ):
+        raise ValueError("role-routed clean assignment manifest binding drifted")
+
+    clean_path = Path(_expand_path_like(clean_input["path"])).resolve(strict=True)
+    partition_manifest, _ = _validate_data_driven_new_head_partition_receipt(
+        partition_receipt,
+        datasetinfo,
+        anno_path=clean_path,
+        expected_variant="dd1_category_complete",
+        manifest_sha=clean_input["sha256"],
+    )
+    if not (
+        clean_input.get("size_bytes") == clean_path.stat().st_size
+        and clean_input.get("sha256") == _sha256_path(clean_path)
+        and partition_manifest.get("rows") == manifest["rows"]
+        and partition_manifest.get("unique_identities")
+        == manifest["unique_identities"]
+        and partition_manifest.get("unique_image_keys")
+        == manifest.get("unique_image_keys")
+        and partition_manifest.get("ordered_identity_stream_sha256")
+        == manifest["ordered_identity_stream_sha256"]
+    ):
+        raise ValueError("role-routed clean D1 lineage drifted")
+
+    _validate_data_driven_new_head_support_receipt(
+        datasetinfo,
+        partition_receipt=partition_receipt,
+        partition_receipt_path=partition_receipt_path,
+        partition_receipt_sha=partition_receipt_sha,
+    )
+    if assignment_receipt_path == partition_receipt_path:
+        raise ValueError("assignment and partition receipt lineages collapsed")
+    return (
+        manifest,
+        output,
+        partition_receipt,
+        partition_receipt_path,
+        partition_receipt_sha,
+    )
+
+
+def _validate_data_driven_ref_dataset_binding(
+    args, datasetinfo: Dict[str, Any], *, image_set: str
+) -> Optional[str]:
+    if image_set != "train":
+        return None
+    if not bool(getattr(args, "stage_b_data_driven_score", False)) or str(
+        getattr(args, "stage_b_data_driven_train_mode", "")
+    ).strip() != "rank_patch_only":
+        return None
+    rank_supervision = str(
+        getattr(
+            args,
+            "stage_b_data_driven_rank_supervision",
+            "all_nonpositive_negative_v1",
+        )
+        or ""
+    ).strip().lower()
+    if rank_supervision not in {
+        "all_nonpositive_negative_v1",
+        *_DATA_DRIVEN_SAME_CATEGORY_RANK_SUPERVISIONS,
+    }:
+        raise ValueError(
+            "data-driven rank supervision contract is unknown: "
+            f"{rank_supervision!r}"
+        )
+    category_complete = bool(
+        getattr(args, "stage_b_data_driven_category_complete", False)
+    )
+    assignment_supervision = (
+        rank_supervision in _DATA_DRIVEN_ASSIGNMENT_RANK_SUPERVISIONS
+    )
+    role_routed_assignment = rank_supervision in {
+        "role_routed_official_assignment_top1_v1",
+        "role_routed_official_assignment_all_exclusive_nonowned_v2",
+    }
+    expected_variant = (
+        "dd1_official_assignment_pair"
+        if assignment_supervision
+        else (
+            "dd1_category_complete"
+            if category_complete
+            else "dd0_ordinary_primary"
+        )
+    )
+    if (
+        rank_supervision in _DATA_DRIVEN_SAME_CATEGORY_RANK_SUPERVISIONS
+        and not category_complete
+    ):
+        raise ValueError(
+            "same-category rank supervision requires the DD1 category-complete "
+            "dataset"
+        )
+    variant = datasetinfo.get("stage_b_data_driven_variant")
+    if variant != expected_variant:
+        raise ValueError(
+            "data-driven rank/patch dataset variant drifted: "
+            f"expected={expected_variant!r}, got={variant!r}"
+        )
+    receipt_value = datasetinfo.get("stage_b_data_driven_receipt")
+    receipt_sha = datasetinfo.get("stage_b_data_driven_receipt_sha256")
+    manifest_sha = datasetinfo.get("stage_b_data_driven_manifest_sha256")
+    if not all(
+        isinstance(value, str) and bool(value.strip())
+        for value in (receipt_value, receipt_sha, manifest_sha)
+    ):
+        raise ValueError("data-driven dataset receipt/hash binding is incomplete")
+    receipt_path = Path(_expand_path_like(receipt_value)).resolve(strict=True)
+    anno_path = Path(_expand_path_like(datasetinfo["anno"])).resolve(strict=True)
+    if _sha256_path(receipt_path) != receipt_sha:
+        raise ValueError("data-driven paired receipt SHA drifted")
+    if _sha256_path(anno_path) != manifest_sha:
+        raise ValueError("data-driven annotation SHA drifted")
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    if not isinstance(receipt, dict):
+        raise ValueError("data-driven paired receipt contract drifted")
+    receipt_schema = receipt.get("schema")
+    new_head_partition = bool(
+        not assignment_supervision
+        and receipt_schema == _DATA_DRIVEN_NEW_HEAD_PARTITION_RECEIPT_SCHEMA
+    )
+    assignment_overfit = bool(
+        assignment_supervision
+        and receipt_schema == _DATA_DRIVEN_ASSIGNMENT_OVERFIT_RECEIPT_SCHEMA
+    )
+    clean_role_routed_assignment = bool(
+        role_routed_assignment
+        and receipt_schema
+        == _DATA_DRIVEN_ROLE_ROUTED_CLEAN_ASSIGNMENT_RECEIPT_SCHEMA
+    )
+    if datasetinfo.get("lazy_jsonl") is True and not clean_role_routed_assignment:
+        raise ValueError(
+            "lazy_jsonl is restricted to the sealed role-routed clean assignment"
+        )
+    if clean_role_routed_assignment and datasetinfo.get("lazy_jsonl") is not True:
+        raise ValueError(
+            "role-routed clean assignment requires lazy_jsonl=true"
+        )
+    expected_receipt_schemas = (
+        {_DATA_DRIVEN_ROLE_ROUTED_CLEAN_ASSIGNMENT_RECEIPT_SCHEMA}
+        if role_routed_assignment
+        else (
+        {
+            _DATA_DRIVEN_ASSIGNMENT_RECEIPT_SCHEMA,
+            _DATA_DRIVEN_ASSIGNMENT_OVERFIT_RECEIPT_SCHEMA,
+        }
+        if assignment_supervision
+        else {
+            "pivot.stageb.data_driven_ref_pair_receipt/v1",
+            _DATA_DRIVEN_NEW_HEAD_PARTITION_RECEIPT_SCHEMA,
+        }
+        )
+    )
+    if receipt_schema not in expected_receipt_schemas:
+        raise ValueError("data-driven paired receipt contract drifted")
+    invariants = receipt.get("invariants")
+    if not isinstance(invariants, dict) or any(
+        value is not True for value in invariants.values()
+    ):
+        raise ValueError("data-driven paired receipt contract drifted")
+    if clean_role_routed_assignment:
+        manifest, record, _, _, _ = (
+            _validate_data_driven_role_routed_clean_assignment_receipt(
+                receipt,
+                datasetinfo,
+                anno_path=anno_path,
+                manifest_sha=manifest_sha,
+            )
+        )
+    elif new_head_partition:
+        manifest, record = _validate_data_driven_new_head_partition_receipt(
+            receipt,
+            datasetinfo,
+            anno_path=anno_path,
+            expected_variant=expected_variant,
+            manifest_sha=manifest_sha,
+        )
+        _validate_data_driven_new_head_support_receipt(
+            datasetinfo,
+            partition_receipt=receipt,
+            partition_receipt_path=receipt_path,
+            partition_receipt_sha=receipt_sha,
+        )
+    elif assignment_overfit:
+        if (
+            receipt.get("row_schema") != _DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA
+            or receipt.get("rows") != 64
+            or receipt.get("valid_rows") != 64
+            or receipt.get("invalid_rows") != 0
+            or receipt.get("unique_images") != 64
+            or receipt.get("unique_unordered_annotation_edges") != 64
+            or receipt.get("unique_annotation_endpoints") != 128
+            or receipt.get("output_manifest") != anno_path.name
+        ):
+            raise ValueError("data-driven Overfit64 receipt contract drifted")
+        record = receipt.get("output")
+        manifest = {"rows": receipt["rows"], "output": record}
+        selection = receipt.get("selection_contract")
+        support = receipt.get("support")
+        mini_support = (
+            support.get("mini_support_tsv")
+            if isinstance(support, dict)
+            else None
+        )
+        support_value = datasetinfo.get("support_patch_tsv")
+        if not (
+            isinstance(support_value, str)
+            and support_value.strip()
+            and isinstance(mini_support, dict)
+            and isinstance(mini_support.get("path"), str)
+            and mini_support["path"].strip()
+        ):
+            raise ValueError(
+                "data-driven Overfit64 fixed external support binding is incomplete"
+            )
+        support_path = Path(_expand_path_like(support_value)).resolve(strict=True)
+        if (
+            not isinstance(selection, dict)
+            or selection.get("model_score_free") is not True
+            or selection.get("target_crop_fallback_allowed") is not False
+            or selection.get("runtime_support_candidates_per_selected_class") != 1
+            or not isinstance(mini_support, dict)
+            or support_path
+            != Path(_expand_path_like(mini_support.get("path"))).resolve(strict=True)
+            or _sha256_path(support_path) != mini_support.get("sha256")
+            or datasetinfo.get("support_patch_bucket") != "clean"
+            or datasetinfo.get("support_patch_use_embedding") is not False
+            or datasetinfo.get("support_patch_max_per_class") != 1
+            or datasetinfo.get("patch_bank_cache") is not False
+            or datasetinfo.get("patch_bank_cache_write") is not False
+        ):
+            raise ValueError(
+                "data-driven Overfit64 fixed external support contract drifted"
+            )
+    else:
+        if (
+            receipt.get("rows") != 321327
+            or receipt.get("unique_identities") != 321327
+        ):
+            raise ValueError("data-driven paired receipt contract drifted")
+        manifest = (receipt.get("manifests") or {}).get(anno_path.name)
+        if assignment_supervision:
+            record = manifest.get("output") if isinstance(manifest, dict) else None
+        else:
+            role = (
+                "category_complete"
+                if expected_variant == "dd1_category_complete"
+                else "ordinary_primary"
+            )
+            record = manifest.get(role) if isinstance(manifest, dict) else None
+    if not isinstance(record, dict) or record.get("sha256") != manifest_sha:
+        raise ValueError("data-driven manifest is absent from its paired receipt")
+    if int(manifest.get("rows", -1)) <= 0:
+        raise ValueError("data-driven receipt declares an empty manifest")
+    if rank_supervision in _DATA_DRIVEN_SAME_CATEGORY_RANK_SUPERVISIONS:
+        if clean_role_routed_assignment:
+            return expected_variant
+        complete_receipt_record = receipt.get(
+            "upstream_category_complete_receipt"
+            if assignment_overfit
+            else "category_complete_receipt"
+        )
+        if not isinstance(complete_receipt_record, dict):
+            raise ValueError(
+                "same-category rank supervision requires the category-complete "
+                "receipt"
+            )
+        complete_receipt_value = complete_receipt_record.get("path")
+        complete_receipt_sha = complete_receipt_record.get("sha256")
+        if not (
+            isinstance(complete_receipt_value, str)
+            and complete_receipt_value.strip()
+            and isinstance(complete_receipt_sha, str)
+            and len(complete_receipt_sha) == 64
+        ):
+            raise ValueError("category-complete receipt binding is incomplete")
+        complete_receipt_path = Path(
+            _expand_path_like(complete_receipt_value)
+        ).resolve(strict=True)
+        if _sha256_path(complete_receipt_path) != complete_receipt_sha:
+            raise ValueError("category-complete receipt SHA drifted")
+        complete_receipt = json.loads(
+            complete_receipt_path.read_text(encoding="utf-8")
+        )
+        if assignment_overfit:
+            complete_manifests = (
+                complete_receipt.get("manifests")
+                if isinstance(complete_receipt, dict)
+                else None
+            )
+            upstream_record = receipt.get("upstream_assignment_receipt")
+            if not (
+                isinstance(upstream_record, dict)
+                and isinstance(upstream_record.get("path"), str)
+                and upstream_record["path"].strip()
+            ):
+                raise ValueError(
+                    "Overfit64 receipt lost its upstream assignment binding"
+                )
+            upstream_path = Path(
+                _expand_path_like(upstream_record.get("path"))
+            ).resolve(strict=True)
+            if _sha256_path(upstream_path) != upstream_record.get("sha256"):
+                raise ValueError("Overfit64 upstream assignment receipt drifted")
+            upstream_receipt = json.loads(
+                upstream_path.read_text(encoding="utf-8")
+            )
+            upstream_complete = (
+                upstream_receipt.get("category_complete_receipt")
+                if isinstance(upstream_receipt, dict)
+                else None
+            )
+            valid_complete = bool(
+                isinstance(complete_receipt, dict)
+                and complete_receipt.get("schema")
+                == "pivot.stageb.u2_category_complete_receipt/v1"
+                and isinstance(complete_manifests, dict)
+                and complete_manifests
+                and all(
+                    isinstance(item, dict)
+                    and item.get("rows") == item.get("multi_instance_rows")
+                    and int(item.get("rows", 0)) > 0
+                    for item in complete_manifests.values()
+                )
+                and isinstance(upstream_receipt, dict)
+                and upstream_receipt.get("schema")
+                == _DATA_DRIVEN_ASSIGNMENT_RECEIPT_SCHEMA
+                and isinstance(upstream_complete, dict)
+                and upstream_complete.get("sha256") == complete_receipt_sha
+            )
+        else:
+            complete_manifest = (
+                complete_receipt.get("manifests", {}).get(anno_path.name)
+                if isinstance(complete_receipt, dict)
+                else None
+            )
+            assignment_input = (
+                manifest.get("input")
+                if assignment_supervision and isinstance(manifest, dict)
+                else None
+            )
+            valid_complete = bool(
+                isinstance(complete_receipt, dict)
+                and complete_receipt.get("schema")
+                == "pivot.stageb.u2_category_complete_receipt/v1"
+                and isinstance(complete_manifest, dict)
+                and complete_manifest.get("rows")
+                == complete_manifest.get("multi_instance_rows")
+                and int(complete_manifest.get("rows", 0)) > 0
+                and complete_manifest.get("output", {}).get("sha256")
+                == (
+                    assignment_input.get("sha256")
+                    if isinstance(assignment_input, dict)
+                    else manifest_sha
+                )
+            )
+        if not valid_complete:
+            raise ValueError(
+                "same-category rank supervision is not backed by an all-row "
+                "multi-instance receipt"
+            )
+    return expected_variant
+
+
+def _validate_data_driven_ref_metas(
+    metas: Sequence[Dict[str, Any]],
+    variant: Optional[str],
+    *,
+    rank_supervision: str = "all_nonpositive_negative_v1",
+) -> None:
+    if variant is None:
+        return
+    for index, meta in enumerate(metas):
+        instances = meta.get("instances")
+        if meta.get("primary_support_instance_index") != 0 or not (
+            isinstance(instances, list)
+            and instances
+            and all(isinstance(instance, dict) for instance in instances)
+        ):
+            raise ValueError(
+                f"data-driven {variant} row {index} lost its primary instance"
+            )
+        if variant == "dd0_ordinary_primary":
+            valid = (
+                len(instances) == 1
+                and meta.get("stage_b_data_driven_ordinary_primary") is True
+                and meta.get("stage_b_data_driven_ordinary_primary_schema")
+                == "pivot.stageb.data_driven_ordinary_primary/v1"
+                and meta.get("stage_b_u2_category_complete") is not True
+            )
+        else:
+            valid = (
+                meta.get("stage_b_u2_category_complete") is True
+                and meta.get("stage_b_u2_category_complete_schema")
+                == "pivot.stageb.u2_category_complete_ref/v1"
+                and all(
+                    instance.get("class_id") == instances[0].get("class_id")
+                    for instance in instances
+                )
+            )
+            if rank_supervision in _DATA_DRIVEN_SAME_CATEGORY_RANK_SUPERVISIONS:
+                valid = valid and len(instances) >= 2
+            if variant == "dd1_official_assignment_pair":
+                pair_valid = meta.get("assignment_pair_valid")
+                pair = meta.get("assignment_pair")
+                anchor = pair.get("anchor") if isinstance(pair, dict) else None
+                partner = pair.get("partner") if isinstance(pair, dict) else None
+                valid = valid and (
+                    meta.get("stage_b_data_driven_assignment_pair") is True
+                    and meta.get(
+                        "stage_b_data_driven_assignment_pair_schema"
+                    )
+                    == _DATA_DRIVEN_ASSIGNMENT_ROW_SCHEMA
+                    and isinstance(pair_valid, bool)
+                    and isinstance(anchor, dict)
+                    and int(anchor.get("coco_ann_id", -1))
+                    == int(instances[0].get("coco_ann_id", -2))
+                    and isinstance(anchor.get("expression"), str)
+                    and _norm_text(anchor["expression"])
+                    == _norm_text(
+                        instances[0].get(
+                            "raw_phrase",
+                            instances[0].get("positive_phrase", ""),
+                        )
+                    )
+                )
+                if pair_valid is True:
+                    partner_ann_id = (
+                        int(partner.get("coco_ann_id", -1))
+                        if isinstance(partner, dict)
+                        else -1
+                    )
+                    matching = [
+                        instance
+                        for instance in instances
+                        if int(instance.get("coco_ann_id", -2))
+                        == partner_ann_id
+                    ]
+                    target_iou = (
+                        partner.get("target_iou")
+                        if isinstance(partner, dict)
+                        else None
+                    )
+                    valid = valid and (
+                        isinstance(partner, dict)
+                        and partner_ann_id
+                        != int(anchor.get("coco_ann_id", partner_ann_id))
+                        and len(matching) == 1
+                        and isinstance(partner.get("expression"), str)
+                        and bool(_norm_text(partner["expression"]))
+                        and _norm_text(partner["expression"])
+                        != _norm_text(anchor["expression"])
+                        and isinstance(target_iou, (int, float))
+                        and not isinstance(target_iou, bool)
+                        and math.isfinite(float(target_iou))
+                        and 0.0 <= float(target_iou) < 0.3
+                    )
+                else:
+                    valid = valid and (
+                        partner is None
+                        and isinstance(
+                            meta.get("assignment_pair_invalid_reason"), str
+                        )
+                        and bool(meta["assignment_pair_invalid_reason"].strip())
+                    )
+        if not valid:
+            raise ValueError(
+                f"data-driven {variant} row {index} changed its supervision surface"
+            )
+
+
+def _validate_native_patch_category_dataset_binding(
+    args, datasetinfo: Dict[str, Any], *, image_set: str
+) -> Optional[Dict[int, int]]:
+    enabled = bool(
+        getattr(args, "stage_b_native_patch_category", False)
+        or getattr(args, "stage_b_u0_gate_aligned_d10", False)
+        or getattr(args, "stage_b_u0_gate_aligned_d11", False)
+        or getattr(args, "stage_b_u0_gate_aligned_d12", False)
+        or getattr(args, "stage_b_u0_gate_aligned_d13", False)
+    )
+    if not enabled:
+        if datasetinfo.get("native_patch_category_row_locked_support") is True:
+            raise ValueError(
+                "row-locked native patch support requires its model training mode"
+            )
+        return None
+    variant = str(
+        datasetinfo.get("stage_b_native_patch_category_variant", "")
+    ).strip().lower()
+    if image_set != "train":
+        raise ValueError(
+            "native patch-category data are a training-only dataset binding"
+        )
+    if not (
+        datasetinfo.get("native_patch_category_row_locked_support") is True
+        and variant in {"d1", "d2"}
+    ):
+        raise ValueError("native patch-category dataset mode is incomplete")
+    split = datasetinfo.get("stage_b_native_patch_category_split")
+    if variant == "d1" and split not in {"train", "dev_screen", "dev_full"}:
+        raise ValueError("native patch-category D1 split is invalid")
+    if variant == "d2" and split != "train":
+        raise ValueError(
+            "native patch-category D2 training requires its weighted train split"
+        )
+    source_dataset = datasetinfo.get(
+        "stage_b_native_patch_category_source_dataset"
+    )
+    if variant == "d2" and source_dataset not in {
+        "refcoco",
+        "refcocoplus",
+        "refcocog",
+    }:
+        raise ValueError("native patch-category D2 source dataset is invalid")
+    if variant == "d2" and not (
+        datasetinfo.get("stage_b_native_patch_category_row_schema")
+        == _NATIVE_PATCH_CATEGORY_D2_ROW_SCHEMA
+        and datasetinfo.get(
+            "stage_b_native_patch_category_sampling_contract"
+        )
+        == _NATIVE_PATCH_CATEGORY_D2_SAMPLING_CONTRACT
+        and datasetinfo.get(
+            "stage_b_native_patch_category_sampling_weight_field"
+        )
+        == _NATIVE_PATCH_CATEGORY_D2_WEIGHT_FIELD
+    ):
+        raise ValueError("native patch-category D2 declared schema drifted")
+    receipt_value = datasetinfo.get("stage_b_native_patch_category_receipt")
+    receipt_sha = datasetinfo.get("stage_b_native_patch_category_receipt_sha256")
+    manifest_sha = datasetinfo.get("stage_b_native_patch_category_manifest_sha256")
+    if not all(
+        isinstance(value, str) and _LOWER_SHA256_RE.fullmatch(value) is not None
+        for value in (receipt_sha, manifest_sha)
+    ) or not isinstance(receipt_value, str):
+        raise ValueError(
+            f"native patch-category {variant.upper()} hash binding is incomplete"
+        )
+    receipt_path = Path(_expand_path_like(receipt_value)).resolve(strict=True)
+    anno_path = Path(_expand_path_like(datasetinfo["anno"])).resolve(strict=True)
+    if _sha256_path(receipt_path) != receipt_sha:
+        raise ValueError(
+            f"native patch-category {variant.upper()} receipt SHA drifted"
+        )
+    if _sha256_path(anno_path) != manifest_sha:
+        raise ValueError(
+            f"native patch-category {variant.upper()} annotation SHA drifted"
+        )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    if not isinstance(receipt, dict):
+        raise ValueError("native patch-category receipt must be a JSON object")
+    canonical_sha = receipt.get("canonical_payload_sha256")
+    canonical_payload = dict(receipt)
+    canonical_payload.pop("canonical_payload_sha256", None)
+    replay_sha = hashlib.sha256(
+        json.dumps(
+            canonical_payload,
+            ensure_ascii=True,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    ).hexdigest()
+    split_record = receipt.get("splits", {}).get(split)
+    if variant == "d2" and isinstance(split_record, dict):
+        split_record = split_record.get(source_dataset)
+    output_record = (
+        split_record.get("output") if isinstance(split_record, dict) else None
+    )
+    invariants = receipt.get("invariants")
+    expected_receipt_schema = (
+        _NATIVE_PATCH_CATEGORY_D1_RECEIPT_SCHEMA
+        if variant == "d1"
+        else _NATIVE_PATCH_CATEGORY_D2_RECEIPT_SCHEMA
+    )
+    d2_sampling_contract = receipt.get("sampling_contract")
+    d2_binding_valid = variant == "d1" or bool(
+        isinstance(split_record, dict)
+        and receipt.get("row_schema") == _NATIVE_PATCH_CATEGORY_D2_ROW_SCHEMA
+        and isinstance(d2_sampling_contract, dict)
+        and d2_sampling_contract.get("name")
+        == _NATIVE_PATCH_CATEGORY_D2_SAMPLING_CONTRACT
+        and d2_sampling_contract.get("source_mix_weights", {}).get(
+            source_dataset
+        )
+        == split_record.get("mix_weight")
+        and split_record.get("mix_weight")
+        == datasetinfo.get("mix_weight")
+        and isinstance(split_record.get("sampling_weight_mean"), float)
+        and math.isclose(
+            split_record["sampling_weight_mean"],
+            1.0,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        )
+    )
+    if not (
+        receipt.get("schema") == expected_receipt_schema
+        and isinstance(canonical_sha, str)
+        and canonical_sha == replay_sha
+        and isinstance(invariants, dict)
+        and bool(invariants)
+        and all(value is True for value in invariants.values())
+        and isinstance(output_record, dict)
+        and output_record.get("sha256") == manifest_sha
+        and Path(output_record.get("path", "")).resolve(strict=True) == anno_path
+        and output_record.get("size_bytes") == anno_path.stat().st_size
+        and type(output_record.get("rows")) is int
+        and output_record["rows"] > 0
+        and d2_binding_valid
+    ):
+        raise ValueError(
+            f"native patch-category {variant.upper()} receipt contract drifted"
+        )
+    support_record = receipt.get("inputs", {}).get("support_partition_receipt")
+    if not (
+        isinstance(support_record, dict)
+        and set(support_record) == {"path", "sha256", "size_bytes"}
+        and isinstance(support_record.get("path"), str)
+        and isinstance(support_record.get("sha256"), str)
+        and _LOWER_SHA256_RE.fullmatch(support_record["sha256"]) is not None
+        and type(support_record.get("size_bytes")) is int
+        and support_record["size_bytes"] > 0
+    ):
+        raise ValueError("native patch-category support receipt binding is incomplete")
+    support_receipt_path = Path(support_record["path"]).resolve(strict=True)
+    if (
+        support_receipt_path.stat().st_size != support_record["size_bytes"]
+        or _sha256_path(support_receipt_path) != support_record["sha256"]
+    ):
+        raise ValueError("native patch-category support receipt binding drifted")
+    support_receipt = json.loads(
+        support_receipt_path.read_text(encoding="utf-8")
+    )
+    support_payload = dict(support_receipt)
+    support_canonical_sha = support_payload.pop("canonical_payload_sha256", None)
+    support_replay_sha = hashlib.sha256(
+        json.dumps(
+            support_payload,
+            ensure_ascii=True,
+            allow_nan=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    ).hexdigest()
+    support_invariants = support_receipt.get("invariants")
+    if not (
+        support_receipt.get("schema")
+        == _DATA_DRIVEN_SUPPORT_PARTITION_RECEIPT_SCHEMA
+        and support_canonical_sha == support_replay_sha
+        and isinstance(support_invariants, dict)
+        and support_invariants.get(
+            "alias_bridges_are_unique_canonical_metadata_matches"
+        )
+        is True
+        and support_invariants.get(
+            "alias_bridges_reuse_only_filtered_base_paths"
+        )
+        is True
+    ):
+        raise ValueError("native patch-category support receipt payload drifted")
+    alias_rows = support_receipt.get("alias_bridges")
+    if not isinstance(alias_rows, list):
+        raise ValueError("native patch-category alias bridge list is missing")
+    alias_bridges: Dict[int, int] = {}
+    for alias_index, alias in enumerate(alias_rows):
+        if not isinstance(alias, dict):
+            raise ValueError(
+                f"native patch-category alias bridge {alias_index} is invalid"
+            )
+        target = alias.get("target_class_id")
+        source = alias.get("source_cache_class_id")
+        if (
+            type(target) is not int
+            or type(source) is not int
+            or target == source
+            or type(alias.get("candidate_rows")) is not int
+            or alias["candidate_rows"] <= 0
+            or target in alias_bridges
+        ):
+            raise ValueError(
+                f"native patch-category alias bridge {alias_index} drifted"
+            )
+        alias_bridges[target] = source
+    required_settings = {
+        "neg_episode_prob": 0.0,
+        "support_num_patches_min": 1,
+        "support_num_patches_max": 1,
+        "support_patch_use_embedding": False,
+        "build_text_token_masks": True,
+        "strict_sample_identity": True,
+        "anno_cache": False,
+        "anno_cache_write": False,
+    }
+    if variant == "d2":
+        required_settings["tn_balance_sampling"] = False
+    for key, expected in required_settings.items():
+        observed = datasetinfo.get(key)
+        if type(observed) is not type(expected) or observed != expected:
+            raise ValueError(
+                "native patch-category "
+                f"{variant.upper()} dataset setting drifted: {key}"
+            )
+    if datasetinfo.get("support_patch_tsv") not in {None, ""}:
+        raise ValueError(
+            "native patch-category must use only its row support witness"
+        )
+    return alias_bridges
+
+
 def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
+    table_b_contract = None
+    if image_set == "train":
+        try:
+            table_b_contract = validate_table_b_dataset_binding(args, datasetinfo)
+        except TableBContractError as error:
+            raise ValueError(
+                f"Table-B dataset contract failed closed: {error}"
+            ) from error
+    data_driven_ref_variant = _validate_data_driven_ref_dataset_binding(
+        args, datasetinfo, image_set=image_set
+    )
+    native_patch_category_alias_bridges = (
+        _validate_native_patch_category_dataset_binding(
+            args, datasetinfo, image_set=image_set
+        )
+    )
+    native_patch_category_row_locked_support = (
+        native_patch_category_alias_bridges is not None
+    )
+    native_patch_category_variant = (
+        str(datasetinfo.get("stage_b_native_patch_category_variant", ""))
+        .strip()
+        .lower()
+        if native_patch_category_row_locked_support
+        else None
+    )
+    native_patch_category_source_dataset = (
+        datasetinfo.get("stage_b_native_patch_category_source_dataset")
+        if native_patch_category_variant == "d2"
+        else None
+    )
+    data_driven_rank_supervision = str(
+        getattr(
+            args,
+            "stage_b_data_driven_rank_supervision",
+            "all_nonpositive_negative_v1",
+        )
+    ).strip().lower()
+    strict_sample_identity = datasetinfo.get(
+        "strict_sample_identity",
+        getattr(args, "stage_b_data_driven_strict_sample_identity", False),
+    )
+    if not isinstance(strict_sample_identity, bool):
+        raise ValueError("strict_sample_identity must be an exact JSON boolean")
+    if (
+        data_driven_rank_supervision
+        in _DATA_DRIVEN_SAME_CATEGORY_RANK_SUPERVISIONS
+        and strict_sample_identity is not True
+    ):
+        raise ValueError(
+            "same-category rank supervision requires strict sample identity"
+        )
+    lazy_jsonl = datasetinfo.get("lazy_jsonl", False)
+    if not isinstance(lazy_jsonl, bool):
+        raise ValueError("lazy_jsonl must be an exact JSON boolean")
+    if lazy_jsonl and data_driven_ref_variant is None:
+        raise ValueError(
+            "lazy_jsonl is restricted to validated data-driven training rows"
+        )
     root = datasetinfo["root"]
     anno = datasetinfo["anno"]
     source = datasetinfo.get("source", getattr(args, "patch_episode_source", None))
@@ -3265,6 +6389,83 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         datasetinfo.get("tn_balance_sampling", getattr(args, "tn_balance_sampling", True))
     )
     tn_balance_cap = float(datasetinfo.get("tn_balance_cap", getattr(args, "tn_balance_cap", 5.0)))
+    sam3_tn_image_root = datasetinfo.get("sam3_tn_image_root", getattr(args, "sam3_tn_image_root", None))
+    sam3_tn_bbox_key = datasetinfo.get("sam3_tn_bbox_key", getattr(args, "sam3_tn_bbox_key", "sam_bbox"))
+    sam3_tn_keep_failed = bool(
+        datasetinfo.get("sam3_tn_keep_failed", getattr(args, "sam3_tn_keep_failed", False))
+    )
+    require_global_tn_verified = bool(
+        datasetinfo.get(
+            "require_global_tn_verified",
+            getattr(args, "require_global_tn_verified", False),
+        )
+    )
+    require_fixed_stagea_topk_exact_verified = bool(
+        datasetinfo.get(
+            "require_fixed_stagea_topk_exact_verified",
+            getattr(args, "require_fixed_stagea_topk_exact_verified", False),
+        )
+    )
+    fixed_stagea_topk_exact_audit = datasetinfo.get(
+        "fixed_stagea_topk_exact_audit",
+        getattr(args, "fixed_stagea_topk_exact_audit", None),
+    )
+    fixed_stagea_topk_expected_contract = datasetinfo.get(
+        "fixed_stagea_topk_expected_contract",
+        getattr(args, "fixed_stagea_topk_expected_contract", None),
+    )
+    require_proposalset_proxy_verified = bool(
+        datasetinfo.get(
+            "require_proposalset_proxy_verified",
+            getattr(args, "require_proposalset_proxy_verified", False),
+        )
+    )
+    require_benchmark_dataft_alltn = bool(
+        datasetinfo.get(
+            "require_benchmark_dataft_alltn",
+            getattr(args, "require_benchmark_dataft_alltn", False),
+        )
+    )
+    require_vlm_strict_tn = bool(
+        datasetinfo.get(
+            "require_vlm_strict_tn",
+            getattr(args, "require_vlm_strict_tn", False),
+        )
+    )
+    raw_single_edit_token_provenance = datasetinfo.get(
+        "require_single_edit_token_provenance", False
+    )
+    if not isinstance(raw_single_edit_token_provenance, bool):
+        raise ValueError(
+            "require_single_edit_token_provenance must be an exact JSON boolean"
+        )
+    require_single_edit_token_provenance = raw_single_edit_token_provenance
+    stage_b_gdino_adapter_ref_eval = bool(
+        datasetinfo.get("stage_b_gdino_adapter_ref_eval", False)
+    )
+    stage_b_gdino_adapter_no_support = bool(
+        datasetinfo.get("stage_b_gdino_adapter_no_support", False)
+    )
+    if stage_b_gdino_adapter_no_support and neg_episode_prob != 0.0:
+        raise ValueError(
+            "stage_b_gdino_adapter_no_support requires neg_episode_prob=0.0; "
+            "internal negative-episode resampling would break paired captions "
+            "and sample identity"
+        )
+    if stage_b_gdino_adapter_no_support and not (
+        bool(getattr(args, "stage_b_gdino_score_adapter", False))
+        and (
+            require_benchmark_dataft_alltn
+            or require_global_tn_verified
+            or require_fixed_stagea_topk_exact_verified
+            or require_vlm_strict_tn
+            or stage_b_gdino_adapter_ref_eval
+        )
+    ):
+        raise ValueError(
+            "stage_b_gdino_adapter_no_support requires both the model adapter "
+            "mode and an explicitly verified training or evaluation protocol"
+        )
     if text_mask_audit_jsonl is None and build_text_token_masks:
         output_dir = getattr(args, "output_dir", None)
         if output_dir:
@@ -3276,7 +6477,7 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         strong_aug=getattr(args, "strong_aug", False),
         args=args,
     )
-    return PatchEpisodeJsonlDataset(
+    dataset = PatchEpisodeJsonlDataset(
         root=root,
         anno=anno,
         transforms=tfm,
@@ -3338,4 +6539,48 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
         skip_relation_like_tn_in_v1=skip_relation_like_tn_in_v1,
         tn_balance_sampling=tn_balance_sampling,
         tn_balance_cap=tn_balance_cap,
+        sam3_tn_image_root=sam3_tn_image_root,
+        sam3_tn_bbox_key=sam3_tn_bbox_key,
+        sam3_tn_keep_failed=sam3_tn_keep_failed,
+        require_global_tn_verified=require_global_tn_verified,
+        require_fixed_stagea_topk_exact_verified=(
+            require_fixed_stagea_topk_exact_verified
+        ),
+        fixed_stagea_topk_exact_audit=fixed_stagea_topk_exact_audit,
+        fixed_stagea_topk_expected_contract=fixed_stagea_topk_expected_contract,
+        require_proposalset_proxy_verified=require_proposalset_proxy_verified,
+        require_benchmark_dataft_alltn=require_benchmark_dataft_alltn,
+        require_vlm_strict_tn=require_vlm_strict_tn,
+        require_single_edit_token_provenance=(
+            require_single_edit_token_provenance
+        ),
+        table_b_id=(
+            table_b_contract.table_b_id if table_b_contract is not None else None
+        ),
+        table_b_scope=(
+            table_b_contract.scope if table_b_contract is not None else None
+        ),
+        table_b_audit_sha256=(
+            table_b_contract.audit_sha256
+            if table_b_contract is not None
+            else None
+        ),
+        stage_b_gdino_adapter_ref_eval=stage_b_gdino_adapter_ref_eval,
+        stage_b_gdino_adapter_no_support=stage_b_gdino_adapter_no_support,
+        native_patch_category_row_locked_support=(
+            native_patch_category_row_locked_support
+        ),
+        native_patch_category_variant=native_patch_category_variant,
+        native_patch_category_source_dataset=(
+            native_patch_category_source_dataset
+        ),
+        native_patch_category_alias_bridges=native_patch_category_alias_bridges,
+        strict_sample_identity=strict_sample_identity,
+        lazy_jsonl=lazy_jsonl,
     )
+    _validate_data_driven_ref_metas(
+        dataset.metas,
+        data_driven_ref_variant,
+        rank_supervision=data_driven_rank_supervision,
+    )
+    return dataset

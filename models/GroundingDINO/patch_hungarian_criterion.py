@@ -189,7 +189,13 @@ class PatchHungarianCriterion(nn.Module):
             "If multi-exemplar-per-class is intentional, set allow_duplicate_support_classes=True."
         )
 
-    def compute_matching(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]):
+    def compute_matching(
+        self,
+        outputs: Dict[str, torch.Tensor],
+        targets: List[Dict[str, torch.Tensor]],
+        *,
+        sync_num_boxes: bool = True,
+    ):
         if "pred_logits_patch" not in outputs or outputs["pred_logits_patch"] is None:
             raise KeyError("PatchHungarianCriterion requires outputs['pred_logits_patch'] (B,Q) or (B,Q,K).")
         if "pred_boxes" not in outputs:
@@ -244,9 +250,12 @@ class PatchHungarianCriterion(nn.Module):
 
         num_boxes = sum(int(t["labels"].numel()) for t in targets)
         num_boxes_t = torch.as_tensor([num_boxes], dtype=torch.float32, device=device)
-        if is_dist_avail_and_initialized():
+        if sync_num_boxes and is_dist_avail_and_initialized():
             torch.distributed.all_reduce(num_boxes_t)
-        num_boxes = float(torch.clamp(num_boxes_t / get_world_size(), min=1.0).item())
+            world_size = get_world_size()
+        else:
+            world_size = 1
+        num_boxes = float(torch.clamp(num_boxes_t / max(1, world_size), min=1.0).item())
 
         all_indices: List[Tuple[torch.Tensor, torch.Tensor]] = []
         matched_local_patch_idx_list: List[torch.Tensor] = []
