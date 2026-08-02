@@ -86,6 +86,9 @@ DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA = (
     "pivot.stageb.rank_to_token_confidence_adapter_"
     "deployment_owned_query_veto_global_absolute/v25"
 )
+FULL_DECODER_VERIFIER_MIGRATION_SCHEMA = (
+    "pivot.stageb.rank_to_full_decoder_confidence_verifier/v26"
+)
 ABSOLUTE_CAP_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_patch_pool_trainable_absolute_cap_v1"
 )
@@ -168,6 +171,9 @@ DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_rank_full_expression_deployment_owned_bounded_"
     "query_veto_global_absolute_v23"
 )
+FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT = (
+    "rank_cloned_full_decoder_entailment_nonnegative_veto_v24"
+)
 GLOBAL_TRUST_VETO_HEAD_GRADIENT_CONTRACT = (
     "split_token_veto_global_trust_veto_v4"
 )
@@ -196,6 +202,9 @@ FULLTEXT_GLOBAL_ABSOLUTE_GATE_GRADIENT_CONTRACT = (
     "candidate_raw_patch_asymmetric_monotone_veto_absolute_logit_v13"
 )
 TOKEN_LOGIT_CONTRACT = "detached_rank_token_minus_zero_init_residual_v1"
+FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT = (
+    "independent_rank_cloned_full_decoder_token_entailment_v2"
+)
 POOL_FEATURE_CONTRACT = "patch_statistics_only_v1"
 SIGNED_RANK_QUERY_POOL_FEATURE_CONTRACT = (
     "detached_rank_query_plus_patch_statistics_signed_residual_v2"
@@ -430,6 +439,8 @@ LEGACY_POOL_PREFIX = SCORER_PREFIX + "confidence_pool."
 ADAPTER_PREFIX = SCORER_PREFIX + "confidence_adapter."
 POOL_PREFIX = SCORER_PREFIX + "confidence_pool."
 VETO_POOL_PREFIX = SCORER_PREFIX + "confidence_veto_pool."
+VERIFIER_PREFIX = SCORER_PREFIX + "confidence_verifier_tower."
+VERIFIER_VETO_HEAD_PREFIX = SCORER_PREFIX + "confidence_verifier_veto_head."
 CONTRACT_KEY = SCORER_PREFIX + "_dense_duty_contract_version"
 ABSOLUTE_CAP_PARAMETER_KEY = ADAPTER_PREFIX + "veto_cap_raw_ceiling"
 RANK_EVIDENCE_PARAMETER_KEY = ADAPTER_PREFIX + "rank_evidence_residual_scale"
@@ -1015,6 +1026,55 @@ def validate_confidence_adapter_migration_audit(
     if not isinstance(value, Mapping):
         raise RuntimeError("confidence-adapter checkpoint lacks its migration audit")
     audit = dict(value)
+    if audit.get("schema") == FULL_DECODER_VERIFIER_MIGRATION_SCHEMA:
+        rank = audit.get("rank")
+        transferred = audit.get("transferred")
+        verifier_copy = audit.get("verifier_copy")
+        fresh = audit.get("fresh_confidence")
+        required_positive = (
+            "verifier_tensor_count",
+            "verifier_element_count",
+            "active_confidence_parameter_tensor_count",
+            "active_confidence_parameter_element_count",
+            "strict_target_tensor_count",
+        )
+        if (
+            audit.get("token_logit_contract")
+            != FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT
+            or audit.get("fresh_confidence_contract")
+            != FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
+            or audit.get("source_checkpoint_sha256")
+            != source_checkpoint_sha256
+            or audit.get("source_optimizer_updates")
+            != int(source_optimizer_updates)
+            or audit.get("source_checkpoint_reason")
+            != source_checkpoint_reason
+            or not isinstance(rank, Mapping)
+            or rank.get("sha256") != rank_sha256
+            or rank.get("tensor_count") != EXPECTED_RANK_TENSOR_COUNT
+            or rank.get("nonfinite_count") != 0
+            or not isinstance(transferred, Mapping)
+            or transferred.get("sha256") != transferred_sha256
+            or transferred.get("tensor_count") != EXPECTED_TRANSFERRED_TENSOR_COUNT
+            or transferred.get("nonfinite_count") != 0
+            or not isinstance(verifier_copy, Mapping)
+            or verifier_copy.get("tensor_count")
+            != audit.get("verifier_tensor_count")
+            or verifier_copy.get("nonfinite_count") != 0
+            or not isinstance(fresh, Mapping)
+            or fresh.get("nonfinite_count") != 0
+            or audit.get("decoder_num_layers") != 6
+            or audit.get("hidden_dim") != 256
+            or audit.get("verifier_matches_rank") is not True
+            or audit.get("verifier_veto_output_nonzero_count") != 0
+            or audit.get("pool_output_nonzero_count") != 0
+            or audit.get("retired_confidence_loaded_tensor_count") != 0
+            or any(int(audit.get(field, 0)) <= 0 for field in required_positive)
+        ):
+            raise RuntimeError(
+                "full-decoder confidence-verifier migration audit is invalid"
+            )
+        return audit
     surface = _migration_surface_contract(audit)
     signed_pool_schema = (
         audit.get("schema") == SIGNED_RANK_QUERY_POOL_MIGRATION_SCHEMA
@@ -1279,6 +1339,223 @@ def _compatible_tensor(source: Any, target: torch.Tensor, *, name: str) -> torch
     return source
 
 
+def _migrate_rank_to_full_decoder_verifier(
+    root: nn.Module,
+    scorer: nn.Module,
+    source_state: Mapping[str, Any],
+    *,
+    checkpoint_label: str,
+    source_checkpoint_sha256: str,
+    source_optimizer_updates: int,
+    source_checkpoint_reason: str,
+    expected_rank_sha256: str,
+    expected_transferred_sha256: str,
+) -> tuple[OrderedDict[str, torch.Tensor], dict[str, Any]]:
+    """Clone every U6551 rank tensor into the independent verifier."""
+    runtime = root.state_dict()
+    source = {str(name): value for name, value in source_state.items()}
+    rank_names = sorted(name for name in runtime if name.startswith(RANK_PREFIX))
+    verifier_names = sorted(
+        name for name in runtime if name.startswith(VERIFIER_PREFIX)
+    )
+    adapter_names = sorted(
+        name for name in runtime if name.startswith(ADAPTER_PREFIX)
+    )
+    pool_names = sorted(name for name in runtime if name.startswith(POOL_PREFIX))
+    veto_head_names = sorted(
+        name for name in runtime if name.startswith(VERIFIER_VETO_HEAD_PREFIX)
+    )
+    legacy_confidence_names = sorted(
+        name for name in source if name.startswith(LEGACY_CONFIDENCE_PREFIX)
+    )
+    legacy_pool_names = sorted(
+        name for name in source if name.startswith(LEGACY_POOL_PREFIX)
+    )
+    if not all(
+        (
+            rank_names,
+            verifier_names,
+            adapter_names,
+            pool_names,
+            veto_head_names,
+            legacy_confidence_names,
+            legacy_pool_names,
+        )
+    ):
+        raise RuntimeError(
+            "full-decoder verifier migration found an incomplete source or target"
+        )
+    rank_suffixes = {name[len(RANK_PREFIX) :] for name in rank_names}
+    verifier_suffixes = {
+        name[len(VERIFIER_PREFIX) :] for name in verifier_names
+    }
+    if rank_suffixes != verifier_suffixes:
+        raise RuntimeError(
+            "full-decoder verifier does not mirror the complete rank tower"
+        )
+    provided_rank_names = sorted(
+        name for name in source if name.startswith(RANK_PREFIX)
+    )
+    if provided_rank_names != rank_names:
+        raise RuntimeError(
+            f"{checkpoint_label}: full-decoder verifier rank surface drifted"
+        )
+
+    allowed_source_scorer = set(rank_names)
+    allowed_source_scorer.update(legacy_confidence_names)
+    allowed_source_scorer.update(legacy_pool_names)
+    allowed_source_scorer.add(CONTRACT_KEY)
+    unexpected_scorer = sorted(
+        name
+        for name in source
+        if name.startswith(SCORER_PREFIX) and name not in allowed_source_scorer
+    )
+    if unexpected_scorer:
+        raise RuntimeError(
+            "rank source has undeclared scorer tensors: "
+            f"{unexpected_scorer[:8]}"
+        )
+    old_contract = source.get(CONTRACT_KEY)
+    if (
+        not torch.is_tensor(old_contract)
+        or old_contract.numel() != 1
+        or int(old_contract.item()) != 1
+    ):
+        raise RuntimeError("rank source does not carry the legacy v1 scorer contract")
+
+    transferred_names = sorted(
+        name
+        for name in runtime
+        if not name.startswith(SCORER_PREFIX) or name.startswith(RANK_PREFIX)
+    )
+    migrated: OrderedDict[str, torch.Tensor] = OrderedDict()
+    for name, target in runtime.items():
+        if name in transferred_names:
+            value = _compatible_tensor(source.get(name), target, name=name)
+        elif name.startswith(VERIFIER_PREFIX):
+            source_name = RANK_PREFIX + name[len(VERIFIER_PREFIX) :]
+            value = _compatible_tensor(source.get(source_name), target, name=name)
+        else:
+            value = target
+        migrated[name] = value.detach().clone()
+
+    rank_fingerprint = fingerprint_named_tensors(source, rank_names)
+    if rank_fingerprint["sha256"] != expected_rank_sha256:
+        raise RuntimeError(
+            "rank source fingerprint drifted: "
+            f"expected={expected_rank_sha256}, "
+            f"observed={rank_fingerprint['sha256']}"
+        )
+    transferred_fingerprint = fingerprint_named_tensors(source, transferred_names)
+    if transferred_fingerprint["sha256"] != expected_transferred_sha256:
+        raise RuntimeError(
+            "transferred Stage-A/rank fingerprint drifted: "
+            f"expected={expected_transferred_sha256}, "
+            f"observed={transferred_fingerprint['sha256']}"
+        )
+    verifier_matches_rank = all(
+        torch.equal(
+            migrated[VERIFIER_PREFIX + suffix],
+            migrated[RANK_PREFIX + suffix],
+        )
+        for suffix in sorted(rank_suffixes)
+    )
+    if not verifier_matches_rank:
+        raise RuntimeError("full-decoder verifier copy differs from U6551 rank")
+
+    verifier_fingerprint = fingerprint_named_tensors(migrated, verifier_names)
+    fresh_names = sorted(
+        (*adapter_names, *pool_names, *veto_head_names, CONTRACT_KEY)
+    )
+    fresh_fingerprint = fingerprint_named_tensors(migrated, fresh_names)
+    runtime_parameters = dict(root.named_parameters())
+    active_ids = {id(parameter) for parameter in scorer.confidence_parameters()}
+    active_names = sorted(
+        name
+        for name, parameter in runtime_parameters.items()
+        if id(parameter) in active_ids
+    )
+    if (
+        not active_names
+        or any(
+            not name.startswith(
+                (VERIFIER_PREFIX, VERIFIER_VETO_HEAD_PREFIX, POOL_PREFIX)
+            )
+            for name in active_names
+        )
+        or not any(name.startswith(VERIFIER_PREFIX) for name in active_names)
+        or not any(
+            name.startswith(VERIFIER_VETO_HEAD_PREFIX) for name in active_names
+        )
+        or not any(name.startswith(POOL_PREFIX) for name in active_names)
+    ):
+        raise RuntimeError(
+            "full-decoder verifier active parameter ownership is incomplete"
+        )
+
+    veto_output_names = (
+        VERIFIER_VETO_HEAD_PREFIX + "3.weight",
+        VERIFIER_VETO_HEAD_PREFIX + "3.bias",
+    )
+    pool_output_names = (
+        POOL_PREFIX + "residual.4.weight",
+        POOL_PREFIX + "residual.4.bias",
+    )
+    verifier_veto_output_nonzero_count = sum(
+        int(torch.count_nonzero(migrated[name]).item())
+        for name in veto_output_names
+    )
+    pool_output_nonzero_count = sum(
+        int(torch.count_nonzero(migrated[name]).item())
+        for name in pool_output_names
+    )
+    if verifier_veto_output_nonzero_count or pool_output_nonzero_count:
+        raise RuntimeError(
+            "full-decoder verifier and absolute pool outputs must initialize at zero"
+        )
+
+    audit = {
+        "schema": FULL_DECODER_VERIFIER_MIGRATION_SCHEMA,
+        "token_logit_contract": FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT,
+        "fresh_confidence_contract": (
+            FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
+        ),
+        "source_checkpoint_sha256": str(source_checkpoint_sha256),
+        "source_optimizer_updates": int(source_optimizer_updates),
+        "source_checkpoint_reason": str(source_checkpoint_reason),
+        "rank": rank_fingerprint,
+        "transferred": transferred_fingerprint,
+        "verifier_copy": verifier_fingerprint,
+        "fresh_confidence": fresh_fingerprint,
+        "verifier_tensor_count": len(verifier_names),
+        "verifier_element_count": sum(
+            int(migrated[name].numel()) for name in verifier_names
+        ),
+        "active_confidence_parameter_tensor_count": len(active_names),
+        "active_confidence_parameter_element_count": sum(
+            int(runtime_parameters[name].numel()) for name in active_names
+        ),
+        "strict_target_tensor_count": len(migrated),
+        "decoder_num_layers": int(
+            getattr(scorer.confidence_verifier_tower, "num_layers", 0)
+        ),
+        "hidden_dim": int(
+            getattr(scorer.confidence_verifier_tower, "hidden_dim", 0)
+        ),
+        "verifier_matches_rank": verifier_matches_rank,
+        "verifier_veto_output_nonzero_count": (
+            verifier_veto_output_nonzero_count
+        ),
+        "pool_output_nonzero_count": pool_output_nonzero_count,
+        "retired_confidence_tower_tensor_count": len(
+            legacy_confidence_names
+        ),
+        "retired_confidence_pool_tensor_count": len(legacy_pool_names),
+        "retired_confidence_loaded_tensor_count": 0,
+    }
+    return migrated, audit
+
+
 def migrate_legacy_rank_to_confidence_adapter(
     model: nn.Module,
     source_state: Mapping[str, Any],
@@ -1297,6 +1574,18 @@ def migrate_legacy_rank_to_confidence_adapter(
     scorer = getattr(root, "stage_b_fixed_text_scorer", None)
     if scorer is None or not hasattr(scorer, "confidence_adapter"):
         raise RuntimeError("rank-adapter migration requires the v2 dense-duty scorer")
+    if bool(getattr(scorer, "confidence_full_decoder_verifier", False)):
+        return _migrate_rank_to_full_decoder_verifier(
+            root,
+            scorer,
+            source_state,
+            checkpoint_label=checkpoint_label,
+            source_checkpoint_sha256=source_checkpoint_sha256,
+            source_optimizer_updates=source_optimizer_updates,
+            source_checkpoint_reason=source_checkpoint_reason,
+            expected_rank_sha256=expected_rank_sha256,
+            expected_transferred_sha256=expected_transferred_sha256,
+        )
     runtime = root.state_dict()
     source = {str(name): value for name, value in source_state.items()}
 
@@ -2215,6 +2504,9 @@ def migrate_legacy_rank_to_confidence_adapter(
 
 
 __all__ = [
+    "FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT",
+    "FULL_DECODER_VERIFIER_MIGRATION_SCHEMA",
+    "FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT",
     "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT",
     "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT",
     "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA",

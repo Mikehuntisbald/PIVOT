@@ -6394,6 +6394,23 @@ def _validate_stage_b_dense_duty_args(args) -> None:
         elif confidence_revision == (
             "word_veto_rank_full_expression_deployment_owned_query_veto_v60"
         ):
+            full_decoder_verifier = bool(
+                getattr(
+                    args,
+                    "stage_b_dense_duty_confidence_full_decoder_verifier",
+                    False,
+                )
+            )
+            expected_trainable = (
+                25_664_258 if full_decoder_verifier else 534_725
+            )
+            capacity_contract = str(
+                getattr(
+                    args,
+                    "stage_b_dense_duty_confidence_capacity_contract",
+                    "lightweight_adapter_v1",
+                )
+            ).strip().lower()
             if (
                 head_gradient_contract
                 != "split_token_veto_deployment_owned_query_veto_global_absolute_v11"
@@ -6418,9 +6435,18 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                 )
                 != 0.0
                 or int(getattr(args, "stage_b_v11_trainable_params_min", -1))
-                != 534_725
+                != expected_trainable
                 or int(getattr(args, "stage_b_v11_trainable_params_max", -1))
-                != 534_725
+                != expected_trainable
+                or (
+                    full_decoder_verifier
+                    and capacity_contract
+                    != "rank_cloned_full_decoder_6layer_256d_v1"
+                )
+                or (
+                    not full_decoder_verifier
+                    and capacity_contract != "lightweight_adapter_v1"
+                )
                 or str(
                     getattr(
                         args,
@@ -6433,7 +6459,8 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                 raise RuntimeError(
                     "v60 deployment-owned query-veto confidence requires the "
                     "split-v11 owner, all-TN/q05 deployed objectives, local and "
-                    "deployed focal weights=0, and exactly 534725 active parameters"
+                    "deployed focal weights=0, and the declared exact lightweight "
+                    "or full-decoder capacity surface"
                 )
         elif confidence_revision == (
             "word_veto_candidate_split_independent_deployed_router_v51"

@@ -191,6 +191,12 @@ _V53_OWNER_TENSOR_COUNTS = {
     "token_veto": 21,
     "global_absolute": 44,
 }
+_V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT = 25_664_258
+_V61_FULL_DECODER_ACTIVE_TENSOR_COUNT = 368
+_V61_FULL_DECODER_OWNER_TENSOR_COUNTS = {
+    "token_veto": 356,
+    "global_absolute": 12,
+}
 STRICT_RESUME_REQUIRED_KEYS = frozenset(
     {
         "model",
@@ -1441,6 +1447,14 @@ def _v60_deployment_owned_query_veto_contract(
     """Bind the bounded query veto exclusively to the deployed V60 owner."""
     if not _v60_deployment_owned_query_veto_revision(values):
         return False
+    full_decoder_verifier = bool(
+        values.get("stage_b_dense_duty_confidence_full_decoder_verifier", False)
+    )
+    active_element_count = (
+        _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
+        if full_decoder_verifier
+        else _V53_ACTIVE_ELEMENT_COUNT
+    )
     expected = {
         "stage_b_dense_duty_confidence_head_gradient_contract": (
             _V60_CONFIDENCE_HEAD_CONTRACT
@@ -1457,9 +1471,21 @@ def _v60_deployment_owned_query_veto_contract(
         "stage_b_v14_local_absolute_weight": 0.0,
         "stage_b_dense_duty_deployed_global_absolute_weight": 0.0,
         "stage_b_v15_tail_queue_negative_reduction_contract": "all_mean_v1",
-        "stage_b_v11_trainable_params_min": _V53_ACTIVE_ELEMENT_COUNT,
-        "stage_b_v11_trainable_params_max": _V53_ACTIVE_ELEMENT_COUNT,
+        "stage_b_v11_trainable_params_min": active_element_count,
+        "stage_b_v11_trainable_params_max": active_element_count,
     }
+    if full_decoder_verifier:
+        expected.update(
+            {
+                "stage_b_dense_duty_confidence_capacity_contract": (
+                    "rank_cloned_full_decoder_6layer_256d_v1"
+                ),
+                "stage_b_dense_duty_confidence_variant": (
+                    "full_decoder_token_entailment_nonnegative_veto_"
+                    "capacity_upper_bound_v61"
+                ),
+            }
+        )
     drift = {
         key: (values.get(key), expected_value)
         for key, expected_value in expected.items()
@@ -2206,6 +2232,11 @@ def audit_checkpoint_payload(
         or _v60_deployment_owned_query_veto_contract(args)
     )
     if fulltext_global_absolute_contract:
+        full_decoder_verifier = bool(
+            args.get(
+                "stage_b_dense_duty_confidence_full_decoder_verifier", False
+            )
+        )
         query_global_contract = (
             _v59_deployment_owned_query_global_revision(args)
             or _v60_deployment_owned_query_veto_revision(args)
@@ -2216,28 +2247,36 @@ def audit_checkpoint_payload(
             or _v58_deployment_owned_stable_fpr95_active_set_revision(args)
         )
         expected_active_tensor_count = (
-            _V53_ACTIVE_TENSOR_COUNT
+            _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
+            if full_decoder_verifier
+            else _V53_ACTIVE_TENSOR_COUNT
             if query_global_contract
             else _V56_ACTIVE_TENSOR_COUNT
             if deployment_owned_contract
             else _V53_ACTIVE_TENSOR_COUNT
         )
         expected_active_element_count = (
-            _V53_ACTIVE_ELEMENT_COUNT
+            _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
+            if full_decoder_verifier
+            else _V53_ACTIVE_ELEMENT_COUNT
             if query_global_contract
             else _V56_ACTIVE_ELEMENT_COUNT
             if deployment_owned_contract
             else _V53_ACTIVE_ELEMENT_COUNT
         )
         expected_owner_tensor_counts = (
-            _V53_OWNER_TENSOR_COUNTS
+            _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
+            if full_decoder_verifier
+            else _V53_OWNER_TENSOR_COUNTS
             if query_global_contract
             else _V56_OWNER_TENSOR_COUNTS
             if deployment_owned_contract
             else _V53_OWNER_TENSOR_COUNTS
         )
         contract_label = (
-            "V59-V60"
+            "V61-full-decoder"
+            if full_decoder_verifier
+            else "V59-V60"
             if query_global_contract
             else "V56-V58"
             if deployment_owned_contract
@@ -2867,6 +2906,11 @@ def validate_strict_resume_checkpoint_payload(
         or _v59_deployment_owned_query_global_contract(values)
         or _v60_deployment_owned_query_veto_contract(values)
     ):
+        full_decoder_verifier = bool(
+            values.get(
+                "stage_b_dense_duty_confidence_full_decoder_verifier", False
+            )
+        )
         current_fingerprint = fingerprint_state(
             payload["model"],
             active_parameter_names=initial_fingerprint[
@@ -2884,28 +2928,36 @@ def validate_strict_resume_checkpoint_payload(
             or _v58_deployment_owned_stable_fpr95_active_set_revision(values)
         )
         expected_active_tensor_count = (
-            _V53_ACTIVE_TENSOR_COUNT
+            _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
+            if full_decoder_verifier
+            else _V53_ACTIVE_TENSOR_COUNT
             if query_global_contract
             else _V56_ACTIVE_TENSOR_COUNT
             if deployment_owned_contract
             else _V53_ACTIVE_TENSOR_COUNT
         )
         expected_active_element_count = (
-            _V53_ACTIVE_ELEMENT_COUNT
+            _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
+            if full_decoder_verifier
+            else _V53_ACTIVE_ELEMENT_COUNT
             if query_global_contract
             else _V56_ACTIVE_ELEMENT_COUNT
             if deployment_owned_contract
             else _V53_ACTIVE_ELEMENT_COUNT
         )
         expected_owner_tensor_counts = (
-            _V53_OWNER_TENSOR_COUNTS
+            _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
+            if full_decoder_verifier
+            else _V53_OWNER_TENSOR_COUNTS
             if query_global_contract
             else _V56_OWNER_TENSOR_COUNTS
             if deployment_owned_contract
             else _V53_OWNER_TENSOR_COUNTS
         )
         contract_label = (
-            "V59-V60"
+            "V61-full-decoder"
+            if full_decoder_verifier
+            else "V59-V60"
             if query_global_contract
             else "V56-V58"
             if deployment_owned_contract

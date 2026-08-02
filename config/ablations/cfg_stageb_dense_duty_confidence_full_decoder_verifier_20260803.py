@@ -1,0 +1,32 @@
+from config.ablations.cfg_stageb_dense_duty_confidence_adapter_deployment_owned_query_veto_20260802 import *  # noqa: F401,F403
+
+# V61 capacity upper bound: a second complete 256-dim, six-layer expression
+# tower is initialized by an audited tensor-for-tensor copy of U6551 rank.
+# Rank remains frozen. The verifier exposes token entailment and a bounded,
+# non-negative veto depth only; it never emits a free absolute score.
+stage_b_dense_duty_confidence_full_decoder_verifier = True
+stage_b_dense_duty_confidence_capacity_contract = (
+    "rank_cloned_full_decoder_6layer_256d_v1"
+)
+stage_b_dense_duty_confidence_variant = (
+    "full_decoder_token_entailment_nonnegative_veto_capacity_upper_bound_v61"
+)
+
+# Full verifier tower (25,464,320) + zero-init veto head (66,561) +
+# deployment-owned AbsoluteConfidencePool (133,377).
+stage_b_v11_trainable_params_min = 25_664_258
+stage_b_v11_trainable_params_max = 25_664_258
+
+# A second full expression tower keeps activation memory rather than adapter
+# width as the limiting resource. Start conservatively and raise this only
+# after measured headroom.
+stage_b_v11_expression_microbatch = 8
+
+stage_b_dense_duty_trace_audit_path = (
+    "/media/haoyi/T9/pivot/data/ablations/"
+    "stageb_dense_duty_confidence_full_decoder_verifier_"
+    "trace_audit_20260803/receipt.json"
+)
+stage_b_dense_duty_trace_audit_sha256 = (
+    "326dd2adf04f5103ff0f71d864fc02480ce4f22357bf80859989b839ca8493c0"
+)
