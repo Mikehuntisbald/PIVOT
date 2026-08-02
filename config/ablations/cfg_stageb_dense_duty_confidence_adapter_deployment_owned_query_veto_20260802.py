@@ -25,11 +25,11 @@ stage_b_v11_trainable_params_max = 534_725
 
 stage_b_dense_duty_trace_audit_path = (
     "/media/haoyi/T9/pivot/data/ablations/"
-    "stageb_dense_duty_confidence_adapter_deployment_owned_query_global_"
+    "stageb_dense_duty_confidence_adapter_deployment_owned_query_veto_"
     "trace_audit_20260802/receipt.json"
 )
 stage_b_dense_duty_trace_audit_sha256 = (
-    "197c1fb2d6680b9f1785c0f2c36eb053bbf13922712ed438ce88267f33c13396"
+    "326af2b8644d01365d2003ee45fecd6d32d6c66efb832207183c0095f9ca268c"
 )
 
 stage_b_dense_duty_confidence_probe_admission_contract = (

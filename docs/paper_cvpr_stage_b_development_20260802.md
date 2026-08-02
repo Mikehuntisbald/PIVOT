@@ -871,6 +871,10 @@ v42, strict evaluator registration, formal admission binding, and independent
 owner clipping fail closed. Focused tests cover V56/V60 state equality, exact
 U0 deployed equality, one-sidedness, the depth bound, gradient ownership,
 migration identity, combined evaluator registration, and controller wiring.
+The V60-specific direct-trace receipt re-audits the unchanged 14,196-row
+manifest under the new code closure, accepts 13,890 rows, and is bound by
+receipt SHA256
+`326af2b8644d01365d2003ee45fecd6d32d6c66efb832207183c0095f9ca268c`.
 
 ## Evaluation and claim gates
 
