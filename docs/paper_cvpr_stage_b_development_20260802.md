@@ -1108,3 +1108,27 @@ The capacity-upper-bound config and controller are
 config/ablations/cfg_stageb_dense_duty_confidence_full_decoder_verifier_20260803.py,
 config/ablations/cfg_stageb_dense_duty_confidence_full_decoder_verifier_probe_u0400_20260803.py,
 and tools/run_stageb_confidence_full_decoder_verifier_probe_u0400.py.
+
+### V61 evaluation and promotion contract
+
+V61 shares V60's score-level revision string because its deployed mathematical
+readout is unchanged, but it is not a V60 checkpoint. Evaluation branches on
+`stage_b_dense_duty_confidence_full_decoder_verifier=True` before validating
+the active surface. The full-decoder branch requires migration schema v26,
+368 active tensors and 25,664,258 active elements, with an exact owner split
+of 356 verifier tensors and 12 veto-head/pool tensors. A lightweight V60
+validator must return false for this config; treating it as the 534,725-element
+v25 surface is a fail-closed error rather than a compatible fallback.
+
+The terminal health audit is
+`tools/audit_stageb_confidence_full_decoder_verifier_probe_health.py`. It
+replays the U6551 migration identity, the complete six-layer/256-d verifier
+copy, zero output heads, optimizer ownership, all 400 clip boundaries, AMP
+health, and the saved U222 trajectory. The fixed gate controller is
+`tools/run_stageb_confidence_full_decoder_verifier_probe_evaluation.py`; it
+uses the unchanged strict1607 manifest and admits formal training only at 800
+or fewer integer-replayed false accepts. The separately named formal config
+and controller are
+`config/ablations/cfg_stageb_dense_duty_confidence_full_decoder_verifier_formal_20260803.py`
+and `tools/run_stageb_confidence_full_decoder_verifier_formal.py`. Formal V61
+is a fresh U4412 run and cannot resume the probe checkpoint.
