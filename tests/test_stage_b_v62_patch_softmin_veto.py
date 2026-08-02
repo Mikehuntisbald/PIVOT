@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import torch
 
+from tools import eval_refcoco_stageb as ref_eval
+from util.slconfig import SLConfig
+
 from models.GroundingDINO.stage_b_dense_duty_scorer import (
     CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_LOGIT,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
@@ -120,3 +123,13 @@ def test_v62_deployed_score_does_not_change_with_rank_only_perturbation():
             parameter.add_(7.0)
     after = scorer(raw_context_provider=provider, **inputs)
     assert torch.equal(before_global, after["final_confidence_global_logits"])
+
+
+def test_v62_eval_contract_is_distinct_from_v61():
+    cfg = SLConfig.fromfile(
+        "config/ablations/"
+        "cfg_stageb_dense_duty_confidence_full_decoder_patch_softmin_veto_"
+        "probe_u0400_20260803.py"
+    )
+    assert not ref_eval._validate_v61_full_decoder_verifier_config(cfg)
+    assert ref_eval._validate_v62_patch_softmin_veto_config(cfg)

@@ -718,6 +718,24 @@ _V61_GLOBAL_ABSOLUTE_ELEMENT_COUNT = 199_938
 _V61_ACTIVE_PARAMETER_TENSOR_COUNT = 368
 _V61_VERIFIER_STATE_TENSOR_COUNT = 453
 _V61_VERIFIER_STATE_ELEMENT_COUNT = 33_158_400
+_V62_PATCH_SOFTMIN_VETO_TRAINABLE_PARAMS = 25_530_881
+_V62_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA = (
+    "pivot.stageb.rank_to_full_decoder_patch_softmin_veto/v27"
+)
+_V62_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT = (
+    "rank_cloned_full_decoder_patch_weighted_existential_veto_v25"
+)
+_V62_PATCH_SOFTMIN_VETO_CAPACITY_CONTRACT = (
+    "rank_cloned_full_decoder_patch_softmin_veto_v2"
+)
+_V62_PATCH_SOFTMIN_VETO_VARIANT = (
+    "full_decoder_token_entailment_patch_weighted_existential_veto_v62"
+)
+_V62_TOKEN_VETO_TENSOR_COUNT = 356
+_V62_TOKEN_VETO_ELEMENT_COUNT = 25_464_320
+_V62_GLOBAL_ABSOLUTE_TENSOR_COUNT = 6
+_V62_GLOBAL_ABSOLUTE_ELEMENT_COUNT = 66_561
+_V62_ACTIVE_PARAMETER_TENSOR_COUNT = 362
 
 _V39_IMMUTABLE_ARCHIVED_CONFIG = (
     REPO_ROOT
@@ -3909,6 +3927,14 @@ def _validate_v61_full_decoder_verifier_config(cfg) -> bool:
         getattr(cfg, "stage_b_dense_duty_confidence_full_decoder_verifier", False)
     ):
         return False
+    if bool(
+        getattr(
+            cfg,
+            "stage_b_dense_duty_confidence_veto_only_patch_softmin",
+            False,
+        )
+    ):
+        return False
     matched = _validate_fulltext_global_absolute_config(
         cfg,
         revision_contract=_V60_DEPLOYMENT_OWNED_QUERY_VETO_REVISION,
@@ -3957,6 +3983,71 @@ def _validate_v61_full_decoder_verifier_config(cfg) -> bool:
     if drift:
         raise RuntimeError(
             "v61 full-decoder verifier contract drifted: "
+            + json.dumps(drift, sort_keys=True)
+        )
+    return True
+
+
+def _validate_v62_patch_softmin_veto_config(cfg) -> bool:
+    """Validate V62's exact patch-weighted existential veto deployment."""
+    if not bool(
+        getattr(cfg, "stage_b_dense_duty_confidence_full_decoder_verifier", False)
+    ) or not bool(
+        getattr(
+            cfg,
+            "stage_b_dense_duty_confidence_veto_only_patch_softmin",
+            False,
+        )
+    ):
+        return False
+    matched = _validate_fulltext_global_absolute_config(
+        cfg,
+        revision_contract=_V60_DEPLOYMENT_OWNED_QUERY_VETO_REVISION,
+        head_contract=_V60_DEPLOYMENT_OWNED_QUERY_VETO_HEAD_CONTRACT,
+        gate_contract=_V56_DEPLOYMENT_OWNED_GLOBAL_GATE_CONTRACT,
+        pool_feature_contract=(
+            _V60_DEPLOYMENT_OWNED_QUERY_VETO_POOL_FEATURE_CONTRACT
+        ),
+        routing_weight=_V56_DEPLOYMENT_OWNED_GLOBAL_ROUTING_WEIGHT,
+        routing_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_ROUTING_REDUCTION,
+        trust_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_TRUST_REDUCTION,
+        positive_trust=_V60_DEPLOYMENT_OWNED_QUERY_VETO_POSITIVE_TRUST,
+        negative_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_NEGATIVE_REDUCTION,
+        carrier_selector=_V56_DEPLOYMENT_OWNED_GLOBAL_CARRIER_SELECTOR,
+        source_updates=_V56_DEPLOYMENT_OWNED_GLOBAL_SOURCE_UPDATES,
+        trainable_params=_V62_PATCH_SOFTMIN_VETO_TRAINABLE_PARAMS,
+        revision_label="v62",
+    )
+    if not matched:
+        return False
+    expected = {
+        "stage_b_dense_duty_confidence_capacity_contract": (
+            _V62_PATCH_SOFTMIN_VETO_CAPACITY_CONTRACT
+        ),
+        "stage_b_dense_duty_confidence_variant": (
+            _V62_PATCH_SOFTMIN_VETO_VARIANT
+        ),
+    }
+    drift = {
+        name: (str(getattr(cfg, name, "")).strip(), value)
+        for name, value in expected.items()
+        if str(getattr(cfg, name, "")).strip() != value
+    }
+    if (
+        float(getattr(cfg, "stage_b_v14_local_absolute_weight", -1.0)) != 0.0
+        or float(
+            getattr(
+                cfg,
+                "stage_b_dense_duty_deployed_global_absolute_weight",
+                -1.0,
+            )
+        )
+        != 0.0
+    ):
+        drift["deployment_owned_losses"] = "candidate/deployed focal weights"
+    if drift:
+        raise RuntimeError(
+            "v62 patch-softmin veto contract drifted: "
             + json.dumps(drift, sort_keys=True)
         )
     return True
@@ -4170,6 +4261,22 @@ def _validate_v61_two_owner_runtime_audit(
         token_veto_tensor_count=_V61_TOKEN_VETO_TENSOR_COUNT,
         global_absolute_tensor_count=_V61_GLOBAL_ABSOLUTE_TENSOR_COUNT,
         revision_label="v61",
+    )
+
+
+def _validate_v62_two_owner_runtime_audit(
+    runtime: Mapping[str, Any],
+    *,
+    optimizer_updates: int,
+) -> None:
+    """Require exact full-verifier/veto-head owner evidence for V62."""
+    _validate_fulltext_two_owner_runtime_audit(
+        runtime,
+        optimizer_updates=optimizer_updates,
+        clip_contract_schema=_V56_TWO_OWNER_CLIP_CONTRACT_SCHEMA,
+        token_veto_tensor_count=_V62_TOKEN_VETO_TENSOR_COUNT,
+        global_absolute_tensor_count=_V62_GLOBAL_ABSOLUTE_TENSOR_COUNT,
+        revision_label="v62",
     )
 
 
@@ -4569,6 +4676,9 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
     word_veto_v59_revision_contract = (
         _validate_v59_deployment_owned_query_global_config(cfg)
     )
+    word_veto_v62_revision_contract = (
+        _validate_v62_patch_softmin_veto_config(cfg)
+    )
     word_veto_v61_revision_contract = (
         _validate_v61_full_decoder_verifier_config(cfg)
     )
@@ -4576,7 +4686,9 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         _validate_v60_deployment_owned_query_veto_config(cfg)
     )
     word_veto_v60_family_revision_contract = (
-        word_veto_v60_revision_contract or word_veto_v61_revision_contract
+        word_veto_v60_revision_contract
+        or word_veto_v61_revision_contract
+        or word_veto_v62_revision_contract
     )
     word_veto_v56_revision_contract = (
         _validate_v56_deployment_owned_global_config(cfg)
@@ -4926,7 +5038,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 "v59 checkpoint lacks the exact deployed-query migration audit: "
                 + json.dumps(drift, sort_keys=True)
             )
-    if word_veto_v61_revision_contract:
+    if word_veto_v61_revision_contract or word_veto_v62_revision_contract:
         saved_training_contract = saved_args.get(
             "stage_b_dense_duty_training_contract"
         )
@@ -4937,25 +5049,35 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             or not isinstance(saved_training_contract.get("values"), Mapping)
         ):
             raise RuntimeError(
-                "v61 confidence checkpoint requires its exact v42 training contract"
+                "v61/v62 confidence checkpoint requires its exact v42 training contract"
             )
         migration_audit = saved_args.get(
             "stage_b_dense_duty_confidence_adapter_migration_audit"
         )
         expected_migration = {
-            "schema": _V61_FULL_DECODER_VERIFIER_MIGRATION_SCHEMA,
+            "schema": (
+                _V62_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA
+                if word_veto_v62_revision_contract
+                else _V61_FULL_DECODER_VERIFIER_MIGRATION_SCHEMA
+            ),
             "source_optimizer_updates": _V56_DEPLOYMENT_OWNED_GLOBAL_SOURCE_UPDATES,
             "fresh_confidence_contract": (
-                _V61_FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
+                _V62_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
+                if word_veto_v62_revision_contract
+                else _V61_FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
             ),
             "token_logit_contract": (
                 _V61_FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT
             ),
             "active_confidence_parameter_tensor_count": (
-                _V61_ACTIVE_PARAMETER_TENSOR_COUNT
+                _V62_ACTIVE_PARAMETER_TENSOR_COUNT
+                if word_veto_v62_revision_contract
+                else _V61_ACTIVE_PARAMETER_TENSOR_COUNT
             ),
             "active_confidence_parameter_element_count": (
-                _V61_FULL_DECODER_VERIFIER_TRAINABLE_PARAMS
+                _V62_PATCH_SOFTMIN_VETO_TRAINABLE_PARAMS
+                if word_veto_v62_revision_contract
+                else _V61_FULL_DECODER_VERIFIER_TRAINABLE_PARAMS
             ),
             "hidden_dim": 256,
             "decoder_num_layers": 6,
@@ -4966,6 +5088,8 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             "pool_output_nonzero_count": 0,
             "retired_confidence_loaded_tensor_count": 0,
         }
+        if word_veto_v62_revision_contract:
+            expected_migration["patch_softmin_veto_only"] = True
         if not isinstance(migration_audit, Mapping):
             raise RuntimeError("v61 checkpoint lacks a migration audit mapping")
         drift = {
@@ -4975,7 +5099,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         }
         if drift:
             raise RuntimeError(
-                "v61 checkpoint lacks the exact rank-cloned verifier migration "
+                "v61/v62 checkpoint lacks the exact rank-cloned verifier migration "
                 "audit: "
                 + json.dumps(drift, sort_keys=True)
             )
@@ -6172,6 +6296,11 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         )
     if word_veto_v61_revision_contract:
         _validate_v61_two_owner_runtime_audit(
+            runtime,
+            optimizer_updates=observed_updates,
+        )
+    if word_veto_v62_revision_contract:
+        _validate_v62_two_owner_runtime_audit(
             runtime,
             optimizer_updates=observed_updates,
         )

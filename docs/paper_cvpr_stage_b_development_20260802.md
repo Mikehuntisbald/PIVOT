@@ -1132,3 +1132,59 @@ and controller are
 `config/ablations/cfg_stageb_dense_duty_confidence_full_decoder_verifier_formal_20260803.py`
 and `tools/run_stageb_confidence_full_decoder_verifier_formal.py`. Formal V61
 is a fresh U4412 run and cannot resume the probe checkpoint.
+
+### V61 terminal result and failure decomposition
+
+V61 completed all 400 optimizer updates and passed its health audit, but did
+not pass the strict1607 admission gate. It produced 863 false accepts
+(FPR95=0.5370255) against the fixed limit of 800. Exact evaluator-side replay
+of the deployed `pool - veto` decomposition showed that neither coordinate
+solved the problem independently: pool-only produced 880 false accepts and
+veto-only produced 905. The learned pool also remained strongly correlated
+with frozen rank (`0.955/0.969` on the paired score views), while positive and
+negative veto depths overlapped. This is evidence for the specific V61 failure
+mechanism: the pool can compensate verifier veto on positives, and the two
+coordinates can jointly reconstruct the inherited rank scale without forcing
+existential negative coverage.
+
+Directly adding patch maximum evidence to the global logit was also rejected:
+offline replay increased false accepts to 1142--1504 across the tested scales.
+Patch evidence is therefore used only to select and weight plausible object
+candidates in the final no-teacher experiment, never as another signed
+absolute score.
+
+## V62 final no-teacher experiment: patch-softmin veto-only
+
+V62 removes the compensating AbsoluteConfidencePool from both the deployed
+score and the optimizer surface. It retains the frozen U6551 rank tower and the
+rank-cloned six-layer, 256-d verifier, but deployment is now exactly:
+
+    patch Top-50 logits -> detached normalized candidate weights
+    full verifier -> non-negative per-query veto depth
+    v = patch-weighted existential softmin(depth)
+    global_confidence = -v
+
+The normalization is a difference of log-sum-exp terms, so a common shift of
+all patch logits cannot create an absolute confidence coordinate. Patch logits
+only express which category-compatible candidates are plausible. The deployed
+logit has no signed pool and cannot become positive: positive-q05 protection
+must keep at least one plausible positive candidate near zero veto, while TN
+and active-tail losses must make every plausible negative candidate incur
+substantial veto. This directly tests the V61 compensation hypothesis.
+
+The historical pool remains serialized at zero solely for checkpoint-layout
+compatibility; all six pool tensors are frozen, dormant, and absent from the
+optimizer. The exact active surface is 25,530,881 parameters in 362 tensors:
+356 verifier-tower tensors and six non-negative depth-head tensors. Migration
+schema v27 requires the fresh U6551 verifier copy, the same exact U0 token
+entailment as rank, zero veto output, zero pool output, and
+`patch_softmin_veto_only=True`.
+
+V62 is preregistered as the final large no-teacher structural experiment. Its
+U400 run preserves the V61 data, update count, loss weights, tail queue,
+positive-q05 objective, batch semantics, and strict1607 threshold. The only
+causal change is removal of the deployable/trainable pool coordinate and its
+replacement by patch-weighted existential aggregation. Formal U4412 training
+is allowed only if the terminal health audit is valid and strict1607 has at
+most 800 integer-replayed false accepts. Failure ends the no-teacher structure
+search rather than triggering an unregistered V63.
