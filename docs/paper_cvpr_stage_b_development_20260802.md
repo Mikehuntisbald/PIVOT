@@ -1062,3 +1062,49 @@ reintroducing an unconstrained additive absolute coordinate.
 Independently, the evaluation source profile and Table-C recovery evidence must
 be versioned and resealed before any affected result is promoted into a paper
 table.
+## V61 capacity upper bound: rank-cloned full-decoder verifier
+
+V60 was intentionally interrupted at optimizer update 18 after the capacity
+upper-bound decision. Its signal-boundary checkpoint is retained under
+outputs/paper_cvpr_v1/dense_duty_adapter_deployment_owned_query_veto_highmem_20260802/probe/interrupted_u0018_capacity_upper_bound_switch_20260803/.
+It is not an evaluation result and is not eligible for promotion.
+
+V61 keeps the deployed V60 readout, but replaces the lightweight 64-dim
+confidence adapter in the active path with a second complete expression tower:
+
+    frozen U6551 rank tower -> relative candidate order
+
+    rank-cloned independent verifier:
+      256-dim feat_map
+      + six fusion/text encoder layers
+      + six fixed-reference decoder layers
+      -> token entailment logits
+      -> zero-init query veto head -> non-negative bounded veto depth
+
+    deployment:
+      independent AbsoluteConfidencePool - token-conditioned verifier veto
+
+The verifier does not output a signed or free absolute candidate score. The
+only signed cross-sample coordinate remains the independent deployment-owned
+absolute pool. The verifier can only reduce that coordinate through:
+
+    depth = 8 * tanh(ReLU(raw_depth) / 8)
+    global_logit = absolute_pool_logit - rank_weighted_gate * depth
+
+At U0, all 453 verifier state tensors are copied from the U6551 rank tower.
+The migration rejects any missing suffix, shape/dtype mismatch, or unequal
+copied tensor. Both the verifier veto output affine and the absolute pool output
+affine are exactly zero initialized. Consequently:
+
+- verifier token entailment equals rank token entailment at U0;
+- token residual and mismatch evidence are zero at U0;
+- deployed veto depth is exactly zero at U0;
+- rank and verifier parameters are physically disjoint;
+- rank remains frozen throughout confidence training; and
+- the active V61 surface is exactly 25,664,258 parameters in 368 tensors:
+  356 verifier-tower tensors plus 12 veto-head/absolute-pool tensors.
+
+The capacity-upper-bound config and controller are
+config/ablations/cfg_stageb_dense_duty_confidence_full_decoder_verifier_20260803.py,
+config/ablations/cfg_stageb_dense_duty_confidence_full_decoder_verifier_probe_u0400_20260803.py,
+and tools/run_stageb_confidence_full_decoder_verifier_probe_u0400.py.
