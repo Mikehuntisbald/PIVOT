@@ -20,7 +20,8 @@ stage_b_v11_trainable_params_max = 25_664_258
 # A second full expression tower keeps activation memory rather than adapter
 # width as the limiting resource. Start conservatively and raise this only
 # after measured headroom.
-stage_b_v11_expression_microbatch = 8
+stage_b_v11_expression_microbatch = 4
+stage_b_dense_duty_expected_expression_microbatch = 4
 
 stage_b_dense_duty_trace_audit_path = (
     "/media/haoyi/T9/pivot/data/ablations/"
