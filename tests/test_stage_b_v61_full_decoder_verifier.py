@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import torch
+from torch import nn
 
 from models.GroundingDINO.stage_b_dense_duty_scorer import (
     CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_LOGIT,
@@ -12,6 +13,7 @@ from models.GroundingDINO.stage_b_dense_duty_scorer import (
 )
 from tests.test_stage_b_dense_duty_scorer import _FakeGroundingDINO
 from tests.test_stage_b_v54_exact_reference_scorer import _forward, _valid_values
+from util.stage_b_dense_duty_audit import fingerprint_state
 
 
 def _build() -> StageBDenseDutyScorer:
@@ -70,6 +72,20 @@ def test_v61_clones_complete_rank_tower_but_keeps_parameter_ownership_independen
     assert not rank_ids & confidence_ids
     assert all(not parameter.requires_grad for parameter in scorer.rank_parameters())
     assert all(parameter.requires_grad for parameter in scorer.confidence_parameters())
+    root = nn.Module()
+    root.add_module("stage_b_fixed_text_scorer", scorer)
+    active_ids = {id(parameter) for parameter in scorer.confidence_parameters()}
+    active_names = [
+        name
+        for name, parameter in root.named_parameters()
+        if id(parameter) in active_ids
+    ]
+    fingerprint = fingerprint_state(
+        root.state_dict(),
+        active_parameter_names=active_names,
+        phase="confidence",
+    )
+    assert fingerprint["active"]["tensor_count"] == len(active_names)
 
 
 def test_v61_u0_inherits_token_entailment_and_emits_exactly_zero_veto():

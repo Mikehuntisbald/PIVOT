@@ -28,5 +28,5 @@ stage_b_dense_duty_trace_audit_path = (
     "trace_audit_20260803/receipt.json"
 )
 stage_b_dense_duty_trace_audit_sha256 = (
-    "326dd2adf04f5103ff0f71d864fc02480ce4f22357bf80859989b839ca8493c0"
+    "05cb271a0c894b39e8063edbd3fd6d9b83266cb6e424f16f0973cc7a28f29a95"
 )

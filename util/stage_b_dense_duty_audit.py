@@ -2066,6 +2066,8 @@ def _validate_active_names(
                 "stage_b_fixed_text_scorer.confidence_adapter.",
                 "stage_b_fixed_text_scorer.confidence_pool.",
                 "stage_b_fixed_text_scorer.confidence_veto_pool.",
+                "stage_b_fixed_text_scorer.confidence_verifier_tower.",
+                "stage_b_fixed_text_scorer.confidence_verifier_veto_head.",
             )
             if contract_version >= 2
             else (
