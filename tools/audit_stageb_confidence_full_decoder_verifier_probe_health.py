@@ -72,6 +72,11 @@ EXPECTED_CONFIG_ENTRY = (
 )
 EXPECTED_SOURCE_UPDATES = 6551
 EXPECTED_UPDATES = 400
+# V45 used pack2/accum2 and ended at epoch1/iteration356. V61 preserves the
+# same effective optimizer batch with pack1/accum4, so its exact terminal
+# physical-forward cursor is epoch1/iteration712.
+EXPECTED_TERMINAL_EPOCH = 1
+EXPECTED_TERMINAL_ITERATION = 712
 LOG_PATH = Path(training.OUTPUT) / "log.txt"
 
 EXPECTED_ACTIVE_TENSORS = 368
@@ -112,6 +117,8 @@ _OVERRIDES = {
     "EXPECTED_CONFIG_ENTRY": EXPECTED_CONFIG_ENTRY,
     "EXPECTED_SOURCE_UPDATES": EXPECTED_SOURCE_UPDATES,
     "EXPECTED_UPDATES": EXPECTED_UPDATES,
+    "EXPECTED_TERMINAL_EPOCH": EXPECTED_TERMINAL_EPOCH,
+    "EXPECTED_TERMINAL_ITERATION": EXPECTED_TERMINAL_ITERATION,
     "LOG_PATH": LOG_PATH,
     "EXPECTED_ACTIVE_TENSORS": EXPECTED_ACTIVE_TENSORS,
     "EXPECTED_ACTIVE_ELEMENTS": EXPECTED_ACTIVE_ELEMENTS,
@@ -158,7 +165,17 @@ _CORE.EXPECTED_CONTRACT_VALUES = {
     **{
         key: value
         for key, value in _CORE.EXPECTED_CONTRACT_VALUES.items()
-        if key != "stage_b_dense_duty_deployed_global_absolute_weight"
+        if key
+        not in {
+            "stage_b_dense_duty_deployed_global_absolute_weight",
+            # Schema v42 intentionally does not serialize these runtime-shape
+            # fields. They are checked directly against checkpoint args below.
+            "stage_b_dense_duty_forward_pack_factor",
+            "stage_b_dense_duty_logical_loss_batch_size",
+            "stage_b_dense_duty_expected_forward_batch_size",
+            "stage_b_dense_duty_expected_logical_batches_per_epoch",
+            "stage_b_dense_duty_expected_physical_forwards_per_epoch",
+        }
     },
     "stage_b_dense_duty_confidence_revision": EXPECTED_REVISION,
     "stage_b_dense_duty_confidence_head_gradient_contract": EXPECTED_HEAD_CONTRACT,
@@ -169,6 +186,7 @@ _CORE.EXPECTED_CONTRACT_VALUES = {
     "stage_b_v14_local_absolute_weight": 0.0,
     "stage_b_v11_trainable_params_min": EXPECTED_ACTIVE_ELEMENTS,
     "stage_b_v11_trainable_params_max": EXPECTED_ACTIVE_ELEMENTS,
+    "gradient_accumulation_steps": 4,
 }
 _CORE._default_output = lambda: Path(training.OUTPUT).parent / (
     "u000400_full_decoder_verifier_health_audit.json"
@@ -237,7 +255,22 @@ _V53._audit_v53_migration = _audit_v61_migration
 _V55._audit_v55_migration = _audit_v61_migration
 _CORE._audit_split_ownership = _V53._audit_split_ownership
 _CORE._audit_runtime = _V53._audit_runtime
-_CORE._health_checks = _V53._health_checks
+_BASE_HEALTH_CHECKS = _V53._health_checks
+
+
+def _health_checks_v61(
+    runtime: Mapping[str, Any], trajectory: Mapping[str, Any]
+) -> dict[str, dict[str, Any]]:
+    checks = dict(_BASE_HEALTH_CHECKS(runtime, trajectory))
+    owner = checks.pop("u222_v53_owner_live_counts_exact")
+    owner["requirement"] = "active=368, token-veto=356, global-absolute=12"
+    checks["u222_v61_owner_live_counts_exact"] = owner
+    clip = checks.pop("u222_v53_two_independent_clips_exact")
+    checks["u222_v61_two_independent_clips_exact"] = clip
+    return checks
+
+
+_CORE._health_checks = _health_checks_v61
 _BASE_AUDIT_TRAINING_CONTRACT = _CORE._audit_training_contract
 
 
@@ -249,6 +282,11 @@ def _audit_v61_training_contract(args: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "stage_b_dense_duty_confidence_variant": EXPECTED_VARIANT,
         "stage_b_dense_duty_deployed_global_absolute_weight": 0.0,
+        "stage_b_dense_duty_forward_pack_factor": 1,
+        "stage_b_dense_duty_logical_loss_batch_size": 16,
+        "stage_b_dense_duty_expected_forward_batch_size": 16,
+        "stage_b_dense_duty_expected_logical_batches_per_epoch": 887,
+        "stage_b_dense_duty_expected_physical_forwards_per_epoch": 887,
     }
     drift = {
         key: (args.get(key), value)

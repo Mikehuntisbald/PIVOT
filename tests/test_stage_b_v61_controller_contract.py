@@ -28,6 +28,17 @@ def test_v61_health_seals_exact_capacity_and_owner_surface():
     assert health.EXPECTED_GLOBAL_ELEMENTS == 199_938
     assert health.EXPECTED_ADAPTER_TENSORS == 362
     assert health.EXPECTED_POOL_TENSORS == 6
+    assert health.EXPECTED_TERMINAL_EPOCH == 1
+    assert health.EXPECTED_TERMINAL_ITERATION == 712
+    assert "stage_b_dense_duty_forward_pack_factor" not in (
+        health._CORE.EXPECTED_CONTRACT_VALUES
+    )
+    assert "stage_b_dense_duty_expected_physical_forwards_per_epoch" not in (
+        health._CORE.EXPECTED_CONTRACT_VALUES
+    )
+    assert health._CORE.EXPECTED_CONTRACT_VALUES[
+        "gradient_accumulation_steps"
+    ] == 4
 
 
 def test_v61_health_replays_the_real_u0_migration_receipt():
@@ -57,6 +68,11 @@ def test_v61_direct_training_contract_is_fail_closed(monkeypatch):
         ),
         "stage_b_dense_duty_confidence_variant": health.EXPECTED_VARIANT,
         "stage_b_dense_duty_deployed_global_absolute_weight": 0.0,
+        "stage_b_dense_duty_forward_pack_factor": 1,
+        "stage_b_dense_duty_logical_loss_batch_size": 16,
+        "stage_b_dense_duty_expected_forward_batch_size": 16,
+        "stage_b_dense_duty_expected_logical_batches_per_epoch": 887,
+        "stage_b_dense_duty_expected_physical_forwards_per_epoch": 887,
     }
     assert health._audit_v61_training_contract(args) is sentinel
     args["stage_b_dense_duty_confidence_full_decoder_verifier"] = False
