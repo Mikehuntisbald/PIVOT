@@ -76,6 +76,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _validate_v58_deployment_owned_stable_fpr95_active_set_config,
     _validate_v59_deployment_owned_query_global_config,
     _validate_v60_deployment_owned_query_veto_config,
+    _validate_v61_full_decoder_verifier_config,
     _verify_v39_immutable_archived_diagnostic_files,
     _verify_v40_immutable_archived_diagnostic_files,
     _verify_v41_immutable_archived_diagnostic_files,
@@ -442,6 +443,12 @@ _DEPLOYMENT_OWNED_QUERY_VETO_CONFIDENCE_U0400_CONFIG = (
     / "config/ablations/"
     "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_query_veto_"
     "probe_u0400_20260802.py"
+)
+_FULL_DECODER_VERIFIER_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_full_decoder_verifier_"
+    "probe_u0400_20260803.py"
 )
 _V39_IMMUTABLE_ARCHIVED_SNAPSHOT_ROOT = (
     REPO_ROOT
@@ -1601,6 +1608,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _DEPLOYMENT_OWNED_QUERY_VETO_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
+        _FULL_DECODER_VERIFIER_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_probe = observed_config in {
@@ -1905,11 +1913,15 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
+    full_decoder_verifier_confidence_u0400 = observed_config == (
+        _FULL_DECODER_VERIFIER_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
+    )
     deployment_owned_query_veto_confidence_u0400 = (
         observed_config
         == _DEPLOYMENT_OWNED_QUERY_VETO_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         )
+        or full_decoder_verifier_confidence_u0400
     )
     deployment_owned_global_confidence_u0400 = (
         observed_config
@@ -2081,7 +2093,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             errors.append(str(exc))
     if deployment_owned_global_confidence_u0400:
         try:
-            if deployment_owned_query_veto_confidence_u0400:
+            if full_decoder_verifier_confidence_u0400:
+                _validate_v61_full_decoder_verifier_config(cfg)
+            elif deployment_owned_query_veto_confidence_u0400:
                 _validate_v60_deployment_owned_query_veto_config(cfg)
             elif deployment_owned_query_global_confidence_u0400:
                 _validate_v59_deployment_owned_query_global_config(cfg)
