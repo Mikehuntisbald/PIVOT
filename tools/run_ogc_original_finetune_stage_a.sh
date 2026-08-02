@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
 DATA_ROOT="${DATA_ROOT:-/media/${MEDIA_USER:-haoyi}/T9/data}"
+source "${REPO_ROOT}/tools/stageb_python.sh"
 
 STAGEA_DATASETS="${STAGEA_DATASETS:-${REPO_ROOT}/config/datasets_patch_stage_a_lvis_coco2017_local.json}"
 PRETRAIN_MODEL_PATH="${PRETRAIN_MODEL_PATH:-${REPO_ROOT}/weights/groundingdino_swint_ogc.pth}"
@@ -14,7 +15,7 @@ BASE_CFG="${BASE_CFG:-${REPO_ROOT}/config/ablations/cfg_ogc_original_finetune_st
 RUN_CFG="${RUN_CFG:-${OUTPUT_DIR}/cfg_ogc_original_finetune_stage_a.generated.py}"
 
 CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
-PYTHON_BIN="${PYTHON_BIN:-python}"
+PYTHON_BIN="$(stageb_resolve_python "${PYTHON_BIN:-}")"
 NUM_WORKERS="${NUM_WORKERS:-8}"
 BATCH_SIZE="${BATCH_SIZE:-12}"
 AMP="${AMP:-1}"

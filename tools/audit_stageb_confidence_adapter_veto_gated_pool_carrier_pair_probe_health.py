@@ -1,0 +1,215 @@
+#!/home/haoyi/miniconda/envs/gdino5090/bin/python
+"""Audit U300 health for paired-carrier word-veto confidence."""
+
+from __future__ import annotations
+
+import importlib.util
+import sys
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from tools import run_stageb_confidence_adapter_veto_gated_pool_carrier_pair_probe as probe  # noqa: E402
+
+
+_BASE_PATH = REPO_ROOT / "tools/audit_stageb_confidence_adapter_veto_gate_probe_health.py"
+_SPEC = importlib.util.spec_from_file_location(
+    "_pivot_stageb_confidence_adapter_carrier_pair_health_base", _BASE_PATH
+)
+if _SPEC is None or _SPEC.loader is None:
+    raise RuntimeError(f"cannot load health auditor: {_BASE_PATH}")
+_GATE = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_GATE)
+_BASE = _GATE._BASE
+
+SCHEMA = "pivot.stageb.confidence_adapter_veto_gated_pool_probe_health/v9"
+_FIELDS = (
+    "train_stage_b_dense_confidence_positive_veto_coverage_mean_unscaled",
+    "train_stage_b_dense_confidence_tn_veto_coverage_mean_unscaled",
+    "train_stage_b_dense_confidence_positive_veto_sample_gate_mean_unscaled",
+    "train_stage_b_dense_confidence_tn_veto_sample_gate_mean_unscaled",
+    "train_stage_b_dense_confidence_veto_ceiling_unscaled",
+    "train_fixed_text_raw_veto_positive_all_hinge_mean_unscaled",
+    "train_fixed_text_raw_veto_positive_loss_mean_unscaled",
+    "train_fixed_text_raw_veto_tn_all_hinge_mean_unscaled",
+    "train_fixed_text_raw_veto_tn_carrier_hinge_mean_unscaled",
+    "train_fixed_text_raw_veto_tn_balanced_loss_mean_unscaled",
+    "train_fixed_text_raw_veto_positive_carrier_sample_count_unscaled",
+    "train_fixed_text_raw_veto_positive_carrier_source_mean_unscaled",
+    "train_fixed_text_raw_veto_positive_carrier_violation_rate_unscaled",
+    "train_fixed_text_raw_veto_tn_carrier_sample_count_unscaled",
+    "train_fixed_text_raw_veto_tn_carrier_source_mean_unscaled",
+    "train_fixed_text_raw_veto_tn_carrier_violation_rate_unscaled",
+    "train_fixed_text_raw_veto_tn_carrier_changed_gate_mean_unscaled",
+    "train_fixed_text_raw_veto_tn_carrier_full_open_rate_unscaled",
+    "train_loss_fixed_text_raw_veto_carrier_pair_unscaled",
+    "train_fixed_text_raw_veto_carrier_pair_sample_count_unscaled",
+    "train_fixed_text_raw_veto_carrier_pair_gap_mean_unscaled",
+    "train_fixed_text_raw_veto_carrier_pair_hinge_mean_unscaled",
+    "train_fixed_text_raw_veto_carrier_pair_violation_rate_unscaled",
+)
+
+_BASE.probe = probe
+_BASE.SCHEMA = SCHEMA
+_BASE.REQUIRED_U222_FIELDS = _BASE.REQUIRED_U222_FIELDS + _FIELDS
+_BASE_HEALTH_CHECKS = _GATE._health_checks
+
+
+def _check_close(value: float, expected: float, *, atol: float = 1e-4):
+    return _BASE._check(
+        value,
+        f"abs(value - {expected}) <= {atol}",
+        abs(value - expected) <= atol,
+    )
+
+
+def _health_checks(
+    trajectory: Mapping[str, float | int],
+    endpoint: Mapping[str, Any],
+    runtime: Mapping[str, Any],
+) -> dict[str, dict[str, Any]]:
+    checks = _BASE_HEALTH_CHECKS(trajectory, endpoint, runtime)
+    positive_gate = float(trajectory[
+        "train_stage_b_dense_confidence_positive_veto_sample_gate_mean_unscaled"
+    ])
+    tn_gate = float(trajectory[
+        "train_stage_b_dense_confidence_tn_veto_sample_gate_mean_unscaled"
+    ])
+    ceiling = float(trajectory[
+        "train_stage_b_dense_confidence_veto_ceiling_unscaled"
+    ])
+    positive_samples = float(trajectory[
+        "train_fixed_text_raw_veto_positive_sample_count_unscaled"
+    ])
+    positive_carrier_samples = float(trajectory[
+        "train_fixed_text_raw_veto_positive_carrier_sample_count_unscaled"
+    ])
+    tn_samples = float(trajectory[
+        "train_fixed_text_raw_veto_tn_sample_count_unscaled"
+    ])
+    tn_carrier_samples = float(trajectory[
+        "train_fixed_text_raw_veto_tn_carrier_sample_count_unscaled"
+    ])
+    positive_all = float(trajectory[
+        "train_fixed_text_raw_veto_positive_all_hinge_mean_unscaled"
+    ])
+    positive_loss = float(trajectory[
+        "train_fixed_text_raw_veto_positive_loss_mean_unscaled"
+    ])
+    tn_all = float(trajectory[
+        "train_fixed_text_raw_veto_tn_all_hinge_mean_unscaled"
+    ])
+    tn_carrier = float(trajectory[
+        "train_fixed_text_raw_veto_tn_carrier_hinge_mean_unscaled"
+    ])
+    tn_balanced = float(trajectory[
+        "train_fixed_text_raw_veto_tn_balanced_loss_mean_unscaled"
+    ])
+    positive_carrier_source = float(trajectory[
+        "train_fixed_text_raw_veto_positive_carrier_source_mean_unscaled"
+    ])
+    tn_carrier_source = float(trajectory[
+        "train_fixed_text_raw_veto_tn_carrier_source_mean_unscaled"
+    ])
+    changed_gate = float(trajectory[
+        "train_fixed_text_raw_veto_tn_carrier_changed_gate_mean_unscaled"
+    ])
+    full_open = float(trajectory[
+        "train_fixed_text_raw_veto_tn_carrier_full_open_rate_unscaled"
+    ])
+    pair_loss = float(trajectory[
+        "train_loss_fixed_text_raw_veto_carrier_pair_unscaled"
+    ])
+    pair_samples = float(trajectory[
+        "train_fixed_text_raw_veto_carrier_pair_sample_count_unscaled"
+    ])
+    pair_gap = float(trajectory[
+        "train_fixed_text_raw_veto_carrier_pair_gap_mean_unscaled"
+    ])
+    pair_hinge = float(trajectory[
+        "train_fixed_text_raw_veto_carrier_pair_hinge_mean_unscaled"
+    ])
+    pair_violation = float(trajectory[
+        "train_fixed_text_raw_veto_carrier_pair_violation_rate_unscaled"
+    ])
+    checks.update(
+        {
+            "u222_positive_carrier_gate_closed": _BASE._check(
+                positive_gate, "<= 0.05", positive_gate <= 0.05
+            ),
+            "u222_tn_carrier_gate_open": _BASE._check(
+                tn_gate, ">= 0.80", tn_gate >= 0.80
+            ),
+            "u222_absolute_ceiling_nonpositive": _BASE._check(
+                ceiling, "<= -0.05", ceiling <= -0.05
+            ),
+            "u222_positive_carrier_support_complete": _check_close(
+                positive_carrier_samples, positive_samples, atol=1e-6
+            ),
+            "u222_tn_carrier_support_complete": _check_close(
+                tn_carrier_samples, tn_samples, atol=1e-6
+            ),
+            "u222_positive_loss_unchanged": _check_close(
+                positive_loss, positive_all
+            ),
+            "u222_tn_balance_exact": _check_close(
+                tn_balanced, 0.75 * tn_all + 0.25 * tn_carrier
+            ),
+            "u222_positive_carrier_source_closed": _BASE._check(
+                positive_carrier_source,
+                "< 0",
+                positive_carrier_source < 0.0,
+            ),
+            "u222_tn_changed_carrier_source_open": _BASE._check(
+                tn_carrier_source, ">= 0.05", tn_carrier_source >= 0.05
+            ),
+            "u222_tn_changed_carrier_gate_open": _BASE._check(
+                changed_gate, ">= 0.80", changed_gate >= 0.80
+            ),
+            "u222_tn_changed_carrier_full_open": _BASE._check(
+                full_open, ">= 0.80", full_open >= 0.80
+            ),
+            "u222_carrier_pair_support_complete": _BASE._check(
+                {
+                    "pairs": pair_samples,
+                    "tn_samples": tn_samples,
+                    "tn_carriers": tn_carrier_samples,
+                },
+                "pairs == TN samples == TN carriers",
+                abs(pair_samples - tn_samples) <= 1e-6
+                and abs(pair_samples - tn_carrier_samples) <= 1e-6,
+            ),
+            "u222_carrier_pair_loss_attributed": _check_close(
+                pair_loss, pair_hinge
+            ),
+            "u222_carrier_pair_gap_reaches_margin": _BASE._check(
+                pair_gap, ">= 0.25", pair_gap >= 0.25
+            ),
+            "u222_carrier_pair_hinge_small": _BASE._check(
+                pair_hinge, "<= 0.025", pair_hinge <= 0.025
+            ),
+            "u222_carrier_pair_violation_bounded": _BASE._check(
+                pair_violation, "<= 0.20", pair_violation <= 0.20
+            ),
+        }
+    )
+    return checks
+
+
+_BASE._health_checks = _health_checks
+
+
+def audit() -> dict[str, Any]:
+    return _BASE.audit()
+
+
+def run(argv: Sequence[str] | None = None) -> int:
+    return _BASE.run(argv)
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

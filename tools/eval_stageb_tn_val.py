@@ -22,12 +22,35 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from datasets import build_dataset  # noqa: E402
+from tools.stageb_eval_holdout import is_excluded, load_holdout_keys  # noqa: E402
 from groundingdino.util import box_ops  # noqa: E402
 from models.GroundingDINO.stage_b_score import compute_stage_b_slot_logits  # noqa: E402
-from tools.eval_refcoco_stageb import _ckpt_run_prefix, _load_model, _safe_name  # noqa: E402
+from tools.eval_refcoco_stageb import (  # noqa: E402
+    _ckpt_run_prefix,
+    _load_model,
+    _safe_name,
+    _uses_stage_b_post_candidate_scorer,
+)
 from tools.eval_stagea_patch_checkpoints import _prepare_patch_batch, _set_seed  # noqa: E402
+from tools.stageb_eval_records import (  # noqa: E402
+    EvalManifest,
+    extract_adapter_tn_pair_captions,
+    load_eval_manifest,
+    make_eval_record,
+    sample_id_from_meta,
+    tn_manifest_binding_summary_fields,
+    validate_eval_manifest_batch_alignment as _validate_eval_manifest_batch_alignment,
+    write_tn_derived_manifest_binding,
+    write_eval_records,
+)
 from util import misc as utils  # noqa: E402
 from util.slconfig import SLConfig  # noqa: E402
+
+
+_DATA_DRIVEN_CONFIDENCE_SCORE_KEY = "stage_b_data_driven_confidence_score"
+_NATIVE_PATCH_CONFIDENCE_SCORE_KEY = (
+    "stage_b_native_patch_confidence_score"
+)
 
 
 def _iter_jsonl(path: Path):
@@ -46,7 +69,8 @@ def _seed_worker(_worker_id: int) -> None:
 
 def _load_ref_split_map(data_root: Path, dataset: str, splitby: str) -> Dict[Tuple[int, int, int], str]:
     refs_path = data_root / "COCO" / dataset / f"refs({splitby}).p"
-    refs = pickle.load(refs_path.open("rb"))
+    with refs_path.open("rb") as handle:
+        refs = pickle.load(handle)
     out: Dict[Tuple[int, int, int], str] = {}
     for ref in refs:
         try:
@@ -59,6 +83,27 @@ def _load_ref_split_map(data_root: Path, dataset: str, splitby: str) -> Dict[Tup
 
 def _split_specs() -> List[Dict[str, str]]:
     return [
+        {
+            "name": "refcoco_val",
+            "pair_source": "refcoco_unc",
+            "dataset": "refcoco",
+            "splitby": "unc",
+            "split": "val",
+        },
+        {
+            "name": "refcoco_testA",
+            "pair_source": "refcoco_unc",
+            "dataset": "refcoco",
+            "splitby": "unc",
+            "split": "testA",
+        },
+        {
+            "name": "refcoco_testB",
+            "pair_source": "refcoco_unc",
+            "dataset": "refcoco",
+            "splitby": "unc",
+            "split": "testB",
+        },
         {
             "name": "refcocop_val",
             "pair_source": "refcoco+_unc",
@@ -87,6 +132,13 @@ def _split_specs() -> List[Dict[str, str]]:
             "splitby": "google",
             "split": "val",
         },
+        {
+            "name": "refcocog_umd_val",
+            "pair_source": "refcocog_umd",
+            "dataset": "refcocog",
+            "splitby": "umd",
+            "split": "val",
+        },
     ]
 
 
@@ -113,6 +165,10 @@ def _build_tn_eval_jsonl(
     tn_jsonl: Path,
     splits: List[str],
     max_pairs: int,
+    max_pairs_per_split: int = 0,
+    holdout_level: str = "none",
+    holdout_ann_keys=None,
+    holdout_image_ids=None,
 ) -> Tuple[Path, List[Dict[str, Any]], Dict[str, int]]:
     specs = {spec["name"]: spec for spec in _split_specs()}
     wanted = list(splits)
@@ -137,10 +193,13 @@ def _build_tn_eval_jsonl(
     out_path = out_dir / f"tn_{split_slug}.jsonl"
     meta_rows: List[Dict[str, Any]] = []
     counts: Dict[str, int] = {name: 0 for name in wanted}
+    row_mapping: List[Dict[str, Any]] = []
     seen = 0
+    holdout_ann_keys = holdout_ann_keys or set()
+    holdout_image_ids = holdout_image_ids or set()
 
     with out_path.open("w", encoding="utf-8") as out_f:
-        for row in _iter_jsonl(tn_jsonl):
+        for source_index, row in enumerate(_iter_jsonl(tn_jsonl)):
             instances = row.get("instances")
             if not isinstance(instances, list) or not instances:
                 continue
@@ -167,6 +226,16 @@ def _build_tn_eval_jsonl(
             eval_split = wanted_by_source_split.get((pair_source, source_split))
             if eval_split is None:
                 continue
+            if int(max_pairs_per_split) > 0 and counts.get(eval_split, 0) >= int(max_pairs_per_split):
+                continue
+            if is_excluded(
+                image_id=int(row["image_id"]),
+                ann_id=int(row["ann_id"]),
+                level=holdout_level,
+                ann_keys=holdout_ann_keys,
+                image_ids=holdout_image_ids,
+            ):
+                continue
 
             positive_phrase = inst.get("positive_phrase")
             if not isinstance(positive_phrase, str) or not positive_phrase.strip():
@@ -178,6 +247,22 @@ def _build_tn_eval_jsonl(
             out_row["tn_eval_source_split"] = source_split
             out_row["instances"] = [inst]
             out_f.write(json.dumps(out_row, ensure_ascii=False) + "\n")
+
+            row_mapping.append(
+                {
+                    "derived_index": int(seen),
+                    "source_index": int(source_index),
+                    "sample_id": sample_id_from_meta(
+                        row,
+                        task="tn",
+                        split="global",
+                        index=source_index,
+                    ),
+                    "pair_source": pair_source,
+                    "source_split": source_split,
+                    "eval_split": eval_split,
+                }
+            )
 
             meta_rows.append(
                 {
@@ -197,30 +282,150 @@ def _build_tn_eval_jsonl(
             seen += 1
             if max_pairs > 0 and seen >= int(max_pairs):
                 break
+    write_tn_derived_manifest_binding(
+        source_manifest_path=tn_jsonl,
+        derived_manifest_path=out_path,
+        row_mapping=row_mapping,
+        requested_splits=wanted,
+        max_pairs=max_pairs,
+        max_pairs_per_split=max_pairs_per_split,
+        holdout_level=holdout_level,
+    )
     return out_path, meta_rows, counts
 
 
-def _make_datasetinfo(data_root: Path, anno: Path) -> Dict[str, Any]:
-    return {
+def _validate_adapter_tn_eval_manifest(cfg, rows: List[Dict[str, Any]]) -> Optional[str]:
+    adapter_enabled = bool(getattr(cfg, "stage_b_gdino_score_adapter", False))
+    data_driven_enabled = bool(getattr(cfg, "stage_b_data_driven_score", False))
+    if not (adapter_enabled or data_driven_enabled):
+        return None
+    from models.GroundingDINO.stage_b_gdino_score_adapter import (
+        stage_b_gdino_tn_scope_code,
+    )
+
+    train_scope = str(
+        getattr(
+            cfg,
+            (
+                "stage_b_gdino_tn_scope"
+                if adapter_enabled
+                else "stage_b_data_driven_tn_scope"
+            ),
+            "",
+        )
+    ).strip()
+    if train_scope:
+        stage_b_gdino_tn_scope_code(train_scope)
+    eval_scopes = set()
+    protocols = set()
+    for index, row in enumerate(rows):
+        if row.get("manifest_schema", None) == "stageb_vlm_verified_strict_tn_v2":
+            audit = row.get("proposal_audit", None)
+            if (
+                row.get("visual_verified_negative", None) is not True
+                or row.get("coverage_pass", None) is not True
+                or row.get("coverage_policy", None) != "target_plus_proposal"
+                or not isinstance(audit, dict)
+                or audit.get("target_verified_no", None) is not True
+                or audit.get("target_plus_proposal_covered", None) is not True
+            ):
+                raise ValueError(
+                    "Stage-B GDINO adapter strict-v2 TN manifest contract failed "
+                    f"at row {index}"
+                )
+            # proposal_count=0 is valid for this audited policy, so
+            # all_proposals_all_no is deliberately not required.
+            scope = "image_global_topk_verified"
+            protocols.add("stageb_vlm_verified_strict_tn_v2")
+        else:
+            scope = row.get("tn_scope", None)
+            stage_b_gdino_tn_scope_code(scope)
+            verification_key = (
+                "global_tn_verified"
+                if scope == "image_global_topk_verified"
+                else "benchmark_dataft_alltn"
+            )
+            if (
+                row.get(verification_key, None) is not True
+                or row.get("proposalset_proxy_verified", None) is not False
+            ):
+                raise ValueError(
+                    "Stage-B GDINO adapter TN evaluation manifest is not strictly "
+                    f"verified at row {index}: scope={scope!r}, requires exact "
+                    f"boolean {verification_key}=true and proposal proxy=false"
+                )
+            protocols.add("adapter_training_pair_schema")
+        eval_scopes.add(str(scope))
+    if len(eval_scopes) != 1 or len(protocols) != 1:
+        raise ValueError(
+            "Stage-B GDINO adapter TN evaluation requires one uniform manifest "
+            f"protocol/scope, got protocols={sorted(protocols)}, "
+            f"scopes={sorted(eval_scopes)}"
+        )
+    # Training and evaluation scopes are intentionally recorded separately.
+    return next(iter(eval_scopes))
+
+
+def _make_datasetinfo(
+    data_root: Path,
+    anno: Path,
+    *,
+    adapter_eval_scope: Optional[str] = None,
+    adapter_eval_protocol: Optional[str] = None,
+    u0_patch_rank: bool = False,
+    data_driven_score: bool = False,
+) -> Dict[str, Any]:
+    info = {
         "name": "tn_val",
         "dataset_mode": "patch_episode",
         "root": "/",
         "anno": str(anno),
         "box_format": "xywh",
         "canonical_classes_json": str(data_root / "canonical_classes_with_aliases.json"),
-        "support_patch_tsv": str(data_root / "patches_quality_emb" / "emb_index_from_quality.tsv"),
-        "support_patch_bucket": "clean",
-        "support_patch_use_embedding": False,
-        "support_patch_image_root": str(data_root / "patches_quality"),
-        "support_patch_max_per_class": 200,
-        "patch_emb_cache_size": 4096,
         "keep_only_support_gt": True,
-        "support_min_count": 2,
+        "neg_episode_prob": 0.0,
+        "support_min_count": 1 if adapter_eval_scope else 2,
         "support_patch_size": 224,
+        "support_num_patches_min": 1,
+        "support_num_patches_max": 1,
         "build_text_token_masks": True,
         "text_mask_skip_invalid_canonical": False,
         "text_mask_warn_limit": 0,
+        # Evaluation records are positional against the immutable manifest.
+        # Disable training-only balancing explicitly to keep the contract fixed,
+        # avoid extra statistics, and prevent future sampler misuse.
+        "tn_balance_sampling": False,
     }
+    if (
+        adapter_eval_scope is not None
+        and not u0_patch_rank
+        and not data_driven_score
+    ):
+        info["stage_b_gdino_adapter_no_support"] = True
+    else:
+        info.update(
+            {
+                "support_patch_tsv": str(
+                    data_root / "patches_quality_emb" / "emb_index_from_quality.tsv"
+                ),
+                "support_patch_bucket": "clean",
+                "support_patch_use_embedding": False,
+                "support_patch_image_root": str(data_root / "patches_quality"),
+                "support_patch_max_per_class": 200,
+                "patch_emb_cache_size": 4096,
+            }
+        )
+    if adapter_eval_scope is not None:
+        if adapter_eval_protocol == "stageb_vlm_verified_strict_tn_v2":
+            info["require_vlm_strict_tn"] = True
+        else:
+            info["require_global_tn_verified"] = (
+                adapter_eval_scope == "image_global_topk_verified"
+            )
+            info["require_benchmark_dataft_alltn"] = (
+                adapter_eval_scope == "benchmark_dataft_alltn"
+            )
+    return info
 
 
 def _build_loader(
@@ -292,6 +497,16 @@ def _inject_text_masks(
         outputs["canonical_to_token_mask"] = canonical_mask
 
 
+def _target_texts(raw_targets: List[Dict[str, Any]], key: str, fallback_key: str = "caption") -> List[str]:
+    texts: List[str] = []
+    for target in raw_targets:
+        value = target.get(key, None)
+        if not isinstance(value, str) or not value.strip():
+            value = target.get(fallback_key, "object .")
+        texts.append(str(value or "object ."))
+    return texts
+
+
 def _rank_positive_captions(raw_targets: List[Dict[str, Any]]) -> Tuple[List[str], torch.Tensor]:
     captions: List[str] = []
     valid: List[bool] = []
@@ -312,11 +527,319 @@ def _rank_positive_captions(raw_targets: List[Dict[str, Any]]) -> Tuple[List[str
     return captions, torch.as_tensor(valid, dtype=torch.bool)
 
 
+def _split_paired_output(value, batch_size: int, *, negative: bool):
+    if torch.is_tensor(value):
+        if value.dim() > 0 and int(value.shape[0]) == 2 * int(batch_size):
+            start = int(batch_size) if negative else 0
+            return value.narrow(0, start, int(batch_size))
+        return value
+    if isinstance(value, dict):
+        return {
+            key: _split_paired_output(item, batch_size, negative=negative)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            _split_paired_output(item, batch_size, negative=negative)
+            for item in value
+        ]
+    if isinstance(value, tuple):
+        return tuple(
+            _split_paired_output(item, batch_size, negative=negative)
+            for item in value
+        )
+    return value
+
+
+def _is_stage_b_u0_model(model) -> bool:
+    root = model.module if hasattr(model, "module") else model
+    return getattr(root, "stage_b_u0_patch_rank_adapter", None) is not None
+
+
+def _prepare_stage_b_u0_patch_batch(batch, device: torch.device):
+    raw_targets = list(batch[1])
+    if not raw_targets:
+        raise ValueError("Stage-B U0 evaluation requires a non-empty target batch")
+    support_keys = ("patch", "patches", "patch_global")
+    batch_support_key: Optional[str] = None
+    for index, target in enumerate(raw_targets):
+        present = [key for key in support_keys if key in target]
+        if not present:
+            raise KeyError(
+                f"Stage-B U0 target {index} is missing patch/patches/patch_global"
+            )
+        if len(present) != 1:
+            raise ValueError(
+                f"Stage-B U0 target {index} must contain exactly one support input key, "
+                f"got {present}"
+            )
+        key = present[0]
+        if batch_support_key is None:
+            batch_support_key = key
+        elif key != batch_support_key:
+            raise ValueError(
+                "Stage-B U0 target batch mixes support input representations: "
+                f"{batch_support_key!r} and {key!r}"
+            )
+        value = target[key]
+        if not torch.is_tensor(value):
+            raise TypeError(f"Stage-B U0 target {index} {key} must be a tensor")
+        if key == "patch":
+            valid_shape = value.dim() == 3
+        elif key == "patches":
+            valid_shape = value.dim() == 4 and int(value.shape[0]) == 1
+        else:
+            valid_shape = value.dim() == 1 or (
+                value.dim() == 2 and int(value.shape[0]) == 1
+            )
+        if not valid_shape:
+            raise ValueError(
+                f"Stage-B U0 target {index} {key} must encode exactly one support slot, "
+                f"got shape={tuple(value.shape)}"
+            )
+
+    prepared = _prepare_patch_batch(*batch, device)
+    _samples, _targets, _captions, patches, patch_global, patch_mask = prepared
+    supports = [value for value in (patches, patch_global) if value is not None]
+    if len(supports) != 1:
+        raise RuntimeError("Stage-B U0 patch preparation did not yield one support tensor")
+    support = supports[0]
+    if int(support.shape[0]) != len(raw_targets):
+        raise RuntimeError("Stage-B U0 support batch does not align with targets")
+    if patch_mask is not None:
+        if tuple(patch_mask.shape) != (len(raw_targets), 1) or not bool(
+            patch_mask.all().item()
+        ):
+            raise RuntimeError("Stage-B U0 requires one valid support slot per target")
+    return prepared
+
+
+def _duplicate_stage_b_u0_support(value: Optional[torch.Tensor]) -> Optional[torch.Tensor]:
+    if value is None:
+        return None
+    return torch.cat((value, value), dim=0)
+
+
 @torch.no_grad()
 def _forward_pair(model, batch, device: torch.device, *, amp: bool):
     raw_targets = list(batch[1])
+    root = model.module if hasattr(model, "module") else model
+    if bool(getattr(root, "stage_b_native_patch_category", False)):
+        if not bool(
+            getattr(root, "stage_b_native_patch_confidence_trained", False)
+        ):
+            raise RuntimeError(
+                "native patch-category TN/FPR evaluation is forbidden until an "
+                "independent confidence head is explicitly marked trained"
+            )
+        (
+            samples,
+            targets,
+            _captions,
+            patches,
+            patch_global,
+            patch_mask,
+        ) = _prepare_stage_b_u0_patch_batch(batch, device)
+        pos_captions, neg_captions, valid_pos = extract_adapter_tn_pair_captions(
+            raw_targets
+        )
+        batch_size = len(raw_targets)
+        paired_samples = utils.NestedTensor(
+            torch.cat((samples.tensors, samples.tensors), dim=0),
+            (
+                torch.cat((samples.mask, samples.mask), dim=0)
+                if samples.mask is not None
+                else None
+            ),
+        )
+        with torch.cuda.amp.autocast(
+            enabled=bool(amp) and device.type == "cuda"
+        ):
+            paired_outputs = model(
+                paired_samples,
+                captions=list(pos_captions) + list(neg_captions),
+                patches=_duplicate_stage_b_u0_support(patches),
+                patch_global=_duplicate_stage_b_u0_support(patch_global),
+                patch_mask=_duplicate_stage_b_u0_support(patch_mask),
+                patch_only=False,
+                disable_patch_dn=True,
+            )
+        if not isinstance(paired_outputs, dict):
+            raise TypeError(
+                "native patch-category confidence forward must return a dictionary"
+            )
+        if _NATIVE_PATCH_CONFIDENCE_SCORE_KEY not in paired_outputs:
+            raise KeyError(
+                "trained native patch-category confidence forward is missing "
+                f"{_NATIVE_PATCH_CONFIDENCE_SCORE_KEY}"
+            )
+        pos_outputs = _split_paired_output(
+            paired_outputs, batch_size, negative=False
+        )
+        neg_outputs = _split_paired_output(
+            paired_outputs, batch_size, negative=True
+        )
+        return neg_outputs, pos_outputs, targets, valid_pos.to(device=device)
+    if getattr(root, "stage_b_data_driven_score_heads", None) is not None:
+        (
+            samples,
+            targets,
+            _captions,
+            patches,
+            patch_global,
+            patch_mask,
+        ) = _prepare_stage_b_u0_patch_batch(batch, device)
+        pos_captions, neg_captions, valid_pos = extract_adapter_tn_pair_captions(
+            raw_targets
+        )
+        canonical_captions = []
+        for index, target in enumerate(raw_targets):
+            canonical = target.get("stage_a_caption")
+            if not isinstance(canonical, str) or not canonical.strip():
+                raise KeyError(
+                    f"data-driven TN target {index} requires stage_a_caption"
+                )
+            canonical_captions.append(canonical)
+        batch_size = len(raw_targets)
+        paired_samples = utils.NestedTensor(
+            torch.cat((samples.tensors, samples.tensors), dim=0),
+            (
+                torch.cat((samples.mask, samples.mask), dim=0)
+                if samples.mask is not None
+                else None
+            ),
+        )
+        with torch.cuda.amp.autocast(
+            enabled=bool(amp) and device.type == "cuda"
+        ):
+            paired_outputs = model(
+                paired_samples,
+                captions=canonical_captions + canonical_captions,
+                patches=_duplicate_stage_b_u0_support(patches),
+                patch_global=_duplicate_stage_b_u0_support(patch_global),
+                patch_mask=_duplicate_stage_b_u0_support(patch_mask),
+                patch_only=False,
+                disable_patch_dn=True,
+                stage_b_data_driven_expression_captions=(
+                    list(pos_captions) + list(neg_captions)
+                ),
+            )
+        pos_outputs = _split_paired_output(
+            paired_outputs, batch_size, negative=False
+        )
+        neg_outputs = _split_paired_output(
+            paired_outputs, batch_size, negative=True
+        )
+        return neg_outputs, pos_outputs, targets, valid_pos.to(device=device)
+    if getattr(root, "stage_b_gdino_score_adapter", None) is not None:
+        u0_patch_rank = _is_stage_b_u0_model(model)
+        if u0_patch_rank:
+            (
+                samples,
+                targets,
+                _captions,
+                patches,
+                patch_global,
+                patch_mask,
+            ) = _prepare_stage_b_u0_patch_batch(batch, device)
+        else:
+            samples = batch[0].to(device)
+            targets = [
+                {
+                    key: value.to(device)
+                    for key, value in target.items()
+                    if torch.is_tensor(value)
+                    and key not in {"patch", "patches", "patch_global"}
+                }
+                for target in raw_targets
+            ]
+            patches = None
+            patch_global = None
+            patch_mask = None
+        (
+            pos_captions,
+            neg_captions,
+            valid_pos,
+        ) = extract_adapter_tn_pair_captions(raw_targets)
+        batch_size = len(raw_targets)
+        paired_samples = utils.NestedTensor(
+            torch.cat((samples.tensors, samples.tensors), dim=0),
+            (
+                torch.cat((samples.mask, samples.mask), dim=0)
+                if samples.mask is not None
+                else None
+            ),
+        )
+        with torch.cuda.amp.autocast(
+            enabled=bool(amp) and device.type == "cuda"
+        ):
+            forward_kwargs: Dict[str, Any] = {
+                "captions": list(pos_captions) + list(neg_captions)
+            }
+            if u0_patch_rank:
+                forward_kwargs.update(
+                    targets=list(targets) + list(targets),
+                    patches=_duplicate_stage_b_u0_support(patches),
+                    patch_global=_duplicate_stage_b_u0_support(patch_global),
+                    patch_mask=_duplicate_stage_b_u0_support(patch_mask),
+                    patch_only=False,
+                    disable_patch_dn=True,
+                )
+            paired_outputs = model(paired_samples, **forward_kwargs)
+        pos_outputs = _split_paired_output(
+            paired_outputs, batch_size, negative=False
+        )
+        neg_outputs = _split_paired_output(
+            paired_outputs, batch_size, negative=True
+        )
+        return neg_outputs, pos_outputs, targets, valid_pos.to(device=device)
+
     samples, targets, neg_captions, patches, patch_global, patch_mask = _prepare_patch_batch(*batch, device)
     pos_captions, valid_pos = _rank_positive_captions(raw_targets)
+    stage_a_captions = _target_texts(raw_targets, "stage_a_caption")
+    is_v7 = (
+        getattr(model, "stage_b_verifier", None) is not None
+        or getattr(model, "stage_b_fixed_text_scorer", None) is not None
+    )
+    if is_v7:
+        kmax = int(patch_mask.shape[1]) if patch_mask is not None else 1
+        neg_phrase_mask = _pad_target_mask(raw_targets, "phrase_to_token_mask", kmax, 256, device)
+        neg_canonical_mask = _pad_target_mask(raw_targets, "canonical_to_token_mask", kmax, 256, device)
+        pos_phrase_mask = _pad_target_mask(raw_targets, "rank_positive_phrase_to_token_mask", kmax, 256, device)
+        pos_canonical_mask = _pad_target_mask(raw_targets, "rank_positive_canonical_to_token_mask", kmax, 256, device)
+        with torch.cuda.amp.autocast(enabled=bool(amp) and device.type == "cuda"):
+            neg_outputs = model(
+                samples,
+                targets=targets,
+                captions=stage_a_captions,
+                patches=patches,
+                patch_global=patch_global,
+                patch_mask=patch_mask,
+                patch_only=True,
+                patch_only_compute_text_logits=False,
+                disable_patch_dn=True,
+                return_stage_b_v7_features=True,
+                stage_b_v7_verifier_captions=neg_captions,
+                phrase_to_token_mask=neg_phrase_mask,
+                canonical_to_token_mask=neg_canonical_mask,
+            )
+            pos_outputs = model(
+                samples,
+                targets=targets,
+                captions=stage_a_captions,
+                patches=patches,
+                patch_global=patch_global,
+                patch_mask=patch_mask,
+                patch_only=True,
+                patch_only_compute_text_logits=False,
+                disable_patch_dn=True,
+                return_stage_b_v7_features=True,
+                stage_b_v7_verifier_captions=pos_captions,
+                phrase_to_token_mask=pos_phrase_mask,
+                canonical_to_token_mask=pos_canonical_mask,
+            )
+        return neg_outputs, pos_outputs, targets, valid_pos.to(device=device)
+
     with torch.cuda.amp.autocast(enabled=bool(amp) and device.type == "cuda"):
         neg_outputs = model(
             samples,
@@ -358,6 +881,126 @@ def _forward_pair(model, batch, device: torch.device, *, amp: bool):
 
 
 def _slot_scores(outputs: Dict[str, torch.Tensor], cfg, beta: float) -> torch.Tensor:
+    if bool(getattr(cfg, "stage_b_native_patch_category", False)):
+        if not bool(
+            getattr(cfg, "stage_b_native_patch_confidence_trained", False)
+        ):
+            raise RuntimeError(
+                "native patch-category TN/FPR evaluation is forbidden until an "
+                "independent confidence head is explicitly marked trained"
+            )
+        score = outputs.get(_NATIVE_PATCH_CONFIDENCE_SCORE_KEY)
+        if score is None:
+            raise KeyError(
+                "native patch-category TN/FPR evaluation is missing "
+                f"{_NATIVE_PATCH_CONFIDENCE_SCORE_KEY}; rank-score fallback is forbidden"
+            )
+        if not torch.is_tensor(score) or score.dim() != 2:
+            shape = (
+                tuple(score.shape)
+                if torch.is_tensor(score)
+                else type(score).__name__
+            )
+            raise ValueError(
+                f"{_NATIVE_PATCH_CONFIDENCE_SCORE_KEY} must be a (B,Q) tensor, got {shape}"
+            )
+        boxes = outputs.get("pred_boxes")
+        if (
+            not torch.is_tensor(boxes)
+            or boxes.dim() != 3
+            or int(boxes.shape[-1]) != 4
+            or tuple(score.shape) != tuple(boxes.shape[:2])
+        ):
+            shape = (
+                tuple(boxes.shape)
+                if torch.is_tensor(boxes)
+                else type(boxes).__name__
+            )
+            raise ValueError(
+                f"{_NATIVE_PATCH_CONFIDENCE_SCORE_KEY} must align with "
+                f"pred_boxes (B,Q,4), got {shape}"
+            )
+        score = score.detach().float()
+        if not bool(torch.isfinite(score).all().item()):
+            raise ValueError(
+                f"{_NATIVE_PATCH_CONFIDENCE_SCORE_KEY} must contain only finite values"
+            )
+        return score.unsqueeze(-1)
+
+    if bool(getattr(cfg, "stage_b_data_driven_score", False)):
+        if not bool(
+            getattr(cfg, "stage_b_data_driven_confidence_trained", False)
+        ):
+            raise RuntimeError(
+                "data-driven TN/FPR evaluation is forbidden before DD2 trains "
+                "the independent confidence head"
+            )
+        score = outputs.get(_DATA_DRIVEN_CONFIDENCE_SCORE_KEY)
+        if not torch.is_tensor(score) or score.dim() != 2:
+            shape = tuple(score.shape) if torch.is_tensor(score) else type(score).__name__
+            raise ValueError(
+                f"{_DATA_DRIVEN_CONFIDENCE_SCORE_KEY} must be a (B,Q) tensor, got {shape}"
+            )
+        score = score.detach().float()
+        if not bool(torch.isfinite(score).all().item()):
+            raise ValueError(
+                f"{_DATA_DRIVEN_CONFIDENCE_SCORE_KEY} must contain only finite values"
+            )
+        return score.unsqueeze(-1)
+
+    if bool(getattr(cfg, "stage_b_u0_patch_rank", False)) and not bool(
+        getattr(cfg, "stage_b_gdino_score_adapter", False)
+    ):
+        raise ValueError(
+            "stage_b_u0_patch_rank TN evaluation requires "
+            "stage_b_gdino_score_adapter and its confidence score"
+        )
+    gdino_confidence = outputs.get("stage_b_gdino_confidence_score", None)
+    if (
+        bool(getattr(cfg, "stage_b_gdino_score_adapter", False))
+        and gdino_confidence is None
+    ):
+        raise KeyError(
+            "Stage-B GDINO adapter evaluation is missing "
+            "stage_b_gdino_confidence_score"
+        )
+    if gdino_confidence is not None:
+        score = gdino_confidence.detach().float()
+        if score.dim() == 2:
+            score = score.unsqueeze(-1)
+        if score.dim() != 3:
+            raise ValueError(
+                "stage_b_gdino_confidence_score must be (B,Q) or (B,Q,K), "
+                f"got {tuple(score.shape)}"
+            )
+        return score
+    legacy_gate_score = outputs.get("stage_b_legacy_global_confidence", None)
+    if legacy_gate_score is not None:
+        score = legacy_gate_score.detach().float()
+        if score.dim() == 2:
+            score = score.unsqueeze(-1)
+        if score.dim() != 3:
+            raise ValueError(
+                "stage_b_legacy_global_confidence must be (B,Q) or (B,Q,K), "
+                f"got {tuple(score.shape)}"
+            )
+        return score
+    if _uses_stage_b_post_candidate_scorer(cfg):
+        score = outputs.get("stage_b_v7_final_score", None)
+        if score is None:
+            score = outputs.get("stage_b_v7_predicate_score", None)
+        if score is None:
+            raise KeyError(
+                "Stage-B post-candidate eval requires stage_b_v7_final_score "
+                "or stage_b_v7_predicate_score."
+            )
+        score = score.detach().float()
+        if score.dim() == 2:
+            score = score.unsqueeze(-1)
+        if score.dim() != 3:
+            raise ValueError(f"stage_b_v7 score must be (B,Q) or (B,Q,K), got {tuple(score.shape)}")
+        return score
+
     return compute_stage_b_slot_logits(
         outputs,
         beta=float(beta),
@@ -366,6 +1009,7 @@ def _slot_scores(outputs: Dict[str, torch.Tensor], cfg, beta: float) -> torch.Te
         softmin_tau=float(getattr(cfg, "stage_b_infer_softmin_tau", 0.7)),
         mean_softmin_alpha=float(getattr(cfg, "stage_b_infer_mean_softmin_alpha", 0.5)),
         normalize_fused_score=bool(getattr(cfg, "stage_b_infer_normalize_fused_score", True)),
+        score_mode=str(getattr(cfg, "stage_b_score_mode", "patch_text")),
     )
 
 
@@ -393,6 +1037,13 @@ def _best_scores_and_iou(outputs: Dict[str, torch.Tensor], targets: List[Dict[st
 def _score_at_best_iou(outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]], cfg, beta: float):
     slot_logits = _slot_scores(outputs, cfg, beta).detach().float()
     pred_boxes = box_ops.box_cxcywh_to_xyxy(outputs["pred_boxes"].detach().float()).clamp(0.0, 1.0)
+    candidate_mask = outputs.get("stage_b_v7_candidate_mask", None)
+    if torch.is_tensor(candidate_mask):
+        candidate_mask = candidate_mask.detach().to(device=pred_boxes.device, dtype=torch.bool)
+        if candidate_mask.dim() == 3:
+            candidate_mask = candidate_mask[..., 0]
+        if candidate_mask.shape != pred_boxes.shape[:2]:
+            candidate_mask = None
     scores: List[float] = []
     ious: List[float] = []
     for b, target in enumerate(targets):
@@ -403,6 +1054,8 @@ def _score_at_best_iou(outputs: Dict[str, torch.Tensor], targets: List[Dict[str,
             continue
         gt = box_ops.box_cxcywh_to_xyxy(gt_boxes[:1].detach().float()).clamp(0.0, 1.0)[0]
         query_ious = box_ops.box_iou(pred_boxes[b], gt.view(1, 4))[0].view(-1)
+        if candidate_mask is not None and bool(candidate_mask[b].any().item()):
+            query_ious = query_ious.masked_fill(~candidate_mask[b], -1.0)
         q = int(query_ious.argmax().item())
         scores.append(float(slot_logits[b, q, 0].item()))
         ious.append(float(query_ious[q].item()))
@@ -428,7 +1081,11 @@ def _threshold_for_tpr(pos_scores: np.ndarray, target_tpr: float) -> float:
     if pos_scores.size == 0:
         return float("inf")
     target_tpr = min(1.0, max(0.0, float(target_tpr)))
-    return float(np.quantile(pos_scores, 1.0 - target_tpr))
+    if target_tpr <= 0.0:
+        return float(np.nextafter(pos_scores.max(), np.inf))
+    accepted = max(1, int(math.ceil(target_tpr * int(pos_scores.size))))
+    ascending_index = int(pos_scores.size) - accepted
+    return float(np.partition(pos_scores, ascending_index)[ascending_index])
 
 
 def _summarize_arrays(
@@ -467,6 +1124,24 @@ def _summarize_arrays(
             float(np.mean(pos_iou_score > neg_iou_score)) if pos_iou_score.size else 0.0
         ),
     }
+    target_valid = np.isfinite(pos_iou_score) & np.isfinite(neg_iou_score)
+    target_pos = pos_iou_score[target_valid]
+    target_neg = neg_iou_score[target_valid]
+    target_gap = target_pos - target_neg
+    out.update(
+        {
+            "target_pair_win_rate": (
+                float(np.mean(target_pos > target_neg)) if target_pos.size else 0.0
+            ),
+            "target_pair_tie_rate": (
+                float(np.mean(target_pos == target_neg)) if target_pos.size else 0.0
+            ),
+            "target_score_gap_mean": _safe_mean(target_gap),
+            "target_score_gap_median": _safe_median(target_gap),
+            "target_pos_score_mean": _safe_mean(target_pos),
+            "target_tn_score_mean": _safe_mean(target_neg),
+        }
+    )
     for tpr in threshold_tprs:
         key = f"{int(round(float(tpr) * 100)):02d}"
         threshold = _threshold_for_tpr(pos_scores, float(tpr))
@@ -475,7 +1150,16 @@ def _summarize_arrays(
         out[f"threshold_at_{key}tpr"] = threshold
         out[f"actual_tpr_at_{key}tpr"] = actual_tpr
         out[f"fpr{key}tpr"] = fpr
+        target_threshold = _threshold_for_tpr(target_pos, float(tpr))
+        out[f"target_threshold_at_{key}tpr"] = target_threshold
+        out[f"target_actual_tpr_at_{key}tpr"] = (
+            float(np.mean(target_pos >= target_threshold)) if target_pos.size else 0.0
+        )
+        out[f"target_fpr{key}tpr"] = (
+            float(np.mean(target_neg >= target_threshold)) if target_neg.size else 0.0
+        )
     out.setdefault("fpr95tpr", 0.0)
+    out.setdefault("target_fpr95tpr", 0.0)
     out["tn_fpr"] = float(out.get("fpr95tpr", 0.0))
     return out
 
@@ -508,9 +1192,22 @@ def _summarize_group(
 
 
 class TnPairAccumulator:
-    def __init__(self, betas: Iterable[float]) -> None:
+    def __init__(
+        self,
+        betas: Iterable[float],
+        *,
+        manifest: EvalManifest,
+        run_prefix: str,
+        train_scope: Optional[str] = None,
+        eval_scope: Optional[str] = None,
+    ) -> None:
         self.betas = [float(beta) for beta in betas]
+        self.manifest = manifest
+        self.run_prefix = str(run_prefix)
+        self.train_scope = train_scope
+        self.eval_scope = eval_scope
         self.records: Dict[float, List[Dict[str, float]]] = {beta: [] for beta in self.betas}
+        self.eval_records: Dict[float, List[Dict[str, Any]]] = {beta: [] for beta in self.betas}
         self.metas: List[Dict[str, Any]] = []
         self.invalid_positive = 0
 
@@ -523,15 +1220,173 @@ class TnPairAccumulator:
         valid_pos: torch.Tensor,
         metas: List[Dict[str, Any]],
         cfg,
+        manifest_start_index: int,
     ) -> None:
         valid_np = valid_pos.detach().cpu().numpy().astype(bool)
         self.invalid_positive += int((~valid_np).sum())
+
+        def diagnostic_value(
+            outputs: Dict[str, torch.Tensor], key: str, index: int
+        ) -> Optional[float]:
+            value = outputs.get(key)
+            if not torch.is_tensor(value) or value.dim() < 1:
+                return None
+            row = value[index].detach().float().reshape(-1)
+            if row.numel() == 0 or not bool(torch.isfinite(row[0]).item()):
+                return None
+            return float(row[0].item())
+
+        def diagnostic_argmax_value(
+            outputs: Dict[str, torch.Tensor],
+            score_key: str,
+            value_key: str,
+            index: int,
+        ) -> Optional[float]:
+            score = outputs.get(score_key)
+            value = outputs.get(value_key)
+            if not torch.is_tensor(score) or not torch.is_tensor(value):
+                return None
+            score_row = score[index].detach().float().reshape(-1)
+            value_row = value[index].detach().float().reshape(-1)
+            if score_row.numel() == 0 or score_row.numel() != value_row.numel():
+                return None
+            argmax = int(score_row.argmax().item())
+            selected = value_row[argmax]
+            if not bool(torch.isfinite(selected).item()):
+                return None
+            return float(selected.item())
+
+        def diagnostic_max_value(
+            outputs: Dict[str, torch.Tensor], key: str, index: int
+        ) -> Optional[float]:
+            value = outputs.get(key)
+            if not torch.is_tensor(value) or value.dim() < 1:
+                return None
+            row = value[index].detach().float().reshape(-1)
+            finite = row[torch.isfinite(row)]
+            if finite.numel() == 0:
+                return None
+            return float(finite.max().item())
+
         for beta in self.betas:
             neg_score, neg_iou = _best_scores_and_iou(neg_outputs, targets, cfg, beta)
             pos_score, pos_iou = _best_scores_and_iou(pos_outputs, targets, cfg, beta)
             neg_iou_score, _neg_iou_best = _score_at_best_iou(neg_outputs, targets, cfg, beta)
             pos_iou_score, _pos_iou_best = _score_at_best_iou(pos_outputs, targets, cfg, beta)
             for i, ok in enumerate(valid_np):
+                finite = bool(
+                    ok
+                    and np.isfinite(pos_score[i])
+                    and np.isfinite(neg_score[i])
+                    and np.isfinite(pos_iou[i])
+                    and np.isfinite(neg_iou[i])
+                    and np.isfinite(pos_iou_score[i])
+                    and np.isfinite(neg_iou_score[i])
+                )
+                self.eval_records[beta].append(
+                    make_eval_record(
+                        self.manifest,
+                        index=int(manifest_start_index) + i,
+                        run_id=f"{self.run_prefix}:b{beta:g}",
+                        valid=finite,
+                        meta=metas[i],
+                        values={
+                            "train_scope": self.train_scope,
+                            "eval_scope": self.eval_scope,
+                            "beta": float(beta),
+                            "pos_score": float(pos_score[i]),
+                            "neg_score": float(neg_score[i]),
+                            "pos_iou": float(pos_iou[i]),
+                            "neg_iou": float(neg_iou[i]),
+                            "pos_best_iou_query_score": float(pos_iou_score[i]),
+                            "neg_best_iou_query_score": float(neg_iou_score[i]),
+                            "pos_reference_global_logit": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_reference_global_confidence_logits",
+                                i,
+                            ),
+                            "neg_reference_global_logit": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_reference_global_confidence_logits",
+                                i,
+                            ),
+                            "pos_frozen_rank_full_expression_global_logit": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_frozen_rank_full_expression_global_logits",
+                                i,
+                            ),
+                            "neg_frozen_rank_full_expression_global_logit": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_frozen_rank_full_expression_global_logits",
+                                i,
+                            ),
+                            "pos_global_logit": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_global_confidence_logits",
+                                i,
+                            ),
+                            "neg_global_logit": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_global_confidence_logits",
+                                i,
+                            ),
+                            "pos_veto_sample_gate": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_confidence_veto_sample_gate",
+                                i,
+                            ),
+                            "neg_veto_sample_gate": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_confidence_veto_sample_gate",
+                                i,
+                            ),
+                            "pos_veto_coverage": diagnostic_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_confidence_veto_coverage",
+                                i,
+                            ),
+                            "neg_veto_coverage": diagnostic_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_confidence_veto_coverage",
+                                i,
+                            ),
+                            "pos_candidate_max_base_logit": diagnostic_argmax_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_confidence_base_logits",
+                                "stage_b_dense_duty_confidence_base_logits",
+                                i,
+                            ),
+                            "neg_candidate_max_base_logit": diagnostic_argmax_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_confidence_base_logits",
+                                "stage_b_dense_duty_confidence_base_logits",
+                                i,
+                            ),
+                            "pos_candidate_max_mismatch_gate": diagnostic_argmax_value(
+                                pos_outputs,
+                                "stage_b_dense_duty_confidence_base_logits",
+                                "stage_b_dense_duty_confidence_mismatch_gate",
+                                i,
+                            ),
+                            "neg_candidate_max_mismatch_gate": diagnostic_argmax_value(
+                                neg_outputs,
+                                "stage_b_dense_duty_confidence_base_logits",
+                                "stage_b_dense_duty_confidence_mismatch_gate",
+                                i,
+                            ),
+                            "pos_patch_candidate_max_logit": diagnostic_max_value(
+                                pos_outputs,
+                                "stage_b_v15_candidate_patch_logits",
+                                i,
+                            ),
+                            "neg_patch_candidate_max_logit": diagnostic_max_value(
+                                neg_outputs,
+                                "stage_b_v15_candidate_patch_logits",
+                                i,
+                            ),
+                        },
+                    )
+                )
                 if not ok:
                     continue
                 self.records[beta].append(
@@ -586,6 +1441,8 @@ class TnPairAccumulator:
                     "seed": int(seed),
                     "max_batches": int(max_batches),
                     "max_pairs": int(max_pairs),
+                    "train_scope": self.train_scope,
+                    "eval_scope": self.eval_scope,
                     "invalid_positive_pairs": int(self.invalid_positive),
                     "by_split": _summarize_group(recs, self.metas, threshold_tprs, "eval_split"),
                     "by_category": _summarize_group(recs, self.metas, threshold_tprs, "category"),
@@ -613,14 +1470,34 @@ def evaluate_checkpoint(
     max_batches: int,
     max_pairs: int,
     log_every: int,
+    records_output_dir: Optional[Path] = None,
 ) -> List[Dict[str, Any]]:
     loader = _build_loader(cfg, datasetinfo, batch_size, num_workers, device, seed)
+    manifest = load_eval_manifest(
+        Path(datasetinfo["anno"]),
+        task="tn",
+        split="global",
+        manifest_key="tn_global",
+    )
+    eval_scope = _validate_adapter_tn_eval_manifest(cfg, manifest.rows)
+    train_scope = (
+        str(getattr(cfg, "stage_b_gdino_tn_scope", "")).strip() or None
+        if bool(getattr(cfg, "stage_b_gdino_score_adapter", False))
+        else None
+    )
+    run_prefix = _ckpt_run_prefix(ckpt_path)
     total_batches = len(loader)
     if max_pairs > 0:
         total_batches = min(total_batches, math.ceil(int(max_pairs) / max(1, int(batch_size))))
     if max_batches > 0:
         total_batches = min(total_batches, int(max_batches))
-    acc = TnPairAccumulator(betas)
+    acc = TnPairAccumulator(
+        betas,
+        manifest=manifest,
+        run_prefix=run_prefix,
+        train_scope=train_scope,
+        eval_scope=eval_scope,
+    )
     start = time.time()
     offset = 0
     print(
@@ -633,6 +1510,10 @@ def evaluate_checkpoint(
         raw_bsz = len(batch[1])
         if max_pairs > 0 and offset >= int(max_pairs):
             break
+        manifest_start_index = offset
+        _validate_eval_manifest_batch_alignment(
+            list(batch[1]), manifest, manifest_start_index
+        )
         metas = meta_rows[offset : offset + raw_bsz]
         offset += raw_bsz
         neg_outputs, pos_outputs, targets, valid_pos = _forward_pair(model, batch, device, amp=amp)
@@ -643,6 +1524,7 @@ def evaluate_checkpoint(
             valid_pos=valid_pos,
             metas=metas,
             cfg=cfg,
+            manifest_start_index=manifest_start_index,
         )
         if device.type == "cuda":
             torch.cuda.synchronize(device)
@@ -655,7 +1537,7 @@ def evaluate_checkpoint(
                 f"[INFO] {Path(ckpt_path).parent.name}/{Path(ckpt_path).name}: "
                 f"batch {done}/{total_batches}, valid_pairs={used}, elapsed={elapsed/60:.1f}m, eta={eta/60:.1f}m"
             )
-    return acc.results(
+    rows = acc.results(
         checkpoint=ckpt_path,
         threshold_tprs=threshold_tprs,
         elapsed=time.time() - start,
@@ -665,6 +1547,26 @@ def evaluate_checkpoint(
         max_batches=max_batches,
         max_pairs=max_pairs,
     )
+    for row in rows:
+        if records_output_dir is None:
+            continue
+        beta = float(row["beta"])
+        records_path = Path(records_output_dir) / (
+            f"{run_prefix}__tn_global__{_safe_name(f'b{beta:g}')}.records.jsonl"
+        )
+        write_eval_records(records_path, acc.eval_records[beta])
+        row.update(
+            {
+                "records_jsonl": str(records_path),
+                "manifest_sha256": manifest.sha256,
+                "manifest_n": manifest.size,
+                **tn_manifest_binding_summary_fields(manifest),
+                "invalid_records": int(
+                    sum(not bool(record.get("valid")) for record in acc.eval_records[beta])
+                ),
+            }
+        )
+    return rows
 
 
 def _write_summary(output_dir: Path, rows: List[Dict[str, Any]], primary_metric: str) -> None:
@@ -699,9 +1601,9 @@ def _write_summary(output_dir: Path, rows: List[Dict[str, Any]], primary_metric:
         "",
         f"Primary metric: `{primary_metric}`. Lower is better for FPR metrics.",
         "",
-        "| rank | run | beta | fpr@95tpr | fpr@90tpr | pair win | gap mean | pos mean | TN mean | pos IoU50 | TN IoU50 | pairs |"
+        "| rank | run | beta | global fpr95 | global fpr90 | global pair win | target fpr95 | target fpr90 | target pair win | target gap | pos IoU50 | TN IoU50 | pairs |"
         + "".join(f" {split} fpr95 |" for split in split_names),
-        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
+        "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"
         + "".join("---:|" for _ in split_names),
     ]
     lines = list(header)
@@ -715,9 +1617,10 @@ def _write_summary(output_dir: Path, rows: List[Dict[str, Any]], primary_metric:
             f"{float(row.get('fpr95tpr', 0.0)):.6f} | "
             f"{float(row.get('fpr90tpr', 0.0)):.6f} | "
             f"{float(row.get('pair_win_rate', 0.0)):.6f} | "
-            f"{float(row.get('score_gap_mean', 0.0)):.6f} | "
-            f"{float(row.get('pos_score_mean', 0.0)):.6f} | "
-            f"{float(row.get('tn_score_mean', 0.0)):.6f} | "
+            f"{float(row.get('target_fpr95tpr', 0.0)):.6f} | "
+            f"{float(row.get('target_fpr90tpr', 0.0)):.6f} | "
+            f"{float(row.get('target_pair_win_rate', 0.0)):.6f} | "
+            f"{float(row.get('target_score_gap_mean', 0.0)):.6f} | "
             f"{float(row.get('pos_top1_iou50', 0.0)):.6f} | "
             f"{float(row.get('tn_top1_iou50', 0.0)):.6f} | "
             f"{int(row.get('num_pairs', 0))} | "
@@ -775,9 +1678,23 @@ def main() -> None:
     parser.add_argument("--splits", nargs="+", default=["refcocop_val", "refcocog_val"])
     parser.add_argument("--max_batches", type=int, default=0)
     parser.add_argument("--max_pairs", type=int, default=0, help="Maximum TN pairs after split filtering; 0 means full.")
+    parser.add_argument("--max_pairs_per_split", type=int, default=0)
     parser.add_argument("--log_every", type=int, default=50)
     parser.add_argument("--primary_metric", default="fpr95tpr")
     parser.add_argument("--append_existing", action="store_true", help="Include existing per-checkpoint JSON rows in summary.")
+    parser.add_argument("--stage_b_v7_candidate_topk", type=int, default=None)
+    parser.add_argument("--stage_b_v11_candidate_topk", type=int, default=None)
+    parser.add_argument("--stage_b_v7_patch_prior_weight", type=float, default=None)
+    parser.add_argument("--stage_b_v7_phrase_agg", default=None)
+    parser.add_argument("--stage_b_v7_phrase_mean_weight", type=float, default=None)
+    parser.add_argument("--stage_b_v7_phrase_softmin_tau", type=float, default=None)
+    parser.add_argument("--exclude_train_jsonl", nargs="*", default=[])
+    parser.add_argument("--holdout_level", choices=["none", "ann", "image"], default="none")
+    parser.add_argument(
+        "--no_per_example_records",
+        action="store_true",
+        help="Disable canonical *.records.jsonl output used by the paired final gate.",
+    )
     args = parser.parse_args()
 
     if str(args.device).startswith("cuda") and not torch.cuda.is_available():
@@ -791,23 +1708,92 @@ def main() -> None:
 
     cfg = SLConfig.fromfile(args.config)
     cfg.device = str(device)
-    cfg.patch_only = True
-    cfg.patch_only_compute_text_logits = True
+    adapter_enabled = bool(getattr(cfg, "stage_b_gdino_score_adapter", False))
+    data_driven_score = bool(getattr(cfg, "stage_b_data_driven_score", False))
+    u0_patch_rank = bool(getattr(cfg, "stage_b_u0_patch_rank", False))
+    native_patch_category = bool(
+        getattr(cfg, "stage_b_native_patch_category", False)
+    )
+    if native_patch_category:
+        if len(args.ckpts) != 1:
+            raise ValueError(
+                "stage_b_native_patch_category TN/FPR evaluation requires "
+                "exactly one checkpoint"
+            )
+        if not bool(
+            getattr(cfg, "stage_b_native_patch_confidence_trained", False)
+        ):
+            raise RuntimeError(
+                "native patch-category TN/FPR evaluation is forbidden until an "
+                "independent confidence head is explicitly marked trained"
+            )
+    if u0_patch_rank and not adapter_enabled:
+        raise ValueError(
+            "stage_b_u0_patch_rank evaluation requires stage_b_gdino_score_adapter"
+        )
+    cfg.patch_only = not (
+        adapter_enabled or data_driven_score or native_patch_category
+    )
+    cfg.patch_only_compute_text_logits = cfg.patch_only
     cfg.build_text_token_masks = True
     cfg.use_coco_eval = False
+    # Evaluation runs without gradients, so checkpointing only increases
+    # allocator pressure and can trigger large transient CUDA allocations.
+    cfg.use_checkpoint = False
+    cfg.use_transformer_ckpt = False
     cfg.batch_size = int(args.batch_size)
     cfg.text_mask_warn_limit = 0
+    for key in (
+        "stage_b_v7_candidate_topk",
+        "stage_b_v11_candidate_topk",
+        "stage_b_v7_patch_prior_weight",
+        "stage_b_v7_phrase_agg",
+        "stage_b_v7_phrase_mean_weight",
+        "stage_b_v7_phrase_softmin_tau",
+    ):
+        value = getattr(args, key)
+        if value is not None:
+            setattr(cfg, key, value)
 
+    holdout_ann_keys, holdout_image_ids = load_holdout_keys(args.exclude_train_jsonl)
+    if args.holdout_level != "none":
+        print(
+            f"[INFO] holdout level={args.holdout_level} "
+            f"ann_keys={len(holdout_ann_keys)} image_ids={len(holdout_image_ids)}"
+        )
     tn_eval_jsonl, meta_rows, counts = _build_tn_eval_jsonl(
         data_root=data_root,
         output_dir=output_dir,
         tn_jsonl=tn_jsonl,
         splits=list(args.splits),
         max_pairs=int(args.max_pairs),
+        max_pairs_per_split=int(args.max_pairs_per_split),
+        holdout_level=args.holdout_level,
+        holdout_ann_keys=holdout_ann_keys,
+        holdout_image_ids=holdout_image_ids,
     )
     if not meta_rows:
         raise RuntimeError(f"No TN rows selected from {tn_jsonl} for splits={args.splits}")
-    datasetinfo = _make_datasetinfo(data_root, tn_eval_jsonl)
+    selected_eval_rows = list(_iter_jsonl(tn_eval_jsonl))
+    eval_scope = _validate_adapter_tn_eval_manifest(cfg, selected_eval_rows)
+    eval_protocol = (
+        "stageb_vlm_verified_strict_tn_v2"
+        if eval_scope is not None
+        and all(
+            row.get("manifest_schema", None)
+            == "stageb_vlm_verified_strict_tn_v2"
+            for row in selected_eval_rows
+        )
+        else ("adapter_training_pair_schema" if eval_scope is not None else None)
+    )
+    datasetinfo = _make_datasetinfo(
+        data_root,
+        tn_eval_jsonl,
+        adapter_eval_scope=eval_scope,
+        adapter_eval_protocol=eval_protocol,
+        u0_patch_rank=u0_patch_rank,
+        data_driven_score=data_driven_score,
+    )
     print(f"[INFO] built TN eval jsonl: {tn_eval_jsonl} rows={len(meta_rows)} split_counts={counts}")
 
     rows: List[Dict[str, Any]] = _load_existing_rows(output_dir) if bool(args.append_existing) else []
@@ -836,6 +1822,9 @@ def main() -> None:
             max_batches=int(args.max_batches),
             max_pairs=int(args.max_pairs),
             log_every=int(args.log_every),
+            records_output_dir=(
+                None if args.no_per_example_records else output_dir / "per_example_records"
+            ),
         )
         rows = _dedupe_rows(rows + ckpt_rows)
         output_dir.mkdir(parents=True, exist_ok=True)
