@@ -22,6 +22,10 @@ stage_b_v11_trainable_params_max = 25_664_258
 # after measured headroom.
 stage_b_v11_expression_microbatch = 4
 stage_b_dense_duty_expected_expression_microbatch = 4
+stage_b_dense_duty_forward_pack_factor = 1
+stage_b_dense_duty_expected_forward_batch_size = 16
+stage_b_dense_duty_expected_physical_forwards_per_epoch = 887
+stage_b_dense_duty_expected_gradient_accumulation_steps = 4
 
 stage_b_dense_duty_trace_audit_path = (
     "/media/haoyi/T9/pivot/data/ablations/"
