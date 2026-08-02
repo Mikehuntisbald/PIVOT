@@ -11,41 +11,19 @@ results, and the next preregistered experiment.
 
 The current headline status is:
 
-- the historical multi-checkpoint P750/R100/P50 composition beat the recorded
-  GroundingDINO Stage-B data-FT point estimates, but its final artifacts were
-  temporary and its components were trained as separate models;
-- the current dense-duty line has consolidated patch admission, full-text
-  ranking, and absolute confidence into one checkpoint while preserving
-  separate score consumers;
-- the frozen full-text rank tower is complete at U6551 and remains unchanged
-  during confidence training;
-- V55 completed a healthy fresh U400 confidence probe, but produced 852 false
-  accepts on strict1607 against the controller's preregistered reference count
-  of 801 and strict-admission limit of 800;
-- V56 then removed representation-level candidate-loss ownership, completed a
-  healthy fresh U400 probe, and produced 844 false accepts on the same
-  strict1607 evaluation;
-- V56 is therefore also a valid negative result and did not enter formal U4412
-  training;
-- V57 added balanced focal BCE directly to the true deployed global logit and
-  completed a healthy fresh U400 probe, but regressed to 849 false accepts; and
-- V58 implemented the requested FPR95 active set literally, but regressed to
-  914 false accepts despite a healthy U400 run;
-- V59 implemented query-structured evidence inside the deployed global score
-  while keeping its complete representation owned only by deployed losses;
-  its healthy fresh U400 probe produced 876 false accepts on strict1607
-  (FPR95 0.545115), so it is a valid negative result and did not enter formal
-  U4412 training; and
-- paired diagnostics show that V59's query head wins all 1,607 positive/TN
-  pairs, but its unbounded additive coordinate raises TN scores more than
-  positive scores across samples. The next experiment must preserve V56's
-  independent absolute pool as the cross-sample baseline and admit structured
-  evidence only through a bounded, one-sided veto; and
-- V60 now implements that preregistered intervention with exact V56 U0
-  inheritance, deployment-only ownership, detached token routing, and a
-  bounded query-wise veto. Its model, migration, training-contract, evaluator,
-  controller, and focused regression contracts are implemented; it has no
-  empirical result yet.
+- the formal U2 single-network checkpoint is the selected CVPR main system;
+  its current durable artifact and training receipt have been revalidated;
+- U2 uses one shared GDINO image/text backbone, frozen R100 rank and P50
+  confidence adapters, and a trained patch-category residual/gate in one
+  checkpoint; it is not the historical two-model routed composition;
+- its formal B56/U100 training completed with zero AMP skips while preserving
+  the merged R100/P50 tensor state and shared backbone bitwise;
+- the final gap-3 receipt proves higher Ref `Acc@0.5` on all eight official
+  splits and lower FPR95 on both strict1607 and strict2031 than the fixed B58
+  GroundingDINO Stage-B data-FT baseline; and
+- the dense-duty V55--V62 line is retained as a controlled no-teacher
+  development/negative-ablation series. V62 was the final no-teacher capacity
+  experiment and did not enter formal U4412 training.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -56,8 +34,8 @@ Evidence in this ledger is tagged by use:
 
 | Tier | Meaning | Current examples |
 | --- | --- | --- |
-| sealed formal | checkpoint, source, manifest, and per-example records are durably bound | required for a final paper comparison; none claimed for V55 |
-| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | V45-V59 U400 strict1607 reports |
+| sealed formal | checkpoint, source, manifest, and per-example records are durably bound | U2 B56/U100 final gap-3 system |
+| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | dense-duty V45-V62 U400 strict1607 reports |
 | historical non-durable | recorded measurements whose complete final artifact closure no longer exists | July P750/R100/P50 composition |
 | hypothesis | interpretation that still requires an isolating intervention | shared-trunk local-auxiliary conflict |
 
@@ -1228,3 +1206,58 @@ light adapter to a rank-cloned six-layer tower did not solve that coverage
 problem. Per preregistration, no V63 no-teacher architecture is launched; the
 result and checkpoint are retained as the terminal no-teacher capacity/owner
 ablation.
+
+## Final architecture selection after the no-teacher block
+
+The V62 result closes the no-teacher confidence search, but it does not leave
+the paper without a passing single-network system. The durable formal U2
+artifact was re-audited from current files after V62:
+
+```text
+checkpoint:
+  outputs/paper_cvpr_v1/
+    u2_category_complete_seed42_b56_scale8192_v2/checkpoint_iter.pth
+SHA-256:
+  44e3d70b164eff2bcefacc37081b7cbab184a9373720ef69713d47949d449b90
+```
+
+U2 is one serialized model with one shared GDINO image/text backbone. The
+frozen B58/R100/P50 state supplies a proven complete-text ranking residual and
+a lightweight sample-global confidence adapter. The trainable U2 surface adds
+patch-category-complete evidence and a fixed gap-3 category gate. Thus its
+paper-facing decomposition is:
+
+    shared GDINO image/text trunk
+       + frozen R100 query-rank residual -> Ref query order
+       + frozen P50 absolute-confidence adapter -> FPR95 sample score
+       + trained patch-category residual/gate -> category admission
+
+This satisfies the intended score-duty separation without the two complete
+trainable towers used by the dense-duty capacity experiments. Rank and
+confidence remain distinct consumers, but they share the expensive frozen
+cross-modal trunk and live in one checkpoint/inference graph.
+
+The formal U2 training receipt was freshly rebuilt from the current checkpoint,
+initializer, manifests, config snapshots, optimizer, scaler, transition audit,
+and training log. It revalidated B56/U100, 100 successful optimizer updates,
+zero AMP skips, exact two-group/16-tensor trainable ownership, and bitwise
+preservation of the frozen merged R100/P50 teacher and shared backbone. The
+final receipt was also rebuilt against the current summaries and record gates.
+It passed all requirements:
+
+| Metric set | B58 | U2 gap-3 | Result |
+|---|---:|---:|---|
+| strict1607 FPR95 | 0.498444 | 0.455507 | lower by 0.042937 |
+| strict2031 FPR95 | 0.512063 | 0.462334 | lower by 0.049729 |
+| official Ref8 `Acc@0.5` | baseline | higher on 8/8 splits | pass |
+
+The smallest Ref gains remain narrow (`+0.00137` on RefCOCO testB and
+`+0.00146` on RefCOCOg test), so the paper must report exact paired counts and
+must not imply a large universal improvement. The FPR reductions are much
+larger and consistent across both strict manifests.
+
+No additional teacher-distillation or V63 probe is launched after this audit.
+Doing so would replace an already trained and sealed passing system with an
+unvalidated student. U2 is the final CVPR main structure; dense-duty V62 is the
+terminal no-teacher negative ablation explaining why a learned absolute anchor
+is necessary under the available TN supervision.
