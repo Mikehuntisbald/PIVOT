@@ -51,6 +51,9 @@ CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE = (
 CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE = (
     "split_token_veto_local_candidate_global_absolute_v8"
 )
+CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE = (
+    "split_token_veto_deployment_owned_global_absolute_v9"
+)
 CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_SEMANTICS = (
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_JOINT_CLIP,
@@ -59,6 +62,7 @@ CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_SEMANTICS = (
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_CANDIDATE_SAMPLE,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+    CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
 )
 CONFIDENCE_HEAD_GRADIENT_CONTRACTS = (
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_SHARED,
@@ -98,6 +102,9 @@ CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE = (
 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE = (
     "detached_rank_full_expression_local_candidate_frozen_rank_global_pool_v12"
 )
+CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE = (
+    "detached_rank_full_expression_deployment_owned_global_pool_v13"
+)
 CONFIDENCE_POOL_FEATURE_CONTRACTS = (
     CONFIDENCE_POOL_FEATURE_CONTRACT,
     CONFIDENCE_POOL_FEATURE_CONTRACT_SIGNED_RANK_QUERY,
@@ -111,6 +118,7 @@ CONFIDENCE_POOL_FEATURE_CONTRACTS = (
     CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
     CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
     CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+    CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
 )
 CONFIDENCE_RANK_EVIDENCE_CONTRACT_OFF = "off_v1"
 CONFIDENCE_RANK_EVIDENCE_CONTRACT_SCALE = "zero_init_rank_logit_scale_v1"
@@ -792,6 +800,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         ):
             raise ValueError(
@@ -830,6 +839,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
             CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
             CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
             CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+            CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
         }
         if asymmetric_gate_contract != asymmetric_pool_contract:
             raise ValueError(
@@ -838,6 +848,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
         fulltext_global_contract = head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
         }
         fulltext_global_pool = (
             pool_feature_contract
@@ -845,6 +856,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         )
         if fulltext_global_contract != fulltext_global_pool:
@@ -857,6 +869,14 @@ class TokenAwareConfidenceAdapter(nn.Module):
             == CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE
         ):
             raise ValueError("V55 local-candidate/global-absolute contracts must match")
+        if (
+            head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        ) != (
+            pool_feature_contract
+            == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        ):
+            raise ValueError("V56 deployment-owned global contracts must match")
         if fulltext_global_contract and (
             gate_gradient_contract
             != CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_LOGIT
@@ -924,6 +944,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
         if head_gradient_contract not in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
         }:
             self.patch_residual = nn.Sequential(
                 nn.Linear(self.patch_stat_dim, int(patch_hidden_dim)),
@@ -966,6 +987,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
         } and self.head_gradient_contract not in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
         }:
             positive_ceiling_magnitude = -float(veto_cap_initial_ceiling)
             raw_ceiling = positive_ceiling_magnitude + math.log(
@@ -1044,6 +1066,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         ):
             # Preserve every v19 tensor and the following confidence-pool RNG.
@@ -1055,6 +1078,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                         CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                        CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                     }
                 ):
                     self.global_query_norm = nn.LayerNorm(self.hidden_dim)
@@ -1076,6 +1100,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         ):
             cross_dim = max(128, 2 * self.adapter_dim)
@@ -1114,6 +1139,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                         CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                        CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                     }
                 ):
                     # The verifier emits one absolute logit per admitted
@@ -1186,6 +1212,15 @@ class TokenAwareConfidenceAdapter(nn.Module):
             nn.init.zeros_(self.patch_residual[-1].bias)
         nn.init.zeros_(self.patch_feature[-1].weight)
         nn.init.zeros_(self.patch_feature[-1].bias)
+        if (
+            self.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        ):
+            # V56 keeps the V55 checkpoint/state surface for exact migration and
+            # diagnostics, but no non-deployed candidate parameter is active.
+            # Freezing the complete head also prevents AdamW decay from moving a
+            # nominally zero-loss branch.
+            _set_module_trainable(self.candidate_absolute_head, False)
         self._assert_head_parameter_ownership()
 
     @staticmethod
@@ -1245,37 +1280,59 @@ class TokenAwareConfidenceAdapter(nn.Module):
         )
 
     def global_absolute_parameters(self) -> tuple[nn.Parameter, ...]:
-        """Parameters owned by candidate/sample absolute-confidence losses."""
+        """Parameters owned by the deployed sample-global confidence losses."""
+        if (
+            self.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        ):
+            return self._merge_parameters(
+                self.deployed_global_trunk_parameters(),
+                self.sample_calibrator_parameters(),
+            )
         return self._merge_parameters(
             self.candidate_absolute_parameters(),
             self.sample_calibrator_parameters(),
         )
 
-    def candidate_absolute_parameters(self) -> tuple[nn.Parameter, ...]:
-        """Parameters owned by query-local candidate absolute supervision."""
-        modules = self._module_parameters(
-            self.patch_residual,
-            self.patch_feature,
-            self.feature_norm,
-            self.global_query_norm,
-            self.global_query_trunk,
-            self.cross_query_norm,
-            self.cross_text_norm,
-            self.cross_query_projection,
-            self.cross_text_projection,
-            self.cross_evidence_projection,
-            self.cross_attention,
-            self.cross_ffn,
-            self.cross_output_projection,
-            self.candidate_absolute_head,
-        )
+    def deployed_global_trunk_parameters(self) -> tuple[nn.Parameter, ...]:
+        """Trainable representation owned by the deployed global logit."""
         return self._merge_parameters(
-            modules,
+            self._module_parameters(
+                self.patch_residual,
+                self.patch_feature,
+                self.feature_norm,
+                self.global_query_norm,
+                self.global_query_trunk,
+                self.cross_query_norm,
+                self.cross_text_norm,
+                self.cross_query_projection,
+                self.cross_text_projection,
+                self.cross_evidence_projection,
+                self.cross_attention,
+                self.cross_ffn,
+                self.cross_output_projection,
+            ),
             (
                 self.veto_cap_raw_ceiling,
                 self.candidate_patch_scale_raw,
                 self.candidate_veto_depth_raw,
             ),
+        )
+
+    def candidate_diagnostic_parameters(self) -> tuple[nn.Parameter, ...]:
+        """Serialized non-deployed candidate head, frozen by the V56 contract."""
+        return self._module_parameters(self.candidate_absolute_head)
+
+    def candidate_absolute_parameters(self) -> tuple[nn.Parameter, ...]:
+        """Parameters owned by query-local candidate absolute supervision."""
+        diagnostic = self.candidate_diagnostic_parameters()
+        if (
+            self.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        ):
+            return diagnostic
+        return self._merge_parameters(
+            self.deployed_global_trunk_parameters(), diagnostic
         )
 
     def sample_calibrator_parameters(self) -> tuple[nn.Parameter, ...]:
@@ -1293,6 +1350,14 @@ class TokenAwareConfidenceAdapter(nn.Module):
         }
         sample = {id(parameter) for parameter in self.sample_calibrator_parameters()}
         complete = {id(parameter) for parameter in self.parameters()}
+        diagnostic = {
+            id(parameter) for parameter in self.candidate_diagnostic_parameters()
+        }
+        deployment_owned = (
+            self.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        )
+        active_complete = complete - diagnostic if deployment_owned else complete
         deployed_router_enabled = (
             self.head_gradient_contract
             == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYED_ROUTER
@@ -1307,9 +1372,17 @@ class TokenAwareConfidenceAdapter(nn.Module):
             or bool(token & absolute)
             or bool(token & router)
             or bool(router & absolute)
-            or token | router | absolute != complete
+            or token | router | absolute != active_complete
             or (deployed_router_enabled and not router)
             or (not deployed_router_enabled and bool(router))
+            or (
+                deployment_owned
+                and (
+                    not diagnostic
+                    or bool(diagnostic & (token | router | absolute))
+                    or any(parameter.requires_grad for parameter in self.candidate_diagnostic_parameters())
+                )
+            )
             or (
                 candidate_sample_enabled
                 and (
@@ -1865,6 +1938,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
         if self.head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
         }:
             # V53 inherits the complete frozen rank semantics at U0. Patch
             # evidence remains responsible for admission and is also available
@@ -2121,6 +2195,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         ):
             cross_attention_query = self._cross_attention_global_feature(
@@ -2162,12 +2237,19 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         ):
             if self.candidate_absolute_head is None:
                 raise RuntimeError("candidate-absolute confidence head is incomplete")
+            candidate_head_input = (
+                dense_feature.detach()
+                if self.head_gradient_contract
+                == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+                else dense_feature
+            )
             candidate_residual_layers = self.candidate_absolute_head(
-                dense_feature
+                candidate_head_input
             ).squeeze(-1)
             if self.head_gradient_contract == (
                 CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE
@@ -2180,6 +2262,13 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 # V55 local supervision owns only the independent candidate
                 # confidence coordinate. Frozen rank remains an input feature
                 # and query-ordering signal, never an additive confidence score.
+                base_layers = candidate_residual_layers
+            elif self.head_gradient_contract == (
+                CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+            ):
+                # V56 retains the V55 local coordinate only as a frozen,
+                # detached diagnostic. It cannot update or enter the deployed
+                # representation and remains excluded from the global score.
                 base_layers = candidate_residual_layers
             else:
                 # Historical candidate heads learn an absolute score from zero.
@@ -2742,10 +2831,29 @@ class StageBDenseDutyScorer(nn.Module):
     def _assert_parameter_disjointness(self) -> None:
         rank_ids = {id(parameter) for parameter in self.rank_parameters()}
         confidence_ids = {id(parameter) for parameter in self.confidence_parameters()}
+        diagnostic_ids = {
+            id(parameter) for parameter in self.candidate_diagnostic_parameters()
+        }
+        deployment_owned = (
+            self.confidence_adapter.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        )
         overlap = rank_ids & confidence_ids
         if not rank_ids or not confidence_ids or overlap:
             raise RuntimeError(
                 "dense-duty rank/confidence parameter ownership is empty or overlapping"
+            )
+        if deployment_owned and (
+            not diagnostic_ids
+            or bool(diagnostic_ids & (rank_ids | confidence_ids))
+            or any(
+                parameter.requires_grad
+                for parameter in self.candidate_diagnostic_parameters()
+            )
+        ):
+            raise RuntimeError(
+                "deployment-owned confidence requires a complete frozen diagnostic "
+                "candidate head outside every active parameter owner"
             )
         token_ids = {id(parameter) for parameter in self.token_veto_parameters()}
         router_ids = {
@@ -2818,6 +2926,11 @@ class StageBDenseDutyScorer(nn.Module):
         return self.rank_tower.owned_parameters()
 
     def confidence_parameters(self) -> tuple[nn.Parameter, ...]:
+        if (
+            self.confidence_adapter.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        ):
+            return self.token_veto_parameters() + self.global_absolute_parameters()
         return (
             tuple(self.confidence_adapter.parameters())
             + tuple(self.confidence_pool.parameters())
@@ -2837,6 +2950,12 @@ class StageBDenseDutyScorer(nn.Module):
     def candidate_absolute_parameters(self) -> tuple[nn.Parameter, ...]:
         return self.confidence_adapter.candidate_absolute_parameters()
 
+    def candidate_diagnostic_parameters(self) -> tuple[nn.Parameter, ...]:
+        return self.confidence_adapter.candidate_diagnostic_parameters()
+
+    def deployed_global_trunk_parameters(self) -> tuple[nn.Parameter, ...]:
+        return self.confidence_adapter.deployed_global_trunk_parameters()
+
     def sample_calibrator_parameters(self) -> tuple[nn.Parameter, ...]:
         return self.confidence_adapter.sample_calibrator_parameters() + tuple(
             self.confidence_pool.parameters()
@@ -2848,6 +2967,7 @@ class StageBDenseDutyScorer(nn.Module):
         if head_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
         }:
             return {
                 "token_veto": len(self.token_veto_parameters()),
@@ -2899,10 +3019,23 @@ class StageBDenseDutyScorer(nn.Module):
         rank_active = bool(self.training and self.phase == "rank")
         confidence_active = bool(self.training and self.phase == "confidence")
         self.rank_tower.set_active(rank_active)
-        _set_module_trainable(self.confidence_adapter, confidence_active)
-        _set_module_trainable(self.confidence_pool, confidence_active)
-        if self.confidence_veto_pool is not None:
-            _set_module_trainable(self.confidence_veto_pool, confidence_active)
+        deployment_owned = (
+            self.confidence_adapter.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+        )
+        if deployment_owned:
+            _set_module_trainable(self.confidence_adapter, False)
+            _set_module_trainable(self.confidence_pool, False)
+            if self.confidence_veto_pool is not None:
+                _set_module_trainable(self.confidence_veto_pool, False)
+            if confidence_active:
+                for parameter in self.confidence_parameters():
+                    parameter.requires_grad_(True)
+        else:
+            _set_module_trainable(self.confidence_adapter, confidence_active)
+            _set_module_trainable(self.confidence_pool, confidence_active)
+            if self.confidence_veto_pool is not None:
+                _set_module_trainable(self.confidence_veto_pool, confidence_active)
 
     def train(self, mode: bool = True):
         super().train(mode)
@@ -3448,6 +3581,7 @@ class StageBDenseDutyScorer(nn.Module):
             in {
                 CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
             and self.confidence_adapter.gate_gradient_contract
             == CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_LOGIT
@@ -3456,14 +3590,25 @@ class StageBDenseDutyScorer(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         )
         independent_global_absolute_enabled = (
             fulltext_global_absolute_enabled
-            and self.confidence_adapter.head_gradient_contract
-            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE
-            and self.confidence_adapter.pool_feature_contract
-            == CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE
+            and (
+                (
+                    self.confidence_adapter.head_gradient_contract
+                    == CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE
+                    and self.confidence_adapter.pool_feature_contract
+                    == CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE
+                )
+                or (
+                    self.confidence_adapter.head_gradient_contract
+                    == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+                    and self.confidence_adapter.pool_feature_contract
+                    == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE
+                )
+            )
         )
         exact_rank_max_reference_enabled = (
             fulltext_global_absolute_enabled
@@ -3471,6 +3616,7 @@ class StageBDenseDutyScorer(nn.Module):
             in {
                 CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             }
         )
         continuous_conditional_residual_enabled = (
@@ -4410,6 +4556,7 @@ __all__ = [
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_CANDIDATE_SAMPLE",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE",
+    "CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_SEMANTICS",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACTS",
     "CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_DETACHED",
@@ -4442,6 +4589,7 @@ __all__ = [
     "CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE",
     "CONFIDENCE_POOL_FEATURE_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_REFERENCE",
     "CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE",
+    "CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE",
     "CONFIDENCE_RANK_EVIDENCE_CONTRACT_SPARSE_RANK_CHANNEL_MISMATCH",
     "CONFIDENCE_PHRASE_AGGREGATION_WORD_VETO_GATED_POOL_ABSOLUTE_CAP",
     "CONFIDENCE_TOKEN_CONTRACT",

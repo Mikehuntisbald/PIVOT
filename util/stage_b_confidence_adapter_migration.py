@@ -74,6 +74,10 @@ FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA = (
     "pivot.stageb.rank_to_token_confidence_adapter_"
     "fulltext_global_independent_absolute/v22"
 )
+DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA = (
+    "pivot.stageb.rank_to_token_confidence_adapter_"
+    "deployment_owned_global_absolute/v23"
+)
 ABSOLUTE_CAP_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_patch_pool_trainable_absolute_cap_v1"
 )
@@ -144,6 +148,10 @@ FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_rank_full_expression_local_candidate_"
     "global_independent_absolute_v20"
 )
+DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT = (
+    "token_adapter_rank_full_expression_deployment_owned_"
+    "global_absolute_v21"
+)
 GLOBAL_TRUST_VETO_HEAD_GRADIENT_CONTRACT = (
     "split_token_veto_global_trust_veto_v4"
 )
@@ -158,6 +166,9 @@ FULLTEXT_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT = (
 )
 FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT = (
     "split_token_veto_local_candidate_global_absolute_v8"
+)
+DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT = (
+    "split_token_veto_deployment_owned_global_absolute_v9"
 )
 FULLTEXT_GLOBAL_ABSOLUTE_GATE_GRADIENT_CONTRACT = (
     "candidate_raw_patch_asymmetric_monotone_veto_absolute_logit_v13"
@@ -198,6 +209,9 @@ FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_POOL_FEATURE_CONTRACT = (
 FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_POOL_FEATURE_CONTRACT = (
     "detached_rank_full_expression_local_candidate_"
     "frozen_rank_global_pool_v12"
+)
+DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT = (
+    "detached_rank_full_expression_deployment_owned_global_pool_v13"
 )
 SIGNED_RANK_QUERY_POOL_FEATURE_CONTRACTS = frozenset(
     {
@@ -373,6 +387,10 @@ EXPECTED_FULLTEXT_GLOBAL_ABSOLUTE_FRESH_SHA256 = (
     "7d4da05e70e4f2a15ca2c3265f82a36369c2c9732cdedace63ef24c4e97646b4"
 )
 EXPECTED_FULLTEXT_GLOBAL_ABSOLUTE_STRICT_TARGET_TENSOR_COUNT = 1_654
+EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_TENSOR_COUNT = 59
+EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_ELEMENT_COUNT = 468_164
+EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_TENSOR_COUNT = 6
+EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_ELEMENT_COUNT = 66_561
 EXPECTED_RANK_TENSOR_COUNT = 453
 EXPECTED_TRANSFERRED_TENSOR_COUNT = 1_588
 SCORER_PREFIX = "stage_b_fixed_text_scorer."
@@ -515,6 +533,10 @@ def _migration_surface_contract(audit: Mapping[str, Any]) -> dict[str, Any]:
         schema == FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA
         and audit.get("fresh_confidence_contract")
         == FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
+    ) or (
+        schema == DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+        and audit.get("fresh_confidence_contract")
+        == DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
     )
     if (
         fulltext_global_absolute_surface
@@ -522,12 +544,15 @@ def _migration_surface_contract(audit: Mapping[str, Any]) -> dict[str, Any]:
         == SPARSE_RANK_CHANNEL_RESIDUAL_CONTRACT
         and audit.get("head_gradient_contract")
         == (
+            DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+            if schema == DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+            else
             FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT
             if schema == FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA
             else FULLTEXT_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
         )
     ):
-        return {
+        surface = {
             "adapter_tensor_count": (
                 EXPECTED_FULLTEXT_GLOBAL_ABSOLUTE_ADAPTER_TENSOR_COUNT
             ),
@@ -554,6 +579,24 @@ def _migration_surface_contract(audit: Mapping[str, Any]) -> dict[str, Any]:
                 EXPECTED_FULLTEXT_GLOBAL_ABSOLUTE_STRICT_TARGET_TENSOR_COUNT
             ),
         }
+        if schema == DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA:
+            surface.update(
+                {
+                    "active_confidence_parameter_tensor_count": (
+                        EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_TENSOR_COUNT
+                    ),
+                    "active_confidence_parameter_element_count": (
+                        EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_ELEMENT_COUNT
+                    ),
+                    "diagnostic_candidate_parameter_tensor_count": (
+                        EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_TENSOR_COUNT
+                    ),
+                    "diagnostic_candidate_parameter_element_count": (
+                        EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_ELEMENT_COUNT
+                    ),
+                }
+            )
+        return surface
     if (
         schema == CANDIDATE_SAMPLE_CALIBRATOR_MIGRATION_SCHEMA
         and audit.get("fresh_confidence_contract")
@@ -949,10 +992,15 @@ def validate_confidence_adapter_migration_audit(
         audit.get("schema")
         == FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA
     )
+    deployment_owned_global_absolute_schema = (
+        audit.get("schema")
+        == DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+    )
     fulltext_global_absolute_family_schema = (
         fulltext_global_absolute_schema
         or fulltext_global_absolute_exact_residual_schema
         or fulltext_global_independent_absolute_schema
+        or deployment_owned_global_absolute_schema
     )
     pool_feature_contract = audit.get("pool_feature_contract")
     rank = audit.get("rank")
@@ -976,6 +1024,11 @@ def validate_confidence_adapter_migration_audit(
                 != FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_POOL_FEATURE_CONTRACT
             )
             if fulltext_global_independent_absolute_schema
+            else (
+                pool_feature_contract
+                != DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
+            )
+            if deployment_owned_global_absolute_schema
             else (
                 pool_feature_contract
                 != CANDIDATE_SET_ATTENTION_POOL_FEATURE_CONTRACT
@@ -1056,6 +1109,16 @@ def validate_confidence_adapter_migration_audit(
             and audit.get("confidence_parameter_element_count")
             != surface["confidence_parameter_element_count"]
         )
+        or any(
+            audit.get(field) != expected
+            for field, expected in surface.items()
+            if field.startswith(
+                (
+                    "active_confidence_parameter_",
+                    "diagnostic_candidate_parameter_",
+                )
+            )
+        )
         or (
             global_trust_veto_schema
             and audit.get("head_gradient_contract")
@@ -1075,6 +1138,15 @@ def validate_confidence_adapter_migration_audit(
             fulltext_global_independent_absolute_schema
             and audit.get("head_gradient_contract")
             != FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+        )
+        or (
+            deployment_owned_global_absolute_schema
+            and audit.get("head_gradient_contract")
+            != DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+        )
+        or (
+            deployment_owned_global_absolute_schema
+            and audit.get("diagnostic_candidate_requires_grad_count") != 0
         )
         or (
             (
@@ -1142,6 +1214,29 @@ def migrate_legacy_rank_to_confidence_adapter(
     )
     confidence_parameter_element_count = sum(
         int(runtime_parameters[name].numel()) for name in confidence_parameter_names
+    )
+    active_confidence_ids = (
+        {id(parameter) for parameter in scorer.confidence_parameters()}
+        if hasattr(scorer, "confidence_parameters")
+        else {id(runtime_parameters[name]) for name in confidence_parameter_names}
+    )
+    active_confidence_parameter_names = sorted(
+        name
+        for name in confidence_parameter_names
+        if id(runtime_parameters[name]) in active_confidence_ids
+    )
+    diagnostic_candidate_ids = (
+        {
+            id(parameter)
+            for parameter in scorer.candidate_diagnostic_parameters()
+        }
+        if hasattr(scorer, "candidate_diagnostic_parameters")
+        else set()
+    )
+    diagnostic_candidate_parameter_names = sorted(
+        name
+        for name in confidence_parameter_names
+        if id(runtime_parameters[name]) in diagnostic_candidate_ids
     )
     if not rank_names or not adapter_names or not pool_names:
         raise RuntimeError("rank-adapter migration found an incomplete target scorer")
@@ -1305,10 +1400,15 @@ def migrate_legacy_rank_to_confidence_adapter(
         runtime_pool_feature_contract
         == FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_POOL_FEATURE_CONTRACT
     )
+    deployment_owned_global_absolute_pool_contract = (
+        runtime_pool_feature_contract
+        == DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
+    )
     fulltext_global_absolute_family_pool_contract = (
         fulltext_global_absolute_pool_contract
         or fulltext_global_absolute_exact_residual_pool_contract
         or fulltext_global_independent_absolute_pool_contract
+        or deployment_owned_global_absolute_pool_contract
     )
     runtime_head_gradient_contract = str(
         getattr(scorer.confidence_adapter, "head_gradient_contract", "") or ""
@@ -1333,11 +1433,16 @@ def migrate_legacy_rank_to_confidence_adapter(
         runtime_head_gradient_contract
         == FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT
     )
+    deployment_owned_global_absolute_head_contract = (
+        runtime_head_gradient_contract
+        == DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+    )
     fulltext_global_absolute_contract = (
         fulltext_global_absolute_family_pool_contract
         and (
             fulltext_global_absolute_head_contract
             or fulltext_global_independent_absolute_head_contract
+            or deployment_owned_global_absolute_head_contract
         )
     )
     if (
@@ -1345,6 +1450,7 @@ def migrate_legacy_rank_to_confidence_adapter(
         != (
             fulltext_global_absolute_head_contract
             or fulltext_global_independent_absolute_head_contract
+            or deployment_owned_global_absolute_head_contract
         )
     ):
         raise RuntimeError(
@@ -1358,6 +1464,14 @@ def migrate_legacy_rank_to_confidence_adapter(
         raise RuntimeError(
             "independent full-text global-absolute pool and head contracts must "
             "be selected together"
+        )
+    if (
+        deployment_owned_global_absolute_pool_contract
+        != deployment_owned_global_absolute_head_contract
+    ):
+        raise RuntimeError(
+            "deployment-owned global-absolute pool and head contracts must be "
+            "selected together"
         )
     if fulltext_global_absolute_contract:
         runtime_gate_gradient_contract = str(
@@ -1690,7 +1804,9 @@ def migrate_legacy_rank_to_confidence_adapter(
                 )
     audit = {
         "schema": (
-            FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA
+            DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+            if deployment_owned_global_absolute_pool_contract
+            else FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA
             if fulltext_global_independent_absolute_pool_contract
             else FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_MIGRATION_SCHEMA
             if fulltext_global_absolute_exact_residual_pool_contract
@@ -1775,7 +1891,9 @@ def migrate_legacy_rank_to_confidence_adapter(
     }
     if fulltext_global_absolute_contract:
         audit["fresh_confidence_contract"] = (
-            FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
+            DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
+            if deployment_owned_global_absolute_pool_contract
+            else FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
             if fulltext_global_independent_absolute_pool_contract
             else FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_FRESH_CONFIDENCE_CONTRACT
             if fulltext_global_absolute_exact_residual_pool_contract
@@ -1783,7 +1901,9 @@ def migrate_legacy_rank_to_confidence_adapter(
         )
         audit["rank_evidence_contract"] = SPARSE_RANK_CHANNEL_RESIDUAL_CONTRACT
         audit["head_gradient_contract"] = (
-            FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+            DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+            if deployment_owned_global_absolute_pool_contract
+            else FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT
             if fulltext_global_independent_absolute_pool_contract
             else FULLTEXT_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
         )
@@ -1793,6 +1913,29 @@ def migrate_legacy_rank_to_confidence_adapter(
         audit["confidence_parameter_element_count"] = (
             confidence_parameter_element_count
         )
+        if deployment_owned_global_absolute_pool_contract:
+            audit.update(
+                {
+                    "active_confidence_parameter_tensor_count": len(
+                        active_confidence_parameter_names
+                    ),
+                    "active_confidence_parameter_element_count": sum(
+                        int(runtime_parameters[name].numel())
+                        for name in active_confidence_parameter_names
+                    ),
+                    "diagnostic_candidate_parameter_tensor_count": len(
+                        diagnostic_candidate_parameter_names
+                    ),
+                    "diagnostic_candidate_parameter_element_count": sum(
+                        int(runtime_parameters[name].numel())
+                        for name in diagnostic_candidate_parameter_names
+                    ),
+                    "diagnostic_candidate_requires_grad_count": sum(
+                        int(runtime_parameters[name].requires_grad)
+                        for name in diagnostic_candidate_parameter_names
+                    ),
+                }
+            )
     elif candidate_sample_calibrator_contract:
         audit["fresh_confidence_contract"] = (
             CANDIDATE_SAMPLE_CALIBRATOR_FRESH_CONFIDENCE_CONTRACT
@@ -1889,6 +2032,14 @@ def migrate_legacy_rank_to_confidence_adapter(
 
 
 __all__ = [
+    "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT",
+    "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT",
+    "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA",
+    "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT",
+    "EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_ELEMENT_COUNT",
+    "EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_TENSOR_COUNT",
+    "EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_ELEMENT_COUNT",
+    "EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_TENSOR_COUNT",
     "FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT",
     "FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT",
     "FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_MIGRATION_SCHEMA",

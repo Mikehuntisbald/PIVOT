@@ -42,6 +42,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _V53_FULLTEXT_GLOBAL_ABSOLUTE_REVISION,
     _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION,
     _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
+    _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
     _build_split_jsonl,
     _canonical_ref_split_seed_map,
     _ckpt_run_prefix,
@@ -66,6 +67,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _validate_v53_fulltext_global_absolute_config,
     _validate_v54_fulltext_global_absolute_exact_residual_config,
     _validate_v55_fulltext_global_independent_absolute_config,
+    _validate_v56_deployment_owned_global_config,
     _verify_v39_immutable_archived_diagnostic_files,
     _verify_v40_immutable_archived_diagnostic_files,
     _verify_v41_immutable_archived_diagnostic_files,
@@ -402,6 +404,12 @@ _FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_CONFIDENCE_U0400_CONFIG = (
     / "config/ablations/"
     "cfg_stageb_dense_duty_confidence_adapter_"
     "fulltext_global_independent_absolute_probe_u0400_20260802.py"
+)
+_DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_global_"
+    "probe_u0400_20260802.py"
 )
 _V39_IMMUTABLE_ARCHIVED_SNAPSHOT_ROOT = (
     REPO_ROOT
@@ -1548,6 +1556,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
+        _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_probe = observed_config in {
@@ -1629,6 +1638,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
+        _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_gate_probe = observed_config == (
@@ -1825,6 +1835,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
+    deployment_owned_global_confidence_u0400 = observed_config == (
+        _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
+    )
     candidate_gate_zero_offset_family = (
         candidate_gate_zero_offset_confidence_u0400
         or candidate_hardest_edit_confidence_u0400
@@ -1860,6 +1873,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         or fulltext_global_absolute_confidence_u0400
         or fulltext_global_absolute_exact_residual_confidence_u0400
         or fulltext_global_independent_absolute_confidence_u0400
+        or deployment_owned_global_confidence_u0400
     )
     veto_token_conditioned_probe = (
         veto_token_conditioned_u0050
@@ -1982,6 +1996,11 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
     if fulltext_global_independent_absolute_confidence_u0400:
         try:
             _validate_v55_fulltext_global_independent_absolute_config(cfg)
+        except (RuntimeError, TypeError, ValueError) as exc:
+            errors.append(str(exc))
+    if deployment_owned_global_confidence_u0400:
+        try:
+            _validate_v56_deployment_owned_global_config(cfg)
         except (RuntimeError, TypeError, ValueError) as exc:
             errors.append(str(exc))
     if candidate_split_heads_confidence_u0400 and str(
@@ -2119,6 +2138,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             or fulltext_global_absolute_confidence_u0400
             or fulltext_global_absolute_exact_residual_confidence_u0400
             or fulltext_global_independent_absolute_confidence_u0400
+            or deployment_owned_global_confidence_u0400
         )
         and observed_token_edit_scope != "target_iou_v1"
     ):
@@ -2159,6 +2179,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             or fulltext_global_absolute_confidence_u0400
             or fulltext_global_absolute_exact_residual_confidence_u0400
             or fulltext_global_independent_absolute_confidence_u0400
+            or deployment_owned_global_confidence_u0400
         )
         and observed_carrier_pair_gradient_contract != "bidirectional_v1"
     ):
@@ -2236,6 +2257,8 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             expected_veto_revision = (
                 _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION
             )
+        elif deployment_owned_global_confidence_u0400:
+            expected_veto_revision = _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION
     elif cross_attention_absolute_confidence_u0300:
         expected_veto_aggregation = (
             "trace_activated_word_veto_gated_pool_absolute_cap_v5"
@@ -2375,6 +2398,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
                 or fulltext_global_absolute_confidence_u0400
                 or fulltext_global_absolute_exact_residual_confidence_u0400
                 or fulltext_global_independent_absolute_confidence_u0400
+                or deployment_owned_global_confidence_u0400
             )
             else (
                 600
@@ -2407,43 +2431,47 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         ).strip()
         != (
             (
-                "detached_rank_full_expression_local_candidate_"
-                "frozen_rank_global_pool_v12"
-                if fulltext_global_independent_absolute_confidence_u0400
+                "detached_rank_full_expression_deployment_owned_global_pool_v13"
+                if deployment_owned_global_confidence_u0400
                 else (
-                    "detached_rank_full_expression_candidate_residual_global_pool_"
-                    "exact_rank_max_reference_v11"
-                    if fulltext_global_absolute_exact_residual_confidence_u0400
+                    "detached_rank_full_expression_local_candidate_"
+                    "frozen_rank_global_pool_v12"
+                    if fulltext_global_independent_absolute_confidence_u0400
                     else (
-                        "detached_rank_full_expression_candidate_residual_global_pool_v10"
-                        if fulltext_global_absolute_confidence_u0400
+                        "detached_rank_full_expression_candidate_residual_global_pool_"
+                        "exact_rank_max_reference_v11"
+                        if fulltext_global_absolute_exact_residual_confidence_u0400
                         else (
-                            "detached_candidate_absolute_patch_invariant_"
-                            "monotone_veto_logits_v6"
-                            if candidate_calibrated_confidence_u0400
+                            "detached_rank_full_expression_candidate_residual_global_pool_v10"
+                            if fulltext_global_absolute_confidence_u0400
                             else (
-                                "detached_candidate_absolute_raw_patch_"
-                                "asymmetric_veto_logits_v8"
-                                if (
-                                    candidate_asymmetric_confidence_u0400
-                                    or candidate_q05_confidence_u0400
-                                    or candidate_tail_balanced_confidence_u0400
-                                    or candidate_tail_quarter_confidence_u0400
-                                    or candidate_tail_bounded_confidence_u0400
-                                    or candidate_tail_elementwise_confidence_u0400
-                                    or candidate_gate_zero_offset_family
-                                )
+                                "detached_candidate_absolute_patch_invariant_"
+                                "monotone_veto_logits_v6"
+                                if candidate_calibrated_confidence_u0400
                                 else (
-                                    "detached_candidate_set_attention_absolute_"
-                                    "asymmetric_veto_logits_v9"
-                                    if candidate_set_attention_confidence_u0400
+                                    "detached_candidate_absolute_raw_patch_"
+                                    "asymmetric_veto_logits_v8"
+                                    if (
+                                        candidate_asymmetric_confidence_u0400
+                                        or candidate_q05_confidence_u0400
+                                        or candidate_tail_balanced_confidence_u0400
+                                        or candidate_tail_quarter_confidence_u0400
+                                        or candidate_tail_bounded_confidence_u0400
+                                        or candidate_tail_elementwise_confidence_u0400
+                                        or candidate_gate_zero_offset_family
+                                    )
                                     else (
-                                        "detached_candidate_absolute_normalized_patch_"
-                                        "amplified_veto_logits_v7"
-                                        if candidate_normalized_confidence_u0400
+                                        "detached_candidate_set_attention_absolute_"
+                                        "asymmetric_veto_logits_v9"
+                                        if candidate_set_attention_confidence_u0400
                                         else (
-                                            "detached_query_modifier_cross_attention_"
-                                            "candidate_absolute_logits_v5"
+                                            "detached_candidate_absolute_normalized_patch_"
+                                            "amplified_veto_logits_v7"
+                                            if candidate_normalized_confidence_u0400
+                                            else (
+                                                "detached_query_modifier_cross_attention_"
+                                                "candidate_absolute_logits_v5"
+                                            )
                                         )
                                     )
                                 )
@@ -2605,6 +2633,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
                         or fulltext_global_absolute_confidence_u0400
                         or fulltext_global_absolute_exact_residual_confidence_u0400
                         or fulltext_global_independent_absolute_confidence_u0400
+                        or deployment_owned_global_confidence_u0400
                     )
                     else (
                         0.02
@@ -2819,6 +2848,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
                                                                 or fulltext_global_absolute_confidence_u0400
                                                                 or fulltext_global_absolute_exact_residual_confidence_u0400
                                                                 or fulltext_global_independent_absolute_confidence_u0400
+                                                                or deployment_owned_global_confidence_u0400
                                                             )
                                                             else (
                                                                 "candidate_set_attention_asymmetric_monotone_veto_absolute_logit_v14"
@@ -2904,7 +2934,10 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         )
         != (
             "absolute_global_pool_logit_v4"
-            if fulltext_global_independent_absolute_confidence_u0400
+            if (
+                fulltext_global_independent_absolute_confidence_u0400
+                or deployment_owned_global_confidence_u0400
+            )
             else (
                 "exact_frozen_rank_max_confidence_delta_v3"
                 if fulltext_global_absolute_exact_residual_confidence_u0400

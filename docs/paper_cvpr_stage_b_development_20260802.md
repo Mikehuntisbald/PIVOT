@@ -22,10 +22,14 @@ The current headline status is:
 - V55 completed a healthy fresh U400 confidence probe, but produced 852 false
   accepts on strict1607 against the controller's preregistered reference count
   of 801 and strict-admission limit of 800;
-- V55 is therefore a valid negative result and did not enter formal U4412
+- V56 then removed representation-level candidate-loss ownership, completed a
+  healthy fresh U400 probe, and produced 844 false accepts on the same
+  strict1607 evaluation;
+- V56 is therefore also a valid negative result and did not enter formal U4412
   training; and
-- V56 is preregistered as a no-local-candidate-auxiliary controlled isolation
-  test. It has not been implemented or trained at the time of this ledger.
+- V57 is preregistered below to restore balanced absolute supervision directly
+  on the deployed global logit without restoring the candidate auxiliary or
+  any representation-level leakage.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -465,32 +469,49 @@ sufficient. The current evidence neither establishes a capacity bottleneck nor
 rules one out. V56 isolates the potentially conflicting local auxiliary before
 larger-capacity alternatives are interpreted.
 
-## V56 preregistration
+## V56 ownership intervention and result
 
-V56 is a preregistered single-variable test of the hypothesized non-deployed
-auxiliary conflict. It must be fresh from U6551 and must not continue V55.
+V56 was preregistered as an ownership intervention for the hypothesized
+non-deployed auxiliary conflict. It must be fresh from U6551 and must not
+continue V55. Its deployed V55 score definition is held fixed; the treatment
+is which losses are allowed to own the representation that produces that
+score.
 
 ### Required change
 
 ```text
 stage_b_v14_local_absolute_weight = 0
-candidate_absolute_head final affine = frozen and bitwise unchanged
+candidate_absolute_head input = dense_global.detach()
+candidate_absolute_head = fully frozen, diagnostic only
+global trunk + AbsoluteConfidencePool = deployed-global owner only
 ```
 
-The primary V56 treatment changes only the local auxiliary weight from 1 to 0.
-The existing candidate head remains serialized, its final affine is frozen, and
-the audit must prove it is bitwise unchanged. Removing that head would alter the
-architecture and parameter surface, so it is reserved for a later mechanical
-cleanup only after U0 and deployed-output parity are proved. The intended
-deployed system still has exactly two meaningful trainable consumers:
+The existing candidate head remains serialized for exact U6551 migration and
+diagnostics, but all six of its tensors are frozen, its input is detached, and
+its local loss has exactly zero weight. Full freezing is necessary because a
+zero loss alone would not prevent AdamW from moving a parameter that remained
+in the optimizer. The audit must prove that the six tensors have no optimizer
+state and are bitwise unchanged. Removing the head entirely is reserved for a
+later mechanical cleanup only after U0 and deployed-output parity are proved.
+The intended deployed system has exactly two trainable owners:
 
 ```text
 token-veto head
 global absolute-confidence head
 ```
 
-The full-text feature trunk remains trainable. It is not detached from the
-global pool; it is optimized exclusively by deployed sample-global objectives.
+The 21-tensor token-veto owner contains the independent token residual scorer.
+The 38-tensor deployed-global owner contains `patch_feature`, the full-text
+cross-attention path, `global_query_trunk`, and `AbsoluteConfidencePool`.
+Together they form the 59-tensor, 468,164-parameter active surface. Frozen rank
+token evidence is an input, and the token residual consumed by the global path
+is detached, so neither owner's losses rewrite the other owner.
+
+The full-text global trunk remains trainable and is not detached from the
+global pool. FPR95 active-set loss, global TN softplus, same-pair loss, and
+positive-q05 protection all consume the true sample-global deployed logit.
+The q05 route returns that deployed tensor itself rather than a merely
+value-equal pool diagnostic alias.
 
 ### Variables that must remain fixed
 
@@ -512,10 +533,12 @@ global pool; it is optimized exclusively by deployed sample-global objectives.
 - U400 health audit; and
 - strict1607 manifest, evaluator, and integer false-accept gate.
 
-This test is stronger than merely detaching the pool input. Detaching the pool
-would force the deployed global head to consume a representation still trained
-by a potentially conflicting local auxiliary. V56 instead lets the shared
-full-text trunk learn only the deployed global task.
+This test rejects the alternative split that detaches the global-pool input and
+lets the local candidate branch own the trunk. That alternative would leave the
+deployed scalar consuming a representation optimized by a non-deployed
+objective. V56 instead gives the deployed loss complete ownership of its input
+representation. It therefore addresses representation-level leakage while V55
+addressed only score-level leakage.
 
 ### Decision rule
 
@@ -528,12 +551,92 @@ full-text trunk learn only the deployed global task.
 6. If V56 fails, preserve it as a controlled negative result and do not extend it
    merely because one training loss is still decreasing.
 
-### Next branch only if V56 fails
+### Executed evidence
 
-V57 may retain a local candidate auxiliary only by giving candidate and global
-separate representation trunks and separate optimizer/clip owners. That is a
-larger architecture ablation. It should not be mixed into V56 because doing so
-would make the source of any gain ambiguous.
+The fresh V56 U400 checkpoint is:
+
+```text
+outputs/paper_cvpr_v1/
+  dense_duty_adapter_deployment_owned_global_highmem_20260802/
+  probe/u000400_fresh/checkpoint_iter.pth
+SHA-256 = 4b0d001048b51da16231d5ac66297ca9d9b390f123722e4f3688932f46615026
+```
+
+The health audit passed all executable checks:
+
+- 400 requested and 400 successful optimizer steps;
+- zero AMP skips and zero non-finite gradient boundaries;
+- 59 active tensors and 468,164 active parameters;
+- token owner: 21 tensors and 51,267 parameters;
+- deployed-global owner: 38 tensors and 416,897 parameters;
+- candidate diagnostic: six tensors and 66,561 parameters, all frozen, with no
+  optimizer state and an unchanged fingerprint;
+- nonzero token and global gradients on every successful step; and
+- peak reserved CUDA memory of 31,314,673,664 bytes.
+
+The bound strict1607 report is:
+
+```text
+outputs/paper_cvpr_v1/
+  dense_duty_adapter_deployment_owned_global_highmem_20260802/
+  probe_evaluation/u000400_strict1607_report.json
+decision = valid_nonwin_do_not_enter_formal
+```
+
+Its complete 1,607-pair result was 844 false accepts, FPR95 0.525202,
+pair-win 0.868699, mean positive score 0.657434, mean TN score 0.494454,
+and mean paired score gap 0.162979. Relative to V55, V56 removed eight false
+accepts and slightly improved paired discrimination, but remained 44 false
+accepts above admission. The result is diagnostic only and no formal U4412
+training was launched.
+
+The training-tail trajectory rules out blind continuation as the next action.
+Between U222 and U400, the training queue positive q05 fell from -0.07094 to
+-0.13251 while TN q95 rose from 0.87036 to 1.01758. At the same time, positive
+mean rose from 0.54156 to 0.65938 and TN mean fell from 0.12326 to 0.05371.
+Thus mean and paired discrimination improved while exactly the two tails used
+by FPR95 became less separated. More updates to the identical objective are not
+preregistered as a remedy.
+
+### Interpretation
+
+V56 proves the ownership intervention is executable and auditable, but it does
+not prove that the removed candidate loss was harmful. It exposes a more direct
+objective hole: after setting local candidate absolute loss to zero, the true
+deployed global logit has a negative softplus, paired/tail terms, and a
+low-positive hinge, but no balanced per-sample absolute positive/TN objective.
+The weak hinge is active only below its margin and did not prevent unseen
+positive low-tail collapse. This is an objective-routing deficiency, not
+evidence that the 416,897-parameter global owner is too small.
+
+## V57 preregistration: deployed-global balanced absolute supervision
+
+V57 keeps the complete V56 architecture, U0 migration, parameter ownership,
+candidate freeze, inference score, data, optimizer, and U400 budget. Its only
+treatment is a new balanced focal-BCE term evaluated on the two real deployed
+sample-global logits:
+
+```text
+positive term = focal_bce(deployed_global_positive_logit, target=1)
+TN term       = focal_bce(deployed_global_TN_logit, target=0)
+loss          = 0.5 * positive term + 0.5 * TN term
+gamma         = 1
+weight        = 1
+```
+
+This loss is not candidate-local supervision. It must consume exactly the same
+sample-global tensor used by inference, FPR95 active-set training, and q05
+protection. Candidate loss remains exactly zero; the candidate head remains
+frozen and reads `dense_global.detach()`; token logits remain stop-gradient at
+the global boundary. Consequently every trainable global-trunk and pool
+parameter is still owned only by losses on the deployed global output.
+
+The implementation must add a separately named loss/metric rather than
+silently reusing `loss_fixed_text_local_absolute`. Tests must prove exact value
+and gradient routing, disjoint token/global owners, frozen-candidate stability,
+and no change to U0 deployed scores. V57 receives the same health audit and
+strict1607 gate: at most 800 false accepts admits formal U4412; any larger count
+is a preserved negative result.
 
 ## Evaluation and claim gates
 
@@ -713,9 +816,9 @@ separate from the result-preserving commits in this ledger.
 
 ## Immediate next action
 
-The next model change is V56 only. No formal training should start until the
-fresh U400 result is healthy and strict1607 records at most 800 false accepts.
-If that gate fails, the next architectural question is representation-level
-trunk separation, not additional unregistered training of V55. Independently,
-the evaluation source profile and Table-C recovery evidence must be versioned
-and resealed before any affected result is promoted into a paper table.
+Implement and audit V57's deployed-global balanced absolute loss, then run one
+fresh U400 probe and the fixed strict1607 gate. Do not continue V56 and do not
+start formal training unless the V57 report records at most 800 false accepts.
+Independently, the evaluation source profile and Table-C recovery evidence must
+be versioned and resealed before any affected result is promoted into a paper
+table.

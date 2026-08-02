@@ -467,6 +467,7 @@ def _clip_stage_b_dense_duty_grad_norms(
         "split_token_veto_candidate_absolute_sample_calibrator_v6",
         "split_token_veto_fulltext_global_absolute_v7",
         "split_token_veto_local_candidate_global_absolute_v8",
+        "split_token_veto_deployment_owned_global_absolute_v9",
     }:
         candidate_sample_contract = head_contract == (
             "split_token_veto_candidate_absolute_sample_calibrator_v6"
@@ -585,6 +586,7 @@ def _clip_stage_b_dense_duty_grad_norms(
             "split_token_veto_candidate_absolute_sample_calibrator_v6",
             "split_token_veto_fulltext_global_absolute_v7",
             "split_token_veto_local_candidate_global_absolute_v8",
+            "split_token_veto_deployment_owned_global_absolute_v9",
         }:
             # Every independently supervised owner receives the full max norm.
             for live in live_by_owner.values():
@@ -619,6 +621,7 @@ def _clip_stage_b_dense_duty_grad_norms(
     elif head_contract in {
         "split_token_veto_fulltext_global_absolute_v7",
         "split_token_veto_local_candidate_global_absolute_v8",
+        "split_token_veto_deployment_owned_global_absolute_v9",
     }:
         clip_contract_owner_labels = ("token_veto", "global_absolute")
     if clip_contract_owner_labels is not None:
@@ -1144,10 +1147,14 @@ _V53_FULLTEXT_GLOBAL_ABSOLUTE_CONTRACT = (
 _V55_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE_CONTRACT = (
     "split_token_veto_local_candidate_global_absolute_v8"
 )
+_V56_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_CONTRACT = (
+    "split_token_veto_deployment_owned_global_absolute_v9"
+)
 _CANDIDATE_AND_SAMPLE_CONFIDENCE_CONTRACTS = {
     _V52_CANDIDATE_ABSOLUTE_SAMPLE_CALIBRATOR_CONTRACT,
     _V53_FULLTEXT_GLOBAL_ABSOLUTE_CONTRACT,
     _V55_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE_CONTRACT,
+    _V56_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_CONTRACT,
 }
 
 
@@ -1338,14 +1345,25 @@ def _select_dense_duty_positive_confidence_trust_logits(
         if not bool(torch.isfinite(pool_absolute).all().item()):
             raise RuntimeError("absolute global-pool logits must be finite")
         selected = pool_absolute[..., 0]
-        if (
-            sample_positive_confidence_logits is not None
-            and selected.device.type != "cuda"
-            and not torch.equal(selected, sample_positive_confidence_logits)
+        deployment_owned_contract = (
+            str(head_gradient_contract).strip().lower()
+            == _V56_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_CONTRACT
+        )
+        if sample_positive_confidence_logits is not None and not torch.equal(
+            selected.detach(), sample_positive_confidence_logits.detach()
         ):
             raise RuntimeError(
                 "absolute global-pool trust changed the deployed confidence value"
             )
+        if deployment_owned_contract:
+            if sample_positive_confidence_logits is None:
+                raise RuntimeError(
+                    "V56 positive-q05 protection requires the true deployed "
+                    "sample-global logit"
+                )
+            # Return the same tensor consumed by deployed inference/FPR95, not a
+            # merely value-equal diagnostic alias of the pool output.
+            return sample_positive_confidence_logits
         return selected
 
     if trust_contract == "pool_residual_v1":

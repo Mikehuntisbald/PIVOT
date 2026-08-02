@@ -4420,6 +4420,7 @@ def _validate_stage_b_confidence_rank_evidence_contract(
         "word_veto_rank_full_expression_global_absolute_v53",
         "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
         "word_veto_rank_full_expression_global_independent_absolute_v55",
+        "word_veto_rank_full_expression_deployment_owned_global_v56",
     }:
         if contract != (
             "zero_init_carrier_token_rank_affine_sparse_rank_channel_v6"
@@ -4474,6 +4475,7 @@ def _validate_stage_b_confidence_rank_evidence_contract(
         "word_veto_rank_full_expression_global_absolute_v53",
         "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
         "word_veto_rank_full_expression_global_independent_absolute_v55",
+        "word_veto_rank_full_expression_deployment_owned_global_v56",
     }:
         if not math.isclose(
             residual_gain, expected_gain, rel_tol=1e-12, abs_tol=1e-12
@@ -4518,6 +4520,7 @@ def _validate_stage_b_confidence_rank_evidence_contract(
         "word_veto_rank_full_expression_global_absolute_v53",
         "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
         "word_veto_rank_full_expression_global_independent_absolute_v55",
+        "word_veto_rank_full_expression_deployment_owned_global_v56",
     }:
         expected_gate_contract = {
             "word_veto_complementary_trust_veto_v24": (
@@ -4575,6 +4578,9 @@ def _validate_stage_b_confidence_rank_evidence_contract(
                 "candidate_raw_patch_asymmetric_monotone_veto_absolute_logit_v13"
             ),
             "word_veto_rank_full_expression_global_independent_absolute_v55": (
+                "candidate_raw_patch_asymmetric_monotone_veto_absolute_logit_v13"
+            ),
+            "word_veto_rank_full_expression_deployment_owned_global_v56": (
                 "candidate_raw_patch_asymmetric_monotone_veto_absolute_logit_v13"
             ),
             "word_veto_candidate_split_fpr_active_set_v48": (
@@ -4971,6 +4977,7 @@ def _bind_stage_b_confidence_probe_admission(args) -> Optional[dict[str, Any]]:
             "word_veto_rank_full_expression_global_absolute_v53",
             "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
             "word_veto_rank_full_expression_global_independent_absolute_v55",
+            "word_veto_rank_full_expression_deployment_owned_global_v56",
         }
         and positive_gradient_contract
         == "elementwise_bounded_mean_plus_sixteenth_exact_lower_tail_st_v6"
@@ -4991,6 +4998,9 @@ def _bind_stage_b_confidence_probe_admission(args) -> Optional[dict[str, Any]]:
             "word_veto_rank_full_expression_global_independent_absolute_v55": (
                 "split_token_veto_local_candidate_global_absolute_v8"
             ),
+            "word_veto_rank_full_expression_deployment_owned_global_v56": (
+                "split_token_veto_deployment_owned_global_absolute_v9"
+            ),
         }[revision]
         and str(
             getattr(
@@ -5010,6 +5020,9 @@ def _bind_stage_b_confidence_probe_admission(args) -> Optional[dict[str, Any]]:
             "word_veto_rank_full_expression_global_independent_absolute_v55": (
                 "detached_rank_full_expression_local_candidate_"
                 "frozen_rank_global_pool_v12"
+            ),
+            "word_veto_rank_full_expression_deployment_owned_global_v56": (
+                "detached_rank_full_expression_deployment_owned_global_pool_v13"
             ),
         }[revision]
         and str(
@@ -5061,6 +5074,9 @@ def _bind_stage_b_confidence_probe_admission(args) -> Optional[dict[str, Any]]:
             "word_veto_rank_full_expression_global_independent_absolute_v55": (
                 "absolute_global_pool_logit_v4"
             ),
+            "word_veto_rank_full_expression_deployment_owned_global_v56": (
+                "absolute_global_pool_logit_v4"
+            ),
         }[revision]
         and float(
             getattr(
@@ -5096,8 +5112,24 @@ def _bind_stage_b_confidence_probe_admission(args) -> Optional[dict[str, Any]]:
             )
         )
         == 0.0
+        and (
+            revision
+            != "word_veto_rank_full_expression_deployment_owned_global_v56"
+            or float(
+                getattr(args, "stage_b_v14_local_absolute_weight", -1.0)
+            )
+            == 0.0
+        )
     ):
-        if revision.endswith("_v55"):
+        if revision.endswith("_v56"):
+            formal_contract = (
+                "u400_word_veto_rank_full_expression_deployment_owned_global_"
+                "confidence_strict1607_v56"
+            )
+            from tools import (
+                run_stageb_confidence_adapter_deployment_owned_global_probe_evaluation as promotion,
+            )
+        elif revision.endswith("_v55"):
             formal_contract = (
                 "u400_word_veto_rank_full_expression_global_independent_absolute_"
                 "confidence_strict1607_v55"
@@ -5661,6 +5693,7 @@ def _validate_stage_b_dense_duty_args(args) -> None:
             "split_token_veto_candidate_absolute_sample_calibrator_v6",
             "split_token_veto_fulltext_global_absolute_v7",
             "split_token_veto_local_candidate_global_absolute_v8",
+            "split_token_veto_deployment_owned_global_absolute_v9",
         }:
             raise RuntimeError(
                 "confidence adapter has an unknown head-gradient contract"
@@ -5695,6 +5728,15 @@ def _validate_stage_b_dense_duty_args(args) -> None:
         ):
             raise RuntimeError(
                 "local-candidate/global-absolute v8 heads require the exact v55 surface"
+            )
+        if (
+            head_gradient_contract
+            == "split_token_veto_deployment_owned_global_absolute_v9"
+            and confidence_revision
+            != "word_veto_rank_full_expression_deployment_owned_global_v56"
+        ):
+            raise RuntimeError(
+                "deployment-owned global-absolute v9 heads require the exact v56 surface"
             )
         if (
             head_gradient_contract
@@ -6010,6 +6052,42 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     "surface and exact deployed pool-absolute positive trust"
                 )
         elif confidence_revision == (
+            "word_veto_rank_full_expression_deployment_owned_global_v56"
+        ):
+            if (
+                head_gradient_contract
+                != "split_token_veto_deployment_owned_global_absolute_v9"
+                or deployed_routing_weight != 0.0
+                or deployed_positive_max != 0.1
+                or deployed_tn_min != 0.9
+                or token_edit_query_scope != "target_iou_v1"
+                or deployed_routing_reduction
+                != "balanced_top_quarter_cvar_v2"
+                or positive_trust_reduction != "top_quarter_cvar_v2"
+                or negative_reduction != "all_mean_v1"
+                or float(
+                    getattr(args, "stage_b_v14_local_absolute_weight", -1.0)
+                )
+                != 0.0
+                or int(getattr(args, "stage_b_v11_trainable_params_min", -1))
+                != 468_164
+                or int(getattr(args, "stage_b_v11_trainable_params_max", -1))
+                != 468_164
+                or str(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_positive_trust_contract",
+                        "",
+                    )
+                ).strip().lower()
+                != "absolute_global_pool_logit_v4"
+            ):
+                raise RuntimeError(
+                    "v56 deployment-owned confidence requires local absolute "
+                    "weight=0, exactly 468164 active parameters, the split-v9 "
+                    "owner surface, and exact deployed pool-absolute trust"
+                )
+        elif confidence_revision == (
             "word_veto_candidate_split_independent_deployed_router_v51"
         ):
             if (
@@ -6185,6 +6263,12 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     f"{carrier_version} candidate-confidence training surface"
                 )
         if confidence_revision == (
+            "word_veto_rank_full_expression_deployment_owned_global_v56"
+        ):
+            expected_pool_feature_contract = (
+                "detached_rank_full_expression_deployment_owned_global_pool_v13"
+            )
+        elif confidence_revision == (
             "word_veto_rank_full_expression_global_independent_absolute_v55"
         ):
             expected_pool_feature_contract = (
@@ -6333,9 +6417,10 @@ def _validate_stage_b_dense_duty_args(args) -> None:
             "trace_activated_word_veto_absolute_cap_v4",
             "trace_activated_word_veto_gated_pool_absolute_cap_v5",
         }:
-            if confidence_revision == (
-                "word_veto_rank_full_expression_global_independent_absolute_v55"
-            ):
+            if confidence_revision in {
+                "word_veto_rank_full_expression_global_independent_absolute_v55",
+                "word_veto_rank_full_expression_deployment_owned_global_v56",
+            }:
                 expected_trust_contract = "absolute_global_pool_logit_v4"
             elif confidence_revision == (
                 "word_veto_rank_full_expression_global_absolute_exact_residual_v54"
@@ -6507,6 +6592,9 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                 "word_veto_rank_full_expression_global_independent_absolute_v55": (
                     "trace_activated_word_veto_gated_pool_absolute_cap_v5"
                 ),
+                "word_veto_rank_full_expression_deployment_owned_global_v56": (
+                    "trace_activated_word_veto_gated_pool_absolute_cap_v5"
+                ),
                 "word_veto_candidate_split_fpr_active_set_v48": (
                     "trace_activated_word_veto_gated_pool_absolute_cap_v5"
                 ),
@@ -6580,6 +6668,7 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     "word_veto_rank_full_expression_global_absolute_v53",
                     "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
                     "word_veto_rank_full_expression_global_independent_absolute_v55",
+                    "word_veto_rank_full_expression_deployment_owned_global_v56",
                 }:
                     carrier_balanced_revisions = {
                         "word_veto_gated_pool_carrier_balanced_v7": 0.5,
@@ -6621,6 +6710,7 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                         "word_veto_rank_full_expression_global_absolute_v53": 0.25,
                         "word_veto_rank_full_expression_global_absolute_exact_residual_v54": 0.25,
                         "word_veto_rank_full_expression_global_independent_absolute_v55": 0.25,
+                        "word_veto_rank_full_expression_deployment_owned_global_v56": 0.25,
                     }
                     if raw_veto_revision == (
                         "word_veto_gated_pool_dual_carrier_pair_v10"
@@ -6657,6 +6747,7 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                         "word_veto_rank_full_expression_global_absolute_v53",
                         "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
                         "word_veto_rank_full_expression_global_independent_absolute_v55",
+                        "word_veto_rank_full_expression_deployment_owned_global_v56",
                     }:
                         expected_raw_veto_scope = (
                             "tn_all_admitted_tail_weighted_carrier_tail_paired_v7"
@@ -6784,6 +6875,7 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                             "word_veto_rank_full_expression_global_absolute_v53",
                             "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
                             "word_veto_rank_full_expression_global_independent_absolute_v55",
+                            "word_veto_rank_full_expression_deployment_owned_global_v56",
                         }
                         if raw_veto_revision in paired_revisions:
                             if pair_weight != 0.25 or pair_margin != 0.25:
@@ -6826,6 +6918,7 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                             "word_veto_rank_full_expression_global_absolute_v53",
                             "word_veto_rank_full_expression_global_absolute_exact_residual_v54",
                             "word_veto_rank_full_expression_global_independent_absolute_v55",
+                            "word_veto_rank_full_expression_deployment_owned_global_v56",
                         }:
                             tail_quantile = float(
                                 getattr(
@@ -7172,6 +7265,10 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                 "word_veto_rank_full_expression_global_independent_absolute_v55": (
                     "u400_word_veto_rank_full_expression_global_independent_absolute_"
                     "confidence_strict1607_v55"
+                ),
+                "word_veto_rank_full_expression_deployment_owned_global_v56": (
+                    "u400_word_veto_rank_full_expression_deployment_owned_global_"
+                    "confidence_strict1607_v56"
                 ),
                 "word_veto_candidate_split_fpr_active_set_v48": (
                     "u400_word_veto_candidate_split_fpr_active_set_confidence_"
