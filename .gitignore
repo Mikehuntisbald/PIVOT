@@ -162,6 +162,10 @@ cython_debug/
 # Training outputs / experiment artifacts
 outputs/
 data/ablations/
+data/eval_manifests/
+
+# Host-local dataset metadata copies
+/canonical_classes_with_aliases.json
 
 # Model weights / checkpoints
 *.pt

@@ -173,6 +173,16 @@ bash test_slurm.sh  ${PARTITION} ${GPU_NUM} ${CFG} ${DATASETS} ${OUTPUT_DIR}
 
 This repo also includes a **two-stage patch-episode training workflow** built on top of GroundingDINO:
 
+> The bullets below describe the original patch-episode workflow. The historical
+> recorded Stage-B winner is a multi-checkpoint composite with frozen patch
+> candidates, independent complete-text rank and absolute-confidence scores, and
+> a routed Ref policy. Its GroundingDINO comparison, recorded result,
+> limitations, and invariants are documented in
+> [docs/stage_b_architecture_vs_gdino.md](docs/stage_b_architecture_vs_gdino.md).
+> The current single-network development status, V55 strict1607 result, root
+> cause audit, and preregistered V56 direction are maintained in
+> [docs/paper_cvpr_stage_b_development_20260802.md](docs/paper_cvpr_stage_b_development_20260802.md).
+
 - **Stage A**: patch-only training. The model learns to match decoder queries to support patches while keeping the text branch minimal.
 - **Stage B**: text-only adaptation on top of a Stage A checkpoint. Stage B preserves Stage A patch behavior and only teaches the text branch to model **attributes / relations**.
 

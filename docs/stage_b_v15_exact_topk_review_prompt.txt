@@ -1,0 +1,17 @@
+Task: decide whether the red-boxed Stage-A candidate satisfies the complete
+negative expression shown in the evidence asset.
+
+Use the full image, boxed context, tight candidate crop, and the complete
+negative expression. The positive expression, canonical category, and fixed
+support patch are provenance/context only; they are not labels for the answer.
+
+Return exactly one answer for the candidate:
+
+- yes: the boxed candidate clearly satisfies the complete negative expression;
+- no: the boxed candidate clearly does not satisfy the complete negative
+  expression;
+- uncertain: the image, box, attribute, relation, action, count, or spatial
+  context is insufficient or ambiguous.
+
+Use no only when the visual evidence is sufficient. Do not infer absence from
+the text edit alone. Confidence must be a finite number in [0, 1].
