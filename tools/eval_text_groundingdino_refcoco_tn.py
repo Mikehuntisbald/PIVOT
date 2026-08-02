@@ -46,6 +46,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
     _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
     _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
+    _V60_DEPLOYMENT_OWNED_QUERY_VETO_REVISION,
     _build_split_jsonl,
     _canonical_ref_split_seed_map,
     _ckpt_run_prefix,
@@ -74,6 +75,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _validate_v57_deployed_global_balanced_absolute_config,
     _validate_v58_deployment_owned_stable_fpr95_active_set_config,
     _validate_v59_deployment_owned_query_global_config,
+    _validate_v60_deployment_owned_query_veto_config,
     _verify_v39_immutable_archived_diagnostic_files,
     _verify_v40_immutable_archived_diagnostic_files,
     _verify_v41_immutable_archived_diagnostic_files,
@@ -433,6 +435,12 @@ _DEPLOYMENT_OWNED_QUERY_GLOBAL_CONFIDENCE_U0400_CONFIG = (
     REPO_ROOT
     / "config/ablations/"
     "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_query_global_"
+    "probe_u0400_20260802.py"
+)
+_DEPLOYMENT_OWNED_QUERY_VETO_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_query_veto_"
     "probe_u0400_20260802.py"
 )
 _V39_IMMUTABLE_ARCHIVED_SNAPSHOT_ROOT = (
@@ -1590,6 +1598,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _DEPLOYMENT_OWNED_QUERY_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
+        _DEPLOYMENT_OWNED_QUERY_VETO_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_probe = observed_config in {
@@ -1894,12 +1905,19 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
+    deployment_owned_query_veto_confidence_u0400 = (
+        observed_config
+        == _DEPLOYMENT_OWNED_QUERY_VETO_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        )
+    )
     deployment_owned_global_confidence_u0400 = (
         observed_config
         == _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
         or deployed_global_balanced_absolute_confidence_u0400
         or deployment_owned_global_stable_fpr95_active_set_confidence_u0400
         or deployment_owned_query_global_confidence_u0400
+        or deployment_owned_query_veto_confidence_u0400
     )
     candidate_gate_zero_offset_family = (
         candidate_gate_zero_offset_confidence_u0400
@@ -2063,7 +2081,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             errors.append(str(exc))
     if deployment_owned_global_confidence_u0400:
         try:
-            if deployment_owned_query_global_confidence_u0400:
+            if deployment_owned_query_veto_confidence_u0400:
+                _validate_v60_deployment_owned_query_veto_config(cfg)
+            elif deployment_owned_query_global_confidence_u0400:
                 _validate_v59_deployment_owned_query_global_config(cfg)
             elif deployed_global_balanced_absolute_confidence_u0400:
                 _validate_v57_deployed_global_balanced_absolute_config(cfg)
@@ -2329,7 +2349,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             )
         elif deployment_owned_global_confidence_u0400:
             expected_veto_revision = (
-                _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION
+                _V60_DEPLOYMENT_OWNED_QUERY_VETO_REVISION
+                if deployment_owned_query_veto_confidence_u0400
+                else _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION
                 if deployment_owned_query_global_confidence_u0400
                 else _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION
                 if deployment_owned_global_stable_fpr95_active_set_confidence_u0400
@@ -2511,9 +2533,13 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         ).strip()
         != (
             (
-                "detached_rank_full_expression_monotone_query_"
-                "deployment_owned_global_pool_v14"
-                if deployment_owned_query_global_confidence_u0400
+                "detached_rank_full_expression_token_conditioned_query_veto_"
+                "deployment_owned_global_pool_v15"
+                if deployment_owned_query_veto_confidence_u0400
+                else (
+                    "detached_rank_full_expression_monotone_query_"
+                    "deployment_owned_global_pool_v14"
+                    if deployment_owned_query_global_confidence_u0400
                 else (
                     "detached_rank_full_expression_deployment_owned_global_pool_v13"
                     if deployment_owned_global_confidence_u0400
@@ -2563,6 +2589,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
                             )
                         )
                     )
+                )
                 )
             )
             if candidate_absolute_confidence_probe
@@ -3019,7 +3046,10 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         )
         != (
             "absolute_global_confidence_logit_v2"
-            if deployment_owned_query_global_confidence_u0400
+            if (
+                deployment_owned_query_global_confidence_u0400
+                or deployment_owned_query_veto_confidence_u0400
+            )
             else (
                 "absolute_global_pool_logit_v4"
                 if (
