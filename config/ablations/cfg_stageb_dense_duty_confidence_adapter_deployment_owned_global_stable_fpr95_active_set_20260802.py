@@ -20,7 +20,7 @@ stage_b_dense_duty_trace_audit_path = (
     "stable_fpr95_active_set_trace_audit_20260802/receipt.json"
 )
 stage_b_dense_duty_trace_audit_sha256 = (
-    "f4aa72e7c9fae7b740e4b0836c7b251b8873c9b7cc2b38a8c1f95732af1e8aa4"
+    "31cb1691e9d06ba6715efef6c2a9a767b7cac0d6cecad498c56c4806256bbf79"
 )
 
 stage_b_dense_duty_confidence_probe_admission_contract = (
