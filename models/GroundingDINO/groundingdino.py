@@ -3901,6 +3901,20 @@ def build_groundingdino(args):
                 local_absolute_gamma=float(
                     getattr(args, "stage_b_v14_local_absolute_gamma", 0.0)
                 ),
+                deployed_global_absolute_weight=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_deployed_global_absolute_weight",
+                        0.0,
+                    )
+                ),
+                deployed_global_absolute_gamma=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_deployed_global_absolute_gamma",
+                        0.0,
+                    )
+                ),
                 predicate_absolute_weight=float(
                     getattr(args, "stage_b_v14_predicate_absolute_weight", 0.0)
                 ),

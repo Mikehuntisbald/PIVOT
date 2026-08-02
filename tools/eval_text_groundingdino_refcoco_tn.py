@@ -43,6 +43,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION,
     _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
     _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
+    _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
     _build_split_jsonl,
     _canonical_ref_split_seed_map,
     _ckpt_run_prefix,
@@ -68,6 +69,7 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _validate_v54_fulltext_global_absolute_exact_residual_config,
     _validate_v55_fulltext_global_independent_absolute_config,
     _validate_v56_deployment_owned_global_config,
+    _validate_v57_deployed_global_balanced_absolute_config,
     _verify_v39_immutable_archived_diagnostic_files,
     _verify_v40_immutable_archived_diagnostic_files,
     _verify_v41_immutable_archived_diagnostic_files,
@@ -410,6 +412,12 @@ _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG = (
     / "config/ablations/"
     "cfg_stageb_dense_duty_confidence_adapter_deployment_owned_global_"
     "probe_u0400_20260802.py"
+)
+_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_adapter_deployed_global_"
+    "balanced_absolute_probe_u0400_20260802.py"
 )
 _V39_IMMUTABLE_ARCHIVED_SNAPSHOT_ROOT = (
     REPO_ROOT
@@ -1557,6 +1565,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         ),
         _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
+        _DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_probe = observed_config in {
@@ -1639,6 +1650,9 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         ),
         _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
+        _DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
     }
     veto_gate_probe = observed_config == (
@@ -1835,8 +1849,15 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
-    deployment_owned_global_confidence_u0400 = observed_config == (
-        _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
+    deployed_global_balanced_absolute_confidence_u0400 = observed_config == (
+        _DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        )
+    )
+    deployment_owned_global_confidence_u0400 = (
+        observed_config
+        == _DEPLOYMENT_OWNED_GLOBAL_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
+        or deployed_global_balanced_absolute_confidence_u0400
     )
     candidate_gate_zero_offset_family = (
         candidate_gate_zero_offset_confidence_u0400
@@ -2000,7 +2021,10 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             errors.append(str(exc))
     if deployment_owned_global_confidence_u0400:
         try:
-            _validate_v56_deployment_owned_global_config(cfg)
+            if deployed_global_balanced_absolute_confidence_u0400:
+                _validate_v57_deployed_global_balanced_absolute_config(cfg)
+            else:
+                _validate_v56_deployment_owned_global_config(cfg)
         except (RuntimeError, TypeError, ValueError) as exc:
             errors.append(str(exc))
     if candidate_split_heads_confidence_u0400 and str(
@@ -2258,7 +2282,11 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
                 _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION
             )
         elif deployment_owned_global_confidence_u0400:
-            expected_veto_revision = _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION
+            expected_veto_revision = (
+                _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION
+                if deployed_global_balanced_absolute_confidence_u0400
+                else _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION
+            )
     elif cross_attention_absolute_confidence_u0300:
         expected_veto_aggregation = (
             "trace_activated_word_veto_gated_pool_absolute_cap_v5"

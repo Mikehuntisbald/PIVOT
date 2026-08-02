@@ -357,6 +357,8 @@ class StageBFixedTextCriterion(nn.Module):
         batch_tail_ddp_global: bool = False,
         local_absolute_weight: float = 0.0,
         local_absolute_gamma: float = 0.0,
+        deployed_global_absolute_weight: float = 0.0,
+        deployed_global_absolute_gamma: float = 0.0,
         predicate_absolute_weight: float = 0.0,
         predicate_absolute_gamma: float = 0.0,
         tail_queue_weight: float = 0.0,
@@ -418,8 +420,16 @@ class StageBFixedTextCriterion(nn.Module):
             raise ValueError("batch_positive_quantile must be in [0, 1]")
         if not 0.0 <= float(batch_negative_quantile) <= 1.0:
             raise ValueError("batch_negative_quantile must be in [0, 1]")
-        if float(local_absolute_gamma) < 0.0 or float(predicate_absolute_gamma) < 0.0:
+        if (
+            float(local_absolute_gamma) < 0.0
+            or float(deployed_global_absolute_gamma) < 0.0
+            or float(predicate_absolute_gamma) < 0.0
+        ):
             raise ValueError("absolute focal gamma values must be non-negative")
+        if float(deployed_global_absolute_weight) < 0.0:
+            raise ValueError(
+                "deployed_global_absolute_weight must be non-negative"
+            )
         if int(tail_queue_size) < 0 or int(tail_queue_min_count) < 0:
             raise ValueError("tail queue sizes must be non-negative")
         if int(tail_queue_min_count) > int(tail_queue_size):
@@ -710,6 +720,9 @@ class StageBFixedTextCriterion(nn.Module):
         self.balance_local_anchor_classes = bool(balance_local_anchor_classes)
         self.batch_tail_ddp_global = bool(batch_tail_ddp_global)
         self.local_absolute_gamma = float(local_absolute_gamma)
+        self.deployed_global_absolute_gamma = float(
+            deployed_global_absolute_gamma
+        )
         self.predicate_absolute_gamma = float(predicate_absolute_gamma)
         self.tail_queue_size = int(tail_queue_size)
         self.tail_queue_min_count = int(tail_queue_min_count)
@@ -796,6 +809,9 @@ class StageBFixedTextCriterion(nn.Module):
             "loss_fixed_text_global_tn_tail": float(global_tn_tail_weight),
             "loss_fixed_text_batch_tail": float(batch_tail_separation_weight),
             "loss_fixed_text_local_absolute": float(local_absolute_weight),
+            "loss_fixed_text_deployed_global_absolute": float(
+                deployed_global_absolute_weight
+            ),
             "loss_fixed_text_predicate_absolute": float(predicate_absolute_weight),
             "loss_fixed_text_tail_queue": float(tail_queue_weight),
             "loss_fixed_text_token": float(token_weight),
@@ -1472,6 +1488,8 @@ class StageBFixedTextCriterion(nn.Module):
         tn_anchor_losses: List[torch.Tensor] = []
         absolute_positive_losses: List[torch.Tensor] = []
         absolute_tn_losses: List[torch.Tensor] = []
+        deployed_global_absolute_positive_losses: List[torch.Tensor] = []
+        deployed_global_absolute_tn_losses: List[torch.Tensor] = []
         predicate_absolute_positive_losses: List[torch.Tensor] = []
         predicate_absolute_tn_losses: List[torch.Tensor] = []
         global_negative_losses: List[torch.Tensor] = []
@@ -2740,6 +2758,19 @@ class StageBFixedTextCriterion(nn.Module):
                     batch_positive_scores.append(sample_positive)
                     fixed_positive_scores[batch_idx] = sample_positive
                     fixed_positive_valid[batch_idx] = True
+                    if (
+                        self.weight_dict[
+                            "loss_fixed_text_deployed_global_absolute"
+                        ]
+                        > 0.0
+                    ):
+                        deployed_global_absolute_positive_losses.append(
+                            binary_focal_with_logits(
+                                sample_positive,
+                                1.0,
+                                gamma=self.deployed_global_absolute_gamma,
+                            )
+                        )
                 if (
                     sample_positive_valid
                     and sample_tn_confidence_logits is not None
@@ -2759,6 +2790,19 @@ class StageBFixedTextCriterion(nn.Module):
                         batch_negative_scores.append(sample_negative)
                         fixed_negative_scores[batch_idx] = sample_negative
                         fixed_negative_valid[batch_idx] = True
+                        if (
+                            self.weight_dict[
+                                "loss_fixed_text_deployed_global_absolute"
+                            ]
+                            > 0.0
+                        ):
+                            deployed_global_absolute_tn_losses.append(
+                                binary_focal_with_logits(
+                                    sample_negative,
+                                    0.0,
+                                    gamma=self.deployed_global_absolute_gamma,
+                                )
+                            )
             if bool(pos.any().item()):
                 rank_positive_values = candidate_logits[batch_idx, pos]
                 positive_anchor = F.softplus(
@@ -2981,6 +3025,26 @@ class StageBFixedTextCriterion(nn.Module):
             loss_local_absolute = tn_absolute
         else:
             loss_local_absolute = confidence_zero
+        deployed_global_positive_absolute = _mean_or_zero(
+            deployed_global_absolute_positive_losses, confidence_zero
+        )
+        deployed_global_tn_absolute = _mean_or_zero(
+            deployed_global_absolute_tn_losses, confidence_zero
+        )
+        if (
+            deployed_global_absolute_positive_losses
+            and deployed_global_absolute_tn_losses
+        ):
+            loss_deployed_global_absolute = (
+                0.5 * deployed_global_positive_absolute
+                + 0.5 * deployed_global_tn_absolute
+            )
+        elif deployed_global_absolute_positive_losses:
+            loss_deployed_global_absolute = deployed_global_positive_absolute
+        elif deployed_global_absolute_tn_losses:
+            loss_deployed_global_absolute = deployed_global_tn_absolute
+        else:
+            loss_deployed_global_absolute = confidence_zero
         predicate_positive_absolute = _mean_or_zero(
             predicate_absolute_positive_losses, zero
         )
@@ -3299,6 +3363,9 @@ class StageBFixedTextCriterion(nn.Module):
             "loss_fixed_text_global_tn_tail": loss_global_tail,
             "loss_fixed_text_batch_tail": loss_batch_tail,
             "loss_fixed_text_local_absolute": loss_local_absolute,
+            "loss_fixed_text_deployed_global_absolute": (
+                loss_deployed_global_absolute
+            ),
             "loss_fixed_text_predicate_absolute": loss_predicate_absolute,
             "loss_fixed_text_tail_queue": loss_tail_queue,
             "loss_fixed_text_token": loss_token,
@@ -3338,6 +3405,18 @@ class StageBFixedTextCriterion(nn.Module):
             "fixed_text_batch_negative_count": len(batch_negative_scores),
             "fixed_text_local_absolute_positive_sample_count": local_absolute_positive_sample_count,
             "fixed_text_local_absolute_tn_sample_count": local_absolute_tn_sample_count,
+            "fixed_text_deployed_global_absolute_positive_sample_count": len(
+                deployed_global_absolute_positive_losses
+            ),
+            "fixed_text_deployed_global_absolute_tn_sample_count": len(
+                deployed_global_absolute_tn_losses
+            ),
+            "fixed_text_deployed_global_absolute_positive_loss": float(
+                deployed_global_positive_absolute.detach().item()
+            ),
+            "fixed_text_deployed_global_absolute_tn_loss": float(
+                deployed_global_tn_absolute.detach().item()
+            ),
             "fixed_text_predicate_absolute_sample_count": predicate_absolute_sample_count,
             "fixed_text_tail_queue_positive_count": (
                 int(self.tail_positive_count.item()) if self.tail_queue_enabled else 0

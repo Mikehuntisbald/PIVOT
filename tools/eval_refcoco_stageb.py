@@ -619,6 +619,12 @@ _V56_ACTIVE_PARAMETER_TENSOR_COUNT = 59
 _V56_ACTIVE_PARAMETER_ELEMENT_COUNT = 468_164
 _V56_DIAGNOSTIC_PARAMETER_TENSOR_COUNT = 6
 _V56_DIAGNOSTIC_PARAMETER_ELEMENT_COUNT = 66_561
+_V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION = (
+    "word_veto_rank_full_expression_deployed_global_balanced_absolute_v57"
+)
+_V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_TRAINING_CONTRACT_SCHEMA = (
+    "pivot.stageb.dense_duty_training_contract/v39"
+)
 
 _V39_IMMUTABLE_ARCHIVED_CONFIG = (
     REPO_ROOT
@@ -3645,6 +3651,50 @@ def _validate_v56_deployment_owned_global_config(cfg) -> bool:
     return matched
 
 
+def _validate_v57_deployed_global_balanced_absolute_config(cfg) -> bool:
+    """Validate V57's unchanged V56 owner plus deployed balanced BCE."""
+    matched = _validate_fulltext_global_absolute_config(
+        cfg,
+        revision_contract=_V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
+        head_contract=_V56_DEPLOYMENT_OWNED_GLOBAL_HEAD_CONTRACT,
+        gate_contract=_V56_DEPLOYMENT_OWNED_GLOBAL_GATE_CONTRACT,
+        pool_feature_contract=_V56_DEPLOYMENT_OWNED_GLOBAL_POOL_FEATURE_CONTRACT,
+        routing_weight=_V56_DEPLOYMENT_OWNED_GLOBAL_ROUTING_WEIGHT,
+        routing_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_ROUTING_REDUCTION,
+        trust_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_TRUST_REDUCTION,
+        positive_trust=_V56_DEPLOYMENT_OWNED_GLOBAL_POSITIVE_TRUST,
+        negative_reduction=_V56_DEPLOYMENT_OWNED_GLOBAL_NEGATIVE_REDUCTION,
+        carrier_selector=_V56_DEPLOYMENT_OWNED_GLOBAL_CARRIER_SELECTOR,
+        source_updates=_V56_DEPLOYMENT_OWNED_GLOBAL_SOURCE_UPDATES,
+        trainable_params=_V56_DEPLOYMENT_OWNED_GLOBAL_TRAINABLE_PARAMS,
+        revision_label="v57",
+    )
+    if matched and (
+        float(getattr(cfg, "stage_b_v14_local_absolute_weight", -1.0)) != 0.0
+        or float(
+            getattr(
+                cfg,
+                "stage_b_dense_duty_deployed_global_absolute_weight",
+                -1.0,
+            )
+        )
+        != 1.0
+        or float(
+            getattr(
+                cfg,
+                "stage_b_dense_duty_deployed_global_absolute_gamma",
+                -1.0,
+            )
+        )
+        != 1.0
+    ):
+        raise RuntimeError(
+            "v57 requires candidate-local weight=0 and deployed-global "
+            "absolute weight/gamma=1"
+        )
+    return matched
+
+
 def _validate_fulltext_two_owner_runtime_audit(
     runtime: Mapping[str, Any],
     *,
@@ -4115,6 +4165,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION,
             _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
             _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
+            _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
         }
         and phrase_aggregation
         == "trace_activated_word_veto_gated_pool_absolute_cap_v5"
@@ -4191,8 +4242,12 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
     word_veto_v55_revision_contract = (
         _validate_v55_fulltext_global_independent_absolute_config(cfg)
     )
+    word_veto_v57_revision_contract = (
+        _validate_v57_deployed_global_balanced_absolute_config(cfg)
+    )
     word_veto_v56_revision_contract = (
         _validate_v56_deployment_owned_global_config(cfg)
+        or word_veto_v57_revision_contract
     )
     word_veto_deployed_routing_revision_contract = (
         word_veto_v43_revision_contract
@@ -4427,11 +4482,16 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         if (
             not isinstance(saved_training_contract, Mapping)
             or saved_training_contract.get("schema")
-            != _V56_DEPLOYMENT_OWNED_GLOBAL_TRAINING_CONTRACT_SCHEMA
+            != (
+                _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_TRAINING_CONTRACT_SCHEMA
+                if word_veto_v57_revision_contract
+                else _V56_DEPLOYMENT_OWNED_GLOBAL_TRAINING_CONTRACT_SCHEMA
+            )
             or not isinstance(saved_training_contract.get("values"), Mapping)
         ):
             raise RuntimeError(
-                "v56 confidence checkpoint requires its exact v38 training contract"
+                "deployment-owned confidence checkpoint requires its exact "
+                "V56/V57 training contract"
             )
         migration_audit = saved_args.get(
             "stage_b_dense_duty_confidence_adapter_migration_audit"
@@ -5139,6 +5199,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION: "v54",
             _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION: "v55",
             _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION: "v56",
+            _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION: "v57",
         }.get(confidence_revision)
         terminal_probe_label = (
             f"terminal U{expected_updates} {terminal_revision_label} probe"
@@ -5311,6 +5372,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION,
             _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
             _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
+            _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
         }:
             required_equal_args += (
                 "stage_b_dense_duty_raw_veto_tn_carrier_balance",
@@ -5349,6 +5411,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION,
                 _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
                 _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
+                _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
             }:
                 required_equal_args += (
                     "stage_b_dense_duty_raw_veto_carrier_pair_weight",
@@ -5386,6 +5449,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION,
                 _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
                 _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
+                _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
             }:
                 required_equal_args += (
                     "stage_b_dense_duty_confidence_rank_evidence_contract",
@@ -5422,6 +5486,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
                 _V54_FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_REVISION,
                 _V55_FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_REVISION,
                 _V56_DEPLOYMENT_OWNED_GLOBAL_REVISION,
+                _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
             }:
                 required_equal_args += (
                     "stage_b_dense_duty_confidence_gate_gradient_contract",
@@ -5475,6 +5540,11 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             ):
                 required_equal_args += (
                     "stage_b_v15_tail_queue_negative_reduction_contract",
+                )
+            if word_veto_v57_revision_contract:
+                required_equal_args += (
+                    "stage_b_dense_duty_deployed_global_absolute_weight",
+                    "stage_b_dense_duty_deployed_global_absolute_gamma",
                 )
     drift = {
         key: (saved_args.get(key), getattr(cfg, key, None))
@@ -5720,6 +5790,13 @@ def _bind_dense_duty_formal_probe_admission(cfg) -> None:
     ):
         from tools import (
             run_stageb_confidence_adapter_deployment_owned_global_probe_evaluation as promotion,
+        )
+    elif contract == (
+        "u400_word_veto_rank_full_expression_deployed_global_"
+        "balanced_absolute_confidence_strict1607_v57"
+    ):
+        from tools import (
+            run_stageb_confidence_adapter_deployed_global_balanced_absolute_probe_evaluation as promotion,
         )
     else:
         return

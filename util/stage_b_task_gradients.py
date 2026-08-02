@@ -22,6 +22,7 @@ CONFIDENCE_LOSS_KEYS = (
     "loss_fixed_text_global_tn_tail",
     "loss_fixed_text_batch_tail",
     "loss_fixed_text_local_absolute",
+    "loss_fixed_text_deployed_global_absolute",
     "loss_fixed_text_tail_queue",
 )
 
