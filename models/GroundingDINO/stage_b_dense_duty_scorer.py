@@ -4,7 +4,10 @@ The patch branch owns candidate admission and category evidence.  One private
 full-text ``rank_tower`` orders admitted candidates.  A lightweight confidence
 adapter consumes stop-gradient rank logits/query/text features and learns a
 zero-initialized token residual plus an absolute sample confidence.  Confidence
-training therefore cannot change ranking or the frozen proposal path.
+training therefore cannot change ranking or the frozen proposal path. The
+capacity-upper-bound contract may replace the lightweight adapter with a
+second, fully independent 256-dim expression tower copied from the frozen rank
+tower. That verifier emits token entailment and a non-negative veto only.
 """
 
 from __future__ import annotations
@@ -2829,6 +2832,7 @@ class StageBDenseDutyScorer(nn.Module):
         confidence_head_gradient_contract: str = (
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_SHARED
         ),
+        confidence_full_decoder_verifier: bool = False,
         expression_microbatch: int = 1,
         phase: str = "rank",
     ) -> None:
@@ -2856,6 +2860,20 @@ class StageBDenseDutyScorer(nn.Module):
             source_decoder,
             source_level_embed,
             max_text_len=self.max_text_len,
+        )
+        self.confidence_full_decoder_verifier = bool(
+            confidence_full_decoder_verifier
+        )
+        self.confidence_verifier_tower = (
+            DenseExpressionTower(
+                source_feat_map,
+                source_encoder,
+                source_decoder,
+                source_level_embed,
+                max_text_len=self.max_text_len,
+            )
+            if self.confidence_full_decoder_verifier
+            else None
         )
         self.confidence_init_seed = int(confidence_init_seed)
         with torch.random.fork_rng(devices=[]):
@@ -2893,6 +2911,22 @@ class StageBDenseDutyScorer(nn.Module):
                     == CONFIDENCE_POOL_FEATURE_CONTRACT_CANDIDATE_SET_ATTENTION
                 ),
             )
+            self.confidence_verifier_veto_head = (
+                nn.Sequential(
+                    nn.LayerNorm(self.rank_tower.hidden_dim),
+                    nn.Linear(
+                        self.rank_tower.hidden_dim,
+                        self.rank_tower.hidden_dim,
+                    ),
+                    nn.GELU(),
+                    nn.Linear(self.rank_tower.hidden_dim, 1),
+                )
+                if self.confidence_full_decoder_verifier
+                else None
+            )
+            if self.confidence_verifier_veto_head is not None:
+                nn.init.zeros_(self.confidence_verifier_veto_head[-1].weight)
+                nn.init.zeros_(self.confidence_verifier_veto_head[-1].bias)
             self.confidence_veto_pool = (
                 AbsoluteConfidencePool(
                     self.rank_tower.hidden_dim,
@@ -2930,6 +2964,34 @@ class StageBDenseDutyScorer(nn.Module):
             raise RuntimeError(
                 "dense-duty rank/confidence parameter ownership is empty or overlapping"
             )
+        if self.confidence_full_decoder_verifier:
+            if (
+                self.confidence_verifier_tower is None
+                or self.confidence_verifier_veto_head is None
+            ):
+                raise RuntimeError("full-decoder confidence verifier is incomplete")
+            verifier_ids = {
+                id(parameter)
+                for parameter in self.confidence_verifier_tower.owned_parameters()
+            }
+            head_ids = {
+                id(parameter)
+                for parameter in self.confidence_verifier_veto_head.parameters()
+            }
+            pool_ids = {id(parameter) for parameter in self.confidence_pool.parameters()}
+            if (
+                not verifier_ids
+                or not head_ids
+                or not pool_ids
+                or verifier_ids & head_ids
+                or verifier_ids & pool_ids
+                or head_ids & pool_ids
+                or verifier_ids | head_ids | pool_ids != confidence_ids
+            ):
+                raise RuntimeError(
+                    "full-decoder verifier ownership is empty, overlapping, or incomplete"
+                )
+            return
         if frozen_diagnostic and (
             not diagnostic_ids
             or bool(diagnostic_ids & (rank_ids | confidence_ids))
@@ -3013,6 +3075,17 @@ class StageBDenseDutyScorer(nn.Module):
         return self.rank_tower.owned_parameters()
 
     def confidence_parameters(self) -> tuple[nn.Parameter, ...]:
+        if self.confidence_full_decoder_verifier:
+            if (
+                self.confidence_verifier_tower is None
+                or self.confidence_verifier_veto_head is None
+            ):
+                raise RuntimeError("full-decoder confidence verifier is incomplete")
+            return (
+                self.confidence_verifier_tower.owned_parameters()
+                + tuple(self.confidence_verifier_veto_head.parameters())
+                + tuple(self.confidence_pool.parameters())
+            )
         if self.confidence_adapter.head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
@@ -3030,6 +3103,10 @@ class StageBDenseDutyScorer(nn.Module):
         )
 
     def token_veto_parameters(self) -> tuple[nn.Parameter, ...]:
+        if self.confidence_full_decoder_verifier:
+            if self.confidence_verifier_tower is None:
+                raise RuntimeError("full-decoder confidence verifier is missing")
+            return self.confidence_verifier_tower.owned_parameters()
         return self.confidence_adapter.token_veto_parameters()
 
     def deployed_router_parameters(self) -> tuple[nn.Parameter, ...]:
@@ -3099,6 +3176,12 @@ class StageBDenseDutyScorer(nn.Module):
         return tuple(self.confidence_veto_pool.parameters())
 
     def global_absolute_parameters(self) -> tuple[nn.Parameter, ...]:
+        if self.confidence_full_decoder_verifier:
+            if self.confidence_verifier_veto_head is None:
+                raise RuntimeError("full-decoder confidence veto head is missing")
+            return tuple(self.confidence_verifier_veto_head.parameters()) + tuple(
+                self.confidence_pool.parameters()
+            )
         return self.global_trust_parameters() + self.global_veto_parameters()
 
     def set_phase(self, phase: str) -> None:
@@ -3109,6 +3192,21 @@ class StageBDenseDutyScorer(nn.Module):
         rank_active = bool(self.training and self.phase == "rank")
         confidence_active = bool(self.training and self.phase == "confidence")
         self.rank_tower.set_active(rank_active)
+        if self.confidence_full_decoder_verifier:
+            if (
+                self.confidence_verifier_tower is None
+                or self.confidence_verifier_veto_head is None
+            ):
+                raise RuntimeError("full-decoder confidence verifier is incomplete")
+            self.confidence_verifier_tower.set_active(confidence_active)
+            _set_module_trainable(
+                self.confidence_verifier_veto_head, confidence_active
+            )
+            _set_module_trainable(self.confidence_pool, confidence_active)
+            _set_module_trainable(self.confidence_adapter, False)
+            if self.confidence_veto_pool is not None:
+                _set_module_trainable(self.confidence_veto_pool, False)
+            return
         deployment_owned = self.confidence_adapter.head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
@@ -3132,6 +3230,27 @@ class StageBDenseDutyScorer(nn.Module):
         super().train(mode)
         self._apply_phase_contract()
         return self
+
+    @torch.no_grad()
+    def copy_confidence_verifier_from_rank(self) -> dict[str, int]:
+        """Copy the complete rank tower into the independent verifier exactly."""
+        if not self.confidence_full_decoder_verifier:
+            raise RuntimeError("full-decoder confidence verifier is disabled")
+        if self.confidence_verifier_tower is None:
+            raise RuntimeError("full-decoder confidence verifier is missing")
+        rank_state = self.rank_tower.state_dict()
+        self.confidence_verifier_tower.load_state_dict(rank_state, strict=True)
+        self.confidence_verifier_tower.decoder.bbox_embed = None
+        self.confidence_verifier_tower.decoder.class_embed = None
+        self.confidence_verifier_tower._refresh_parameter_contract()
+        return {
+            "tensor_count": len(rank_state),
+            "element_count": sum(
+                int(value.numel()) for value in rank_state.values()
+            ),
+            "decoder_num_layers": self.confidence_verifier_tower.num_layers,
+            "hidden_dim": self.confidence_verifier_tower.hidden_dim,
+        }
 
     @torch.no_grad()
     def load_from_groundingdino(self, source_model: nn.Module) -> dict[str, Any]:
@@ -3334,6 +3453,91 @@ class StageBDenseDutyScorer(nn.Module):
                 name: torch.cat([chunk[name] for chunk in chunks], dim=0)
                 for name in row_keys
             },
+        }
+
+    def _build_full_decoder_verifier_output(
+        self,
+        *,
+        rank: Mapping[str, Tensor],
+        verifier: Mapping[str, Tensor],
+        candidate_mask: Tensor,
+        score_word_group_ids: Optional[Tensor],
+    ) -> dict[str, Tensor]:
+        """Expose only entailment and one-sided veto from the full verifier."""
+        if (
+            not self.confidence_full_decoder_verifier
+            or self.confidence_verifier_veto_head is None
+        ):
+            raise RuntimeError("full-decoder confidence verifier is disabled")
+        rank_token = rank["token_layers"].detach().float()
+        verifier_token = verifier["token_layers"].float()
+        if tuple(verifier_token.shape) != tuple(rank_token.shape):
+            raise RuntimeError("rank and verifier token surfaces do not align")
+        phrase_mask = verifier["phrase_token_mask"].to(dtype=torch.bool)
+        modifier_mask = (
+            verifier["score_token_mask"].to(dtype=torch.bool) & phrase_mask
+        )
+        if score_word_group_ids is None:
+            raise ValueError("full-decoder verifier requires lexical word groups")
+        word_groups = score_word_group_ids.to(
+            device=verifier_token.device, dtype=torch.long
+        )
+        if tuple(word_groups.shape) != tuple(modifier_mask.shape):
+            raise ValueError(
+                "full-decoder verifier word groups must align with score tokens"
+            )
+
+        # Positive residual means that the independent verifier has reduced
+        # entailment relative to the frozen U6551 rank semantics.
+        token_residual = (rank_token - verifier_token).masked_fill(
+            ~phrase_mask[None, :, None], 0.0
+        )
+        _entailment_probability, mismatch_gate = (
+            _word_normalized_softmin_probability(
+                verifier_token,
+                token_residual,
+                modifier_mask,
+                word_groups,
+                temperature=self.confidence_adapter.word_softmin_temperature,
+                gate_scale=self.confidence_adapter.veto_gate_scale,
+                gate_offset=self.confidence_adapter.veto_gate_offset,
+                gate_gradient_contract=(
+                    self.confidence_adapter.gate_gradient_contract
+                ),
+            )
+        )
+        reference_base = rank["full_phrase_layers"].detach().float()
+        reference_carrier = torch.stack(
+            [
+                _frozen_reference_carrier_index(
+                    reference_base[layer],
+                    candidate_mask.to(dtype=torch.bool),
+                )
+                for layer in range(int(reference_base.shape[0]))
+            ],
+            dim=0,
+        )
+        veto_raw = self.confidence_verifier_veto_head(
+            verifier["hidden_layers"]
+        ).squeeze(-1).float()
+        veto_raw = veto_raw.masked_fill(
+            ~candidate_mask[None].to(dtype=torch.bool),
+            torch.finfo(torch.float32).min,
+        )
+        zeros = torch.zeros_like(mismatch_gate)
+        return {
+            "token_layers": verifier_token,
+            "token_residual_layers": token_residual,
+            "hidden_layers": verifier["hidden_layers"],
+            # This is a raw veto-depth coordinate, never an absolute score.
+            "base_layers": veto_raw,
+            "reference_base_layers": reference_base,
+            "reference_carrier_index_layers": reference_carrier,
+            "raw_mismatch_gate_layers": mismatch_gate,
+            "deployed_routing_gate_layers": mismatch_gate,
+            "deployed_routing_residual_layers": zeros,
+            "mismatch_gate_layers": mismatch_gate,
+            "modifier_valid": modifier_mask.any(dim=-1),
         }
 
     @staticmethod
@@ -3564,17 +3768,39 @@ class StageBDenseDutyScorer(nn.Module):
         if run_confidence:
             confidence_grad = bool(self.training and self.phase == "confidence")
             with torch.set_grad_enabled(torch.is_grad_enabled() and confidence_grad):
-                confidence = self.confidence_adapter(
-                    rank_token_layers=rank["token_layers"],
-                    query_layers=rank["hidden_layers"],
-                    text_features=rank["text_features"],
-                    phrase_token_mask=rank["phrase_token_mask"],
-                    score_token_mask=rank["score_token_mask"],
-                    patch_logits=flat_patch_logits,
-                    patch_standardized=flat_patch_standardized,
-                    candidate_mask=flat_eligible,
-                    score_word_group_ids=flat_score_word_groups,
-                )
+                if self.confidence_full_decoder_verifier:
+                    if self.confidence_verifier_tower is None:
+                        raise RuntimeError(
+                            "full-decoder confidence verifier is missing"
+                        )
+                    verifier = self._run_tower_microbatched(
+                        self.confidence_verifier_tower,
+                        candidate_hs=candidates["hs"],
+                        candidate_boxes=candidates["boxes"],
+                        captions=flat_captions,
+                        owner_indices=owner_indices,
+                        raw_context_provider=raw_context_provider,
+                        score_token_mask=flat_score_mask,
+                        expression_microbatch=microbatch,
+                    )
+                    confidence = self._build_full_decoder_verifier_output(
+                        rank=rank,
+                        verifier=verifier,
+                        candidate_mask=flat_eligible,
+                        score_word_group_ids=flat_score_word_groups,
+                    )
+                else:
+                    confidence = self.confidence_adapter(
+                        rank_token_layers=rank["token_layers"],
+                        query_layers=rank["hidden_layers"],
+                        text_features=rank["text_features"],
+                        phrase_token_mask=rank["phrase_token_mask"],
+                        score_token_mask=rank["score_token_mask"],
+                        patch_logits=flat_patch_logits,
+                        patch_standardized=flat_patch_standardized,
+                        candidate_mask=flat_eligible,
+                        score_word_group_ids=flat_score_word_groups,
+                    )
 
         rank_placeholder = False
         confidence_placeholder = confidence is None

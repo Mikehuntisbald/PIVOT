@@ -3711,6 +3711,13 @@ def build_groundingdino(args):
                         "shared_token_veto_global_absolute_v1",
                     )
                 ),
+                confidence_full_decoder_verifier=bool(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_confidence_full_decoder_verifier",
+                        False,
+                    )
+                ),
                 expression_microbatch=int(
                     getattr(args, "stage_b_v11_expression_microbatch", 1)
                 ),
