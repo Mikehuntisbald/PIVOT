@@ -197,6 +197,7 @@ CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_DEPLOYED_ROUTING_ST = (
 )
 CONFIDENCE_MONOTONE_VETO_GATE_FLOOR = 0.25
 CONFIDENCE_QUERY_VETO_MAX_DEPTH = 8.0
+CONFIDENCE_PATCH_SOFTMIN_VETO_TEMPERATURE = 0.1
 CONFIDENCE_GATE_GRADIENT_CONTRACTS = (
     CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_DETACHED,
     CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_FORWARD_SOFT_BACKWARD,
@@ -2833,6 +2834,7 @@ class StageBDenseDutyScorer(nn.Module):
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_SHARED
         ),
         confidence_full_decoder_verifier: bool = False,
+        confidence_veto_only_patch_softmin: bool = False,
         expression_microbatch: int = 1,
         phase: str = "rank",
     ) -> None:
@@ -2864,6 +2866,16 @@ class StageBDenseDutyScorer(nn.Module):
         self.confidence_full_decoder_verifier = bool(
             confidence_full_decoder_verifier
         )
+        self.confidence_veto_only_patch_softmin = bool(
+            confidence_veto_only_patch_softmin
+        )
+        if (
+            self.confidence_veto_only_patch_softmin
+            and not self.confidence_full_decoder_verifier
+        ):
+            raise ValueError(
+                "patch-softmin veto-only deployment requires the full decoder verifier"
+            )
         self.confidence_verifier_tower = (
             DenseExpressionTower(
                 source_feat_map,
@@ -2979,6 +2991,9 @@ class StageBDenseDutyScorer(nn.Module):
                 for parameter in self.confidence_verifier_veto_head.parameters()
             }
             pool_ids = {id(parameter) for parameter in self.confidence_pool.parameters()}
+            expected_confidence_ids = verifier_ids | head_ids
+            if not self.confidence_veto_only_patch_softmin:
+                expected_confidence_ids |= pool_ids
             if (
                 not verifier_ids
                 or not head_ids
@@ -2986,7 +3001,11 @@ class StageBDenseDutyScorer(nn.Module):
                 or verifier_ids & head_ids
                 or verifier_ids & pool_ids
                 or head_ids & pool_ids
-                or verifier_ids | head_ids | pool_ids != confidence_ids
+                or expected_confidence_ids != confidence_ids
+                or (
+                    self.confidence_veto_only_patch_softmin
+                    and bool(pool_ids & confidence_ids)
+                )
             ):
                 raise RuntimeError(
                     "full-decoder verifier ownership is empty, overlapping, or incomplete"
@@ -3081,11 +3100,13 @@ class StageBDenseDutyScorer(nn.Module):
                 or self.confidence_verifier_veto_head is None
             ):
                 raise RuntimeError("full-decoder confidence verifier is incomplete")
-            return (
+            parameters = (
                 self.confidence_verifier_tower.owned_parameters()
                 + tuple(self.confidence_verifier_veto_head.parameters())
-                + tuple(self.confidence_pool.parameters())
             )
+            if not self.confidence_veto_only_patch_softmin:
+                parameters += tuple(self.confidence_pool.parameters())
+            return parameters
         if self.confidence_adapter.head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
@@ -3180,7 +3201,9 @@ class StageBDenseDutyScorer(nn.Module):
             if self.confidence_verifier_veto_head is None:
                 raise RuntimeError("full-decoder confidence veto head is missing")
             return tuple(self.confidence_verifier_veto_head.parameters()) + tuple(
-                self.confidence_pool.parameters()
+                ()
+                if self.confidence_veto_only_patch_softmin
+                else self.confidence_pool.parameters()
             )
         return self.global_trust_parameters() + self.global_veto_parameters()
 
@@ -3202,7 +3225,10 @@ class StageBDenseDutyScorer(nn.Module):
             _set_module_trainable(
                 self.confidence_verifier_veto_head, confidence_active
             )
-            _set_module_trainable(self.confidence_pool, confidence_active)
+            _set_module_trainable(
+                self.confidence_pool,
+                confidence_active and not self.confidence_veto_only_patch_softmin,
+            )
             _set_module_trainable(self.confidence_adapter, False)
             if self.confidence_veto_pool is not None:
                 _set_module_trainable(self.confidence_veto_pool, False)
@@ -3950,6 +3976,11 @@ class StageBDenseDutyScorer(nn.Module):
             and self.confidence_adapter.pool_feature_contract
             == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
         )
+        patch_softmin_veto_only_enabled = bool(
+            query_veto_global_enabled
+            and self.confidence_full_decoder_verifier
+            and self.confidence_veto_only_patch_softmin
+        )
         exact_rank_max_reference_enabled = (
             fulltext_global_absolute_enabled
             and self.confidence_adapter.pool_feature_contract
@@ -4121,13 +4152,70 @@ class StageBDenseDutyScorer(nn.Module):
                 if split_candidate_sample_enabled:
                     pool_hidden = pool_hidden.detach()
                     pool_base = pool_base.detach()
-                global_logit, residual = self.confidence_pool(
-                    pool_hidden,
-                    pool_base,
-                    flat_eligible,
-                )
+                if patch_softmin_veto_only_enabled:
+                    # V62 has no trainable signed absolute coordinate.  Keep
+                    # this historical diagnostic surface at exact zero while
+                    # the deployed score is formed solely from non-negative
+                    # verifier veto depth below.
+                    global_logit = torch.zeros(
+                        int(pool_hidden.shape[0]),
+                        device=pool_hidden.device,
+                        dtype=torch.float32,
+                    )
+                    residual = torch.zeros_like(global_logit)
+                else:
+                    global_logit, residual = self.confidence_pool(
+                        pool_hidden,
+                        pool_base,
+                        flat_eligible,
+                    )
             if fulltext_global_absolute_enabled:
-                if (
+                if patch_softmin_veto_only_enabled:
+                    # Patch evidence owns category-conditioned candidate
+                    # preference; no rank logit or verifier feature is allowed
+                    # to become an additive cross-sample score.  The normalized
+                    # weighted soft-min is existential: a positive needs one
+                    # strong patch candidate with shallow veto, while a global
+                    # TN must assign depth to every plausible category query.
+                    raw_query_depth = confidence_base_flat[layer].float()
+                    exact_query_depth = CONFIDENCE_QUERY_VETO_MAX_DEPTH * torch.tanh(
+                        F.relu(raw_query_depth) / CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                    )
+                    centered_softplus = F.softplus(raw_query_depth) - math.log(2.0)
+                    surrogate_query_depth = (
+                        CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                        * torch.tanh(
+                            centered_softplus / CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                        )
+                    )
+                    query_depth = _ExactForwardSurrogateBackward.apply(
+                        exact_query_depth, surrogate_query_depth
+                    )
+                    patch_coordinate = flat_patch_standardized.detach().float()
+                    masked_patch = patch_coordinate.masked_fill(
+                        ~flat_eligible, -torch.inf
+                    )
+                    log_partition = torch.logsumexp(
+                        masked_patch / float(self.confidence_pool.pool_temperature),
+                        dim=1,
+                    )
+                    tau = CONFIDENCE_PATCH_SOFTMIN_VETO_TEMPERATURE
+                    veto_log_partition = torch.logsumexp(
+                        masked_patch / float(self.confidence_pool.pool_temperature)
+                        - query_depth / tau,
+                        dim=1,
+                    )
+                    softmin_veto = -tau * (veto_log_partition - log_partition)
+                    deployed_veto_depth = _ExactForwardSurrogateBackward.apply(
+                        softmin_veto.clamp_min(0.0), softmin_veto
+                    ).masked_fill(~flat_valid, 0.0)
+                    deployed_gate = torch.ones_like(deployed_veto_depth).masked_fill(
+                        ~flat_valid, 0.0
+                    )
+                    global_layers.append(-deployed_veto_depth)
+                    query_veto_depth_layers.append(deployed_veto_depth)
+                    query_veto_gate_layers.append(deployed_gate)
+                elif (
                     query_veto_global_enabled
                 ):
                     # V60 keeps the independent V56 pool residual as the only

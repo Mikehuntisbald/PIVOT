@@ -193,6 +193,12 @@ _V53_OWNER_TENSOR_COUNTS = {
 }
 _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT = 25_664_258
 _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT = 368
+_V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT = 25_530_881
+_V62_PATCH_SOFTMIN_ACTIVE_TENSOR_COUNT = 362
+_V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS = {
+    "token_veto": 356,
+    "global_absolute": 6,
+}
 _V61_FULL_DECODER_OWNER_TENSOR_COUNTS = {
     "token_veto": 356,
     "global_absolute": 12,
@@ -1450,8 +1456,15 @@ def _v60_deployment_owned_query_veto_contract(
     full_decoder_verifier = bool(
         values.get("stage_b_dense_duty_confidence_full_decoder_verifier", False)
     )
+    veto_only_patch_softmin = bool(
+        values.get(
+            "stage_b_dense_duty_confidence_veto_only_patch_softmin", False
+        )
+    )
     active_element_count = (
-        _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
+        _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT
+        if veto_only_patch_softmin
+        else _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
         if full_decoder_verifier
         else _V53_ACTIVE_ELEMENT_COUNT
     )
@@ -1478,10 +1491,15 @@ def _v60_deployment_owned_query_veto_contract(
         expected.update(
             {
                 "stage_b_dense_duty_confidence_capacity_contract": (
-                    "rank_cloned_full_decoder_6layer_256d_v1"
+                    "rank_cloned_full_decoder_patch_softmin_veto_v2"
+                    if veto_only_patch_softmin
+                    else "rank_cloned_full_decoder_6layer_256d_v1"
                 ),
                 "stage_b_dense_duty_confidence_variant": (
-                    "full_decoder_token_entailment_nonnegative_veto_"
+                    "full_decoder_token_entailment_patch_weighted_"
+                    "existential_veto_v62"
+                    if veto_only_patch_softmin
+                    else "full_decoder_token_entailment_nonnegative_veto_"
                     "capacity_upper_bound_v61"
                 ),
             }
@@ -2239,6 +2257,11 @@ def audit_checkpoint_payload(
                 "stage_b_dense_duty_confidence_full_decoder_verifier", False
             )
         )
+        veto_only_patch_softmin = bool(
+            args.get(
+                "stage_b_dense_duty_confidence_veto_only_patch_softmin", False
+            )
+        )
         query_global_contract = (
             _v59_deployment_owned_query_global_revision(args)
             or _v60_deployment_owned_query_veto_revision(args)
@@ -2249,7 +2272,9 @@ def audit_checkpoint_payload(
             or _v58_deployment_owned_stable_fpr95_active_set_revision(args)
         )
         expected_active_tensor_count = (
-            _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
+            _V62_PATCH_SOFTMIN_ACTIVE_TENSOR_COUNT
+            if veto_only_patch_softmin
+            else _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
             if full_decoder_verifier
             else _V53_ACTIVE_TENSOR_COUNT
             if query_global_contract
@@ -2258,7 +2283,9 @@ def audit_checkpoint_payload(
             else _V53_ACTIVE_TENSOR_COUNT
         )
         expected_active_element_count = (
-            _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
+            _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT
+            if veto_only_patch_softmin
+            else _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
             if full_decoder_verifier
             else _V53_ACTIVE_ELEMENT_COUNT
             if query_global_contract
@@ -2267,7 +2294,9 @@ def audit_checkpoint_payload(
             else _V53_ACTIVE_ELEMENT_COUNT
         )
         expected_owner_tensor_counts = (
-            _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
+            _V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS
+            if veto_only_patch_softmin
+            else _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
             if full_decoder_verifier
             else _V53_OWNER_TENSOR_COUNTS
             if query_global_contract
@@ -2276,7 +2305,9 @@ def audit_checkpoint_payload(
             else _V53_OWNER_TENSOR_COUNTS
         )
         contract_label = (
-            "V61-full-decoder"
+            "V62-patch-softmin-veto"
+            if veto_only_patch_softmin
+            else "V61-full-decoder"
             if full_decoder_verifier
             else "V59-V60"
             if query_global_contract
@@ -2913,6 +2944,11 @@ def validate_strict_resume_checkpoint_payload(
                 "stage_b_dense_duty_confidence_full_decoder_verifier", False
             )
         )
+        veto_only_patch_softmin = bool(
+            values.get(
+                "stage_b_dense_duty_confidence_veto_only_patch_softmin", False
+            )
+        )
         current_fingerprint = fingerprint_state(
             payload["model"],
             active_parameter_names=initial_fingerprint[
@@ -2930,7 +2966,9 @@ def validate_strict_resume_checkpoint_payload(
             or _v58_deployment_owned_stable_fpr95_active_set_revision(values)
         )
         expected_active_tensor_count = (
-            _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
+            _V62_PATCH_SOFTMIN_ACTIVE_TENSOR_COUNT
+            if veto_only_patch_softmin
+            else _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
             if full_decoder_verifier
             else _V53_ACTIVE_TENSOR_COUNT
             if query_global_contract
@@ -2939,7 +2977,9 @@ def validate_strict_resume_checkpoint_payload(
             else _V53_ACTIVE_TENSOR_COUNT
         )
         expected_active_element_count = (
-            _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
+            _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT
+            if veto_only_patch_softmin
+            else _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
             if full_decoder_verifier
             else _V53_ACTIVE_ELEMENT_COUNT
             if query_global_contract
@@ -2948,7 +2988,9 @@ def validate_strict_resume_checkpoint_payload(
             else _V53_ACTIVE_ELEMENT_COUNT
         )
         expected_owner_tensor_counts = (
-            _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
+            _V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS
+            if veto_only_patch_softmin
+            else _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
             if full_decoder_verifier
             else _V53_OWNER_TENSOR_COUNTS
             if query_global_contract
@@ -2957,7 +2999,9 @@ def validate_strict_resume_checkpoint_payload(
             else _V53_OWNER_TENSOR_COUNTS
         )
         contract_label = (
-            "V61-full-decoder"
+            "V62-patch-softmin-veto"
+            if veto_only_patch_softmin
+            else "V61-full-decoder"
             if full_decoder_verifier
             else "V59-V60"
             if query_global_contract

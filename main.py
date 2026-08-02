@@ -6401,8 +6401,19 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     False,
                 )
             )
+            veto_only_patch_softmin = bool(
+                getattr(
+                    args,
+                    "stage_b_dense_duty_confidence_veto_only_patch_softmin",
+                    False,
+                )
+            )
             expected_trainable = (
-                25_664_258 if full_decoder_verifier else 534_725
+                25_530_881
+                if veto_only_patch_softmin
+                else 25_664_258
+                if full_decoder_verifier
+                else 534_725
             )
             capacity_contract = str(
                 getattr(
@@ -6439,7 +6450,13 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                 or int(getattr(args, "stage_b_v11_trainable_params_max", -1))
                 != expected_trainable
                 or (
+                    veto_only_patch_softmin
+                    and capacity_contract
+                    != "rank_cloned_full_decoder_patch_softmin_veto_v2"
+                )
+                or (
                     full_decoder_verifier
+                    and not veto_only_patch_softmin
                     and capacity_contract
                     != "rank_cloned_full_decoder_6layer_256d_v1"
                 )

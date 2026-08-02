@@ -89,6 +89,9 @@ DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA = (
 FULL_DECODER_VERIFIER_MIGRATION_SCHEMA = (
     "pivot.stageb.rank_to_full_decoder_confidence_verifier/v26"
 )
+FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA = (
+    "pivot.stageb.rank_to_full_decoder_patch_softmin_veto/v27"
+)
 ABSOLUTE_CAP_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_patch_pool_trainable_absolute_cap_v1"
 )
@@ -173,6 +176,9 @@ DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT = (
 )
 FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT = (
     "rank_cloned_full_decoder_entailment_nonnegative_veto_v24"
+)
+FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT = (
+    "rank_cloned_full_decoder_patch_weighted_existential_veto_v25"
 )
 GLOBAL_TRUST_VETO_HEAD_GRADIENT_CONTRACT = (
     "split_token_veto_global_trust_veto_v4"
@@ -1026,7 +1032,19 @@ def validate_confidence_adapter_migration_audit(
     if not isinstance(value, Mapping):
         raise RuntimeError("confidence-adapter checkpoint lacks its migration audit")
     audit = dict(value)
-    if audit.get("schema") == FULL_DECODER_VERIFIER_MIGRATION_SCHEMA:
+    if audit.get("schema") in {
+        FULL_DECODER_VERIFIER_MIGRATION_SCHEMA,
+        FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA,
+    }:
+        patch_softmin_veto_only = (
+            audit.get("schema")
+            == FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA
+        )
+        expected_fresh_contract = (
+            FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
+            if patch_softmin_veto_only
+            else FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
+        )
         rank = audit.get("rank")
         transferred = audit.get("transferred")
         verifier_copy = audit.get("verifier_copy")
@@ -1042,7 +1060,7 @@ def validate_confidence_adapter_migration_audit(
             audit.get("token_logit_contract")
             != FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT
             or audit.get("fresh_confidence_contract")
-            != FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
+            != expected_fresh_contract
             or audit.get("source_checkpoint_sha256")
             != source_checkpoint_sha256
             or audit.get("source_optimizer_updates")
@@ -1068,6 +1086,8 @@ def validate_confidence_adapter_migration_audit(
             or audit.get("verifier_matches_rank") is not True
             or audit.get("verifier_veto_output_nonzero_count") != 0
             or audit.get("pool_output_nonzero_count") != 0
+            or bool(audit.get("patch_softmin_veto_only", False))
+            is not patch_softmin_veto_only
             or audit.get("retired_confidence_loaded_tensor_count") != 0
             or any(int(audit.get(field, 0)) <= 0 for field in required_positive)
         ):
@@ -1469,6 +1489,9 @@ def _migrate_rank_to_full_decoder_verifier(
     )
     fresh_fingerprint = fingerprint_named_tensors(migrated, fresh_names)
     runtime_parameters = dict(root.named_parameters())
+    patch_softmin_veto_only = bool(
+        getattr(scorer, "confidence_veto_only_patch_softmin", False)
+    )
     active_ids = {id(parameter) for parameter in scorer.confidence_parameters()}
     active_names = sorted(
         name
@@ -1487,7 +1510,14 @@ def _migrate_rank_to_full_decoder_verifier(
         or not any(
             name.startswith(VERIFIER_VETO_HEAD_PREFIX) for name in active_names
         )
-        or not any(name.startswith(POOL_PREFIX) for name in active_names)
+        or (
+            patch_softmin_veto_only
+            and any(name.startswith(POOL_PREFIX) for name in active_names)
+        )
+        or (
+            not patch_softmin_veto_only
+            and not any(name.startswith(POOL_PREFIX) for name in active_names)
+        )
     ):
         raise RuntimeError(
             "full-decoder verifier active parameter ownership is incomplete"
@@ -1515,10 +1545,16 @@ def _migrate_rank_to_full_decoder_verifier(
         )
 
     audit = {
-        "schema": FULL_DECODER_VERIFIER_MIGRATION_SCHEMA,
+        "schema": (
+            FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA
+            if patch_softmin_veto_only
+            else FULL_DECODER_VERIFIER_MIGRATION_SCHEMA
+        ),
         "token_logit_contract": FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT,
         "fresh_confidence_contract": (
-            FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
+            FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
+            if patch_softmin_veto_only
+            else FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
         ),
         "source_checkpoint_sha256": str(source_checkpoint_sha256),
         "source_optimizer_updates": int(source_optimizer_updates),
@@ -1547,6 +1583,7 @@ def _migrate_rank_to_full_decoder_verifier(
             verifier_veto_output_nonzero_count
         ),
         "pool_output_nonzero_count": pool_output_nonzero_count,
+        "patch_softmin_veto_only": patch_softmin_veto_only,
         "retired_confidence_tower_tensor_count": len(
             legacy_confidence_names
         ),
@@ -2507,6 +2544,8 @@ __all__ = [
     "FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT",
     "FULL_DECODER_VERIFIER_MIGRATION_SCHEMA",
     "FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT",
+    "FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT",
+    "FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA",
     "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT",
     "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT",
     "DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA",

@@ -3718,6 +3718,13 @@ def build_groundingdino(args):
                         False,
                     )
                 ),
+                confidence_veto_only_patch_softmin=bool(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_confidence_veto_only_patch_softmin",
+                        False,
+                    )
+                ),
                 expression_microbatch=int(
                     getattr(args, "stage_b_v11_expression_microbatch", 1)
                 ),
