@@ -40,7 +40,12 @@ The current headline status is:
   pairs, but its unbounded additive coordinate raises TN scores more than
   positive scores across samples. The next experiment must preserve V56's
   independent absolute pool as the cross-sample baseline and admit structured
-  evidence only through a bounded, one-sided veto.
+  evidence only through a bounded, one-sided veto; and
+- V60 now implements that preregistered intervention with exact V56 U0
+  inheritance, deployment-only ownership, detached token routing, and a
+  bounded query-wise veto. Its model, migration, training-contract, evaluator,
+  controller, and focused regression contracts are implemented; it has no
+  empirical result yet.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -829,6 +834,44 @@ confidence coordinate. The next structure must keep the V56 independent pool
 as the absolute baseline and use query/token evidence only to lower confidence
 under detected mismatch, never to raise it freely.
 
+## V60 implementation: V56 absolute baseline plus bounded query veto
+
+V60 changes the semantics of the same six-tensor query head without adding a
+new parameter surface. The independent V56 pool residual `p` remains the sole
+cross-sample absolute-confidence coordinate. For frozen-rank weights `w_q`,
+detached token mismatch gate `m_q`, raw query-head output `z_q`, gate floor
+`f=0.25`, and maximum depth `D=8`, the deployed score is
+
+```text
+d_q = D * tanh(relu(z_q) / D)
+e_q = f + (1 - f) * stopgrad(clamp(m_q, 0, 1))
+v   = sum_q w_q * e_q * d_q
+g   = p - v
+```
+
+Thus `0 <= v <= 8` and `g <= p` for every deployed sample. V60 cannot repeat
+V59's TN-raising failure mode. At U0 the zero-initialized query head makes
+`v=0` exactly, so the deployed score is bitwise equal to V56. A centered
+softplus surrogate backward is used behind the exact ReLU/tanh forward; the
+0.25 gate floor therefore gives the query head a nonzero first-step learning
+path even when the token gate has not opened.
+
+Token mismatch routing is detached before it enters the global score. Token
+edit BCE owns the token-veto parameters; deployed global TN, FPR95 tail queue,
+and positive-q05 protection own the complete cross-attention/global trunk,
+query veto head, patch feature path, and independent pool. Candidate-local loss
+and the extra deployed focal BCE are both exactly zero. The real deployed `g`,
+not `p` or a diagnostic candidate logit, is the positive trust and FPR95 loss
+consumer.
+
+V60 retains the 65-tensor, 534,725-parameter active surface: 21 token tensors
+(51,267 parameters) and 44 deployed-global tensors (483,458 parameters).
+Migration schema v25, fresh-confidence contract v23, training-contract schema
+v42, strict evaluator registration, formal admission binding, and independent
+owner clipping fail closed. Focused tests cover V56/V60 state equality, exact
+U0 deployed equality, one-sidedness, the depth bound, gradient ownership,
+migration identity, combined evaluator registration, and controller wiring.
+
 ## Evaluation and claim gates
 
 Every paper candidate must satisfy all of the following:
@@ -1007,14 +1050,11 @@ separate from the result-preserving commits in this ledger.
 
 ## Immediate next action
 
-Implement V60 as a deployment-owned extension of V56: retain the independent
-absolute pool as the cross-sample baseline, keep candidate-local loss exactly
-zero, and use detached token mismatch routing plus a global-loss-owned
-query-wise depth head to form a bounded one-sided veto. The deployed global
-logit must equal the V56 pool residual at U0 and may only decrease through the
-new structured path. Run a fresh U400 health audit and strict1607 replay; do
-not start formal training unless the controller records at most 800 false
-accepts.
+Run the fresh V60 U400 probe, health audit, and strict1607 replay. Do not start
+formal training unless the controller records at most 800 false accepts. If it
+passes, launch the separately gated fresh U4412 formal confidence run; if it
+does not pass, preserve the result and diagnose veto coverage/depth rather than
+reintroducing an unconstrained additive absolute coordinate.
 Independently, the evaluation source profile and Table-C recovery evidence must
 be versioned and resealed before any affected result is promoted into a paper
 table.
