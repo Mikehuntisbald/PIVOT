@@ -201,6 +201,7 @@ def _fpr95_negative_softplus_loss(
     if reduction_contract not in {
         "all_mean_v1",
         "exact_fpr95_active_set_mean_v1",
+        "exact_fpr95_active_set_all_count_mean_v2",
     }:
         raise ValueError("unknown FPR95 negative reduction contract")
 
@@ -213,11 +214,22 @@ def _fpr95_negative_softplus_loss(
     active = current_negative.detach().ge(operating_threshold.detach())
     selected = (
         active
-        if reduction_contract == "exact_fpr95_active_set_mean_v1"
+        if reduction_contract
+        in {
+            "exact_fpr95_active_set_mean_v1",
+            "exact_fpr95_active_set_all_count_mean_v2",
+        }
         else torch.ones_like(active)
     )
     if bool(selected.any().item()):
-        loss = per_example[selected].mean()
+        if reduction_contract == "exact_fpr95_active_set_all_count_mean_v2":
+            # Remove gradients from already-rejected TNs while keeping the
+            # normalization independent of the moving active-set size.  This
+            # avoids the inverse-active-fraction gain of the historical v1
+            # active mean as the operating boundary improves.
+            loss = per_example[selected].sum() / float(current_negative.numel())
+        else:
+            loss = per_example[selected].mean()
     else:
         loss = per_example.sum() * 0.0
     return loss, active, selected
@@ -482,10 +494,12 @@ class StageBFixedTextCriterion(nn.Module):
         if tail_queue_negative_reduction_contract not in {
             "all_mean_v1",
             "exact_fpr95_active_set_mean_v1",
+            "exact_fpr95_active_set_all_count_mean_v2",
         }:
             raise ValueError(
                 "tail_queue_negative_reduction_contract must be "
-                "'all_mean_v1' or 'exact_fpr95_active_set_mean_v1'"
+                "'all_mean_v1', 'exact_fpr95_active_set_mean_v1', or "
+                "'exact_fpr95_active_set_all_count_mean_v2'"
             )
         token_objective = str(token_objective).strip().lower().replace("-", "_")
         if token_objective not in {

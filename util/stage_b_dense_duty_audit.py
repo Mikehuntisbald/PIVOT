@@ -75,6 +75,7 @@ _ADAPTER_FORMAL_CONFIDENCE_CONFIGS = (
     "config/ablations/cfg_stageb_dense_duty_confidence_adapter_fulltext_global_independent_absolute_20260802.py",
     "config/ablations/cfg_stageb_dense_duty_confidence_adapter_deployment_owned_global_20260802.py",
     "config/ablations/cfg_stageb_dense_duty_confidence_adapter_deployed_global_balanced_absolute_20260802.py",
+    "config/ablations/cfg_stageb_dense_duty_confidence_adapter_deployment_owned_global_stable_fpr95_active_set_20260802.py",
 )
 _V53_CONFIDENCE_REVISION = "word_veto_rank_full_expression_global_absolute_v53"
 _V53_CONFIDENCE_HEAD_CONTRACT = (
@@ -138,6 +139,14 @@ _V57_CONFIDENCE_REVISION = (
 _V57_FORMAL_ADMISSION_CONTRACT = (
     "u400_word_veto_rank_full_expression_deployed_global_balanced_absolute_"
     "confidence_strict1607_v57"
+)
+_V58_CONFIDENCE_REVISION = (
+    "word_veto_rank_full_expression_deployment_owned_global_"
+    "stable_fpr95_active_set_v58"
+)
+_V58_FORMAL_ADMISSION_CONTRACT = (
+    "u400_word_veto_rank_full_expression_deployment_owned_global_"
+    "stable_fpr95_active_set_confidence_strict1607_v58"
 )
 _V56_ACTIVE_TENSOR_COUNT = 59
 _V56_ACTIVE_ELEMENT_COUNT = 468_164
@@ -1252,6 +1261,72 @@ def _v57_deployed_global_balanced_absolute_contract(
     return True
 
 
+def _v58_deployment_owned_stable_fpr95_active_set_revision(
+    values: Mapping[str, Any],
+) -> bool:
+    return (
+        str(values.get("stage_b_v22_score_ownership", "")).strip()
+        == _ADAPTER_OWNERSHIP
+        and str(
+            values.get("stage_b_dense_duty_confidence_revision", "")
+        ).strip()
+        == _V58_CONFIDENCE_REVISION
+    )
+
+
+def _v58_deployment_owned_stable_fpr95_active_set_contract(
+    values: Mapping[str, Any],
+) -> bool:
+    """Bind stable active-set reduction to the unchanged V56 owner."""
+    if not _v58_deployment_owned_stable_fpr95_active_set_revision(values):
+        return False
+    expected = {
+        "stage_b_dense_duty_confidence_head_gradient_contract": (
+            _V56_CONFIDENCE_HEAD_CONTRACT
+        ),
+        "stage_b_dense_duty_confidence_pool_feature_contract": (
+            _V56_CONFIDENCE_POOL_CONTRACT
+        ),
+        "stage_b_dense_duty_confidence_gate_gradient_contract": (
+            _V53_CONFIDENCE_GATE_CONTRACT
+        ),
+        "stage_b_dense_duty_positive_trust_contract": (
+            _V55_POSITIVE_TRUST_CONTRACT
+        ),
+        "stage_b_v14_local_absolute_weight": 0.0,
+        "stage_b_dense_duty_deployed_global_absolute_weight": 0.0,
+        "stage_b_v15_tail_queue_negative_reduction_contract": (
+            "exact_fpr95_active_set_all_count_mean_v2"
+        ),
+        "stage_b_v11_trainable_params_min": _V56_ACTIVE_ELEMENT_COUNT,
+        "stage_b_v11_trainable_params_max": _V56_ACTIVE_ELEMENT_COUNT,
+    }
+    drift = {
+        key: (values.get(key), expected_value)
+        for key, expected_value in expected.items()
+        if values.get(key) != expected_value
+    }
+    scope = str(
+        values.get("stage_b_dense_duty_execution_scope", "")
+    ).strip().lower()
+    admission = str(
+        values.get(
+            "stage_b_dense_duty_confidence_probe_admission_contract", ""
+        )
+    ).strip()
+    if scope == "formal" and admission != _V58_FORMAL_ADMISSION_CONTRACT:
+        drift["stage_b_dense_duty_confidence_probe_admission_contract"] = (
+            admission,
+            _V58_FORMAL_ADMISSION_CONTRACT,
+        )
+    if drift:
+        raise RuntimeError(
+            "V58 deployment-owned stable FPR95 active-set contract drifted: "
+            f"{drift}"
+        )
+    return True
+
+
 def build_training_contract(args: Any) -> dict[str, Any]:
     values = _argument_mapping(args)
     adapter_contract = (
@@ -1426,12 +1501,16 @@ def build_training_contract(args: Any) -> dict[str, Any]:
     v57_deployed_global_balanced_absolute_contract = (
         _v57_deployed_global_balanced_absolute_contract(values)
     )
+    v58_deployment_owned_stable_fpr95_active_set_contract = (
+        _v58_deployment_owned_stable_fpr95_active_set_contract(values)
+    )
     fulltext_global_absolute_contract = (
         v53_fulltext_global_absolute_contract
         or v54_fulltext_global_absolute_exact_residual_contract
         or v55_fulltext_global_independent_absolute_contract
         or v56_deployment_owned_global_contract
         or v57_deployed_global_balanced_absolute_contract
+        or v58_deployment_owned_stable_fpr95_active_set_contract
     )
     split_reduction_contract = (
         tail_aligned_split_contract
@@ -1516,6 +1595,7 @@ def build_training_contract(args: Any) -> dict[str, Any]:
         _V55_FORMAL_ADMISSION_CONTRACT,
         _V56_FORMAL_ADMISSION_CONTRACT,
         _V57_FORMAL_ADMISSION_CONTRACT,
+        _V58_FORMAL_ADMISSION_CONTRACT,
     }
     contract_keys = (
         _RESUME_CONTRACT_KEYS
@@ -1562,7 +1642,10 @@ def build_training_contract(args: Any) -> dict[str, Any]:
         )
         + (
             _FPR_ACTIVE_SET_RESUME_CONTRACT_KEYS
-            if fpr_active_set_split_contract
+            if (
+                fpr_active_set_split_contract
+                or v58_deployment_owned_stable_fpr95_active_set_contract
+            )
             else ()
         )
         + (
@@ -1654,7 +1737,9 @@ def build_training_contract(args: Any) -> dict[str, Any]:
     source_closure = validate_source_closure(values[SOURCE_CLOSURE_ARG])
     contract_values = {key: values[key] for key in contract_keys}
     contract_values[SOURCE_CLOSURE_ARG] = source_closure
-    if v57_deployed_global_balanced_absolute_contract:
+    if v58_deployment_owned_stable_fpr95_active_set_contract:
+        schema = "pivot.stageb.dense_duty_training_contract/v40"
+    elif v57_deployed_global_balanced_absolute_contract:
         schema = "pivot.stageb.dense_duty_training_contract/v39"
     elif v56_deployment_owned_global_contract:
         schema = "pivot.stageb.dense_duty_training_contract/v38"
@@ -1945,11 +2030,13 @@ def audit_checkpoint_payload(
         or _v55_fulltext_global_independent_absolute_contract(args)
         or _v56_deployment_owned_global_contract(args)
         or _v57_deployed_global_balanced_absolute_contract(args)
+        or _v58_deployment_owned_stable_fpr95_active_set_contract(args)
     )
     if fulltext_global_absolute_contract:
         deployment_owned_contract = (
             _v56_deployment_owned_global_revision(args)
             or _v57_deployed_global_balanced_absolute_revision(args)
+            or _v58_deployment_owned_stable_fpr95_active_set_revision(args)
         )
         expected_active_tensor_count = (
             _V56_ACTIVE_TENSOR_COUNT
@@ -1966,7 +2053,7 @@ def audit_checkpoint_payload(
             if deployment_owned_contract
             else _V53_OWNER_TENSOR_COUNTS
         )
-        contract_label = "V56-V57" if deployment_owned_contract else "V53-V55"
+        contract_label = "V56-V58" if deployment_owned_contract else "V53-V55"
         _validate_fulltext_active_fingerprint(
             initial["active"],
             current["active"],
@@ -2587,6 +2674,7 @@ def validate_strict_resume_checkpoint_payload(
         or _v55_fulltext_global_independent_absolute_contract(values)
         or _v56_deployment_owned_global_contract(values)
         or _v57_deployed_global_balanced_absolute_contract(values)
+        or _v58_deployment_owned_stable_fpr95_active_set_contract(values)
     ):
         current_fingerprint = fingerprint_state(
             payload["model"],
@@ -2598,6 +2686,7 @@ def validate_strict_resume_checkpoint_payload(
         deployment_owned_contract = (
             _v56_deployment_owned_global_revision(values)
             or _v57_deployed_global_balanced_absolute_revision(values)
+            or _v58_deployment_owned_stable_fpr95_active_set_revision(values)
         )
         expected_active_tensor_count = (
             _V56_ACTIVE_TENSOR_COUNT
@@ -2614,7 +2703,7 @@ def validate_strict_resume_checkpoint_payload(
             if deployment_owned_contract
             else _V53_OWNER_TENSOR_COUNTS
         )
-        contract_label = "V56-V57" if deployment_owned_contract else "V53-V55"
+        contract_label = "V56-V58" if deployment_owned_contract else "V53-V55"
         _validate_fulltext_active_fingerprint(
             initial_fingerprint["active"],
             current_fingerprint["active"],
@@ -3066,6 +3155,7 @@ def validate_evaluation_checkpoint_payload(
                 _V55_CONFIDENCE_REVISION,
                 _V56_CONFIDENCE_REVISION,
                 _V57_CONFIDENCE_REVISION,
+                _V58_CONFIDENCE_REVISION,
             }:
                 required_equal_args += _DEPLOYED_VETO_ROUTING_RESUME_CONTRACT_KEYS
             if str(
@@ -3099,11 +3189,13 @@ def validate_evaluation_checkpoint_payload(
                 _V55_CONFIDENCE_REVISION,
                 _V56_CONFIDENCE_REVISION,
                 _V57_CONFIDENCE_REVISION,
+                _V58_CONFIDENCE_REVISION,
             }:
                 required_equal_args += _TAIL_ALIGNED_SPLIT_RESUME_CONTRACT_KEYS
-            if confidence_revision == (
-                "word_veto_candidate_split_fpr_active_set_v48"
-            ):
+            if confidence_revision in {
+                "word_veto_candidate_split_fpr_active_set_v48",
+                _V58_CONFIDENCE_REVISION,
+            }:
                 required_equal_args += _FPR_ACTIVE_SET_RESUME_CONTRACT_KEYS
             if confidence_revision == (
                 "word_veto_candidate_split_global_trust_veto_v49"
@@ -3118,6 +3210,7 @@ def validate_evaluation_checkpoint_payload(
                 _V55_CONFIDENCE_REVISION,
                 _V56_CONFIDENCE_REVISION,
                 _V57_CONFIDENCE_REVISION,
+                _V58_CONFIDENCE_REVISION,
             }:
                 required_equal_args += (
                     _STRONG_BOUNDARY_ROUTING_RESUME_CONTRACT_KEYS
@@ -3293,6 +3386,7 @@ def validate_evaluation_checkpoint_payload(
             _V55_FORMAL_ADMISSION_CONTRACT,
             _V56_FORMAL_ADMISSION_CONTRACT,
             _V57_FORMAL_ADMISSION_CONTRACT,
+            _V58_FORMAL_ADMISSION_CONTRACT,
         }:
             required_equal_args += _PROBE_ADMISSION_RESUME_CONTRACT_KEYS
         if int(
