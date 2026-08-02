@@ -77,6 +77,7 @@ def test_v57_health_and_controllers_bind_the_single_treatment(monkeypatch):
     ] == 1.0
     assert training.UPDATES == 400
     assert "--resume" not in training.command("start")
+    assert evaluation._CORE._load_health_audit() is health.audit
     assert evaluation._formal_main_admission_is_wired(REPO_ROOT / "main.py")
     assert formal.UPDATES == 4412
     assert "--resume" not in formal.command("start")

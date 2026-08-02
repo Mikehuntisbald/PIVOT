@@ -122,7 +122,7 @@ _CORE.FORMAL_PROMOTION_OVERRIDES = {
     ),
     "stage_b_dense_duty_confidence_probe_admission_report": ("", str(REPORT)),
 }
-_CORE._load_health_audit = lambda: health.audit()
+_CORE._load_health_audit = lambda: health.audit
 _BASE_V56_POSTFLIGHT = _V56._v56_postflight
 
 

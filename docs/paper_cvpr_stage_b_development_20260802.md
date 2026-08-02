@@ -26,10 +26,12 @@ The current headline status is:
   healthy fresh U400 probe, and produced 844 false accepts on the same
   strict1607 evaluation;
 - V56 is therefore also a valid negative result and did not enter formal U4412
-  training; and
-- V57 is preregistered below to restore balanced absolute supervision directly
-  on the deployed global logit without restoring the candidate auxiliary or
-  any representation-level leakage.
+  training;
+- V57 added balanced focal BCE directly to the true deployed global logit and
+  completed a healthy fresh U400 probe, but regressed to 849 false accepts; and
+- V58 is preregistered below to implement the requested FPR95 active-set
+  ownership literally while keeping its gradient scale stable as the active
+  fraction changes.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -41,7 +43,7 @@ Evidence in this ledger is tagged by use:
 | Tier | Meaning | Current examples |
 | --- | --- | --- |
 | sealed formal | checkpoint, source, manifest, and per-example records are durably bound | required for a final paper comparison; none claimed for V55 |
-| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | V45-V55 U400 strict1607 reports |
+| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | V45-V57 U400 strict1607 reports |
 | historical non-durable | recorded measurements whose complete final artifact closure no longer exists | July P750/R100/P50 composition |
 | hypothesis | interpretation that still requires an isolating intervention | shared-trunk local-auxiliary conflict |
 
@@ -638,6 +640,73 @@ and no change to U0 deployed scores. V57 receives the same health audit and
 strict1607 gate: at most 800 false accepts admits formal U4412; any larger count
 is a preserved negative result.
 
+### Executed V57 result
+
+The fresh V57 checkpoint completed exactly 400/400 optimizer updates with zero
+AMP skips, zero nonfinite-gradient boundaries, and zero successful steps with
+an inactive owner. Its 59 trainable tensors remained exactly partitioned into
+21 token-veto tensors (51,267 parameters) and 38 deployment-global tensors
+(416,897 parameters). The six serialized candidate-head tensors remained
+frozen and the complete frozen-parameter hash was unchanged.
+
+```text
+checkpoint = outputs/paper_cvpr_v1/
+  dense_duty_adapter_deployed_global_balanced_absolute_highmem_20260802/
+  probe/u000400_fresh/checkpoint_iter.pth
+sha256 = 72e6c0630a56e181f5a93faa1a0de197df49eef851b783a544dede7a44763fdd
+```
+
+The fixed strict1607 evaluation produced 849 false accepts, FPR95 0.528314,
+pair-win 0.869944, mean paired gap 0.165416, mean positive score 0.644419, and
+mean TN score 0.479003. V57 improved pair-win and paired gap slightly relative
+to V56, but added five false accepts and remained 49 above admission. It is a
+valid negative result; formal U4412 was not launched.
+
+The operating-point decomposition is diagnostic. Relative to V56, V57 shifted
+the positive mean down by 0.013015, the TN mean down by 0.015451, and the
+positive-q05 threshold down by 0.013916. FPR75 and FPR90 improved slightly, but
+FPR95 worsened. Ordinary balanced BCE therefore improved broad calibration and
+same-pair discrimination without protecting the exact positive low tail that
+defines the 95%-TPR threshold. This rules out merely increasing the same BCE or
+continuing V57 as the next controlled action.
+
+The failed strict launch before evaluation was a controller-only defect: the
+V57 wrapper returned the health-audit result where the shared core expected an
+audit callable. It failed before model evaluation and created no result. The
+wrapper now returns `health.audit`, a regression assertion covers the callable
+contract, and the unchanged checkpoint/config/manifest completed the valid
+strict1607 run above.
+
+## V58 preregistration: deployment-owned stable FPR95 active set
+
+Reviewing the executed contract exposed a semantic mismatch with the proposed
+deployment-owned design. V56 and V57 computed the exact historical positive
+q05 and recorded the exact `TN >= q05` active set, but their configured
+`all_mean_v1` reduction still backpropagated through every TN. With margin 0.3
+and temperature 0.1, already-rejected TNs immediately below q05 can retain a
+large gradient. Thus the training route used the true deployed logit, but the
+negative reduction was not literally active-set-only.
+
+V58 returns to V56 (no deployed-global BCE) and changes one loss geometry:
+
+```text
+active_i = stopgrad(TN_i >= historical_positive_q05)
+loss_i   = tau * softplus((TN_i - surrogate_q05 + margin) / tau)
+loss     = sum(active_i * loss_i) / number_of_all_valid_TNs
+```
+
+The denominator deliberately remains the complete valid-TN count. The earlier
+V48 `exact_fpr95_active_set_mean_v1` divided by the number of active TNs and
+regressed to 865 false accepts; as the active set shrank, each remaining TN
+received a larger gradient. V58 removes gradients from inactive TNs without
+introducing this inverse-active-fraction gain. Positive-q05 protection, pair
+term, queue size, margin, temperature, data, U0, optimizer, U400 budget,
+candidate freeze, and all 59 owner tensors remain identical to V56.
+
+V58 is admitted to formal U4412 only at 800 or fewer false accepts on the same
+strict1607 manifest. A larger count is another controlled negative result and
+must not trigger continuation of the identical objective.
+
 ## Evaluation and claim gates
 
 Every paper candidate must satisfy all of the following:
@@ -788,7 +857,7 @@ Not yet supported by the current single-network result:
 - "all TN expressions are absolutely absent from the image";
 - "query localization is always sufficient";
 - "the lightweight adapter lacks capacity"; or
-- "V56 will pass" before its fresh strict evaluation exists.
+- "ordinary balanced BCE solves deployed confidence calibration".
 
 The historical composite winner may be reported as prior system evidence only
 with its multi-checkpoint and adaptive-route limitations stated explicitly.
@@ -816,9 +885,10 @@ separate from the result-preserving commits in this ledger.
 
 ## Immediate next action
 
-Implement and audit V57's deployed-global balanced absolute loss, then run one
-fresh U400 probe and the fixed strict1607 gate. Do not continue V56 and do not
-start formal training unless the V57 report records at most 800 false accepts.
+Implement and audit V58's deployment-owned, stable-normalized FPR95 active-set
+loss, then run one fresh U400 probe and the fixed strict1607 gate. Do not
+continue V57 and do not start formal training unless the V58 report records at
+most 800 false accepts.
 Independently, the evaluation source profile and Table-C recovery evidence must
 be versioned and resealed before any affected result is promoted into a paper
 table.
