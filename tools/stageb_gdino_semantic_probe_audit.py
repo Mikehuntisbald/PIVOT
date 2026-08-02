@@ -100,6 +100,20 @@ def _matches(observed: Any, expected: Any) -> bool:
     return observed == expected
 
 
+def _resolve_semantic_find_unused_params(cfg: Any) -> bool:
+    """Apply main.py's CLI default without requiring a config-owned key."""
+    configured = getattr(cfg, "find_unused_params", None)
+    if configured is None:
+        return False
+    if configured is not False:
+        raise SemanticProbeError(
+            "semantic config mismatch for find_unused_params: expected the "
+            "main argparse default False (or explicit False), got "
+            f"{configured!r}"
+        )
+    return False
+
+
 def validate_static() -> Dict[str, Any]:
     config_path = resolve_path(CONFIG)
     datasets_path = resolve_path(DATASETS)
@@ -128,7 +142,6 @@ def validate_static() -> Dict[str, Any]:
         "batch_size": 4,
         "epochs": 1,
         "skip_eval": True,
-        "find_unused_params": False,
     }
     for key, expected in expected_cfg.items():
         observed = getattr(cfg, key, None)
@@ -137,6 +150,7 @@ def validate_static() -> Dict[str, Any]:
                 f"semantic config mismatch for {key}: expected {expected!r}, "
                 f"got {observed!r}"
             )
+    expected_cfg["find_unused_params"] = _resolve_semantic_find_unused_params(cfg)
 
     dataset_config = read_json(datasets_path)
     train = dataset_config.get("train")

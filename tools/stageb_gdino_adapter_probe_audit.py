@@ -369,6 +369,20 @@ def _load_cfg(path: Path):
     return SLConfig.fromfile(str(path))
 
 
+def _resolve_adapter_find_unused_params(cfg: Any, *, phase: str) -> bool:
+    """Apply main.py's CLI default without requiring a config-owned key."""
+    configured = getattr(cfg, "find_unused_params", None)
+    if configured is None:
+        return False
+    if configured is not False:
+        raise ProbeAuditError(
+            f"{phase} config mismatch for find_unused_params: expected the "
+            "main argparse default False (or explicit False), got "
+            f"{configured!r}"
+        )
+    return False
+
+
 def _expected_source_records(phase: str) -> Sequence[Dict[str, Any]]:
     spec = PHASE_SPECS[phase]
     records = []
@@ -413,7 +427,6 @@ def validate_phase_static(phase: str) -> Dict[str, Any]:
         "batch_size": 4,
         "epochs": 1,
         "skip_eval": True,
-        "find_unused_params": False,
         "data_aug_hflip_prob": 0.0,
         "stage_b_gdino_gate_pool_temperature": 0.01,
         "stage_b_gdino_gate_topk": 3,
@@ -459,6 +472,9 @@ def validate_phase_static(phase: str) -> Dict[str, Any]:
             raise ProbeAuditError(
                 f"{phase} config mismatch for {key}: expected {expected!r}, got {observed!r}"
             )
+    expected_cfg["find_unused_params"] = _resolve_adapter_find_unused_params(
+        cfg, phase=phase
+    )
 
     dataset_meta = read_json(datasets_path)
     train = dataset_meta.get("train")

@@ -834,7 +834,10 @@ def _process_relationships() -> dict[int, dict[str, int | str]]:
 
 
 def _stop_and_prove_spawn_window_group_closed(
-    pid: int, identity: Mapping[str, Any], status_path: Path
+    pid: int,
+    identity: Mapping[str, Any],
+    status_path: Path,
+    launch_epoch_identity: Mapping[str, Any] | None = None,
 ) -> list[int]:
     with contextlib.suppress(ProcessLookupError):
         os.killpg(pid, signal.SIGSTOP)
@@ -885,6 +888,16 @@ def _stop_and_prove_spawn_window_group_closed(
             )
         marker_processes: set[int] = set()
         expected_status = str(status_path.resolve(strict=True))
+        launch_epoch_start = identity.get("start_time_ticks")
+        if isinstance(launch_epoch_identity, Mapping):
+            candidate_start = launch_epoch_identity.get("start_time_ticks")
+            if (
+                isinstance(candidate_start, int)
+                and not isinstance(candidate_start, bool)
+                and candidate_start > 0
+                and launch_epoch_identity.get("boot_id") == identity.get("boot_id")
+            ):
+                launch_epoch_start = candidate_start
         for candidate in relationships:
             try:
                 owner_uid = (Path("/proc") / str(candidate)).stat().st_uid
@@ -892,8 +905,16 @@ def _stop_and_prove_spawn_window_group_closed(
                 continue
             if owner_uid != os.geteuid():
                 continue
-            identity = _read_process_identity(candidate)
-            running = _process_running(candidate, identity)
+            candidate_identity = _read_process_identity(candidate)
+            candidate_start = candidate_identity.get("start_time_ticks")
+            if (
+                isinstance(launch_epoch_start, int)
+                and isinstance(candidate_start, int)
+                and not isinstance(candidate_start, bool)
+                and candidate_start < launch_epoch_start
+            ):
+                continue
+            running = _process_running(candidate, candidate_identity)
             if running is False:
                 continue
             if running is None:
@@ -905,7 +926,7 @@ def _stop_and_prove_spawn_window_group_closed(
             except UnicodeDecodeError:
                 environment = None
             if environment is None:
-                if _process_running(candidate, identity) is False:
+                if _process_running(candidate, candidate_identity) is False:
                     continue
                 try:
                     still_same_user = (
@@ -967,6 +988,7 @@ def _terminate_bound_child_process_group(
             pid,
             _validated_child_identity(pid, identity),
             Path(raw_status_path),
+            item.get("detach_launcher_identity"),
         )
     try:
         termination = _terminate_exact_process_group(
