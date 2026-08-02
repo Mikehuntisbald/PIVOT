@@ -1188,3 +1188,43 @@ replacement by patch-weighted existential aggregation. Formal U4412 training
 is allowed only if the terminal health audit is valid and strict1607 has at
 most 800 integer-replayed false accepts. Failure ends the no-teacher structure
 search rather than triggering an unregistered V63.
+
+### V62 terminal result: valid non-win and no formal promotion
+
+The V62 U400 run completed at epoch 1 / next iteration 712 with checkpoint
+SHA-256 `513bb2db2570e4c6553eb878bc72e0889e0b0cc9908aaf7135f23da23ea73a02`.
+The fail-closed health audit passed every condition: 400/400 successful update
+boundaries, zero AMP skips, zero non-finite gradients, zero zero-gradient owner
+steps, exact `356 + 6 = 362` live tensors, unchanged frozen fingerprint, and
+zero active pool tensors.
+
+The single preregistered strict1607 run was a valid non-win:
+
+| system | false accepts | FPR95 | decision |
+|---|---:|---:|---|
+| GDINO Stage-B data-FT baseline | 801 | 0.4984 | comparison baseline |
+| V61 pool-minus-veto | 863 | 0.5370 | non-win |
+| V62 patch-softmin veto-only | 882 | 0.5488 | non-win |
+| formal admission requirement | at most 800 | at most 0.4978 | not met |
+
+All 1607 records were valid and the exact order-statistic threshold admitted
+1527 positives. V62 therefore does not enter formal U4412 training.
+
+The failure is not pool compensation: per-example replay proves the pool logit
+is identically zero and `global_logit = -veto_depth` exactly. Instead, the
+one-sided existential readout developed a large zero-depth plateau. Aggregated
+depth was exactly zero for 89.0% of positives, which is desirable for positive
+trust, but also for 43.6% of TNs. Those TNs receive the maximum possible score
+of 0.5 after sigmoid: 701 TN records were at 0.5, and approximately 700 of the
+882 false accepts came from this zero-depth set. At the 95%-TPR threshold
+0.469264, an additional 182 shallow-depth TNs were accepted.
+
+This falsifies the strong V62 premise under the fixed no-teacher objectives:
+removing the signed pool eliminates V61's compensation path, but the existing
+token/raw-veto/TN-tail losses do not make every patch-plausible candidate carry
+positive veto depth. With an existential soft-min, one unvetoed candidate is
+enough to return the maximum confidence. Increasing verifier capacity from the
+light adapter to a rank-cloned six-layer tower did not solve that coverage
+problem. Per preregistration, no V63 no-teacher architecture is launched; the
+result and checkpoint are retained as the terminal no-teacher capacity/owner
+ablation.

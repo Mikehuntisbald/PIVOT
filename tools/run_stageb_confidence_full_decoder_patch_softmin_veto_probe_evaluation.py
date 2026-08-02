@@ -120,20 +120,28 @@ def _v62_postflight(
         "v61_rank_cloned_full_decoder_verifier_v26"
     ) is not True:
         raise ProbeEvaluationError("V62 postflight lacks inherited verifier evidence")
-    contracts = dict(contracts)
-    contracts.pop("v61_rank_cloned_full_decoder_verifier_v26", None)
-    contracts.update(
-        {
-            "v62_patch_softmin_veto_only_migration_v27": True,
-            EXPECTED_CAPACITY_CONTRACT: True,
-            "patch_top50_is_detached_existential_weight_only": True,
-            "absolute_confidence_pool_is_frozen_dormant_and_zero": True,
-            "deployed_global_logit_is_exactly_negative_veto": True,
-            "veto_is_nonnegative_patch_weighted_existential_softmin": True,
-            "no_pool_veto_compensation_coordinate": True,
-        }
-    )
-    result["contracts"] = contracts
+    # Do not retain inherited V60/V61 architectural prose: those controllers
+    # describe a deployed absolute pool, which is deliberately absent in V62.
+    result["contracts"] = {
+        "tn_only": True,
+        "full_strict1607": True,
+        "zero_invalid_records": True,
+        "terminal_u400_diagnostic": True,
+        "full_per_example_records_bound": True,
+        "fpr95_replayed_as_exact_integer_count": True,
+        "still_not_formal_evaluation": True,
+        "v62_patch_softmin_veto_only_migration_v27": True,
+        EXPECTED_CAPACITY_CONTRACT: True,
+        "rank_tower_is_frozen_and_parameter_disjoint": True,
+        "verifier_is_six_layer_256d_full_expression_tower": True,
+        "verifier_outputs_token_entailment_and_nonnegative_veto_only": True,
+        "verifier_has_no_free_signed_absolute_score": True,
+        "patch_top50_is_detached_existential_weight_only": True,
+        "absolute_confidence_pool_is_frozen_dormant_and_zero": True,
+        "deployed_global_logit_is_exactly_negative_veto": True,
+        "veto_is_nonnegative_patch_weighted_existential_softmin": True,
+        "no_pool_veto_compensation_coordinate": True,
+    }
     return result
 
 
