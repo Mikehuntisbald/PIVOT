@@ -63,6 +63,8 @@ def test_v57_config_and_combined_evaluator_are_bound(tmp_path):
     combined_eval._validate_partial_dense_duty_confidence_diagnostic_args(
         _diagnostic_args(tmp_path), cfg
     )
+    assert cfg.epochs == 2
+    assert "output_dir" not in cfg
 
 
 def test_v57_health_and_controllers_bind_the_single_treatment(monkeypatch):
