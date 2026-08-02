@@ -4295,7 +4295,6 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
             _V57_DEPLOYED_GLOBAL_BALANCED_ABSOLUTE_REVISION,
             _V58_DEPLOYMENT_OWNED_STABLE_FPR95_ACTIVE_SET_REVISION,
             _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
-            _V59_DEPLOYMENT_OWNED_QUERY_GLOBAL_REVISION,
         }
         and phrase_aggregation
         == "trace_activated_word_veto_gated_pool_absolute_cap_v5"
@@ -5209,30 +5208,33 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         getattr(cfg, "stage_b_dense_duty_positive_trust_contract", "")
     ).strip()
     == (
-        "absolute_global_pool_logit_v4"
-        if (
-            word_veto_v55_revision_contract
-            or word_veto_v56_revision_contract
-            or word_veto_v59_revision_contract
-        )
+        "absolute_global_confidence_logit_v2"
+        if word_veto_v59_revision_contract
         else (
-            "exact_frozen_rank_max_confidence_delta_v3"
-            if word_veto_v54_revision_contract
+            "absolute_global_pool_logit_v4"
+            if (
+                word_veto_v55_revision_contract
+                or word_veto_v56_revision_contract
+            )
             else (
-                "absolute_global_confidence_logit_v2"
-                if (
-                    word_veto_v27_revision_contract
-                    or word_veto_v28_revision_contract
-                    or word_veto_v29_revision_contract
-                    or word_veto_v30_revision_contract
-                    or word_veto_v31_revision_contract
-                    or word_veto_v32_revision_contract
-                    or word_veto_v33_revision_contract
-                    or word_veto_deployed_routing_revision_contract
-                    or word_veto_v52_revision_contract
-                    or word_veto_v53_revision_contract
+                "exact_frozen_rank_max_confidence_delta_v3"
+                if word_veto_v54_revision_contract
+                else (
+                    "absolute_global_confidence_logit_v2"
+                    if (
+                        word_veto_v27_revision_contract
+                        or word_veto_v28_revision_contract
+                        or word_veto_v29_revision_contract
+                        or word_veto_v30_revision_contract
+                        or word_veto_v31_revision_contract
+                        or word_veto_v32_revision_contract
+                        or word_veto_v33_revision_contract
+                        or word_veto_deployed_routing_revision_contract
+                        or word_veto_v52_revision_contract
+                        or word_veto_v53_revision_contract
+                    )
+                    else "net_total_confidence_delta_v1"
                 )
-                else "net_total_confidence_delta_v1"
             )
         )
     )

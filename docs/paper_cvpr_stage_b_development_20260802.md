@@ -31,13 +31,16 @@ The current headline status is:
   completed a healthy fresh U400 probe, but regressed to 849 false accepts; and
 - V58 implemented the requested FPR95 active set literally, but regressed to
   914 false accepts despite a healthy U400 run;
-- V59 now implements query-structured evidence inside the deployed global
-  score while keeping its complete representation owned only by deployed
-  losses; its source, migration, evaluator, and controller contracts pass 277
-  focused regression tests; and
-- V59 is eligible for a fresh U400 probe, but has no empirical result yet and
-  cannot enter formal U4412 training unless strict1607 records at most 800
-  false accepts.
+- V59 implemented query-structured evidence inside the deployed global score
+  while keeping its complete representation owned only by deployed losses;
+  its healthy fresh U400 probe produced 876 false accepts on strict1607
+  (FPR95 0.545115), so it is a valid negative result and did not enter formal
+  U4412 training; and
+- paired diagnostics show that V59's query head wins all 1,607 positive/TN
+  pairs, but its unbounded additive coordinate raises TN scores more than
+  positive scores across samples. The next experiment must preserve V56's
+  independent absolute pool as the cross-sample baseline and admit structured
+  evidence only through a bounded, one-sided veto.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -49,7 +52,7 @@ Evidence in this ledger is tagged by use:
 | Tier | Meaning | Current examples |
 | --- | --- | --- |
 | sealed formal | checkpoint, source, manifest, and per-example records are durably bound | required for a final paper comparison; none claimed for V55 |
-| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | V45-V58 U400 strict1607 reports |
+| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | V45-V59 U400 strict1607 reports |
 | historical non-durable | recorded measurements whose complete final artifact closure no longer exists | July P750/R100/P50 composition |
 | hypothesis | interpretation that still requires an isolating intervention | shared-trunk local-auxiliary conflict |
 
@@ -799,6 +802,33 @@ formal admission binding, and U0 equality/gradient-routing tests fail closed.
 The direct-trace audit accepts 13,890 of 14,196 rows and is bound by receipt SHA
 `197c1fb2d6680b9f1785c0f2c36eb053bbf13922712ed438ce88267f33c13396`.
 
+V59 completed exactly 400 successful optimizer updates with zero AMP skips,
+zero nonfinite gradients, an unchanged frozen-state fingerprint, and 65/65
+active tensors live at every audited boundary. The checkpoint is
+`outputs/paper_cvpr_v1/dense_duty_adapter_deployment_owned_query_global_highmem_20260802/probe/u000400_fresh/checkpoint_iter.pth`,
+with SHA256
+`6f49bce4a8bde3c9c6af2b564c29f44fb3bd07260668f08c3cd647c577260215`.
+The health audit classified it as `healthy_for_strict1607_diagnostic`.
+
+The sealed strict1607 replay then produced 876 false accepts, FPR95 0.545115,
+1,527 positive accepts, pair-win 0.870566, positive mean probability 0.666412,
+TN mean probability 0.534597, and a 95%-TPR threshold of 0.483545. Its
+per-example record SHA256 is
+`520e41a2bb47a8414f0f31de8c79c1dc28ae470fdc7e3defd4a8604dfb6208e8`.
+The controller returned `valid_nonwin_do_not_enter_formal`; no formal training
+was launched.
+
+The failure is not evidence that the adapter lacks cross-modal capacity. The
+query-head maximum separates the positive from its paired TN on all 1,607
+pairs, with a mean paired query-logit gap of 0.532020. Relative to V56, however,
+V59 raises the TN deployed score by 0.040140 on average while raising the
+positive score by only 0.008980; 80 examples become V59-only false accepts,
+whereas only 48 V56 false accepts are repaired. Query-relative evidence is
+therefore useful, but its free additive offset is not a calibrated cross-image
+confidence coordinate. The next structure must keep the V56 independent pool
+as the absolute baseline and use query/token evidence only to lower confidence
+under detected mismatch, never to raise it freely.
+
 ## Evaluation and claim gates
 
 Every paper candidate must satisfy all of the following:
@@ -977,9 +1007,14 @@ separate from the result-preserving commits in this ledger.
 
 ## Immediate next action
 
-Run the fresh V59 U400 confidence probe, health audit, and strict1607 replay.
-Do not continue V57 or V58, and do not start formal training unless the V59
-report records at most 800 false accepts.
+Implement V60 as a deployment-owned extension of V56: retain the independent
+absolute pool as the cross-sample baseline, keep candidate-local loss exactly
+zero, and use detached token mismatch routing plus a global-loss-owned
+query-wise depth head to form a bounded one-sided veto. The deployed global
+logit must equal the V56 pool residual at U0 and may only decrease through the
+new structured path. Run a fresh U400 health audit and strict1607 replay; do
+not start formal training unless the controller records at most 800 false
+accepts.
 Independently, the evaluation source profile and Table-C recovery evidence must
 be versioned and resealed before any affected result is promoted into a paper
 table.

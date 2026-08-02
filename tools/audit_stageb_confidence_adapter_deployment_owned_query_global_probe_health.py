@@ -120,7 +120,11 @@ for _module in (_V56, _V55, _V53, _BASE, _CORE):
         setattr(_module, _name, _value)
 
 _CORE.EXPECTED_CONTRACT_VALUES = {
-    **_CORE.EXPECTED_CONTRACT_VALUES,
+    **{
+        key: value
+        for key, value in _CORE.EXPECTED_CONTRACT_VALUES.items()
+        if key != "stage_b_dense_duty_deployed_global_absolute_weight"
+    },
     "stage_b_dense_duty_confidence_revision": EXPECTED_REVISION,
     "stage_b_dense_duty_confidence_head_gradient_contract": EXPECTED_HEAD_CONTRACT,
     "stage_b_dense_duty_confidence_pool_feature_contract": EXPECTED_POOL_CONTRACT,
@@ -128,7 +132,6 @@ _CORE.EXPECTED_CONTRACT_VALUES = {
     "stage_b_dense_duty_positive_trust_contract": EXPECTED_POSITIVE_TRUST_CONTRACT,
     "stage_b_v15_tail_queue_negative_reduction_contract": "all_mean_v1",
     "stage_b_v14_local_absolute_weight": 0.0,
-    "stage_b_dense_duty_deployed_global_absolute_weight": 0.0,
     "stage_b_v11_trainable_params_min": EXPECTED_ACTIVE_ELEMENTS,
     "stage_b_v11_trainable_params_max": EXPECTED_ACTIVE_ELEMENTS,
 }
@@ -204,6 +207,21 @@ _V55._audit_v55_migration = _audit_v59_migration
 _CORE._audit_split_ownership = _V53._audit_split_ownership
 _CORE._audit_runtime = _V53._audit_runtime
 _CORE._health_checks = _V53._health_checks
+_BASE_AUDIT_TRAINING_CONTRACT = _CORE._audit_training_contract
+
+
+def _audit_v59_training_contract(args: Mapping[str, Any]) -> dict[str, Any]:
+    # This zero-weight diagnostic is intentionally outside training-contract
+    # schema v41, so validate the checkpoint argument directly instead of
+    # requiring a nonexistent contract-values entry.
+    if args.get("stage_b_dense_duty_deployed_global_absolute_weight") != 0.0:
+        raise ProbeHealthEvidenceError(
+            "V59 requires stage_b_dense_duty_deployed_global_absolute_weight=0.0"
+        )
+    return _BASE_AUDIT_TRAINING_CONTRACT(args)
+
+
+_CORE._audit_training_contract = _audit_v59_training_contract
 
 
 def audit() -> dict[str, Any]:

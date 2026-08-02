@@ -84,6 +84,28 @@ def test_v59_health_seals_exact_active_query_global_surface():
     assert health._CORE.EXPECTED_CONTRACT_VALUES[
         "stage_b_dense_duty_positive_trust_contract"
     ] == "absolute_global_confidence_logit_v2"
+    assert (
+        "stage_b_dense_duty_deployed_global_absolute_weight"
+        not in health._CORE.EXPECTED_CONTRACT_VALUES
+    )
+
+
+def test_v59_health_checks_unserialized_zero_weight_from_checkpoint_args(
+    monkeypatch,
+):
+    sentinel = {"schema": health.TRAINING_CONTRACT_SCHEMA}
+    monkeypatch.setattr(
+        health,
+        "_BASE_AUDIT_TRAINING_CONTRACT",
+        lambda _args: sentinel,
+    )
+    assert health._audit_v59_training_contract(
+        {"stage_b_dense_duty_deployed_global_absolute_weight": 0.0}
+    ) is sentinel
+    with pytest.raises(health.ProbeHealthEvidenceError, match="V59 requires"):
+        health._audit_v59_training_contract(
+            {"stage_b_dense_duty_deployed_global_absolute_weight": 1.0}
+        )
 
 
 def test_v59_runtime_requires_query_head_inside_global_owner():
