@@ -57,6 +57,9 @@ CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE = (
 CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE = (
     "split_token_veto_deployment_owned_query_global_absolute_v10"
 )
+CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE = (
+    "split_token_veto_deployment_owned_query_veto_global_absolute_v11"
+)
 CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_SEMANTICS = (
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_JOINT_CLIP,
@@ -67,6 +70,7 @@ CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_SEMANTICS = (
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+    CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
 )
 CONFIDENCE_HEAD_GRADIENT_CONTRACTS = (
     CONFIDENCE_HEAD_GRADIENT_CONTRACT_SHARED,
@@ -112,6 +116,9 @@ CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE = (
 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE = (
     "detached_rank_full_expression_monotone_query_deployment_owned_global_pool_v14"
 )
+CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE = (
+    "detached_rank_full_expression_token_conditioned_query_veto_deployment_owned_global_pool_v15"
+)
 CONFIDENCE_POOL_FEATURE_CONTRACTS = (
     CONFIDENCE_POOL_FEATURE_CONTRACT,
     CONFIDENCE_POOL_FEATURE_CONTRACT_SIGNED_RANK_QUERY,
@@ -127,6 +134,7 @@ CONFIDENCE_POOL_FEATURE_CONTRACTS = (
     CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
     CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
     CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+    CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
 )
 CONFIDENCE_RANK_EVIDENCE_CONTRACT_OFF = "off_v1"
 CONFIDENCE_RANK_EVIDENCE_CONTRACT_SCALE = "zero_init_rank_logit_scale_v1"
@@ -185,6 +193,7 @@ CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_DEPLOYED_ROUTING_ST = (
     "candidate_raw_patch_asymmetric_deployed_routing_st_v15"
 )
 CONFIDENCE_MONOTONE_VETO_GATE_FLOOR = 0.25
+CONFIDENCE_QUERY_VETO_MAX_DEPTH = 8.0
 CONFIDENCE_GATE_GRADIENT_CONTRACTS = (
     CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_DETACHED,
     CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_FORWARD_SOFT_BACKWARD,
@@ -810,6 +819,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         ):
             raise ValueError(
@@ -850,6 +860,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
             CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
             CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }
         if asymmetric_gate_contract != asymmetric_pool_contract:
             raise ValueError(
@@ -860,6 +871,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }
         fulltext_global_pool = (
             pool_feature_contract
@@ -869,6 +881,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         )
         if fulltext_global_contract != fulltext_global_pool:
@@ -897,6 +910,14 @@ class TokenAwareConfidenceAdapter(nn.Module):
             == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE
         ):
             raise ValueError("V59 deployment-owned query-global contracts must match")
+        if (
+            head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
+        ) != (
+            pool_feature_contract
+            == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
+        ):
+            raise ValueError("V60 deployment-owned query-veto contracts must match")
         if fulltext_global_contract and (
             gate_gradient_contract
             != CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_LOGIT
@@ -966,6 +987,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }:
             self.patch_residual = nn.Sequential(
                 nn.Linear(self.patch_stat_dim, int(patch_hidden_dim)),
@@ -1010,6 +1032,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }:
             positive_ceiling_magnitude = -float(veto_cap_initial_ceiling)
             raw_ceiling = positive_ceiling_magnitude + math.log(
@@ -1090,6 +1113,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         ):
             # Preserve every v19 tensor and the following confidence-pool RNG.
@@ -1103,6 +1127,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                         CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                        CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
                     }
                 ):
                     self.global_query_norm = nn.LayerNorm(self.hidden_dim)
@@ -1126,6 +1151,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         ):
             cross_dim = max(128, 2 * self.adapter_dim)
@@ -1166,6 +1192,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                         CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                         CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                        CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
                     }
                 ):
                     # The verifier emits one absolute logit per admitted
@@ -1310,11 +1337,15 @@ class TokenAwareConfidenceAdapter(nn.Module):
         if self.head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }:
             query_head = (
                 self.candidate_diagnostic_parameters()
                 if self.head_gradient_contract
-                == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE
+                in {
+                    CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                    CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
+                }
                 else ()
             )
             return self._merge_parameters(
@@ -1354,7 +1385,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
         )
 
     def candidate_diagnostic_parameters(self) -> tuple[nn.Parameter, ...]:
-        """Physical query head; diagnostic-only in V56 and deployed in V59."""
+        """Physical query head; diagnostic in V56, deployed in V59/V60."""
         return self._module_parameters(self.candidate_absolute_head)
 
     def candidate_absolute_parameters(self) -> tuple[nn.Parameter, ...]:
@@ -1974,6 +2005,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }:
             # V53 inherits the complete frozen rank semantics at U0. Patch
             # evidence remains responsible for admission and is also available
@@ -2232,6 +2264,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         ):
             cross_attention_query = self._cross_attention_global_feature(
@@ -2275,6 +2308,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         ):
             if self.candidate_absolute_head is None:
@@ -2314,6 +2348,14 @@ class TokenAwareConfidenceAdapter(nn.Module):
                 # deployed global score. It is not supervised by any local
                 # candidate objective; the deployed sample-global losses own
                 # both this head and the representation feeding it.
+                base_layers = candidate_residual_layers
+            elif self.head_gradient_contract == (
+                CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
+            ):
+                # V60 interprets this zero-initialized coordinate only as a
+                # bounded, non-negative query-wise veto depth. It is owned by
+                # the real deployed global loss and never receives a local
+                # candidate objective.
                 base_layers = candidate_residual_layers
             else:
                 # Historical candidate heads learn an absolute score from zero.
@@ -2974,6 +3016,7 @@ class StageBDenseDutyScorer(nn.Module):
         if self.confidence_adapter.head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }:
             return self.token_veto_parameters() + self.global_absolute_parameters()
         return (
@@ -3014,6 +3057,7 @@ class StageBDenseDutyScorer(nn.Module):
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }:
             return {
                 "token_veto": len(self.token_veto_parameters()),
@@ -3068,6 +3112,7 @@ class StageBDenseDutyScorer(nn.Module):
         deployment_owned = self.confidence_adapter.head_gradient_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+            CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
         }
         if deployment_owned:
             _set_module_trainable(self.confidence_adapter, False)
@@ -3629,6 +3674,7 @@ class StageBDenseDutyScorer(nn.Module):
                 CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
             and self.confidence_adapter.gate_gradient_contract
             == CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_LOGIT
@@ -3639,6 +3685,7 @@ class StageBDenseDutyScorer(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         )
         independent_global_absolute_enabled = (
@@ -3662,7 +3709,20 @@ class StageBDenseDutyScorer(nn.Module):
                     and self.confidence_adapter.pool_feature_contract
                     == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE
                 )
+                or (
+                    self.confidence_adapter.head_gradient_contract
+                    == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
+                    and self.confidence_adapter.pool_feature_contract
+                    == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
+                )
             )
+        )
+        query_veto_global_enabled = (
+            fulltext_global_absolute_enabled
+            and self.confidence_adapter.head_gradient_contract
+            == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
+            and self.confidence_adapter.pool_feature_contract
+            == CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE
         )
         exact_rank_max_reference_enabled = (
             fulltext_global_absolute_enabled
@@ -3672,6 +3732,7 @@ class StageBDenseDutyScorer(nn.Module):
                 CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE,
                 CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE,
+                CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE,
             }
         )
         continuous_conditional_residual_enabled = (
@@ -3797,6 +3858,8 @@ class StageBDenseDutyScorer(nn.Module):
         veto_coverage_layers = []
         veto_sample_gate_layers = []
         veto_carrier_index_layers = []
+        query_veto_depth_layers = []
+        query_veto_gate_layers = []
         for layer in range(int(confidence_base_flat.shape[0])):
             if exact_rank_max_reference_enabled:
                 reference_global_logit = (
@@ -3839,6 +3902,56 @@ class StageBDenseDutyScorer(nn.Module):
                 )
             if fulltext_global_absolute_enabled:
                 if (
+                    query_veto_global_enabled
+                ):
+                    # V60 keeps the independent V56 pool residual as the only
+                    # cross-sample absolute coordinate. The deployed query
+                    # head is reinterpreted as a bounded one-sided veto depth,
+                    # so structured evidence can only lower confidence.
+                    # Token mismatch routing is detached: token BCE owns that
+                    # representation while deployed global losses exclusively
+                    # own the query head, trunk, and pool.
+                    frozen_reference = (
+                        confidence_reference_base_flat[layer].detach().float()
+                    )
+                    reference_weights = torch.softmax(
+                        frozen_reference.masked_fill(~flat_eligible, -torch.inf)
+                        / float(self.confidence_pool.pool_temperature),
+                        dim=1,
+                    ).masked_fill(~flat_eligible, 0.0)
+                    raw_query_depth = confidence_base_flat[layer].float()
+                    exact_query_depth = CONFIDENCE_QUERY_VETO_MAX_DEPTH * torch.tanh(
+                        F.relu(raw_query_depth) / CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                    )
+                    centered_softplus = F.softplus(raw_query_depth) - math.log(2.0)
+                    surrogate_query_depth = (
+                        CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                        * torch.tanh(
+                            centered_softplus / CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                        )
+                    )
+                    query_depth = _ExactForwardSurrogateBackward.apply(
+                        exact_query_depth, surrogate_query_depth
+                    )
+                    token_gate = confidence_mismatch_gate_flat[layer].detach().float()
+                    effective_gate = (
+                        CONFIDENCE_MONOTONE_VETO_GATE_FLOOR
+                        + (1.0 - CONFIDENCE_MONOTONE_VETO_GATE_FLOOR)
+                        * token_gate.clamp(min=0.0, max=1.0)
+                    )
+                    deployed_veto_depth = (
+                        reference_weights * effective_gate * query_depth
+                    ).sum(dim=1)
+                    deployed_veto_depth = deployed_veto_depth.masked_fill(
+                        ~flat_valid, 0.0
+                    )
+                    deployed_gate = (
+                        reference_weights * effective_gate
+                    ).sum(dim=1).masked_fill(~flat_valid, 0.0)
+                    global_layers.append(residual - deployed_veto_depth)
+                    query_veto_depth_layers.append(deployed_veto_depth)
+                    query_veto_gate_layers.append(deployed_gate)
+                elif (
                     self.confidence_adapter.head_gradient_contract
                     == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE
                 ):
@@ -4191,6 +4304,24 @@ class StageBDenseDutyScorer(nn.Module):
             reference_global_layers.append(reference_global_logit)
             residual_layers.append(residual)
         global_layers_tensor = torch.stack(global_layers, dim=0)
+        if query_veto_global_enabled:
+            expected_layers = int(confidence_base_flat.shape[0])
+            if not (
+                len(query_veto_depth_layers) == expected_layers
+                and len(query_veto_gate_layers) == expected_layers
+            ):
+                raise RuntimeError(
+                    "deployment-owned query veto did not cover every confidence layer"
+                )
+            query_veto_depth_layers_tensor = torch.stack(
+                query_veto_depth_layers, dim=0
+            )
+            query_veto_gate_layers_tensor = torch.stack(
+                query_veto_gate_layers, dim=0
+            )
+        else:
+            query_veto_depth_layers_tensor = None
+            query_veto_gate_layers_tensor = None
         if split_global_trust_veto_enabled:
             expected_layers = int(confidence_base_flat.shape[0])
             if not all(
@@ -4358,6 +4489,21 @@ class StageBDenseDutyScorer(nn.Module):
         residual_shaped = residual_layers_tensor.view(
             confidence_layers, batch_size, slot_count
         ).masked_fill(~valid[None], 0.0)
+        if query_veto_global_enabled:
+            if (
+                query_veto_depth_layers_tensor is None
+                or query_veto_gate_layers_tensor is None
+            ):
+                raise AssertionError("query-veto diagnostics are unavailable")
+            query_veto_depth_shaped = query_veto_depth_layers_tensor.view(
+                confidence_layers, batch_size, slot_count
+            ).masked_fill(~valid[None], 0.0)
+            query_veto_gate_shaped = query_veto_gate_layers_tensor.view(
+                confidence_layers, batch_size, slot_count
+            ).masked_fill(~valid[None], 0.0)
+        else:
+            query_veto_depth_shaped = None
+            query_veto_gate_shaped = None
         reference_global_shaped = reference_global_layers_tensor.view(
             confidence_layers, batch_size, slot_count
         ).masked_fill(~valid[None], torch.finfo(global_layers_tensor.dtype).min)
@@ -4526,6 +4672,17 @@ class StageBDenseDutyScorer(nn.Module):
                 ),
             }
         )
+        if query_veto_global_enabled:
+            if query_veto_depth_shaped is None or query_veto_gate_shaped is None:
+                raise AssertionError("query-veto outputs are unavailable")
+            output.update(
+                {
+                    "layer_deployed_query_veto_depth": query_veto_depth_shaped,
+                    "final_deployed_query_veto_depth": query_veto_depth_shaped[-1],
+                    "layer_deployed_query_veto_gate": query_veto_gate_shaped,
+                    "final_deployed_query_veto_gate": query_veto_gate_shaped[-1],
+                }
+            )
         if (
             self.confidence_adapter.head_gradient_contract
             == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYED_ROUTER
@@ -4644,6 +4801,7 @@ __all__ = [
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE",
+    "CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACT_SPLIT_SEMANTICS",
     "CONFIDENCE_HEAD_GRADIENT_CONTRACTS",
     "CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_DETACHED",
@@ -4662,6 +4820,7 @@ __all__ = [
     "CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_SET_ATTENTION_LOGIT",
     "CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_DEPLOYED_ROUTING_ST",
     "CONFIDENCE_MONOTONE_VETO_GATE_FLOOR",
+    "CONFIDENCE_QUERY_VETO_MAX_DEPTH",
     "CONFIDENCE_GATE_GRADIENT_CONTRACTS",
     "DENSE_DUTY_CONTRACT_VERSION",
     "CONFIDENCE_POOL_FEATURE_CONTRACT",
@@ -4678,6 +4837,7 @@ __all__ = [
     "CONFIDENCE_POOL_FEATURE_CONTRACT_LOCAL_CANDIDATE_GLOBAL_ABSOLUTE",
     "CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE",
     "CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE",
+    "CONFIDENCE_POOL_FEATURE_CONTRACT_DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE",
     "CONFIDENCE_RANK_EVIDENCE_CONTRACT_SPARSE_RANK_CHANNEL_MISMATCH",
     "CONFIDENCE_PHRASE_AGGREGATION_WORD_VETO_GATED_POOL_ABSOLUTE_CAP",
     "CONFIDENCE_TOKEN_CONTRACT",

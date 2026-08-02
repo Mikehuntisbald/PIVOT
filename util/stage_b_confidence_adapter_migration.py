@@ -82,6 +82,10 @@ DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA = (
     "pivot.stageb.rank_to_token_confidence_adapter_"
     "deployment_owned_query_global_absolute/v24"
 )
+DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA = (
+    "pivot.stageb.rank_to_token_confidence_adapter_"
+    "deployment_owned_query_veto_global_absolute/v25"
+)
 ABSOLUTE_CAP_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_patch_pool_trainable_absolute_cap_v1"
 )
@@ -160,6 +164,10 @@ DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_rank_full_expression_deployment_owned_monotone_"
     "query_global_absolute_v22"
 )
+DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT = (
+    "token_adapter_rank_full_expression_deployment_owned_bounded_"
+    "query_veto_global_absolute_v23"
+)
 GLOBAL_TRUST_VETO_HEAD_GRADIENT_CONTRACT = (
     "split_token_veto_global_trust_veto_v4"
 )
@@ -180,6 +188,9 @@ DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT = (
 )
 DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT = (
     "split_token_veto_deployment_owned_query_global_absolute_v10"
+)
+DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT = (
+    "split_token_veto_deployment_owned_query_veto_global_absolute_v11"
 )
 FULLTEXT_GLOBAL_ABSOLUTE_GATE_GRADIENT_CONTRACT = (
     "candidate_raw_patch_asymmetric_monotone_veto_absolute_logit_v13"
@@ -227,6 +238,10 @@ DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT = (
 DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT = (
     "detached_rank_full_expression_monotone_query_"
     "deployment_owned_global_pool_v14"
+)
+DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT = (
+    "detached_rank_full_expression_token_conditioned_query_veto_"
+    "deployment_owned_global_pool_v15"
 )
 SIGNED_RANK_QUERY_POOL_FEATURE_CONTRACTS = frozenset(
     {
@@ -556,6 +571,10 @@ def _migration_surface_contract(audit: Mapping[str, Any]) -> dict[str, Any]:
         schema == DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
         and audit.get("fresh_confidence_contract")
         == DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
+    ) or (
+        schema == DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+        and audit.get("fresh_confidence_contract")
+        == DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
     )
     if (
         fulltext_global_absolute_surface
@@ -563,6 +582,10 @@ def _migration_surface_contract(audit: Mapping[str, Any]) -> dict[str, Any]:
         == SPARSE_RANK_CHANNEL_RESIDUAL_CONTRACT
         and audit.get("head_gradient_contract")
         == (
+            DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+            if schema
+            == DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+            else
             DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
             if schema == DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
             else
@@ -618,7 +641,10 @@ def _migration_surface_contract(audit: Mapping[str, Any]) -> dict[str, Any]:
                     ),
                 }
             )
-        elif schema == DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA:
+        elif schema in {
+            DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA,
+            DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA,
+        }:
             surface.update(
                 {
                     "active_confidence_parameter_tensor_count": (
@@ -1039,12 +1065,17 @@ def validate_confidence_adapter_migration_audit(
         audit.get("schema")
         == DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
     )
+    deployment_owned_query_veto_global_absolute_schema = (
+        audit.get("schema")
+        == DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+    )
     fulltext_global_absolute_family_schema = (
         fulltext_global_absolute_schema
         or fulltext_global_absolute_exact_residual_schema
         or fulltext_global_independent_absolute_schema
         or deployment_owned_global_absolute_schema
         or deployment_owned_query_global_absolute_schema
+        or deployment_owned_query_veto_global_absolute_schema
     )
     pool_feature_contract = audit.get("pool_feature_contract")
     rank = audit.get("rank")
@@ -1068,6 +1099,11 @@ def validate_confidence_adapter_migration_audit(
                 != FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_POOL_FEATURE_CONTRACT
             )
             if fulltext_global_independent_absolute_schema
+            else (
+                pool_feature_contract
+                != DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
+            )
+            if deployment_owned_query_veto_global_absolute_schema
             else (
                 pool_feature_contract
                 != DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
@@ -1190,12 +1226,20 @@ def validate_confidence_adapter_migration_audit(
             != FULLTEXT_GLOBAL_INDEPENDENT_ABSOLUTE_HEAD_GRADIENT_CONTRACT
         )
         or (
+            deployment_owned_query_veto_global_absolute_schema
+            and audit.get("head_gradient_contract")
+            != DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+        )
+        or (
             deployment_owned_query_global_absolute_schema
             and audit.get("head_gradient_contract")
             != DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
         )
         or (
-            deployment_owned_query_global_absolute_schema
+            (
+                deployment_owned_query_global_absolute_schema
+                or deployment_owned_query_veto_global_absolute_schema
+            )
             and audit.get("deployed_query_requires_grad_count")
             != EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_TENSOR_COUNT
         )
@@ -1468,12 +1512,17 @@ def migrate_legacy_rank_to_confidence_adapter(
         runtime_pool_feature_contract
         == DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
     )
+    deployment_owned_query_veto_global_absolute_pool_contract = (
+        runtime_pool_feature_contract
+        == DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT
+    )
     fulltext_global_absolute_family_pool_contract = (
         fulltext_global_absolute_pool_contract
         or fulltext_global_absolute_exact_residual_pool_contract
         or fulltext_global_independent_absolute_pool_contract
         or deployment_owned_global_absolute_pool_contract
         or deployment_owned_query_global_absolute_pool_contract
+        or deployment_owned_query_veto_global_absolute_pool_contract
     )
     runtime_head_gradient_contract = str(
         getattr(scorer.confidence_adapter, "head_gradient_contract", "") or ""
@@ -1506,6 +1555,10 @@ def migrate_legacy_rank_to_confidence_adapter(
         runtime_head_gradient_contract
         == DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
     )
+    deployment_owned_query_veto_global_absolute_head_contract = (
+        runtime_head_gradient_contract
+        == DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+    )
     fulltext_global_absolute_contract = (
         fulltext_global_absolute_family_pool_contract
         and (
@@ -1513,6 +1566,7 @@ def migrate_legacy_rank_to_confidence_adapter(
             or fulltext_global_independent_absolute_head_contract
             or deployment_owned_global_absolute_head_contract
             or deployment_owned_query_global_absolute_head_contract
+            or deployment_owned_query_veto_global_absolute_head_contract
         )
     )
     if (
@@ -1522,6 +1576,7 @@ def migrate_legacy_rank_to_confidence_adapter(
             or fulltext_global_independent_absolute_head_contract
             or deployment_owned_global_absolute_head_contract
             or deployment_owned_query_global_absolute_head_contract
+            or deployment_owned_query_veto_global_absolute_head_contract
         )
     ):
         raise RuntimeError(
@@ -1550,6 +1605,14 @@ def migrate_legacy_rank_to_confidence_adapter(
     ):
         raise RuntimeError(
             "deployment-owned query-global pool and head contracts must be "
+            "selected together"
+        )
+    if (
+        deployment_owned_query_veto_global_absolute_pool_contract
+        != deployment_owned_query_veto_global_absolute_head_contract
+    ):
+        raise RuntimeError(
+            "deployment-owned query-veto pool and head contracts must be "
             "selected together"
         )
     if fulltext_global_absolute_contract:
@@ -1883,6 +1946,9 @@ def migrate_legacy_rank_to_confidence_adapter(
                 )
     audit = {
         "schema": (
+            DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
+            if deployment_owned_query_veto_global_absolute_pool_contract
+            else
             DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
             if deployment_owned_query_global_absolute_pool_contract
             else DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA
@@ -1972,6 +2038,9 @@ def migrate_legacy_rank_to_confidence_adapter(
     }
     if fulltext_global_absolute_contract:
         audit["fresh_confidence_contract"] = (
+            DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
+            if deployment_owned_query_veto_global_absolute_pool_contract
+            else
             DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
             if deployment_owned_query_global_absolute_pool_contract
             else DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT
@@ -1984,6 +2053,9 @@ def migrate_legacy_rank_to_confidence_adapter(
         )
         audit["rank_evidence_contract"] = SPARSE_RANK_CHANNEL_RESIDUAL_CONTRACT
         audit["head_gradient_contract"] = (
+            DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
+            if deployment_owned_query_veto_global_absolute_pool_contract
+            else
             DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
             if deployment_owned_query_global_absolute_pool_contract
             else DEPLOYMENT_OWNED_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT
@@ -2021,7 +2093,10 @@ def migrate_legacy_rank_to_confidence_adapter(
                     ),
                 }
             )
-        elif deployment_owned_query_global_absolute_pool_contract:
+        elif (
+            deployment_owned_query_global_absolute_pool_contract
+            or deployment_owned_query_veto_global_absolute_pool_contract
+        ):
             audit.update(
                 {
                     "active_confidence_parameter_tensor_count": len(
@@ -2148,6 +2223,10 @@ __all__ = [
     "DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT",
     "DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA",
     "DEPLOYMENT_OWNED_QUERY_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT",
+    "DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT",
+    "DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_HEAD_GRADIENT_CONTRACT",
+    "DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_MIGRATION_SCHEMA",
+    "DEPLOYMENT_OWNED_QUERY_VETO_GLOBAL_ABSOLUTE_POOL_FEATURE_CONTRACT",
     "EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_ELEMENT_COUNT",
     "EXPECTED_DEPLOYMENT_OWNED_ACTIVE_PARAMETER_TENSOR_COUNT",
     "EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_ELEMENT_COUNT",
