@@ -136,6 +136,8 @@ def _v58_postflight(
     contracts = dict(result.get("contracts", {}))
     if contracts.pop("v56_deployment_owned_global_representation_v38", None) is not True:
         raise ProbeEvaluationError("V58 postflight lacks inherited V56 ownership")
+    if contracts.pop("all_mean_v1", None) is not True:
+        raise ProbeEvaluationError("V58 postflight lacks inherited V56 reduction label")
     contracts.update(
         {
             "v58_deployment_owned_stable_fpr95_active_set_v40": True,
@@ -143,6 +145,7 @@ def _v58_postflight(
             "deployed_global_absolute_weight_is_exactly_zero": True,
             "fpr95_negative_gradients_are_exactly_active_set_only": True,
             "active_set_normalization_uses_all_valid_tn_count": True,
+            "exact_fpr95_active_set_all_count_mean_v2": True,
         }
     )
     result["contracts"] = contracts

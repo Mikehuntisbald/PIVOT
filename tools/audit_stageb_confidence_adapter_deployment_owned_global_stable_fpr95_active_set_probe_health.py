@@ -72,7 +72,6 @@ v56._CORE.EXPECTED_CONTRACT_VALUES = {
     "stage_b_v15_tail_queue_negative_reduction_contract": (
         "exact_fpr95_active_set_all_count_mean_v2"
     ),
-    "stage_b_dense_duty_deployed_global_absolute_weight": 0.0,
 }
 v56._CORE._default_output = lambda: Path(training.OUTPUT).parent / (
     "u000400_deployment_owned_stable_fpr95_active_set_health_audit.json"

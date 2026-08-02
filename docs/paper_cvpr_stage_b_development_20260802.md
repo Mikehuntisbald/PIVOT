@@ -29,9 +29,10 @@ The current headline status is:
   training;
 - V57 added balanced focal BCE directly to the true deployed global logit and
   completed a healthy fresh U400 probe, but regressed to 849 false accepts; and
-- V58 is preregistered below to implement the requested FPR95 active-set
-  ownership literally while keeping its gradient scale stable as the active
-  fraction changes.
+- V58 implemented the requested FPR95 active set literally, but regressed to
+  914 false accepts despite a healthy U400 run; and
+- V59 is the next architecture direction: query-structured evidence must enter
+  the deployed global score while remaining owned only by deployed losses.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -707,6 +708,73 @@ V58 is admitted to formal U4412 only at 800 or fewer false accepts on the same
 strict1607 manifest. A larger count is another controlled negative result and
 must not trigger continuation of the identical objective.
 
+### Executed V58 result
+
+V58 completed exactly 400/400 optimizer updates. Its checkpoint is:
+
+```text
+outputs/paper_cvpr_v1/
+  dense_duty_adapter_deployment_owned_global_stable_fpr95_active_set_
+  highmem_20260802/probe/u000400_fresh/checkpoint_iter.pth
+sha256 = 1b921bd8e553be558ec874c9d3cac266582a1c617c96f06b1ea7c6c1ef0b652e
+```
+
+The health audit reported zero AMP skips, nonfinite-gradient boundaries, and
+zero-gradient owner steps. The frozen hash was unchanged. The 59 active tensors
+remained 21 token-veto plus 38 global-owner tensors. Across the terminal logged
+window, the mean valid-TN count was 15.301, active and selected counts were both
+9.773, and the active fraction was 0.6249. Thus V58 genuinely removed about
+37.5% of TNs from the FPR95 term; it was not an alias of `all_mean_v1`.
+
+The corrected fixed strict1607 report reproduced 914 false accepts, FPR95
+0.568762, pair-win 0.861854, mean paired gap 0.102963, positive mean 0.622630,
+TN mean 0.519667, and positive-q05 probability threshold 0.492432. Both splits
+regressed: RefCOCO+ val FPR95 was 0.561658 and RefCOCOg UMD val was 0.588785.
+No formal training was launched.
+
+V58 disproves the pure-active-set remedy. Removing inactive-TN gradients kept
+the training positive q05 much healthier than V56, but unseen TN scores
+collapsed toward an approximately 0.5 absolute-confidence plateau and their
+high tail was not suppressed. The all-TN term was therefore providing useful
+cross-sample scale regularization even though it was not an exact FPR95
+objective. V57 conversely showed that ordinary sample BCE improves broad
+calibration but not q05. The next change must add query-structured deployed
+evidence, not select another scalar loss weight.
+
+## V59 architecture direction: query-structured deployed global evidence
+
+V55's local candidate loss improved representation learning but violated the
+desired ownership rule because a non-deployed objective owned the trunk. V56
+through V58 removed that leakage, yet left every global loss supervising only
+one scalar per expression. A 416,897-parameter cross-attention trunk is then
+weakly identified: many query representations can produce the same pooled
+scalar, and scalar positive/TN gradients fight in the shared representation.
+
+V59 should preserve deployment ownership while changing supervision
+granularity:
+
+```text
+dense_global(query, text, patch)
+        -> deployed_query_absolute_logits       # trainable, not diagnostic
+        -> rank-conditioned monotone aggregate
+        -> deployed_sample_global_logit
+```
+
+The query head and aggregate are part of the actual inference score. Candidate
+local loss remains exactly zero; no IoU/candidate auxiliary owns the trunk.
+Every query-head parameter is owned only by losses on the deployed sample
+global output. Frozen rank may choose or weight query evidence but is detached.
+The zero-initialized query head and pool preserve the V56 U0 global logit.
+
+The intended treatment is to move the existing six candidate-head tensors from
+`diagnostic/frozen` into the global owner and make their query logits enter the
+deployed monotone aggregate. This restores the query-wise inductive bias that
+V55 obtained through leakage without restoring score- or representation-level
+candidate ownership. V59 should return to V56's all-TN scale regularizer and
+q05 protection, omit V57 BCE and V58 active-only reduction, and retain the same
+U400/strict1607 admission gate. Implementation and a fresh U0 migration audit
+are required before it is eligible to train.
+
 ## Evaluation and claim gates
 
 Every paper candidate must satisfy all of the following:
@@ -885,10 +953,9 @@ separate from the result-preserving commits in this ledger.
 
 ## Immediate next action
 
-Implement and audit V58's deployment-owned, stable-normalized FPR95 active-set
-loss, then run one fresh U400 probe and the fixed strict1607 gate. Do not
-continue V57 and do not start formal training unless the V58 report records at
-most 800 false accepts.
+Implement and audit V59's query-structured deployed global evidence. Do not
+continue V57 or V58, and do not start formal training until a fresh V59 U400
+report records at most 800 false accepts.
 Independently, the evaluation source profile and Table-C recovery evidence must
 be versioned and resealed before any affected result is promoted into a paper
 table.

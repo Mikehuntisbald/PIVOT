@@ -96,6 +96,7 @@ def test_v58_postflight_replaces_v56_result_label(monkeypatch):
             "contracts": {
                 "v56_deployment_owned_global_representation_v38": True,
                 "candidate_head_is_frozen_diagnostic_only": True,
+                "all_mean_v1": True,
             }
         },
     )
@@ -103,4 +104,6 @@ def test_v58_postflight_replaces_v56_result_label(monkeypatch):
     assert contracts["v58_deployment_owned_stable_fpr95_active_set_v40"] is True
     assert contracts["fpr95_negative_gradients_are_exactly_active_set_only"] is True
     assert contracts["active_set_normalization_uses_all_valid_tn_count"] is True
+    assert contracts["exact_fpr95_active_set_all_count_mean_v2"] is True
+    assert "all_mean_v1" not in contracts
     assert "v56_deployment_owned_global_representation_v38" not in contracts
