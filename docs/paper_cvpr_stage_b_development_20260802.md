@@ -30,9 +30,14 @@ The current headline status is:
 - V57 added balanced focal BCE directly to the true deployed global logit and
   completed a healthy fresh U400 probe, but regressed to 849 false accepts; and
 - V58 implemented the requested FPR95 active set literally, but regressed to
-  914 false accepts despite a healthy U400 run; and
-- V59 is the next architecture direction: query-structured evidence must enter
-  the deployed global score while remaining owned only by deployed losses.
+  914 false accepts despite a healthy U400 run;
+- V59 now implements query-structured evidence inside the deployed global
+  score while keeping its complete representation owned only by deployed
+  losses; its source, migration, evaluator, and controller contracts pass 277
+  focused regression tests; and
+- V59 is eligible for a fresh U400 probe, but has no empirical result yet and
+  cannot enter formal U4412 training unless strict1607 records at most 800
+  false accepts.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -44,7 +49,7 @@ Evidence in this ledger is tagged by use:
 | Tier | Meaning | Current examples |
 | --- | --- | --- |
 | sealed formal | checkpoint, source, manifest, and per-example records are durably bound | required for a final paper comparison; none claimed for V55 |
-| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | V45-V57 U400 strict1607 reports |
+| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | V45-V58 U400 strict1607 reports |
 | historical non-durable | recorded measurements whose complete final artifact closure no longer exists | July P750/R100/P50 composition |
 | hypothesis | interpretation that still requires an isolating intervention | shared-trunk local-auxiliary conflict |
 
@@ -741,7 +746,7 @@ objective. V57 conversely showed that ordinary sample BCE improves broad
 calibration but not q05. The next change must add query-structured deployed
 evidence, not select another scalar loss weight.
 
-## V59 architecture direction: query-structured deployed global evidence
+## V59 implementation: query-structured deployed global evidence
 
 V55's local candidate loss improved representation learning but violated the
 desired ownership rule because a non-deployed objective owned the trunk. V56
@@ -750,7 +755,7 @@ one scalar per expression. A 416,897-parameter cross-attention trunk is then
 weakly identified: many query representations can produce the same pooled
 scalar, and scalar positive/TN gradients fight in the shared representation.
 
-V59 should preserve deployment ownership while changing supervision
+V59 preserves deployment ownership while changing the deployed score's
 granularity:
 
 ```text
@@ -760,20 +765,39 @@ dense_global(query, text, patch)
         -> deployed_sample_global_logit
 ```
 
-The query head and aggregate are part of the actual inference score. Candidate
-local loss remains exactly zero; no IoU/candidate auxiliary owns the trunk.
-Every query-head parameter is owned only by losses on the deployed sample
-global output. Frozen rank may choose or weight query evidence but is detached.
-The zero-initialized query head and pool preserve the V56 U0 global logit.
+For eligible queries `q`, frozen rank logits `r_q`, deployed absolute query
+logits `a_q`, temperature `tau`, and the independent pool residual `p`, the
+sample-global deployment logit is
 
-The intended treatment is to move the existing six candidate-head tensors from
-`diagnostic/frozen` into the global owner and make their query logits enter the
-deployed monotone aggregate. This restores the query-wise inductive bias that
-V55 obtained through leakage without restoring score- or representation-level
-candidate ownership. V59 should return to V56's all-TN scale regularizer and
-q05 protection, omit V57 BCE and V58 active-only reduction, and retain the same
-U400/strict1607 admission gate. Implementation and a fresh U0 migration audit
-are required before it is eligible to train.
+```text
+g = tau * (logsumexp_q((stopgrad(r_q) + a_q) / tau)
+           - logsumexp_q(stopgrad(r_q) / tau)) + p
+```
+
+This normalized log-sum-exp is monotone in every `a_q`, equivariant to a common
+shift of all query logits, and exactly zero at the zero-initialized query head.
+Consequently V59 inherits V56's deployed global output at U0 rather than
+changing the checkpoint's initial decision surface. Rank affects which query
+evidence matters but is detached and is never added as an absolute confidence
+coordinate.
+
+The existing six-tensor, 66,561-parameter query head moves from
+`diagnostic/frozen` into the deployed global owner. Together with the
+416,897-parameter global trunk and pool, the global owner contains 44 tensors
+and 483,458 parameters. The token-veto owner remains 21 tensors and 51,267
+parameters, for 65 active tensors and 534,725 confidence parameters total.
+Candidate local loss is exactly zero; candidate head input is not detached in
+V59 because the head and its input trunk are both consumed by and owned by the
+actual deployed score. No IoU/candidate auxiliary is permitted to update them.
+
+All global TN, FPR95 tail-queue, and positive-q05 protection losses consume
+`absolute_global_confidence_logit_v2`, the actual `g` above. V59 returns to
+V56's all-TN reduction, omits V57's added balanced BCE and V58's active-only TN
+reduction, and retains the same U400/strict1607 gate. Migration schema v24,
+fresh-training contract v22, training audit schema v41, runtime owner counts,
+formal admission binding, and U0 equality/gradient-routing tests fail closed.
+The direct-trace audit accepts 13,890 of 14,196 rows and is bound by receipt SHA
+`197c1fb2d6680b9f1785c0f2c36eb053bbf13922712ed438ce88267f33c13396`.
 
 ## Evaluation and claim gates
 
@@ -953,8 +977,8 @@ separate from the result-preserving commits in this ledger.
 
 ## Immediate next action
 
-Implement and audit V59's query-structured deployed global evidence. Do not
-continue V57 or V58, and do not start formal training until a fresh V59 U400
+Run the fresh V59 U400 confidence probe, health audit, and strict1607 replay.
+Do not continue V57 or V58, and do not start formal training unless the V59
 report records at most 800 false accepts.
 Independently, the evaluation source profile and Table-C recovery evidence must
 be versioned and resealed before any affected result is promoted into a paper
