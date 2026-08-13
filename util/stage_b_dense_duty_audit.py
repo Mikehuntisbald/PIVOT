@@ -199,6 +199,19 @@ _V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS = {
     "token_veto": 356,
     "global_absolute": 6,
 }
+_CANDIDATE_TRACE_MONOTONE_ACTIVE_ELEMENT_COUNT = 25_464_320
+_CANDIDATE_TRACE_MONOTONE_ACTIVE_TENSOR_COUNT = 356
+_CANDIDATE_TRACE_MONOTONE_OWNER_TENSOR_COUNTS = {
+    "token_veto": 356,
+}
+_CANDIDATE_TRACE_OFF = "off_v1"
+_CANDIDATE_TRACE_FREE_HEAD = "candidate_complete_free_head_coverage_v1"
+_CANDIDATE_TRACE_MONOTONE = "candidate_complete_monotone_token_entailment_v2"
+_CANDIDATE_TRACE_CONTRACTS = {
+    _CANDIDATE_TRACE_OFF,
+    _CANDIDATE_TRACE_FREE_HEAD,
+    _CANDIDATE_TRACE_MONOTONE,
+}
 _V61_FULL_DECODER_OWNER_TENSOR_COUNTS = {
     "token_veto": 356,
     "global_absolute": 12,
@@ -390,6 +403,28 @@ _TOKEN_EDIT_CARRIER_RESUME_CONTRACT_KEYS = (
     "stage_b_v21_token_edit_query_scope",
 )
 
+_CANDIDATE_COMPLETE_TRACE_RESUME_CONTRACT_KEYS = (
+    "stage_b_dense_duty_confidence_full_decoder_verifier",
+    "stage_b_dense_duty_confidence_veto_only_patch_softmin",
+    "stage_b_dense_duty_confidence_capacity_contract",
+    "stage_b_dense_duty_confidence_variant",
+    "stage_b_dense_duty_confidence_candidate_trace_contract",
+    "stage_b_dense_duty_confidence_token_depth_base_scale",
+    "stage_b_v21_token_edit_query_scope",
+    "stage_b_dense_duty_candidate_depth_all_weight",
+    "stage_b_dense_duty_candidate_depth_escape_weight",
+    "stage_b_dense_duty_candidate_depth_positive_weight",
+    "stage_b_dense_duty_candidate_depth_tn_margin",
+    "stage_b_dense_duty_candidate_depth_escape_margin",
+    "stage_b_dense_duty_candidate_depth_positive_max",
+    "stage_b_dense_duty_candidate_depth_temperature",
+)
+
+_CANDIDATE_COMPLETE_MONOTONE_RESUME_CONTRACT_KEYS = (
+    "stage_b_dense_duty_raw_veto_gate_weight",
+    "stage_b_dense_duty_raw_veto_carrier_pair_weight",
+)
+
 _RAW_VETO_GATE_RESUME_CONTRACT_KEYS = (
     "stage_b_dense_duty_raw_veto_gate_weight",
     "stage_b_dense_duty_raw_veto_positive_margin",
@@ -437,6 +472,11 @@ _DEPLOYED_VETO_ROUTING_RESUME_CONTRACT_KEYS = (
 
 _SPLIT_CONFIDENCE_HEAD_RESUME_CONTRACT_KEYS = (
     "stage_b_dense_duty_confidence_head_gradient_contract",
+)
+
+_RANK_DECODER_ADAPTATION_RESUME_CONTRACT_KEYS = (
+    "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
+    "stage_b_dense_duty_confidence_rank_decoder_lr",
 )
 
 _V53_FULLTEXT_GLOBAL_ABSOLUTE_RESUME_CONTRACT_KEYS = (
@@ -1447,6 +1487,44 @@ def _v60_deployment_owned_query_veto_revision(
     )
 
 
+def _candidate_trace_contract(values: Mapping[str, Any]) -> str:
+    contract = str(
+        values.get(
+            "stage_b_dense_duty_confidence_candidate_trace_contract",
+            _CANDIDATE_TRACE_OFF,
+        )
+    ).strip().lower()
+    if contract not in _CANDIDATE_TRACE_CONTRACTS:
+        raise RuntimeError(f"unknown candidate-complete trace contract: {contract!r}")
+    return contract
+
+
+def _patch_softmin_active_contract(
+    values: Mapping[str, Any],
+) -> tuple[int, int, Mapping[str, int], str]:
+    contract = _candidate_trace_contract(values)
+    if contract == _CANDIDATE_TRACE_MONOTONE:
+        return (
+            _CANDIDATE_TRACE_MONOTONE_ACTIVE_TENSOR_COUNT,
+            _CANDIDATE_TRACE_MONOTONE_ACTIVE_ELEMENT_COUNT,
+            _CANDIDATE_TRACE_MONOTONE_OWNER_TENSOR_COUNTS,
+            "candidate-complete-monotone-token-entailment",
+        )
+    if contract == _CANDIDATE_TRACE_FREE_HEAD:
+        return (
+            _V62_PATCH_SOFTMIN_ACTIVE_TENSOR_COUNT,
+            _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT,
+            _V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS,
+            "candidate-complete-free-head-coverage",
+        )
+    return (
+        _V62_PATCH_SOFTMIN_ACTIVE_TENSOR_COUNT,
+        _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT,
+        _V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS,
+        "V62-patch-softmin-veto",
+    )
+
+
 def _v60_deployment_owned_query_veto_contract(
     values: Mapping[str, Any],
 ) -> bool:
@@ -1461,8 +1539,22 @@ def _v60_deployment_owned_query_veto_contract(
             "stage_b_dense_duty_confidence_veto_only_patch_softmin", False
         )
     )
+    candidate_trace_contract = _candidate_trace_contract(values)
+    if candidate_trace_contract != _CANDIDATE_TRACE_OFF and not (
+        full_decoder_verifier and veto_only_patch_softmin
+    ):
+        raise RuntimeError(
+            "candidate-complete trace requires the full-decoder patch-softmin "
+            "deployment"
+        )
+    (
+        _patch_tensor_count,
+        patch_element_count,
+        _patch_owner_counts,
+        _patch_label,
+    ) = _patch_softmin_active_contract(values)
     active_element_count = (
-        _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT
+        patch_element_count
         if veto_only_patch_softmin
         else _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
         if full_decoder_verifier
@@ -1488,19 +1580,50 @@ def _v60_deployment_owned_query_veto_contract(
         "stage_b_v11_trainable_params_max": active_element_count,
     }
     if full_decoder_verifier:
+        if candidate_trace_contract == _CANDIDATE_TRACE_FREE_HEAD:
+            capacity_contract = (
+                "rank_cloned_full_decoder_candidate_complete_free_head_v3"
+            )
+            confidence_variant = (
+                "candidate_complete_trace_free_head_coverage_c1"
+            )
+        elif candidate_trace_contract == _CANDIDATE_TRACE_MONOTONE:
+            capacity_contract = (
+                "rank_cloned_full_decoder_candidate_complete_monotone_v4"
+            )
+            confidence_variant = (
+                "candidate_complete_trace_monotone_token_entailment_c2"
+            )
+            expected.update(
+                {
+                    "stage_b_dense_duty_raw_veto_gate_weight": 0.0,
+                    "stage_b_dense_duty_raw_veto_carrier_pair_weight": 0.0,
+                }
+            )
+        elif veto_only_patch_softmin:
+            capacity_contract = "rank_cloned_full_decoder_patch_softmin_veto_v2"
+            confidence_variant = (
+                "full_decoder_token_entailment_patch_weighted_"
+                "existential_veto_v62"
+            )
+        else:
+            capacity_contract = "rank_cloned_full_decoder_6layer_256d_v1"
+            confidence_variant = (
+                "full_decoder_token_entailment_nonnegative_veto_"
+                "capacity_upper_bound_v61"
+            )
         expected.update(
             {
-                "stage_b_dense_duty_confidence_capacity_contract": (
-                    "rank_cloned_full_decoder_patch_softmin_veto_v2"
-                    if veto_only_patch_softmin
-                    else "rank_cloned_full_decoder_6layer_256d_v1"
-                ),
-                "stage_b_dense_duty_confidence_variant": (
-                    "full_decoder_token_entailment_patch_weighted_"
-                    "existential_veto_v62"
-                    if veto_only_patch_softmin
-                    else "full_decoder_token_entailment_nonnegative_veto_"
-                    "capacity_upper_bound_v61"
+                "stage_b_dense_duty_confidence_capacity_contract": capacity_contract,
+                "stage_b_dense_duty_confidence_variant": confidence_variant,
+            }
+        )
+    if candidate_trace_contract != _CANDIDATE_TRACE_OFF:
+        expected.update(
+            {
+                "stage_b_v21_token_objective": "edit_bce_group_balanced",
+                "stage_b_v21_token_edit_query_scope": (
+                    "candidate_complete_trace_v4"
                 ),
             }
         )
@@ -1643,6 +1766,14 @@ def build_training_contract(args: Any) -> dict[str, Any]:
     token_edit_query_scope = str(
         values.get("stage_b_v21_token_edit_query_scope", "target_iou_v1")
     ).strip().lower()
+    candidate_complete_trace_contract = (
+        adapter_contract
+        and _candidate_trace_contract(values) != _CANDIDATE_TRACE_OFF
+    )
+    candidate_complete_monotone_contract = (
+        adapter_contract
+        and _candidate_trace_contract(values) == _CANDIDATE_TRACE_MONOTONE
+    )
     token_edit_carrier_contract = adapter_contract and token_edit_query_scope in {
         "target_iou_union_detached_final_confidence_base_argmax_v2",
         "target_iou_union_detached_role_complete_confidence_base_argmax_v3",
@@ -1683,6 +1814,17 @@ def build_training_contract(args: Any) -> dict[str, Any]:
         adapter_contract
         and confidence_revision
         == "word_veto_candidate_split_independent_deployed_router_v51"
+    )
+    rank_decoder_adaptation_contract = (
+        adapter_contract
+        and int(
+            values.get(
+                "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
+                0,
+            )
+            or 0
+        )
+        > 0
     )
     candidate_sample_calibrator_split_contract = (
         adapter_contract
@@ -1842,6 +1984,11 @@ def build_training_contract(args: Any) -> dict[str, Any]:
             else ()
         )
         + (
+            _RANK_DECODER_ADAPTATION_RESUME_CONTRACT_KEYS
+            if rank_decoder_adaptation_contract
+            else ()
+        )
+        + (
             _V53_FULLTEXT_GLOBAL_ABSOLUTE_RESUME_CONTRACT_KEYS
             if fulltext_global_absolute_contract
             else ()
@@ -1921,6 +2068,16 @@ def build_training_contract(args: Any) -> dict[str, Any]:
             else ()
         )
         + (
+            _CANDIDATE_COMPLETE_TRACE_RESUME_CONTRACT_KEYS
+            if candidate_complete_trace_contract
+            else ()
+        )
+        + (
+            _CANDIDATE_COMPLETE_MONOTONE_RESUME_CONTRACT_KEYS
+            if candidate_complete_monotone_contract
+            else ()
+        )
+        + (
             _CARRIER_BALANCED_RESUME_CONTRACT_KEYS
             + _CARRIER_PAIR_RESUME_CONTRACT_KEYS
             + _TAIL_CARRIER_RESUME_CONTRACT_KEYS
@@ -1948,7 +2105,11 @@ def build_training_contract(args: Any) -> dict[str, Any]:
     source_closure = validate_source_closure(values[SOURCE_CLOSURE_ARG])
     contract_values = {key: values[key] for key in contract_keys}
     contract_values[SOURCE_CLOSURE_ARG] = source_closure
-    if v60_deployment_owned_query_veto_contract:
+    if rank_decoder_adaptation_contract:
+        schema = "pivot.stageb.dense_duty_training_contract/v44"
+    elif candidate_complete_trace_contract:
+        schema = "pivot.stageb.dense_duty_training_contract/v43"
+    elif v60_deployment_owned_query_veto_contract:
         schema = "pivot.stageb.dense_duty_training_contract/v42"
     elif v59_deployment_owned_query_global_contract:
         schema = "pivot.stageb.dense_duty_training_contract/v41"
@@ -2093,6 +2254,13 @@ def _validate_active_names(
                 "stage_b_fixed_text_scorer.confidence_pool.",
             )
         )
+        if any(
+            name.startswith("stage_b_fixed_text_scorer.rank_tower.decoder.layers.")
+            for name in active_names
+        ):
+            allowed_prefixes = allowed_prefixes + (
+                "stage_b_fixed_text_scorer.rank_tower.decoder.layers.",
+            )
     unexpected = [
         name for name in active_names if not name.startswith(allowed_prefixes)
     ]
@@ -2262,6 +2430,12 @@ def audit_checkpoint_payload(
                 "stage_b_dense_duty_confidence_veto_only_patch_softmin", False
             )
         )
+        (
+            patch_active_tensor_count,
+            patch_active_element_count,
+            patch_owner_tensor_counts,
+            patch_contract_label,
+        ) = _patch_softmin_active_contract(args)
         query_global_contract = (
             _v59_deployment_owned_query_global_revision(args)
             or _v60_deployment_owned_query_veto_revision(args)
@@ -2272,7 +2446,7 @@ def audit_checkpoint_payload(
             or _v58_deployment_owned_stable_fpr95_active_set_revision(args)
         )
         expected_active_tensor_count = (
-            _V62_PATCH_SOFTMIN_ACTIVE_TENSOR_COUNT
+            patch_active_tensor_count
             if veto_only_patch_softmin
             else _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
             if full_decoder_verifier
@@ -2283,7 +2457,7 @@ def audit_checkpoint_payload(
             else _V53_ACTIVE_TENSOR_COUNT
         )
         expected_active_element_count = (
-            _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT
+            patch_active_element_count
             if veto_only_patch_softmin
             else _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
             if full_decoder_verifier
@@ -2294,7 +2468,7 @@ def audit_checkpoint_payload(
             else _V53_ACTIVE_ELEMENT_COUNT
         )
         expected_owner_tensor_counts = (
-            _V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS
+            patch_owner_tensor_counts
             if veto_only_patch_softmin
             else _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
             if full_decoder_verifier
@@ -2305,7 +2479,7 @@ def audit_checkpoint_payload(
             else _V53_OWNER_TENSOR_COUNTS
         )
         contract_label = (
-            "V62-patch-softmin-veto"
+            patch_contract_label
             if veto_only_patch_softmin
             else "V61-full-decoder"
             if full_decoder_verifier
@@ -2675,16 +2849,27 @@ def _validate_fulltext_global_absolute_runtime_audit(
     expected_owner_tensor_counts: Mapping[str, int] = _V53_OWNER_TENSOR_COUNTS,
     contract_label: str = "V53",
 ) -> dict[str, Any]:
-    """Validate every successful update of a two-owner full-text contract."""
+    """Validate every successful update of a sealed full-text owner contract."""
     if type(expected_steps) is not int or expected_steps <= 0:
         raise RuntimeError(
             f"{contract_label} runtime audit requires positive expected steps"
+        )
+    owner_count = len(expected_owner_tensor_counts)
+    expected_clip_schema = {
+        1: "pivot.stageb.dense_duty_one_owner_clip_contract/v1",
+        2: "pivot.stageb.dense_duty_two_owner_clip_contract/v1",
+    }.get(owner_count)
+    owner_label = {1: "one-owner", 2: "two-owner"}.get(owner_count)
+    if expected_clip_schema is None:
+        raise RuntimeError(
+            f"{contract_label} runtime audit has unsupported owner count: "
+            f"{owner_count}"
         )
     if (
         not isinstance(runtime, Mapping)
         or runtime.get("schema") != "pivot.stageb.dense_duty_runtime_audit/v1"
         or runtime.get("clip_contract_schema")
-        != "pivot.stageb.dense_duty_two_owner_clip_contract/v1"
+        != expected_clip_schema
         or type(runtime.get("successful_optimizer_steps")) is not int
         or runtime.get("successful_optimizer_steps") != expected_steps
         or type(runtime.get("optimizer_step_boundaries")) is not int
@@ -2693,8 +2878,8 @@ def _validate_fulltext_global_absolute_runtime_audit(
         or runtime.get("clip_contract_checked_steps") != expected_steps
     ):
         raise RuntimeError(
-            f"{contract_label} runtime audit lacks one two-owner clip check per "
-            "successful update"
+            f"{contract_label} runtime audit lacks one {owner_label} clip "
+            "check per successful update"
         )
 
     violation_fields = (
@@ -2801,7 +2986,7 @@ def _validate_fulltext_global_absolute_runtime_audit(
         or invalid_residuals
     ):
         raise RuntimeError(
-            f"{contract_label} two-owner runtime audit is invalid: "
+            f"{contract_label} {owner_label} runtime audit is invalid: "
             f"violations={invalid_violations}, global={invalid_global_gradients}, "
             f"counts={invalid_counts}, "
             f"owners={invalid_owners}, residuals={invalid_residuals}"
@@ -2949,6 +3134,12 @@ def validate_strict_resume_checkpoint_payload(
                 "stage_b_dense_duty_confidence_veto_only_patch_softmin", False
             )
         )
+        (
+            patch_active_tensor_count,
+            patch_active_element_count,
+            patch_owner_tensor_counts,
+            patch_contract_label,
+        ) = _patch_softmin_active_contract(values)
         current_fingerprint = fingerprint_state(
             payload["model"],
             active_parameter_names=initial_fingerprint[
@@ -2966,7 +3157,7 @@ def validate_strict_resume_checkpoint_payload(
             or _v58_deployment_owned_stable_fpr95_active_set_revision(values)
         )
         expected_active_tensor_count = (
-            _V62_PATCH_SOFTMIN_ACTIVE_TENSOR_COUNT
+            patch_active_tensor_count
             if veto_only_patch_softmin
             else _V61_FULL_DECODER_ACTIVE_TENSOR_COUNT
             if full_decoder_verifier
@@ -2977,7 +3168,7 @@ def validate_strict_resume_checkpoint_payload(
             else _V53_ACTIVE_TENSOR_COUNT
         )
         expected_active_element_count = (
-            _V62_PATCH_SOFTMIN_ACTIVE_ELEMENT_COUNT
+            patch_active_element_count
             if veto_only_patch_softmin
             else _V61_FULL_DECODER_ACTIVE_ELEMENT_COUNT
             if full_decoder_verifier
@@ -2988,7 +3179,7 @@ def validate_strict_resume_checkpoint_payload(
             else _V53_ACTIVE_ELEMENT_COUNT
         )
         expected_owner_tensor_counts = (
-            _V62_PATCH_SOFTMIN_OWNER_TENSOR_COUNTS
+            patch_owner_tensor_counts
             if veto_only_patch_softmin
             else _V61_FULL_DECODER_OWNER_TENSOR_COUNTS
             if full_decoder_verifier
@@ -2999,7 +3190,7 @@ def validate_strict_resume_checkpoint_payload(
             else _V53_OWNER_TENSOR_COUNTS
         )
         contract_label = (
-            "V62-patch-softmin-veto"
+            patch_contract_label
             if veto_only_patch_softmin
             else "V61-full-decoder"
             if full_decoder_verifier
@@ -3420,6 +3611,23 @@ def validate_evaluation_checkpoint_payload(
     ).strip() == _ADAPTER_OWNERSHIP
     if adapter_contract:
         required_equal_args = required_equal_args + _ADAPTER_RESUME_CONTRACT_KEYS
+        candidate_trace_contract = str(
+            getattr(
+                cfg,
+                "stage_b_dense_duty_confidence_candidate_trace_contract",
+                _CANDIDATE_TRACE_OFF,
+            )
+        ).strip().lower()
+        if candidate_trace_contract not in _CANDIDATE_TRACE_CONTRACTS:
+            raise RuntimeError(
+                "dense-duty evaluation has an unknown candidate trace contract"
+            )
+        if candidate_trace_contract != _CANDIDATE_TRACE_OFF:
+            required_equal_args += _CANDIDATE_COMPLETE_TRACE_RESUME_CONTRACT_KEYS
+        if candidate_trace_contract == _CANDIDATE_TRACE_MONOTONE:
+            required_equal_args += (
+                _CANDIDATE_COMPLETE_MONOTONE_RESUME_CONTRACT_KEYS
+            )
         if str(
             getattr(
                 cfg,

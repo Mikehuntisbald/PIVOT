@@ -78,6 +78,8 @@ from tools.eval_refcoco_stageb import (  # noqa: E402
     _validate_v60_deployment_owned_query_veto_config,
     _validate_v61_full_decoder_verifier_config,
     _validate_v62_patch_softmin_veto_config,
+    _validate_c1_candidate_complete_trace_config,
+    _validate_c2_candidate_complete_trace_config,
     _verify_v39_immutable_archived_diagnostic_files,
     _verify_v40_immutable_archived_diagnostic_files,
     _verify_v41_immutable_archived_diagnostic_files,
@@ -391,6 +393,12 @@ _CANDIDATE_SPLIT_INDEPENDENT_DEPLOYED_ROUTER_CONFIDENCE_U0400_CONFIG = (
     "cfg_stageb_dense_duty_confidence_adapter_"
     "candidate_split_independent_deployed_router_probe_u0400_20260802.py"
 )
+_V51_RANK_DECODER_L2_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_adapter_candidate_split_independent_"
+    "deployed_router_rank_decoder_l2_probe_u0400_20260813.py"
+)
 _CANDIDATE_SAMPLE_CALIBRATOR_CONFIDENCE_U0400_CONFIG = (
     REPO_ROOT
     / "config/ablations/"
@@ -455,6 +463,18 @@ _FULL_DECODER_PATCH_SOFTMIN_VETO_CONFIDENCE_U0400_CONFIG = (
     REPO_ROOT
     / "config/ablations/"
     "cfg_stageb_dense_duty_confidence_full_decoder_patch_softmin_veto_"
+    "probe_u0400_20260803.py"
+)
+_CANDIDATE_COMPLETE_TRACE_C1_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_candidate_complete_trace_c1_"
+    "probe_u0400_20260803.py"
+)
+_CANDIDATE_COMPLETE_TRACE_C2_CONFIDENCE_U0400_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/"
+    "cfg_stageb_dense_duty_confidence_candidate_complete_trace_c2_"
     "probe_u0400_20260803.py"
 )
 _V39_IMMUTABLE_ARCHIVED_SNAPSHOT_ROOT = (
@@ -1655,6 +1675,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _CANDIDATE_SPLIT_INDEPENDENT_DEPLOYED_ROUTER_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
+        _V51_RANK_DECODER_L2_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
         _CANDIDATE_SAMPLE_CALIBRATOR_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
@@ -1680,6 +1701,12 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         ),
         _FULL_DECODER_VERIFIER_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
         _FULL_DECODER_PATCH_SOFTMIN_VETO_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
+        _CANDIDATE_COMPLETE_TRACE_C1_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        ),
+        _CANDIDATE_COMPLETE_TRACE_C2_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
         _CANDIDATE_SET_ATTENTION_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
@@ -1949,6 +1976,13 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
+    v51_rank_decoder_l2_confidence_u0400 = observed_config == (
+        _V51_RANK_DECODER_L2_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
+    )
+    candidate_split_independent_deployed_router_confidence_u0400 = (
+        candidate_split_independent_deployed_router_confidence_u0400
+        or v51_rank_decoder_l2_confidence_u0400
+    )
     candidate_sample_calibrator_confidence_u0400 = observed_config == (
         _CANDIDATE_SAMPLE_CALIBRATOR_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
@@ -1994,6 +2028,16 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             strict=True
         )
     )
+    candidate_complete_trace_c1_confidence_u0400 = observed_config == (
+        _CANDIDATE_COMPLETE_TRACE_C1_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        )
+    )
+    candidate_complete_trace_c2_confidence_u0400 = observed_config == (
+        _CANDIDATE_COMPLETE_TRACE_C2_CONFIDENCE_U0400_CONFIG.resolve(
+            strict=True
+        )
+    )
     deployment_owned_query_veto_confidence_u0400 = (
         observed_config
         == _DEPLOYMENT_OWNED_QUERY_VETO_CONFIDENCE_U0400_CONFIG.resolve(
@@ -2001,6 +2045,8 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         )
         or full_decoder_verifier_confidence_u0400
         or full_decoder_patch_softmin_veto_confidence_u0400
+        or candidate_complete_trace_c1_confidence_u0400
+        or candidate_complete_trace_c2_confidence_u0400
     )
     deployment_owned_global_confidence_u0400 = (
         observed_config
@@ -2172,7 +2218,15 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             errors.append(str(exc))
     if deployment_owned_global_confidence_u0400:
         try:
-            if full_decoder_patch_softmin_veto_confidence_u0400:
+            if candidate_complete_trace_c2_confidence_u0400:
+                if not _validate_c2_candidate_complete_trace_config(cfg):
+                    raise RuntimeError(
+                        "candidate-complete C2 config does not satisfy its exact "
+                        "monotone contract"
+                    )
+            elif candidate_complete_trace_c1_confidence_u0400:
+                _validate_c1_candidate_complete_trace_config(cfg)
+            elif full_decoder_patch_softmin_veto_confidence_u0400:
                 _validate_v62_patch_softmin_veto_config(cfg)
             elif full_decoder_verifier_confidence_u0400:
                 _validate_v61_full_decoder_verifier_config(cfg)
@@ -2325,6 +2379,8 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
             or fulltext_global_independent_absolute_confidence_u0400
             or deployment_owned_global_confidence_u0400
         )
+        and not candidate_complete_trace_c1_confidence_u0400
+        and not candidate_complete_trace_c2_confidence_u0400
         and observed_token_edit_scope != "target_iou_v1"
     ):
         errors.append(
@@ -2779,7 +2835,7 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
                         -1.0,
                     )
                 )
-                != 1.0
+                != (0.0 if candidate_complete_trace_c2_confidence_u0400 else 1.0)
                 or float(
                     getattr(
                         cfg,
@@ -2963,7 +3019,11 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
                                         -1.0,
                                     )
                                 )
-                                != 0.25
+                                != (
+                                    0.0
+                                    if candidate_complete_trace_c2_confidence_u0400
+                                    else 0.25
+                                )
                                 or float(
                                     getattr(
                                         cfg,

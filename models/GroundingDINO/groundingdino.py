@@ -1996,6 +1996,18 @@ class GroundingDINO(nn.Module):
                         "stage_b_dense_duty_confidence_mismatch_gate",
                     ),
                     (
+                        "final_confidence_entailment_probability",
+                        "stage_b_dense_duty_confidence_entailment_probability",
+                    ),
+                    (
+                        "final_deployed_candidate_veto_depth",
+                        "stage_b_dense_duty_candidate_veto_depth",
+                    ),
+                    (
+                        "final_deployed_candidate_veto_gate",
+                        "stage_b_dense_duty_candidate_veto_gate",
+                    ),
+                    (
                         "final_confidence_raw_mismatch_gate",
                         "stage_b_dense_duty_confidence_raw_mismatch_gate",
                     ),
@@ -3725,6 +3737,27 @@ def build_groundingdino(args):
                         False,
                     )
                 ),
+                confidence_candidate_trace_contract=str(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_confidence_candidate_trace_contract",
+                        "off_v1",
+                    )
+                ),
+                confidence_token_depth_base_scale=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_confidence_token_depth_base_scale",
+                        1.0,
+                    )
+                ),
+                confidence_rank_decoder_unfreeze_last_n=int(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
+                        0,
+                    )
+                ),
                 expression_microbatch=int(
                     getattr(args, "stage_b_v11_expression_microbatch", 1)
                 ),
@@ -4016,6 +4049,55 @@ def build_groundingdino(args):
                         args,
                         "stage_b_v21_token_edit_query_scope",
                         "target_iou_v1",
+                    )
+                ),
+                candidate_depth_all_weight=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_all_weight",
+                        0.0,
+                    )
+                ),
+                candidate_depth_escape_weight=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_escape_weight",
+                        0.0,
+                    )
+                ),
+                candidate_depth_positive_weight=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_positive_weight",
+                        0.0,
+                    )
+                ),
+                candidate_depth_tn_margin=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_tn_margin",
+                        0.5,
+                    )
+                ),
+                candidate_depth_escape_margin=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_escape_margin",
+                        0.5,
+                    )
+                ),
+                candidate_depth_positive_max=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_positive_max",
+                        0.05,
+                    )
+                ),
+                candidate_depth_temperature=float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_temperature",
+                        0.1,
                     )
                 ),
                 token_focal_alpha=float(

@@ -198,6 +198,18 @@ CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_DEPLOYED_ROUTING_ST = (
 CONFIDENCE_MONOTONE_VETO_GATE_FLOOR = 0.25
 CONFIDENCE_QUERY_VETO_MAX_DEPTH = 8.0
 CONFIDENCE_PATCH_SOFTMIN_VETO_TEMPERATURE = 0.1
+CONFIDENCE_CANDIDATE_TRACE_CONTRACT_OFF = "off_v1"
+CONFIDENCE_CANDIDATE_TRACE_CONTRACT_FREE_HEAD_COVERAGE = (
+    "candidate_complete_free_head_coverage_v1"
+)
+CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT = (
+    "candidate_complete_monotone_token_entailment_v2"
+)
+CONFIDENCE_CANDIDATE_TRACE_CONTRACTS = (
+    CONFIDENCE_CANDIDATE_TRACE_CONTRACT_OFF,
+    CONFIDENCE_CANDIDATE_TRACE_CONTRACT_FREE_HEAD_COVERAGE,
+    CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT,
+)
 CONFIDENCE_GATE_GRADIENT_CONTRACTS = (
     CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_DETACHED,
     CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_FORWARD_SOFT_BACKWARD,
@@ -355,7 +367,8 @@ def _word_normalized_softmin_probability(
     gate_gradient_contract: str = (
         CONFIDENCE_GATE_GRADIENT_CONTRACT_HARD_DETACHED
     ),
-) -> tuple[Tensor, Tensor]:
+    return_stable_mismatch: bool = False,
+) -> tuple[Tensor, Tensor] | tuple[Tensor, Tensor, Tensor]:
     """Return a WordPiece-invariant veto and an exact hard mismatch gate."""
     if token_logits.dim() != 4 or token_residuals.shape != token_logits.shape:
         raise ValueError("token logits/residuals must have shape (L,M,N,T)")
@@ -392,6 +405,13 @@ def _word_normalized_softmin_probability(
     word_probability = torch.einsum(
         "lmnt,mtg->lmng", token_logits.float().sigmoid(), membership.float()
     ) / denominator.float()
+    # Compute the exact complement in its native coordinate. In float32,
+    # ``1 - sigmoid(z)`` becomes exactly zero around z=17; sigmoid(-z) keeps
+    # the monotone veto gradient live until the negative exponential itself
+    # underflows.
+    word_mismatch_probability = torch.einsum(
+        "lmnt,mtg->lmng", (-token_logits.float()).sigmoid(), membership.float()
+    ) / denominator.float()
     word_residual = torch.einsum(
         "lmnt,mtg->lmng", token_residuals.float(), membership.float()
     ) / denominator.float()
@@ -409,6 +429,24 @@ def _word_normalized_softmin_probability(
     has_word = group_valid.any(dim=-1)[None, :, None]
     veto_probability = torch.where(
         has_word, veto_probability, torch.ones_like(veto_probability)
+    ).clamp(0.0, 1.0)
+    scaled_mismatch = word_mismatch_probability / float(temperature)
+    # tau * log(mean(exp(mismatch / tau))) is algebraically equal to
+    # 1 - softmin(entailment). log1p/expm1 avoids subtracting log(word_count)
+    # from a nearly identical logsumexp when every word is highly entailed.
+    mismatch_expm1_mean = (
+        torch.expm1(scaled_mismatch)
+        .masked_fill(~expanded_valid, 0.0)
+        .sum(dim=-1)
+        / valid_count[None, :, None]
+    )
+    stable_mismatch_probability = float(temperature) * torch.log1p(
+        mismatch_expm1_mean
+    )
+    stable_mismatch_probability = torch.where(
+        has_word,
+        stable_mismatch_probability,
+        torch.zeros_like(stable_mismatch_probability),
     ).clamp(0.0, 1.0)
 
     max_word_residual = word_residual.masked_fill(
@@ -433,6 +471,8 @@ def _word_normalized_softmin_probability(
         mismatch_gate = torch.sigmoid(
             (max_word_residual - float(gate_offset)) / float(gate_scale)
         )
+        if return_stable_mismatch:
+            return veto_probability, mismatch_gate, stable_mismatch_probability
         return veto_probability, mismatch_gate
 
     hard_mismatch_gate = (
@@ -462,6 +502,8 @@ def _word_normalized_softmin_probability(
         )
     else:
         mismatch_gate = hard_mismatch_gate
+    if return_stable_mismatch:
+        return veto_probability, mismatch_gate, stable_mismatch_probability
     return veto_probability, mismatch_gate
 
 
@@ -1928,6 +1970,7 @@ class TokenAwareConfidenceAdapter(nn.Module):
         patch_standardized: Tensor,
         candidate_mask: Tensor,
         score_word_group_ids: Optional[Tensor] = None,
+        allow_rank_feature_grad: bool = False,
     ) -> dict[str, Tensor]:
         if query_layers.dim() != 4 or int(query_layers.shape[-1]) != self.hidden_dim:
             raise ValueError("query_layers must have shape (L,M,N,D)")
@@ -1951,14 +1994,18 @@ class TokenAwareConfidenceAdapter(nn.Module):
         if tuple(patch_logits.shape) != tuple(query_layers.shape[1:3]):
             raise ValueError("patch logits must align with query layers")
 
-        # Detach again at the ownership boundary even when the caller already
-        # evaluated the rank tower under no_grad.  This is the architectural
-        # guarantee that absolute confidence cannot update relative ranking.
+        # V51 detaches at this ownership boundary. Controlled decoder-tail
+        # adaptation may explicitly preserve the rank-feature graph while the
+        # parameter contract keeps the rest of the tower frozen.
         # Fuse in FP32 even under AMP.  A newly learned small residual must not
         # disappear when it is subtracted from a large half-precision logit.
-        rank_token = rank_token_layers.detach().float()
-        query = query_layers.detach()
-        text = text_features.detach()
+        rank_token = (
+            rank_token_layers.float()
+            if allow_rank_feature_grad
+            else rank_token_layers.detach().float()
+        )
+        query = query_layers if allow_rank_feature_grad else query_layers.detach()
+        text = text_features if allow_rank_feature_grad else text_features.detach()
         patch = patch_logits.detach().float()
         standardized = patch_standardized.detach().float()
         mask = candidate_mask.detach().to(dtype=torch.bool)
@@ -2496,6 +2543,35 @@ class DenseExpressionTower(nn.Module):
         if self.level_embed is not None:
             self.level_embed.requires_grad_(False)
 
+    def set_decoder_tail_active(self, last_n: int) -> None:
+        """Freeze the tower except for an exact decoder-layer suffix."""
+        last_n = int(last_n)
+        if last_n < 0 or last_n > self.num_layers:
+            raise ValueError(
+                "decoder-tail adaptation must select between zero and "
+                f"{self.num_layers} layers, got {last_n}"
+            )
+        self.set_active(False)
+        if last_n == 0:
+            return
+        for layer in self.decoder.layers[-last_n:]:
+            _set_module_trainable(layer, True)
+
+    def decoder_tail_parameters(self, last_n: int) -> tuple[nn.Parameter, ...]:
+        last_n = int(last_n)
+        if last_n < 0 or last_n > self.num_layers:
+            raise ValueError(
+                "decoder-tail adaptation must select between zero and "
+                f"{self.num_layers} layers, got {last_n}"
+            )
+        if last_n == 0:
+            return ()
+        return tuple(
+            parameter
+            for layer in self.decoder.layers[-last_n:]
+            for parameter in layer.parameters()
+        )
+
     @torch.no_grad()
     def load_from_components(
         self,
@@ -2835,6 +2911,11 @@ class StageBDenseDutyScorer(nn.Module):
         ),
         confidence_full_decoder_verifier: bool = False,
         confidence_veto_only_patch_softmin: bool = False,
+        confidence_candidate_trace_contract: str = (
+            CONFIDENCE_CANDIDATE_TRACE_CONTRACT_OFF
+        ),
+        confidence_token_depth_base_scale: float = 1.0,
+        confidence_rank_decoder_unfreeze_last_n: int = 0,
         expression_microbatch: int = 1,
         phase: str = "rank",
     ) -> None:
@@ -2851,6 +2932,23 @@ class StageBDenseDutyScorer(nn.Module):
             raise ValueError("expression_microbatch must be positive")
         if isinstance(confidence_init_seed, bool) or int(confidence_init_seed) < 0:
             raise ValueError("confidence_init_seed must be a non-negative integer")
+        confidence_candidate_trace_contract = str(
+            confidence_candidate_trace_contract
+        ).strip().lower()
+        if confidence_candidate_trace_contract not in (
+            CONFIDENCE_CANDIDATE_TRACE_CONTRACTS
+        ):
+            raise ValueError(
+                "unknown candidate-complete trace contract: "
+                f"{confidence_candidate_trace_contract!r}"
+            )
+        if (
+            not math.isfinite(float(confidence_token_depth_base_scale))
+            or float(confidence_token_depth_base_scale) <= 0.0
+        ):
+            raise ValueError(
+                "confidence_token_depth_base_scale must be finite and positive"
+            )
         self.max_text_len = int(max_text_len)
         self.candidate_topk = int(candidate_topk)
         self.expression_microbatch = int(expression_microbatch)
@@ -2869,6 +2967,23 @@ class StageBDenseDutyScorer(nn.Module):
         self.confidence_veto_only_patch_softmin = bool(
             confidence_veto_only_patch_softmin
         )
+        self.confidence_candidate_trace_contract = (
+            confidence_candidate_trace_contract
+        )
+        self.confidence_token_depth_base_scale = float(
+            confidence_token_depth_base_scale
+        )
+        self.confidence_rank_decoder_unfreeze_last_n = int(
+            confidence_rank_decoder_unfreeze_last_n
+        )
+        if (
+            self.confidence_rank_decoder_unfreeze_last_n < 0
+            or self.confidence_rank_decoder_unfreeze_last_n > self.rank_tower.num_layers
+        ):
+            raise ValueError(
+                "confidence rank-decoder adaptation must select an exact decoder "
+                f"suffix in [0, {self.rank_tower.num_layers}]"
+            )
         if (
             self.confidence_veto_only_patch_softmin
             and not self.confidence_full_decoder_verifier
@@ -2958,8 +3073,11 @@ class StageBDenseDutyScorer(nn.Module):
             persistent=True,
         )
         self.phase = normalize_dense_duty_phase(phase)
-        self._assert_parameter_disjointness()
+        # Apply trainability ownership before validating the monotone contract:
+        # its serialized veto head remains present for checkpoint compatibility
+        # but must already be frozen and excluded from the live optimizer set.
         self._apply_phase_contract()
+        self._assert_parameter_disjointness()
 
     def _assert_parameter_disjointness(self) -> None:
         rank_ids = {id(parameter) for parameter in self.rank_parameters()}
@@ -2991,12 +3109,15 @@ class StageBDenseDutyScorer(nn.Module):
                 for parameter in self.confidence_verifier_veto_head.parameters()
             }
             pool_ids = {id(parameter) for parameter in self.confidence_pool.parameters()}
-            expected_confidence_ids = verifier_ids | head_ids
+            monotone_trace = (
+                self.confidence_candidate_trace_contract
+                == CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT
+            )
+            expected_confidence_ids = verifier_ids | (set() if monotone_trace else head_ids)
             if not self.confidence_veto_only_patch_softmin:
                 expected_confidence_ids |= pool_ids
             if (
                 not verifier_ids
-                or not head_ids
                 or not pool_ids
                 or verifier_ids & head_ids
                 or verifier_ids & pool_ids
@@ -3005,6 +3126,13 @@ class StageBDenseDutyScorer(nn.Module):
                 or (
                     self.confidence_veto_only_patch_softmin
                     and bool(pool_ids & confidence_ids)
+                )
+                or (
+                    monotone_trace
+                    and any(
+                        parameter.requires_grad
+                        for parameter in self.confidence_verifier_veto_head.parameters()
+                    )
                 )
             ):
                 raise RuntimeError(
@@ -3093,6 +3221,11 @@ class StageBDenseDutyScorer(nn.Module):
     def rank_parameters(self) -> tuple[nn.Parameter, ...]:
         return self.rank_tower.owned_parameters()
 
+    def confidence_rank_adaptation_parameters(self) -> tuple[nn.Parameter, ...]:
+        return self.rank_tower.decoder_tail_parameters(
+            self.confidence_rank_decoder_unfreeze_last_n
+        )
+
     def confidence_parameters(self) -> tuple[nn.Parameter, ...]:
         if self.confidence_full_decoder_verifier:
             if (
@@ -3100,10 +3233,12 @@ class StageBDenseDutyScorer(nn.Module):
                 or self.confidence_verifier_veto_head is None
             ):
                 raise RuntimeError("full-decoder confidence verifier is incomplete")
-            parameters = (
-                self.confidence_verifier_tower.owned_parameters()
-                + tuple(self.confidence_verifier_veto_head.parameters())
-            )
+            parameters = self.confidence_verifier_tower.owned_parameters()
+            if (
+                self.confidence_candidate_trace_contract
+                != CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT
+            ):
+                parameters += tuple(self.confidence_verifier_veto_head.parameters())
             if not self.confidence_veto_only_patch_softmin:
                 parameters += tuple(self.confidence_pool.parameters())
             return parameters
@@ -3149,6 +3284,12 @@ class StageBDenseDutyScorer(nn.Module):
 
     def expected_live_confidence_parameter_tensor_counts(self) -> dict[str, int]:
         """Return exact per-step gradient-tensor counts for sealed split heads."""
+        if (
+            self.confidence_full_decoder_verifier
+            and self.confidence_candidate_trace_contract
+            == CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT
+        ):
+            return {"token_veto": len(self.token_veto_parameters())}
         head_contract = self.confidence_adapter.head_gradient_contract
         if head_contract in {
             CONFIDENCE_HEAD_GRADIENT_CONTRACT_FULLTEXT_GLOBAL_ABSOLUTE,
@@ -3200,6 +3341,11 @@ class StageBDenseDutyScorer(nn.Module):
         if self.confidence_full_decoder_verifier:
             if self.confidence_verifier_veto_head is None:
                 raise RuntimeError("full-decoder confidence veto head is missing")
+            if (
+                self.confidence_candidate_trace_contract
+                == CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT
+            ):
+                return ()
             return tuple(self.confidence_verifier_veto_head.parameters()) + tuple(
                 ()
                 if self.confidence_veto_only_patch_softmin
@@ -3215,6 +3361,10 @@ class StageBDenseDutyScorer(nn.Module):
         rank_active = bool(self.training and self.phase == "rank")
         confidence_active = bool(self.training and self.phase == "confidence")
         self.rank_tower.set_active(rank_active)
+        if confidence_active and self.confidence_rank_decoder_unfreeze_last_n:
+            self.rank_tower.set_decoder_tail_active(
+                self.confidence_rank_decoder_unfreeze_last_n
+            )
         if self.confidence_full_decoder_verifier:
             if (
                 self.confidence_verifier_tower is None
@@ -3223,7 +3373,10 @@ class StageBDenseDutyScorer(nn.Module):
                 raise RuntimeError("full-decoder confidence verifier is incomplete")
             self.confidence_verifier_tower.set_active(confidence_active)
             _set_module_trainable(
-                self.confidence_verifier_veto_head, confidence_active
+                self.confidence_verifier_veto_head,
+                confidence_active
+                and self.confidence_candidate_trace_contract
+                != CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT,
             )
             _set_module_trainable(
                 self.confidence_pool,
@@ -3490,10 +3643,7 @@ class StageBDenseDutyScorer(nn.Module):
         score_word_group_ids: Optional[Tensor],
     ) -> dict[str, Tensor]:
         """Expose only entailment and one-sided veto from the full verifier."""
-        if (
-            not self.confidence_full_decoder_verifier
-            or self.confidence_verifier_veto_head is None
-        ):
+        if not self.confidence_full_decoder_verifier:
             raise RuntimeError("full-decoder confidence verifier is disabled")
         rank_token = rank["token_layers"].detach().float()
         verifier_token = verifier["token_layers"].float()
@@ -3518,7 +3668,7 @@ class StageBDenseDutyScorer(nn.Module):
         token_residual = (rank_token - verifier_token).masked_fill(
             ~phrase_mask[None, :, None], 0.0
         )
-        _entailment_probability, mismatch_gate = (
+        entailment_probability, mismatch_gate, mismatch_probability = (
             _word_normalized_softmin_probability(
                 verifier_token,
                 token_residual,
@@ -3530,6 +3680,7 @@ class StageBDenseDutyScorer(nn.Module):
                 gate_gradient_contract=(
                     self.confidence_adapter.gate_gradient_contract
                 ),
+                return_stable_mismatch=True,
             )
         )
         reference_base = rank["full_phrase_layers"].detach().float()
@@ -3543,6 +3694,8 @@ class StageBDenseDutyScorer(nn.Module):
             ],
             dim=0,
         )
+        if self.confidence_verifier_veto_head is None:
+            raise RuntimeError("full-decoder confidence veto head is missing")
         veto_raw = self.confidence_verifier_veto_head(
             verifier["hidden_layers"]
         ).squeeze(-1).float()
@@ -3555,6 +3708,11 @@ class StageBDenseDutyScorer(nn.Module):
             "token_layers": verifier_token,
             "token_residual_layers": token_residual,
             "hidden_layers": verifier["hidden_layers"],
+            # Semantic-word entailment is the only source used by the
+            # candidate-complete monotone contract. Keep it explicit instead
+            # of forcing downstream code to reconstruct it from a gate.
+            "entailment_probability_layers": entailment_probability,
+            "mismatch_probability_layers": mismatch_probability,
             # This is a raw veto-depth coordinate, never an absolute score.
             "base_layers": veto_raw,
             "reference_base_layers": reference_base,
@@ -3778,7 +3936,16 @@ class StageBDenseDutyScorer(nn.Module):
         # no_grad for confidence training and evaluation.
         run_confidence = not self.training or self.phase in {"confidence", "eval"}
         confidence: Optional[dict[str, Tensor]] = None
-        rank_grad = bool(self.training and self.phase == "rank")
+        rank_grad = bool(
+            self.training
+            and (
+                self.phase == "rank"
+                or (
+                    self.phase == "confidence"
+                    and self.confidence_rank_decoder_unfreeze_last_n > 0
+                )
+            )
+        )
         with torch.set_grad_enabled(torch.is_grad_enabled() and rank_grad):
             rank = self._run_tower_microbatched(
                 self.rank_tower,
@@ -3826,6 +3993,11 @@ class StageBDenseDutyScorer(nn.Module):
                         patch_standardized=flat_patch_standardized,
                         candidate_mask=flat_eligible,
                         score_word_group_ids=flat_score_word_groups,
+                        allow_rank_feature_grad=(
+                            self.training
+                            and self.phase == "confidence"
+                            and self.confidence_rank_decoder_unfreeze_last_n > 0
+                        ),
                     )
 
         rank_placeholder = False
@@ -3882,6 +4054,12 @@ class StageBDenseDutyScorer(nn.Module):
             confidence_deployed_routing_residual_flat = torch.zeros_like(
                 confidence_mismatch_gate_flat
             )
+            confidence_entailment_probability_flat = torch.ones_like(
+                confidence_base_flat
+            )
+            confidence_mismatch_probability_flat = torch.zeros_like(
+                confidence_base_flat
+            )
             confidence_reference_carrier_index_flat = torch.stack(
                 [
                     _frozen_reference_carrier_index(
@@ -3902,6 +4080,55 @@ class StageBDenseDutyScorer(nn.Module):
             confidence_reference_base_flat = confidence["reference_base_layers"]
             confidence_hidden_flat = confidence["hidden_layers"]
             confidence_mismatch_gate_flat = confidence["mismatch_gate_layers"]
+            if (
+                self.confidence_candidate_trace_contract
+                == CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT
+            ):
+                confidence_entailment_probability_flat = confidence.get(
+                    "entailment_probability_layers"
+                )
+                confidence_mismatch_probability_flat = confidence.get(
+                    "mismatch_probability_layers"
+                )
+                if (
+                    not torch.is_tensor(confidence_entailment_probability_flat)
+                    or tuple(confidence_entailment_probability_flat.shape)
+                    != tuple(confidence_base_flat.shape)
+                    or not bool(
+                        (
+                            torch.isfinite(confidence_entailment_probability_flat)
+                            & confidence_entailment_probability_flat.ge(0.0)
+                            & confidence_entailment_probability_flat.le(1.0)
+                        )
+                        .all()
+                        .item()
+                    )
+                    or not torch.is_tensor(confidence_mismatch_probability_flat)
+                    or tuple(confidence_mismatch_probability_flat.shape)
+                    != tuple(confidence_base_flat.shape)
+                    or not bool(
+                        (
+                            torch.isfinite(confidence_mismatch_probability_flat)
+                            & confidence_mismatch_probability_flat.ge(0.0)
+                            & confidence_mismatch_probability_flat.le(1.0)
+                        )
+                        .all()
+                        .item()
+                    )
+                ):
+                    raise RuntimeError(
+                        "candidate-complete monotone depth requires an explicit "
+                        "finite [0,1] entailment/mismatch surface aligned to every candidate"
+                    )
+            else:
+                confidence_entailment_probability_flat = confidence.get(
+                    "entailment_probability_layers",
+                    torch.ones_like(confidence_base_flat),
+                )
+                confidence_mismatch_probability_flat = confidence.get(
+                    "mismatch_probability_layers",
+                    (1.0 - confidence_entailment_probability_flat).clamp(0.0, 1.0),
+                )
             confidence_raw_mismatch_gate_flat = confidence[
                 "raw_mismatch_gate_layers"
             ]
@@ -4117,6 +4344,12 @@ class StageBDenseDutyScorer(nn.Module):
         veto_carrier_index_layers = []
         query_veto_depth_layers = []
         query_veto_gate_layers = []
+        candidate_veto_depth_layers = []
+        candidate_veto_gate_layers = []
+        monotone_candidate_trace_enabled = (
+            self.confidence_candidate_trace_contract
+            == CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT
+        )
         for layer in range(int(confidence_base_flat.shape[0])):
             if exact_rank_max_reference_enabled:
                 reference_global_logit = (
@@ -4177,20 +4410,35 @@ class StageBDenseDutyScorer(nn.Module):
                     # weighted soft-min is existential: a positive needs one
                     # strong patch candidate with shallow veto, while a global
                     # TN must assign depth to every plausible category query.
-                    raw_query_depth = confidence_base_flat[layer].float()
-                    exact_query_depth = CONFIDENCE_QUERY_VETO_MAX_DEPTH * torch.tanh(
-                        F.relu(raw_query_depth) / CONFIDENCE_QUERY_VETO_MAX_DEPTH
-                    )
-                    centered_softplus = F.softplus(raw_query_depth) - math.log(2.0)
-                    surrogate_query_depth = (
-                        CONFIDENCE_QUERY_VETO_MAX_DEPTH
-                        * torch.tanh(
-                            centered_softplus / CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                    if monotone_candidate_trace_enabled:
+                        # C2 binds deployed depth to semantic-word entailment.
+                        # The frozen rank tower is only the initialization and
+                        # reference; no independent scalar can bypass mismatch.
+                        mismatch = confidence_mismatch_probability_flat[
+                            layer
+                        ].float().clamp(0.0, 1.0)
+                        query_depth = CONFIDENCE_QUERY_VETO_MAX_DEPTH * torch.tanh(
+                            mismatch
+                            * self.confidence_token_depth_base_scale
+                            / CONFIDENCE_QUERY_VETO_MAX_DEPTH
                         )
-                    )
-                    query_depth = _ExactForwardSurrogateBackward.apply(
-                        exact_query_depth, surrogate_query_depth
-                    )
+                        raw_query_depth = mismatch
+                    else:
+                        raw_query_depth = confidence_base_flat[layer].float()
+                        exact_query_depth = CONFIDENCE_QUERY_VETO_MAX_DEPTH * torch.tanh(
+                            F.relu(raw_query_depth) / CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                        )
+                        centered_softplus = F.softplus(raw_query_depth) - math.log(2.0)
+                        surrogate_query_depth = (
+                            CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                            * torch.tanh(
+                                centered_softplus / CONFIDENCE_QUERY_VETO_MAX_DEPTH
+                            )
+                        )
+                        query_depth = _ExactForwardSurrogateBackward.apply(
+                            exact_query_depth, surrogate_query_depth
+                        )
+                    query_depth = query_depth.masked_fill(~flat_eligible, 0.0)
                     patch_coordinate = flat_patch_standardized.detach().float()
                     masked_patch = patch_coordinate.masked_fill(
                         ~flat_eligible, -torch.inf
@@ -4215,6 +4463,12 @@ class StageBDenseDutyScorer(nn.Module):
                     global_layers.append(-deployed_veto_depth)
                     query_veto_depth_layers.append(deployed_veto_depth)
                     query_veto_gate_layers.append(deployed_gate)
+                    candidate_veto_depth_layers.append(query_depth)
+                    candidate_veto_gate_layers.append(
+                        torch.ones_like(query_depth).masked_fill(
+                            ~flat_eligible, 0.0
+                        )
+                    )
                 elif (
                     query_veto_global_enabled
                 ):
@@ -4625,7 +4879,8 @@ class StageBDenseDutyScorer(nn.Module):
                 and len(query_veto_gate_layers) == expected_layers
             ):
                 raise RuntimeError(
-                    "deployment-owned query veto did not cover every confidence layer"
+                    "deployment-owned query veto did not cover every confidence "
+                    "layer"
                 )
             query_veto_depth_layers_tensor = torch.stack(
                 query_veto_depth_layers, dim=0
@@ -4633,9 +4888,28 @@ class StageBDenseDutyScorer(nn.Module):
             query_veto_gate_layers_tensor = torch.stack(
                 query_veto_gate_layers, dim=0
             )
+            if patch_softmin_veto_only_enabled:
+                if not (
+                    len(candidate_veto_depth_layers) == expected_layers
+                    and len(candidate_veto_gate_layers) == expected_layers
+                ):
+                    raise RuntimeError(
+                        "patch-softmin veto did not expose every deployed candidate"
+                    )
+                candidate_veto_depth_layers_tensor = torch.stack(
+                    candidate_veto_depth_layers, dim=0
+                )
+                candidate_veto_gate_layers_tensor = torch.stack(
+                    candidate_veto_gate_layers, dim=0
+                )
+            else:
+                candidate_veto_depth_layers_tensor = None
+                candidate_veto_gate_layers_tensor = None
         else:
             query_veto_depth_layers_tensor = None
             query_veto_gate_layers_tensor = None
+            candidate_veto_depth_layers_tensor = None
+            candidate_veto_gate_layers_tensor = None
         if split_global_trust_veto_enabled:
             expected_layers = int(confidence_base_flat.shape[0])
             if not all(
@@ -4815,9 +5089,43 @@ class StageBDenseDutyScorer(nn.Module):
             query_veto_gate_shaped = query_veto_gate_layers_tensor.view(
                 confidence_layers, batch_size, slot_count
             ).masked_fill(~valid[None], 0.0)
+            if patch_softmin_veto_only_enabled:
+                if (
+                    candidate_veto_depth_layers_tensor is None
+                    or candidate_veto_gate_layers_tensor is None
+                ):
+                    raise AssertionError("candidate veto diagnostics are unavailable")
+                candidate_output_mask = flat_eligible & flat_valid[:, None]
+                candidate_veto_depth_shaped = self._reshape_tower_output(
+                    candidate_veto_depth_layers_tensor,
+                    batch_size=batch_size,
+                    slot_count=slot_count,
+                ).masked_fill(
+                    ~candidate_output_mask.view(
+                        1, batch_size, slot_count, candidate_count
+                    )
+                    .permute(0, 1, 3, 2),
+                    0.0,
+                )
+                candidate_veto_gate_shaped = self._reshape_tower_output(
+                    candidate_veto_gate_layers_tensor,
+                    batch_size=batch_size,
+                    slot_count=slot_count,
+                ).masked_fill(
+                    ~candidate_output_mask.view(
+                        1, batch_size, slot_count, candidate_count
+                    )
+                    .permute(0, 1, 3, 2),
+                    0.0,
+                )
+            else:
+                candidate_veto_depth_shaped = None
+                candidate_veto_gate_shaped = None
         else:
             query_veto_depth_shaped = None
             query_veto_gate_shaped = None
+            candidate_veto_depth_shaped = None
+            candidate_veto_gate_shaped = None
         reference_global_shaped = reference_global_layers_tensor.view(
             confidence_layers, batch_size, slot_count
         ).masked_fill(~valid[None], torch.finfo(global_layers_tensor.dtype).min)
@@ -4841,6 +5149,16 @@ class StageBDenseDutyScorer(nn.Module):
         ).masked_fill(~valid[None, :, None, :], 0.0)
         confidence_deployed_routing_residual = self._reshape_tower_output(
             confidence_deployed_routing_residual_flat,
+            batch_size=batch_size,
+            slot_count=slot_count,
+        ).masked_fill(~valid[None, :, None, :], 0.0)
+        confidence_entailment_probability = self._reshape_tower_output(
+            confidence_entailment_probability_flat,
+            batch_size=batch_size,
+            slot_count=slot_count,
+        ).masked_fill(~valid[None, :, None, :], 1.0)
+        confidence_mismatch_probability = self._reshape_tower_output(
+            confidence_mismatch_probability_flat,
             batch_size=batch_size,
             slot_count=slot_count,
         ).masked_fill(~valid[None, :, None, :], 0.0)
@@ -4954,6 +5272,18 @@ class StageBDenseDutyScorer(nn.Module):
                 "final_confidence_delta_logits": confidence_delta_shaped[-1],
                 "layer_confidence_mismatch_gate": confidence_mismatch_gate,
                 "final_confidence_mismatch_gate": confidence_mismatch_gate[-1],
+                "layer_confidence_entailment_probability": (
+                    confidence_entailment_probability
+                ),
+                "final_confidence_entailment_probability": (
+                    confidence_entailment_probability[-1]
+                ),
+                "layer_confidence_mismatch_probability": (
+                    confidence_mismatch_probability
+                ),
+                "final_confidence_mismatch_probability": (
+                    confidence_mismatch_probability[-1]
+                ),
                 "layer_predicate_logits": layer_predicate,
                 "final_predicate_logits": layer_predicate[-1],
                 "predicate_token_mask": effective_predicate.view(
@@ -4997,6 +5327,28 @@ class StageBDenseDutyScorer(nn.Module):
                     "final_deployed_query_veto_gate": query_veto_gate_shaped[-1],
                 }
             )
+            if patch_softmin_veto_only_enabled:
+                if (
+                    candidate_veto_depth_shaped is None
+                    or candidate_veto_gate_shaped is None
+                ):
+                    raise AssertionError("candidate veto outputs are unavailable")
+                output.update(
+                    {
+                        "layer_deployed_candidate_veto_depth": (
+                            candidate_veto_depth_shaped
+                        ),
+                        "final_deployed_candidate_veto_depth": (
+                            candidate_veto_depth_shaped[-1]
+                        ),
+                        "layer_deployed_candidate_veto_gate": (
+                            candidate_veto_gate_shaped
+                        ),
+                        "final_deployed_candidate_veto_gate": (
+                            candidate_veto_gate_shaped[-1]
+                        ),
+                    }
+                )
         if (
             self.confidence_adapter.head_gradient_contract
             == CONFIDENCE_HEAD_GRADIENT_CONTRACT_DEPLOYED_ROUTER
@@ -5135,6 +5487,10 @@ __all__ = [
     "CONFIDENCE_GATE_GRADIENT_CONTRACT_CANDIDATE_ASYMMETRIC_DEPLOYED_ROUTING_ST",
     "CONFIDENCE_MONOTONE_VETO_GATE_FLOOR",
     "CONFIDENCE_QUERY_VETO_MAX_DEPTH",
+    "CONFIDENCE_CANDIDATE_TRACE_CONTRACT_OFF",
+    "CONFIDENCE_CANDIDATE_TRACE_CONTRACT_FREE_HEAD_COVERAGE",
+    "CONFIDENCE_CANDIDATE_TRACE_CONTRACT_MONOTONE_TOKEN_ENTAILMENT",
+    "CONFIDENCE_CANDIDATE_TRACE_CONTRACTS",
     "CONFIDENCE_GATE_GRADIENT_CONTRACTS",
     "DENSE_DUTY_CONTRACT_VERSION",
     "CONFIDENCE_POOL_FEATURE_CONTRACT",

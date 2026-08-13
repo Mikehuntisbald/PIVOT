@@ -395,6 +395,13 @@ class StageBFixedTextCriterion(nn.Module):
         token_shared_weight: float = 0.25,
         token_edit_weight: float = 1.0,
         token_edit_query_scope: str = "target_iou_v1",
+        candidate_depth_all_weight: float = 0.0,
+        candidate_depth_escape_weight: float = 0.0,
+        candidate_depth_positive_weight: float = 0.0,
+        candidate_depth_tn_margin: float = 0.5,
+        candidate_depth_escape_margin: float = 0.5,
+        candidate_depth_positive_max: float = 0.05,
+        candidate_depth_temperature: float = 0.1,
         token_focal_alpha: float = 0.25,
         token_focal_gamma: float = 2.0,
         allow_legacy_token_diff_fallback: bool = False,
@@ -536,12 +543,13 @@ class StageBFixedTextCriterion(nn.Module):
             "target_iou_v1",
             "target_iou_union_detached_final_confidence_base_argmax_v2",
             "target_iou_union_detached_role_complete_confidence_base_argmax_v3",
+            "candidate_complete_trace_v4",
         }:
             raise ValueError(
                 "token_edit_query_scope must be 'target_iou_v1', "
                 "'target_iou_union_detached_final_confidence_base_argmax_v2', "
                 "or 'target_iou_union_detached_role_complete_"
-                "confidence_base_argmax_v3'"
+                "confidence_base_argmax_v3', or 'candidate_complete_trace_v4'"
             )
         if (
             token_edit_query_scope != "target_iou_v1"
@@ -552,6 +560,32 @@ class StageBFixedTextCriterion(nn.Module):
                 "global-carrier token supervision requires an edit-aware token "
                 "objective"
             )
+        if (
+            token_edit_query_scope == "candidate_complete_trace_v4"
+            and token_objective != "edit_bce_group_balanced"
+        ):
+            raise ValueError(
+                "candidate-complete trace supervision requires "
+                "edit_bce_group_balanced so every sample and semantic word has "
+                "explicit ownership"
+            )
+        if any(
+            not math.isfinite(float(value)) or float(value) < 0.0
+            for value in (
+                candidate_depth_all_weight,
+                candidate_depth_escape_weight,
+                candidate_depth_positive_weight,
+                candidate_depth_tn_margin,
+                candidate_depth_escape_margin,
+                candidate_depth_positive_max,
+            )
+        ):
+            raise ValueError("candidate depth values must be finite and non-negative")
+        if (
+            not math.isfinite(float(candidate_depth_temperature))
+            or float(candidate_depth_temperature) <= 0.0
+        ):
+            raise ValueError("candidate_depth_temperature must be finite and positive")
         if float(raw_veto_gate_weight) < 0.0:
             raise ValueError("raw_veto_gate_weight must be non-negative")
         if (
@@ -768,6 +802,13 @@ class StageBFixedTextCriterion(nn.Module):
         self.token_shared_weight = float(token_shared_weight)
         self.token_edit_weight = float(token_edit_weight)
         self.token_edit_query_scope = token_edit_query_scope
+        self.candidate_depth_all_weight = float(candidate_depth_all_weight)
+        self.candidate_depth_escape_weight = float(candidate_depth_escape_weight)
+        self.candidate_depth_positive_weight = float(candidate_depth_positive_weight)
+        self.candidate_depth_tn_margin = float(candidate_depth_tn_margin)
+        self.candidate_depth_escape_margin = float(candidate_depth_escape_margin)
+        self.candidate_depth_positive_max = float(candidate_depth_positive_max)
+        self.candidate_depth_temperature = float(candidate_depth_temperature)
         self.token_focal_alpha = float(token_focal_alpha)
         self.token_focal_gamma = float(token_focal_gamma)
         self.allow_legacy_token_diff_fallback = bool(
@@ -835,6 +876,15 @@ class StageBFixedTextCriterion(nn.Module):
             ),
             "loss_fixed_text_deployed_veto_routing": float(
                 deployed_veto_routing_weight
+            ),
+            "loss_fixed_text_candidate_depth_all": float(
+                candidate_depth_all_weight
+            ),
+            "loss_fixed_text_candidate_depth_escape": float(
+                candidate_depth_escape_weight
+            ),
+            "loss_fixed_text_candidate_depth_positive": float(
+                candidate_depth_positive_weight
             ),
         }
 
@@ -932,6 +982,8 @@ class StageBFixedTextCriterion(nn.Module):
         token_shared_mask: Optional[torch.Tensor] = None,
         token_changed_mask: Optional[torch.Tensor] = None,
         token_direct_trace_valid: Optional[torch.Tensor] = None,
+        token_edit_candidate_mask: Optional[torch.Tensor] = None,
+        token_trace_scope_codes: Optional[torch.Tensor] = None,
         token_residual_logits: Optional[torch.Tensor] = None,
         score_word_group_ids: Optional[torch.Tensor] = None,
         positive_reference_base_logits: Optional[torch.Tensor] = None,
@@ -939,6 +991,7 @@ class StageBFixedTextCriterion(nn.Module):
         confidence_mismatch_gate: Optional[torch.Tensor] = None,
         confidence_veto_coverage: Optional[torch.Tensor] = None,
         confidence_base_logits: Optional[torch.Tensor] = None,
+        candidate_veto_depth: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         if candidate_logits.dim() != 2:
             raise ValueError(
@@ -1290,6 +1343,87 @@ class StageBFixedTextCriterion(nn.Module):
                             f"{name} must have shape (B,2,T), got "
                             f"{tuple(value.shape)}"
                         )
+            if self.token_edit_query_scope == "candidate_complete_trace_v4":
+                if (
+                    token_edit_candidate_mask is None
+                    or token_trace_scope_codes is None
+                    or score_word_group_ids is None
+                ):
+                    raise ValueError(
+                        "candidate-complete trace supervision requires the exact "
+                        "token_edit_candidate_mask, token_trace_scope_codes, and "
+                        "score_word_group_ids"
+                    )
+                if tuple(torch.as_tensor(token_edit_candidate_mask).shape) != tuple(
+                    candidate_logits.shape
+                ):
+                    raise ValueError(
+                        "token_edit_candidate_mask must have exact shape (B,N)"
+                    )
+                scope_codes = torch.as_tensor(token_trace_scope_codes)
+                if tuple(scope_codes.shape) != (int(candidate_logits.shape[0]),):
+                    raise ValueError("token_trace_scope_codes must have shape (B,)")
+                if bool(((scope_codes < 0) | (scope_codes > 2)).any().item()):
+                    raise ValueError("token trace scope codes must be in [0, 2]")
+                if tuple(torch.as_tensor(score_word_group_ids).shape) != (
+                    int(candidate_logits.shape[0]),
+                    2,
+                    token_width,
+                ):
+                    raise ValueError(
+                        "score_word_group_ids must have shape (B,2,T) for "
+                        "candidate-complete trace supervision"
+                    )
+                if torch.as_tensor(score_word_group_ids).dtype != torch.long:
+                    raise TypeError("score_word_group_ids must be int64")
+        candidate_depth_supervision_enabled = any(
+            weight > 0.0
+            for weight in (
+                self.candidate_depth_all_weight,
+                self.candidate_depth_escape_weight,
+                self.candidate_depth_positive_weight,
+            )
+        )
+        if candidate_depth_supervision_enabled:
+            if candidate_veto_depth is None:
+                raise ValueError(
+                    "candidate depth supervision requires candidate_veto_depth"
+                )
+            missing_depth_inputs = [
+                name
+                for name, value in (
+                    ("global_tn_candidate_mask", global_tn_candidate_mask),
+                    ("global_tn_verified", global_tn_verified),
+                    (
+                        "confidence_tn_train_eligible",
+                        confidence_tn_train_eligible,
+                    ),
+                    ("expression_valid_mask", expression_valid_mask),
+                )
+                if value is None
+            ]
+            if missing_depth_inputs:
+                raise ValueError(
+                    "candidate depth supervision requires "
+                    + ", ".join(missing_depth_inputs)
+                )
+            if (
+                not torch.is_tensor(candidate_veto_depth)
+                or not candidate_veto_depth.is_floating_point()
+                or tuple(candidate_veto_depth.shape)
+                != (*tuple(candidate_logits.shape), 2)
+            ):
+                raise ValueError(
+                    "candidate_veto_depth must be floating with shape (B,N,2)"
+                )
+            if candidate_veto_depth.device != candidate_logits.device:
+                raise ValueError(
+                    "candidate_veto_depth must share the candidate-logit device"
+                )
+            if not bool(torch.isfinite(candidate_veto_depth).all().item()):
+                raise ValueError("candidate_veto_depth must be finite")
+            if bool((candidate_veto_depth < 0.0).any().item()):
+                raise ValueError("candidate_veto_depth must be non-negative")
         raw_veto_supervision_enabled = (
             self.raw_veto_gate_weight > 0.0
             or self.raw_veto_carrier_pair_weight > 0.0
@@ -1414,6 +1548,21 @@ class StageBFixedTextCriterion(nn.Module):
             self.token_edit_query_scope
             == "target_iou_union_detached_role_complete_confidence_base_argmax_v3"
         )
+        candidate_complete_trace_scope = (
+            self.token_edit_query_scope == "candidate_complete_trace_v4"
+        )
+        candidate_trace_edit_mask = None
+        trace_scope_codes = None
+        if candidate_complete_trace_scope:
+            candidate_trace_edit_mask = _coerce_candidate_mask(
+                token_edit_candidate_mask,
+                shape=shape,
+                device=device,
+                name="token_edit_candidate_mask",
+            )
+            trace_scope_codes = torch.as_tensor(
+                token_trace_scope_codes, device=device, dtype=torch.long
+            )
         if carrier_edit_scope and token_edit_carrier_logits is None:
             raise ValueError(
                 "carrier changed-token supervision requires query-specific "
@@ -1439,6 +1588,11 @@ class StageBFixedTextCriterion(nn.Module):
         raw_veto_zero = (
             _graph_zero(token_residual_logits)
             if raw_veto_supervision_enabled
+            else zero
+        )
+        candidate_depth_zero = (
+            _graph_zero(candidate_veto_depth)
+            if candidate_depth_supervision_enabled
             else zero
         )
         confidence_zero = _graph_zero(
@@ -1738,6 +1892,82 @@ class StageBFixedTextCriterion(nn.Module):
             device=device,
             name="token_direct_trace_valid",
         )
+        candidate_trace_deployed_mask = None
+        candidate_trace_eligible = None
+        if candidate_complete_trace_scope:
+            if any(
+                value is None
+                for value in (
+                    verified,
+                    tn_train_eligible,
+                    token_provenance_valid,
+                    direct_trace_valid,
+                    candidate_trace_edit_mask,
+                    trace_scope_codes,
+                    global_tn_candidate_mask,
+                )
+            ):
+                raise ValueError(
+                    "candidate-complete trace supervision requires verified TN, "
+                    "train eligibility, direct provenance, and deployed candidates"
+                )
+            candidate_trace_deployed_mask = _coerce_candidate_mask(
+                global_tn_candidate_mask,
+                shape=shape,
+                device=device,
+                name="global_tn_candidate_mask",
+            )
+            candidate_trace_eligible = (
+                verified
+                & tn_train_eligible
+                & token_provenance_valid
+                & direct_trace_valid
+            )
+            if bool(
+                (
+                    candidate_trace_edit_mask
+                    & ~candidate_trace_deployed_mask
+                ).any().item()
+            ):
+                raise ValueError(
+                    "candidate trace token mask must be a subset of exact deployed candidates"
+                )
+            if bool(
+                (
+                    candidate_trace_edit_mask
+                    & ~candidate_trace_eligible[:, None]
+                ).any().item()
+            ):
+                raise ValueError(
+                    "candidate trace token mask bypassed the provenance gate"
+                )
+            target_only_rows = trace_scope_codes.eq(0)
+            global_absent_rows = trace_scope_codes.eq(1)
+            candidate_verified_rows = trace_scope_codes.eq(2)
+            if bool(candidate_trace_edit_mask[target_only_rows].any().item()):
+                raise ValueError(
+                    "expression-only trace rows cannot broadcast changed-token labels"
+                )
+            expected_global_mask = (
+                candidate_trace_deployed_mask
+                & candidate_trace_eligible[:, None]
+                & global_absent_rows[:, None]
+            )
+            if not torch.equal(
+                candidate_trace_edit_mask & global_absent_rows[:, None],
+                expected_global_mask,
+            ):
+                raise ValueError(
+                    "global-word-absent rows must supervise every deployed candidate"
+                )
+            if bool(
+                (
+                    candidate_trace_edit_mask
+                    & candidate_verified_rows.logical_not()[:, None]
+                    & global_absent_rows.logical_not()[:, None]
+                ).any().item()
+            ):
+                raise ValueError("candidate trace scope and token mask disagree")
         carrier_edit_admitted = None
         carrier_edit_eligible = None
         if carrier_edit_scope:
@@ -1807,6 +2037,37 @@ class StageBFixedTextCriterion(nn.Module):
         token_direct_trace_valid_count = (
             int(direct_trace_valid.sum().item())
             if direct_trace_valid is not None
+            else 0
+        )
+        token_trace_expression_only_count = (
+            int(trace_scope_codes.eq(0).sum().item())
+            if trace_scope_codes is not None
+            else 0
+        )
+        token_trace_global_word_absent_count = (
+            int(trace_scope_codes.eq(1).sum().item())
+            if trace_scope_codes is not None
+            else 0
+        )
+        token_trace_candidate_verified_count = (
+            int(trace_scope_codes.eq(2).sum().item())
+            if trace_scope_codes is not None
+            else 0
+        )
+        token_trace_deployed_candidate_count = (
+            int(
+                (
+                    candidate_trace_deployed_mask
+                    & candidate_trace_eligible[:, None]
+                ).sum().item()
+            )
+            if candidate_trace_deployed_mask is not None
+            and candidate_trace_eligible is not None
+            else 0
+        )
+        token_trace_broadcast_candidate_count = (
+            int(candidate_trace_edit_mask.sum().item())
+            if candidate_trace_edit_mask is not None
             else 0
         )
         if self.token_objective != "off":
@@ -1985,6 +2246,7 @@ class StageBFixedTextCriterion(nn.Module):
                     group_weight: float,
                     *,
                     focal: bool,
+                    semantic_group_ids: Optional[torch.Tensor] = None,
                 ) -> int:
                     nonlocal flat_element_count, sample_supervised_count
                     count = int(group_mask.sum().item())
@@ -1997,27 +2259,69 @@ class StageBFixedTextCriterion(nn.Module):
                         flat_element_count += count
                     if float(group_weight) <= 0.0:
                         return count
-                    selected_logits = group_logits[group_mask].float()
-                    selected_targets = group_targets[group_mask].float()
-                    group_loss = F.binary_cross_entropy_with_logits(
-                        selected_logits, selected_targets, reduction="none"
+                    dense_logits = group_logits.float()
+                    dense_targets = group_targets.float()
+                    dense_loss = F.binary_cross_entropy_with_logits(
+                        dense_logits, dense_targets, reduction="none"
                     )
                     if focal and self.token_focal_gamma > 0.0:
-                        probability = selected_logits.sigmoid()
+                        probability = dense_logits.sigmoid()
                         target_probability = (
-                            probability * selected_targets
-                            + (1.0 - probability) * (1.0 - selected_targets)
+                            probability * dense_targets
+                            + (1.0 - probability) * (1.0 - dense_targets)
                         )
-                        group_loss = group_loss * (1.0 - target_probability).pow(
+                        dense_loss = dense_loss * (1.0 - target_probability).pow(
                             self.token_focal_gamma
                         )
                     if focal and self.token_focal_alpha >= 0.0:
                         alpha_t = (
-                            self.token_focal_alpha * selected_targets
+                            self.token_focal_alpha * dense_targets
                             + (1.0 - self.token_focal_alpha)
-                            * (1.0 - selected_targets)
+                            * (1.0 - dense_targets)
                         )
-                        group_loss = group_loss * alpha_t
+                        dense_loss = dense_loss * alpha_t
+                    if candidate_complete_trace_scope:
+                        if semantic_group_ids is None:
+                            raise ValueError(
+                                "candidate-complete token loss requires semantic "
+                                "word groups for every supervised role"
+                            )
+                        word_groups = semantic_group_ids.to(
+                            device=group_mask.device, dtype=torch.long
+                        )
+                        if tuple(word_groups.shape) != (int(group_mask.shape[-1]),):
+                            raise ValueError(
+                                "semantic_group_ids must match the token width"
+                            )
+                        supervised_token_mask = group_mask.any(dim=0)
+                        if bool(
+                            (word_groups[supervised_token_mask] < 0).any().item()
+                        ):
+                            raise ValueError(
+                                "candidate-complete supervised tokens require "
+                                "non-negative semantic word groups"
+                            )
+                        for word_group in torch.unique(
+                            word_groups[supervised_token_mask], sorted=True
+                        ):
+                            word_mask = group_mask & word_groups.eq(word_group)[None, :]
+                            candidate_token_count = word_mask.sum(dim=1)
+                            candidate_valid = candidate_token_count.gt(0)
+                            if not bool(candidate_valid.any().item()):
+                                continue
+                            candidate_loss = (
+                                dense_loss.masked_fill(~word_mask, 0.0).sum(dim=1)
+                                / candidate_token_count.clamp_min(1).to(
+                                    dtype=dense_loss.dtype
+                                )
+                            )
+                            sample_terms.append(
+                                candidate_loss[candidate_valid].mean()
+                                * float(group_weight)
+                            )
+                            sample_weights.append(float(group_weight))
+                        return count
+                    group_loss = dense_loss[group_mask]
                     if group_balanced:
                         sample_terms.append(
                             group_loss.mean() * float(group_weight)
@@ -2058,6 +2362,11 @@ class StageBFixedTextCriterion(nn.Module):
                     positive_mask_tokens,
                     self.token_positive_weight,
                     focal=focal_family,
+                    semantic_group_ids=(
+                        score_word_group_ids[batch_idx, 0]
+                        if candidate_complete_trace_scope
+                        else None
+                    ),
                 )
 
                 if edit_aware and pair_is_valid:
@@ -2065,6 +2374,10 @@ class StageBFixedTextCriterion(nn.Module):
                     if local_valid is not None:
                         shared_query = shared_query & local_valid[batch_idx]
                     edit_query = shared_query
+                    if candidate_complete_trace_scope:
+                        edit_query = edit_query | candidate_trace_edit_mask[
+                            batch_idx
+                        ]
                     if role_carrier_tn_query is not None:
                         shared_query = shared_query | role_carrier_tn_query
                         edit_query = edit_query | role_carrier_tn_query
@@ -2113,6 +2426,11 @@ class StageBFixedTextCriterion(nn.Module):
                         shared_mask,
                         self.token_shared_weight,
                         focal=focal_family,
+                        semantic_group_ids=(
+                            score_word_group_ids[batch_idx, 1]
+                            if candidate_complete_trace_scope
+                            else None
+                        ),
                     )
                     token_edit_count += add_group(
                         token_logits[batch_idx, :, 1],
@@ -2120,6 +2438,11 @@ class StageBFixedTextCriterion(nn.Module):
                         edit_mask,
                         self.token_edit_weight,
                         focal=focal_family,
+                        semantic_group_ids=(
+                            score_word_group_ids[batch_idx, 1]
+                            if candidate_complete_trace_scope
+                            else None
+                        ),
                     )
                 elif self.token_objective in {
                     "gdino_allquery_allneg_focal",
@@ -2163,6 +2486,122 @@ class StageBFixedTextCriterion(nn.Module):
                 loss_token = torch.stack(flat_loss_sums).sum() / float(
                     denominator
                 )
+
+        loss_candidate_depth_all = candidate_depth_zero
+        loss_candidate_depth_escape = candidate_depth_zero
+        loss_candidate_depth_positive = candidate_depth_zero
+        candidate_depth_all_losses: List[torch.Tensor] = []
+        candidate_depth_escape_losses: List[torch.Tensor] = []
+        candidate_depth_positive_losses: List[torch.Tensor] = []
+        candidate_depth_tn_min_values: List[torch.Tensor] = []
+        candidate_depth_positive_min_values: List[torch.Tensor] = []
+        candidate_depth_tn_query_count = 0
+        candidate_depth_tn_zero_count = 0
+        candidate_depth_positive_query_count = 0
+        candidate_depth_positive_zero_count = 0
+        candidate_depth_tn_sample_count = 0
+        candidate_depth_positive_sample_count = 0
+        if candidate_depth_supervision_enabled:
+            live_depth = candidate_veto_depth.float()
+            tn_depth_mask = _coerce_candidate_mask(
+                global_tn_candidate_mask,
+                shape=shape,
+                device=device,
+                name="global_tn_candidate_mask",
+            )
+            expression_valid = expression_valid_mask.to(
+                device=device, dtype=torch.bool
+            )
+            tn_depth_rows = expression_valid[:, 1]
+            if verified is not None:
+                tn_depth_rows &= verified
+            else:
+                tn_depth_rows &= False
+            if tn_train_eligible is not None:
+                tn_depth_rows &= tn_train_eligible
+            else:
+                tn_depth_rows &= False
+            tau = self.candidate_depth_temperature
+
+            for batch_idx in range(batch_size):
+                positive_query = positive_mask[batch_idx] & torch.isfinite(
+                    live_depth[batch_idx, :, 0]
+                )
+                if bool(positive_query.any().item()):
+                    positive_values = live_depth[
+                        batch_idx, positive_query, 0
+                    ]
+                    # Positive protection is existential: only one localized
+                    # query must stay shallow. An exact minimum avoids the
+                    # candidate-count offset of normalized log-mean-exp.
+                    positive_softmin = positive_values.min()
+                    candidate_depth_positive_losses.append(
+                        tau
+                        * F.softplus(
+                            (
+                                positive_softmin
+                                - self.candidate_depth_positive_max
+                            )
+                            / tau
+                        )
+                    )
+                    candidate_depth_positive_min_values.append(
+                        positive_values.detach().min()
+                    )
+                    candidate_depth_positive_sample_count += 1
+                    candidate_depth_positive_query_count += int(
+                        positive_values.numel()
+                    )
+                    candidate_depth_positive_zero_count += int(
+                        positive_values.detach().eq(0.0).sum().item()
+                    )
+
+                if not bool(tn_depth_rows[batch_idx].item()):
+                    continue
+                tn_query = tn_depth_mask[batch_idx] & torch.isfinite(
+                    live_depth[batch_idx, :, 1]
+                )
+                if not bool(tn_query.any().item()):
+                    continue
+                tn_values = live_depth[batch_idx, tn_query, 1]
+                candidate_depth_all_losses.append(
+                    (
+                        tau
+                        * F.softplus(
+                            (self.candidate_depth_tn_margin - tn_values) / tau
+                        )
+                    ).mean()
+                )
+                # The globally absent expression fails if even one deployed
+                # candidate escapes. L_all keeps every candidate live while
+                # this exact minimum concentrates an extra gradient on the
+                # current shallowest escape.
+                escape_depth = tn_values.min()
+                candidate_depth_escape_losses.append(
+                    tau
+                    * F.softplus(
+                        (
+                            self.candidate_depth_escape_margin - escape_depth
+                        )
+                        / tau
+                    )
+                )
+                candidate_depth_tn_min_values.append(tn_values.detach().min())
+                candidate_depth_tn_sample_count += 1
+                candidate_depth_tn_query_count += int(tn_values.numel())
+                candidate_depth_tn_zero_count += int(
+                    tn_values.detach().eq(0.0).sum().item()
+                )
+
+            loss_candidate_depth_all = _mean_or_zero(
+                candidate_depth_all_losses, candidate_depth_zero
+            )
+            loss_candidate_depth_escape = _mean_or_zero(
+                candidate_depth_escape_losses, candidate_depth_zero
+            )
+            loss_candidate_depth_positive = _mean_or_zero(
+                candidate_depth_positive_losses, candidate_depth_zero
+            )
 
         loss_raw_veto_gate = raw_veto_zero
         loss_raw_veto_carrier_pair = raw_veto_zero
@@ -3390,6 +3829,13 @@ class StageBFixedTextCriterion(nn.Module):
             "loss_fixed_text_deployed_veto_routing": (
                 loss_deployed_veto_routing
             ),
+            "loss_fixed_text_candidate_depth_all": loss_candidate_depth_all,
+            "loss_fixed_text_candidate_depth_escape": (
+                loss_candidate_depth_escape
+            ),
+            "loss_fixed_text_candidate_depth_positive": (
+                loss_candidate_depth_positive
+            ),
         }
         total = zero
         for name, loss in losses.items():
@@ -3505,6 +3951,55 @@ class StageBFixedTextCriterion(nn.Module):
             "fixed_text_token_provenance_valid_count": token_provenance_valid_count,
             "fixed_text_token_direct_trace_valid_count": (
                 token_direct_trace_valid_count
+            ),
+            "fixed_text_token_trace_expression_only_count": (
+                token_trace_expression_only_count
+            ),
+            "fixed_text_token_trace_global_word_absent_count": (
+                token_trace_global_word_absent_count
+            ),
+            "fixed_text_token_trace_candidate_verified_count": (
+                token_trace_candidate_verified_count
+            ),
+            "fixed_text_token_trace_deployed_candidate_count": (
+                token_trace_deployed_candidate_count
+            ),
+            "fixed_text_token_trace_broadcast_candidate_count": (
+                token_trace_broadcast_candidate_count
+            ),
+            "fixed_text_token_trace_candidate_coverage": (
+                float(token_trace_broadcast_candidate_count)
+                / float(max(token_trace_deployed_candidate_count, 1))
+            ),
+            "fixed_text_candidate_depth_tn_sample_count": (
+                candidate_depth_tn_sample_count
+            ),
+            "fixed_text_candidate_depth_tn_query_count": (
+                candidate_depth_tn_query_count
+            ),
+            "fixed_text_candidate_depth_tn_zero_rate": (
+                float(candidate_depth_tn_zero_count)
+                / float(max(candidate_depth_tn_query_count, 1))
+            ),
+            "fixed_text_candidate_depth_tn_min_mean": float(
+                _mean_or_zero(
+                    candidate_depth_tn_min_values, candidate_depth_zero
+                ).detach().item()
+            ),
+            "fixed_text_candidate_depth_positive_sample_count": (
+                candidate_depth_positive_sample_count
+            ),
+            "fixed_text_candidate_depth_positive_query_count": (
+                candidate_depth_positive_query_count
+            ),
+            "fixed_text_candidate_depth_positive_zero_rate": (
+                float(candidate_depth_positive_zero_count)
+                / float(max(candidate_depth_positive_query_count, 1))
+            ),
+            "fixed_text_candidate_depth_positive_min_mean": float(
+                _mean_or_zero(
+                    candidate_depth_positive_min_values, candidate_depth_zero
+                ).detach().item()
             ),
             "fixed_text_raw_veto_positive_sample_count": (
                 raw_veto_positive_sample_count

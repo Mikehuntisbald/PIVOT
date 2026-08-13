@@ -446,6 +446,10 @@ def _clip_stage_b_dense_duty_grad_norms(
             "shared_token_veto_global_absolute_v1",
         )
     ).strip()
+    monotone_token_only_contract = bool(
+        getattr(scorer, "confidence_candidate_trace_contract", "")
+        == "candidate_complete_monotone_token_entailment_v2"
+    )
     parameters = [
         parameter
         for parameter in root.parameters()
@@ -478,7 +482,11 @@ def _clip_stage_b_dense_duty_grad_norms(
         required_owner_apis.extend(
             ["candidate_absolute_parameters", "sample_calibrator_parameters"]
             if candidate_sample_contract
-            else ["global_absolute_parameters"]
+            else (
+                []
+                if monotone_token_only_contract
+                else ["global_absolute_parameters"]
+            )
         )
         if (
             head_contract
@@ -499,6 +507,13 @@ def _clip_stage_b_dense_duty_grad_norms(
             owned["deployed_router"] = tuple(
                 scorer.deployed_router_parameters()
             )
+        rank_adaptation = tuple(
+            scorer.confidence_rank_adaptation_parameters()
+            if hasattr(scorer, "confidence_rank_adaptation_parameters")
+            else ()
+        )
+        if rank_adaptation:
+            owned["rank_decoder_adaptation"] = rank_adaptation
         if candidate_sample_contract:
             owned["candidate_absolute"] = tuple(
                 scorer.candidate_absolute_parameters()
@@ -506,7 +521,7 @@ def _clip_stage_b_dense_duty_grad_norms(
             owned["sample_calibrator"] = tuple(
                 scorer.sample_calibrator_parameters()
             )
-        else:
+        elif not monotone_token_only_contract:
             owned["global_absolute"] = tuple(scorer.global_absolute_parameters())
         owner_ids = {
             label: {id(parameter) for parameter in group}
@@ -629,7 +644,11 @@ def _clip_stage_b_dense_duty_grad_norms(
         "split_token_veto_deployment_owned_query_global_absolute_v10",
         "split_token_veto_deployment_owned_query_veto_global_absolute_v11",
     }:
-        clip_contract_owner_labels = ("token_veto", "global_absolute")
+        clip_contract_owner_labels = (
+            ("token_veto",)
+            if monotone_token_only_contract
+            else ("token_veto", "global_absolute")
+        )
     if clip_contract_owner_labels is not None:
         owner_labels = clip_contract_owner_labels
         owner_preclip = [
@@ -762,6 +781,7 @@ def _record_stage_b_dense_duty_runtime_audit(
             "sample_calibrator",
             "global_trust",
             "global_veto",
+            "rank_decoder_adaptation",
         ):
             key = f"grad_norm_dense_duty_{head}_preclip"
             if key not in branch_grad_norms:
@@ -795,6 +815,11 @@ def _record_stage_b_dense_duty_runtime_audit(
                 clip_owners = ("token_veto", "global_absolute")
                 audit["clip_contract_schema"] = (
                     "pivot.stageb.dense_duty_two_owner_clip_contract/v1"
+                )
+            elif clip_owner_count == 1:
+                clip_owners = ("token_veto",)
+                audit["clip_contract_schema"] = (
+                    "pivot.stageb.dense_duty_one_owner_clip_contract/v1"
                 )
             else:
                 raise RuntimeError("dense-duty clip audit has an invalid owner count")
@@ -1856,6 +1881,18 @@ def _preserve_stage_b_v21_trace_metadata(source, destination) -> None:
             "stage_b_data_driven_trace must remain a mapping in patch-only training"
         )
     destination["stage_b_data_driven_trace"] = copy.deepcopy(dict(trace))
+    for key in (
+        "stage_b_candidate_trace_scope",
+        "stage_b_changed_word_global_absent_verified",
+        "stage_b_changed_word_candidate_verified_indices",
+    ):
+        if key in source:
+            value = source[key]
+            destination[key] = (
+                value.detach().clone()
+                if torch.is_tensor(value)
+                else copy.deepcopy(value)
+            )
 
 
 def _build_stage_b_v21_certified_edit_traces(targets):
@@ -2034,6 +2071,84 @@ def _strict_target_false(target, key: str) -> bool:
             and value.detach().reshape(-1)[0].item() is False
         )
     return value is False
+
+
+def _build_stage_b_candidate_complete_trace_mask(
+    targets,
+    *,
+    candidate_indices: torch.Tensor,
+    deployed_tn_mask: torch.Tensor,
+    provenance_gate: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Build fail-closed changed-token coverage on the deployed candidate set."""
+    if (
+        candidate_indices.dtype != torch.int64
+        or tuple(candidate_indices.shape) != tuple(deployed_tn_mask.shape)
+    ):
+        raise ValueError("candidate indices and deployed TN mask must align as (B,N)")
+    device = candidate_indices.device
+    deployed = torch.as_tensor(
+        deployed_tn_mask, device=device, dtype=torch.bool
+    )
+    gate = torch.as_tensor(provenance_gate, device=device, dtype=torch.bool)
+    if tuple(gate.shape) != (int(candidate_indices.shape[0]),):
+        raise ValueError("candidate trace provenance gate must have shape (B,)")
+
+    broadcast = torch.zeros_like(deployed)
+    scope_codes = torch.zeros(
+        int(candidate_indices.shape[0]), device=device, dtype=torch.long
+    )
+    for batch_idx, target in enumerate(targets):
+        declared_scope = str(
+            target.get("stage_b_candidate_trace_scope", "expression_only")
+        ).strip().lower()
+        if declared_scope in {"expression_only", "target_only"}:
+            continue
+        if not bool(gate[batch_idx].item()):
+            # The lexical trace did not survive runtime tokenization or the TN
+            # row is not eligible. Preserve the expression-level depth label,
+            # but do not manufacture a token label.
+            continue
+        if declared_scope == "global_word_absent":
+            if not _strict_target_bool(
+                target, "stage_b_changed_word_global_absent_verified"
+            ):
+                raise RuntimeError(
+                    "GLOBAL_WORD_ABSENT scope requires exact changed-word absence "
+                    f"verification at batch index {batch_idx}"
+                )
+            broadcast[batch_idx] = deployed[batch_idx]
+            scope_codes[batch_idx] = 1
+            continue
+        if declared_scope == "candidate_verified":
+            verified_indices = target.get(
+                "stage_b_changed_word_candidate_verified_indices"
+            )
+            if not torch.is_tensor(verified_indices):
+                raise RuntimeError(
+                    "CANDIDATE_VERIFIED scope requires original-query verified "
+                    f"indices at batch index {batch_idx}"
+                )
+            verified_indices = verified_indices.to(
+                device=device, dtype=torch.int64
+            ).reshape(-1)
+            if verified_indices.numel() == 0 or bool(
+                (verified_indices < 0).any().item()
+            ):
+                raise RuntimeError(
+                    "candidate-verified trace indices must be non-empty and non-negative"
+                )
+            matches = (
+                candidate_indices[batch_idx, :, None]
+                == verified_indices[None, :]
+            ).any(dim=-1)
+            broadcast[batch_idx] = deployed[batch_idx] & matches
+            scope_codes[batch_idx] = 2
+            continue
+        raise RuntimeError(
+            f"unknown candidate trace scope {declared_scope!r} at batch index {batch_idx}"
+        )
+    return broadcast, scope_codes
 
 
 def _strict_target_zero(target, key: str) -> bool:
@@ -3546,6 +3661,62 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                         if compact_candidate_mask is not None
                         else expression_valid_mask[:, 1:2]
                     )
+                    candidate_complete_trace_enabled = (
+                        str(
+                            getattr(
+                                args,
+                                "stage_b_v21_token_edit_query_scope",
+                                "target_iou_v1",
+                            )
+                        ).strip().lower()
+                        == "candidate_complete_trace_v4"
+                    )
+                    candidate_trace_edit_mask = None
+                    candidate_trace_scope_codes = None
+                    if candidate_complete_trace_enabled:
+                        if compact_candidate_mask is None:
+                            raise RuntimeError(
+                                "candidate-complete trace supervision requires the "
+                                "exact deployed candidate mask"
+                            )
+                        direct_trace_gate = outputs.get(
+                            "stage_b_v21_direct_trace_valid"
+                        )
+                        if direct_trace_gate is None:
+                            raise RuntimeError(
+                                "candidate-complete trace supervision requires direct trace validity"
+                            )
+                        global_gate = (
+                            global_tn_verified
+                            if global_tn_verified is not None
+                            else torch.zeros(
+                                len(targets), device=device, dtype=torch.bool
+                            )
+                        )
+                        candidate_trace_gate = (
+                            expression_valid_mask[:, 1]
+                            & global_gate
+                            & confidence_tn_eligible
+                            & token_supervision_valid
+                            & torch.as_tensor(
+                                direct_trace_gate,
+                                device=device,
+                                dtype=torch.bool,
+                            )
+                        )
+                        candidate_trace_edit_mask, candidate_trace_scope_codes = (
+                            _build_stage_b_candidate_complete_trace_mask(
+                                targets,
+                                candidate_indices=outputs[
+                                    "stage_b_v11_candidate_idx"
+                                ],
+                                deployed_tn_mask=local_tn_candidate_mask,
+                                provenance_gate=candidate_trace_gate,
+                            )
+                        )
+                    candidate_veto_depth = outputs.get(
+                        "stage_b_dense_duty_candidate_veto_depth"
+                    )
                     positive_confidence_trust_logits = (
                         _select_dense_duty_positive_confidence_trust_logits(
                             outputs=outputs,
@@ -3630,6 +3801,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                         token_direct_trace_valid=outputs.get(
                             "stage_b_v21_direct_trace_valid"
                         ),
+                        token_edit_candidate_mask=candidate_trace_edit_mask,
+                        token_trace_scope_codes=candidate_trace_scope_codes,
                         token_residual_logits=outputs.get(
                             "stage_b_dense_duty_final_confidence_token_residual_logits"
                         ),
@@ -3662,6 +3835,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                         confidence_base_logits=outputs.get(
                             "stage_b_dense_duty_confidence_base_logits"
                         ),
+                        candidate_veto_depth=candidate_veto_depth,
                         )
                     )
                     confidence_delta = outputs.get(

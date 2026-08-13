@@ -61,6 +61,11 @@ from util.stage_b_confidence_adapter_migration import (
     EXPECTED_CANDIDATE_SAMPLE_CALIBRATOR_FRESH_STORAGE_BYTES,
     EXPECTED_CANDIDATE_SAMPLE_CALIBRATOR_FRESH_TENSOR_COUNT,
     EXPECTED_CANDIDATE_SAMPLE_CALIBRATOR_STRICT_TARGET_TENSOR_COUNT,
+    FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FRESH_CONFIDENCE_CONTRACT,
+    FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA,
+    FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT,
+    FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA,
+    FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT,
     FULLTEXT_GLOBAL_ABSOLUTE_FRESH_CONFIDENCE_CONTRACT,
     FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_FRESH_CONFIDENCE_CONTRACT,
     FULLTEXT_GLOBAL_ABSOLUTE_EXACT_RESIDUAL_MIGRATION_SCHEMA,
@@ -2972,3 +2977,452 @@ def test_v60_deployment_owned_query_veto_v25_validates_production_audit():
         rank_sha256="b" * 64,
         transferred_sha256="c" * 64,
     ) == audit
+
+
+_CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT = (
+    "candidate_complete_monotone_token_entailment_v2"
+)
+_CANDIDATE_COMPLETE_MONOTONE_DEPLOYED_U0_CONTRACT = (
+    "rank_cloned_absolute_token_mismatch_nonzero_allowed_v1"
+)
+_CANDIDATE_COMPLETE_MONOTONE_ZERO_OUTPUT_SCOPE = (
+    "serialized_dormant_free_head_and_pool_only_v1"
+)
+_CANDIDATE_COMPLETE_MONOTONE_VERIFIER_OWNERSHIP_CONTRACT = (
+    "tower_owned_parameters_exact_active_trainable_v1"
+)
+_CANDIDATE_COMPLETE_MONOTONE_FROZEN_VERIFIER_SCOPE = (
+    "encoder_visual_layers_and_level_embed_frozen_unowned_v1"
+)
+
+
+class _TinyFrozenVisualEncoder(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.layers = nn.ModuleList((nn.Linear(3, 3),))
+        for parameter in self.layers.parameters():
+            parameter.requires_grad_(False)
+
+
+class _TinyFullDecoderTower(nn.Module):
+    num_layers = 6
+    hidden_dim = 256
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.projection = nn.Linear(3, 3)
+        self.encoder = _TinyFrozenVisualEncoder()
+        self.level_embed = nn.Parameter(
+            torch.zeros(1, 3), requires_grad=False
+        )
+
+    def owned_parameters(self):
+        return tuple(self.projection.parameters())
+
+
+class _TinyFullDecoderPool(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.residual = nn.Sequential(
+            nn.Identity(),
+            nn.Identity(),
+            nn.Identity(),
+            nn.Identity(),
+            nn.Linear(3, 1),
+        )
+        nn.init.zeros_(self.residual[4].weight)
+        nn.init.zeros_(self.residual[4].bias)
+
+
+class _TinyFullDecoderMigrationScorer(nn.Module):
+    def __init__(self, *, monotone: bool) -> None:
+        super().__init__()
+        self.rank_tower = _TinyFullDecoderTower()
+        self.confidence_verifier_tower = _TinyFullDecoderTower()
+        self.confidence_adapter = nn.Linear(3, 3)
+        self.confidence_pool = _TinyFullDecoderPool()
+        self.confidence_verifier_veto_head = nn.Sequential(
+            nn.LayerNorm(3),
+            nn.Linear(3, 3),
+            nn.GELU(),
+            nn.Linear(3, 1),
+        )
+        nn.init.zeros_(self.confidence_verifier_veto_head[3].weight)
+        nn.init.zeros_(self.confidence_verifier_veto_head[3].bias)
+        self.register_buffer(
+            "_dense_duty_contract_version", torch.tensor(3, dtype=torch.int64)
+        )
+        self.confidence_full_decoder_verifier = True
+        self.confidence_veto_only_patch_softmin = True
+        self.confidence_candidate_trace_contract = (
+            _CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT
+            if monotone
+            else "off_v1"
+        )
+        for parameter in self.rank_tower.parameters():
+            parameter.requires_grad_(False)
+        for parameter in self.confidence_adapter.parameters():
+            parameter.requires_grad_(False)
+        for parameter in self.confidence_pool.parameters():
+            parameter.requires_grad_(False)
+        for parameter in self.confidence_verifier_veto_head.parameters():
+            parameter.requires_grad_(not monotone)
+
+    def confidence_parameters(self):
+        parameters = self.confidence_verifier_tower.owned_parameters()
+        if (
+            self.confidence_candidate_trace_contract
+            != _CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT
+        ):
+            parameters += tuple(self.confidence_verifier_veto_head.parameters())
+        return parameters
+
+
+class _TinyFullDecoderMigrationModel(nn.Module):
+    def __init__(self, *, monotone: bool) -> None:
+        super().__init__()
+        self.backbone = nn.Linear(3, 3)
+        self.stage_b_fixed_text_scorer = _TinyFullDecoderMigrationScorer(
+            monotone=monotone
+        )
+
+
+def _tiny_full_decoder_legacy_state(model: nn.Module):
+    runtime = model.state_dict()
+    source = OrderedDict()
+    rank_prefix = "stage_b_fixed_text_scorer.rank_tower."
+    legacy_prefix = "stage_b_fixed_text_scorer.confidence_tower."
+    pool_prefix = "stage_b_fixed_text_scorer.confidence_pool."
+    scorer_prefix = "stage_b_fixed_text_scorer."
+    for name, value in runtime.items():
+        if not name.startswith(scorer_prefix) or name.startswith(rank_prefix):
+            source[name] = value.detach().clone()
+        if name.startswith(rank_prefix):
+            source[legacy_prefix + name[len(rank_prefix) :]] = value.detach().clone()
+        if name.startswith(pool_prefix):
+            source[name] = value.detach().clone()
+    source["stage_b_fixed_text_scorer._dense_duty_contract_version"] = torch.tensor(
+        1, dtype=torch.int64
+    )
+    return source
+
+
+def _migrate_tiny_full_decoder(*, monotone: bool):
+    model = _TinyFullDecoderMigrationModel(monotone=monotone)
+    source = _tiny_full_decoder_legacy_state(model)
+    runtime = model.state_dict()
+    rank_names = sorted(
+        name
+        for name in runtime
+        if name.startswith("stage_b_fixed_text_scorer.rank_tower.")
+    )
+    transferred_names = sorted(
+        name
+        for name in runtime
+        if not name.startswith("stage_b_fixed_text_scorer.")
+        or name.startswith("stage_b_fixed_text_scorer.rank_tower.")
+    )
+    rank_sha = fingerprint_named_tensors(source, rank_names)["sha256"]
+    transferred_sha = fingerprint_named_tensors(source, transferred_names)[
+        "sha256"
+    ]
+    migrated, audit = migrate_legacy_rank_to_confidence_adapter(
+        model,
+        source,
+        checkpoint_label="tiny full-decoder migration",
+        source_checkpoint_sha256="a" * 64,
+        source_optimizer_updates=6551,
+        source_checkpoint_reason="signal",
+        expected_rank_sha256=rank_sha,
+        expected_transferred_sha256=transferred_sha,
+    )
+    return model, migrated, audit
+
+
+def test_candidate_complete_monotone_v28_migration_is_token_only():
+    model, migrated, audit = _migrate_tiny_full_decoder(monotone=True)
+    scorer = model.stage_b_fixed_text_scorer
+    verifier_owned_ids = {
+        id(parameter)
+        for parameter in scorer.confidence_verifier_tower.owned_parameters()
+    }
+    verifier_owned_names = sorted(
+        name
+        for name, parameter in model.named_parameters()
+        if id(parameter) in verifier_owned_ids
+    )
+    assert audit["schema"] == (
+        FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA
+    )
+    assert audit["fresh_confidence_contract"] == (
+        FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FRESH_CONFIDENCE_CONTRACT
+    )
+    assert audit["candidate_trace_contract"] == (
+        _CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT
+    )
+    assert audit["deployed_u0_contract"] == (
+        _CANDIDATE_COMPLETE_MONOTONE_DEPLOYED_U0_CONTRACT
+    )
+    assert audit["zero_output_scope"] == (
+        _CANDIDATE_COMPLETE_MONOTONE_ZERO_OUTPUT_SCOPE
+    )
+    assert audit["verifier_parameter_ownership_contract"] == (
+        _CANDIDATE_COMPLETE_MONOTONE_VERIFIER_OWNERSHIP_CONTRACT
+    )
+    assert audit["frozen_unowned_verifier_scope"] == (
+        _CANDIDATE_COMPLETE_MONOTONE_FROZEN_VERIFIER_SCOPE
+    )
+    assert audit["active_confidence_parameter_tensor_count"] == len(
+        verifier_owned_names
+    )
+    assert audit["active_verifier_parameter_tensor_count"] == len(
+        verifier_owned_names
+    )
+    assert audit["active_verifier_requires_grad_count"] == len(
+        verifier_owned_names
+    )
+    assert audit["active_verifier_veto_head_parameter_tensor_count"] == 0
+    assert audit["active_verifier_veto_head_parameter_element_count"] == 0
+    assert audit["active_pool_parameter_tensor_count"] == 0
+    assert audit["active_pool_parameter_element_count"] == 0
+    assert audit["frozen_unowned_verifier_parameter_tensor_count"] == 3
+    assert audit["frozen_unowned_verifier_parameter_element_count"] == 15
+    assert audit["frozen_unowned_verifier_requires_grad_count"] == 0
+    assert audit["verifier_veto_output_nonzero_count"] == 0
+    assert audit["pool_output_nonzero_count"] == 0
+    assert all(
+        not parameter.requires_grad
+        for parameter in scorer.confidence_verifier_veto_head.parameters()
+    )
+    assert all(
+        not parameter.requires_grad
+        for parameter in scorer.confidence_pool.parameters()
+    )
+    assert torch.count_nonzero(
+        migrated[
+            "stage_b_fixed_text_scorer.confidence_verifier_veto_head.3.weight"
+        ]
+    ) == 0
+    assert torch.count_nonzero(
+        migrated[
+            "stage_b_fixed_text_scorer.confidence_pool.residual.4.weight"
+        ]
+    ) == 0
+
+
+@pytest.mark.parametrize("namespace", ["head", "pool"])
+def test_candidate_complete_monotone_v28_rejects_trainable_serialized_heads(
+    namespace,
+):
+    model = _TinyFullDecoderMigrationModel(monotone=True)
+    scorer = model.stage_b_fixed_text_scorer
+    module = (
+        scorer.confidence_verifier_veto_head
+        if namespace == "head"
+        else scorer.confidence_pool
+    )
+    for parameter in module.parameters():
+        parameter.requires_grad_(True)
+    source = _tiny_full_decoder_legacy_state(model)
+    runtime = model.state_dict()
+    rank_names = sorted(
+        name
+        for name in runtime
+        if name.startswith("stage_b_fixed_text_scorer.rank_tower.")
+    )
+    transferred_names = sorted(
+        name
+        for name in runtime
+        if not name.startswith("stage_b_fixed_text_scorer.")
+        or name.startswith("stage_b_fixed_text_scorer.rank_tower.")
+    )
+    with pytest.raises(RuntimeError, match="owned token-only"):
+        migrate_legacy_rank_to_confidence_adapter(
+            model,
+            source,
+            checkpoint_label="invalid tiny monotone migration",
+            source_checkpoint_sha256="a" * 64,
+            source_optimizer_updates=6551,
+            source_checkpoint_reason="signal",
+            expected_rank_sha256=fingerprint_named_tensors(source, rank_names)[
+                "sha256"
+            ],
+            expected_transferred_sha256=fingerprint_named_tensors(
+                source, transferred_names
+            )["sha256"],
+        )
+
+
+def test_patch_softmin_v27_migration_surface_is_unchanged():
+    _model, _migrated, audit = _migrate_tiny_full_decoder(monotone=False)
+    assert audit["schema"] == FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA
+    assert audit["fresh_confidence_contract"] == (
+        FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
+    )
+    assert "candidate_trace_contract" not in audit
+    assert "deployed_u0_contract" not in audit
+    assert "zero_output_scope" not in audit
+    assert "verifier_parameter_ownership_contract" not in audit
+    assert "frozen_unowned_verifier_scope" not in audit
+    assert "active_verifier_parameter_tensor_count" not in audit
+
+
+def _production_monotone_v28_audit():
+    return {
+        "schema": FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA,
+        "token_logit_contract": FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT,
+        "fresh_confidence_contract": (
+            FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FRESH_CONFIDENCE_CONTRACT
+        ),
+        "source_checkpoint_sha256": "a" * 64,
+        "source_optimizer_updates": 6551,
+        "source_checkpoint_reason": "signal",
+        "rank": {"sha256": "b" * 64, "tensor_count": 453, "nonfinite_count": 0},
+        "transferred": {
+            "sha256": "c" * 64,
+            "tensor_count": 1588,
+            "nonfinite_count": 0,
+        },
+        "verifier_copy": {"tensor_count": 453, "nonfinite_count": 0},
+        "fresh_confidence": {"tensor_count": 72, "nonfinite_count": 0},
+        "verifier_tensor_count": 453,
+        "verifier_element_count": 33_158_400,
+        "active_confidence_parameter_tensor_count": 356,
+        "active_confidence_parameter_element_count": 25_464_320,
+        "active_verifier_parameter_tensor_count": 356,
+        "active_verifier_parameter_element_count": 25_464_320,
+        "active_verifier_requires_grad_count": 356,
+        "active_verifier_veto_head_parameter_tensor_count": 0,
+        "active_verifier_veto_head_parameter_element_count": 0,
+        "active_pool_parameter_tensor_count": 0,
+        "active_pool_parameter_element_count": 0,
+        "frozen_unowned_verifier_parameter_tensor_count": 97,
+        "frozen_unowned_verifier_parameter_element_count": 7_694_080,
+        "frozen_unowned_verifier_requires_grad_count": 0,
+        "strict_target_tensor_count": 2113,
+        "decoder_num_layers": 6,
+        "hidden_dim": 256,
+        "verifier_matches_rank": True,
+        "verifier_veto_output_nonzero_count": 0,
+        "pool_output_nonzero_count": 0,
+        "patch_softmin_veto_only": True,
+        "candidate_trace_contract": _CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT,
+        "deployed_u0_contract": (
+            _CANDIDATE_COMPLETE_MONOTONE_DEPLOYED_U0_CONTRACT
+        ),
+        "zero_output_scope": _CANDIDATE_COMPLETE_MONOTONE_ZERO_OUTPUT_SCOPE,
+        "verifier_parameter_ownership_contract": (
+            _CANDIDATE_COMPLETE_MONOTONE_VERIFIER_OWNERSHIP_CONTRACT
+        ),
+        "frozen_unowned_verifier_scope": (
+            _CANDIDATE_COMPLETE_MONOTONE_FROZEN_VERIFIER_SCOPE
+        ),
+        "retired_confidence_loaded_tensor_count": 0,
+    }
+
+
+def _validate_production_full_decoder_audit(audit):
+    return validate_confidence_adapter_migration_audit(
+        audit,
+        source_checkpoint_sha256="a" * 64,
+        source_optimizer_updates=6551,
+        source_checkpoint_reason="signal",
+        rank_sha256="b" * 64,
+        transferred_sha256="c" * 64,
+    )
+
+
+def test_candidate_complete_monotone_v28_validator_binds_production_topology():
+    audit = _production_monotone_v28_audit()
+    assert _validate_production_full_decoder_audit(audit) == audit
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("candidate_trace_contract", "off_v1"),
+        ("deployed_u0_contract", "zero_initialized_v1"),
+        ("zero_output_scope", "all_deployed_outputs_v1"),
+        ("verifier_parameter_ownership_contract", "namespace_all_active_v1"),
+        ("frozen_unowned_verifier_scope", "unrestricted_frozen_aliases_v1"),
+        ("active_confidence_parameter_tensor_count", 355),
+        ("active_confidence_parameter_element_count", 25_464_319),
+        ("active_verifier_parameter_tensor_count", 355),
+        ("active_verifier_parameter_element_count", 25_464_319),
+        ("active_verifier_requires_grad_count", 355),
+        ("active_verifier_veto_head_parameter_tensor_count", 6),
+        ("active_verifier_veto_head_parameter_element_count", 66_561),
+        ("active_pool_parameter_tensor_count", 6),
+        ("active_pool_parameter_element_count", 133_377),
+        ("frozen_unowned_verifier_parameter_tensor_count", 96),
+        ("frozen_unowned_verifier_parameter_element_count", 7_694_079),
+        ("frozen_unowned_verifier_requires_grad_count", 1),
+        ("patch_softmin_veto_only", False),
+        ("verifier_veto_output_nonzero_count", 1),
+        ("pool_output_nonzero_count", 1),
+    ],
+)
+def test_candidate_complete_monotone_v28_validator_rejects_topology_drift(
+    field, value
+):
+    audit = _production_monotone_v28_audit()
+    audit[field] = value
+    with pytest.raises(
+        RuntimeError, match="full-decoder confidence-verifier migration audit"
+    ):
+        _validate_production_full_decoder_audit(audit)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "deployed_u0_contract",
+        "zero_output_scope",
+        "verifier_parameter_ownership_contract",
+        "frozen_unowned_verifier_scope",
+        "frozen_unowned_verifier_parameter_tensor_count",
+        "active_pool_parameter_tensor_count",
+    ],
+)
+def test_candidate_complete_monotone_v28_validator_rejects_missing_namespace(
+    field,
+):
+    audit = _production_monotone_v28_audit()
+    del audit[field]
+    with pytest.raises(
+        RuntimeError, match="full-decoder confidence-verifier migration audit"
+    ):
+        _validate_production_full_decoder_audit(audit)
+
+
+def test_patch_softmin_v27_validator_does_not_require_v28_fields():
+    audit = _production_monotone_v28_audit()
+    audit.update(
+        {
+            "schema": FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA,
+            "fresh_confidence_contract": (
+                FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
+            ),
+            "active_confidence_parameter_tensor_count": 362,
+            "active_confidence_parameter_element_count": 25_530_881,
+        }
+    )
+    for field in (
+        "candidate_trace_contract",
+        "deployed_u0_contract",
+        "zero_output_scope",
+        "verifier_parameter_ownership_contract",
+        "frozen_unowned_verifier_scope",
+        "active_verifier_parameter_tensor_count",
+        "active_verifier_parameter_element_count",
+        "active_verifier_requires_grad_count",
+        "active_verifier_veto_head_parameter_tensor_count",
+        "active_verifier_veto_head_parameter_element_count",
+        "active_pool_parameter_tensor_count",
+        "active_pool_parameter_element_count",
+        "frozen_unowned_verifier_parameter_tensor_count",
+        "frozen_unowned_verifier_parameter_element_count",
+        "frozen_unowned_verifier_requires_grad_count",
+    ):
+        del audit[field]
+    assert _validate_production_full_decoder_audit(audit) == audit

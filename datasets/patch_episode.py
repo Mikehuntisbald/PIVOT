@@ -2147,6 +2147,48 @@ class PatchEpisodeJsonlDataset(VisionDataset):
             data_driven_trace = None
             if token_supervision_valid:
                 data_driven_trace = dict(row["tn_edits"][0])
+            candidate_trace_scope = str(
+                row.get("candidate_trace_scope", "expression_only")
+            ).strip().lower()
+            if candidate_trace_scope not in {
+                "expression_only",
+                "target_only",
+                "global_word_absent",
+                "candidate_verified",
+            }:
+                raise ValueError(
+                    "SAM3 TN row has an unknown candidate trace scope: "
+                    f"{candidate_trace_scope!r}"
+                )
+            changed_word_global_absent_verified = (
+                row.get("changed_word_global_absent_verified", None) is True
+            )
+            candidate_verified_indices = row.get(
+                "changed_word_candidate_verified_indices", None
+            )
+            if candidate_trace_scope == "global_word_absent" and not (
+                changed_word_global_absent_verified
+            ):
+                raise ValueError(
+                    "GLOBAL_WORD_ABSENT trace scope requires exact changed-word "
+                    "absence verification"
+                )
+            if candidate_trace_scope == "candidate_verified":
+                if (
+                    not isinstance(candidate_verified_indices, (list, tuple))
+                    or not candidate_verified_indices
+                    or any(
+                        isinstance(value, bool) or int(value) < 0
+                        for value in candidate_verified_indices
+                    )
+                ):
+                    raise ValueError(
+                        "CANDIDATE_VERIFIED trace scope requires non-negative "
+                        "original-query indices"
+                    )
+                candidate_verified_indices = [
+                    int(value) for value in candidate_verified_indices
+                ]
             if bool(getattr(self.cfg, "require_global_tn_verified", False)) and not global_verified:
                 raise ValueError(
                     "SAM3 TN row must carry exact boolean global_tn_verified=true "
@@ -2228,6 +2270,13 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 "fixed_stagea_topk_exact_verified": exact_global_verified,
                 "proposalset_proxy_verified": proposalset_proxy_verified,
                 "stage_b_v21_token_supervision_valid": token_supervision_valid,
+                "stage_b_candidate_trace_scope": candidate_trace_scope,
+                "stage_b_changed_word_global_absent_verified": (
+                    changed_word_global_absent_verified
+                ),
+                "stage_b_changed_word_candidate_verified_indices": (
+                    candidate_verified_indices
+                ),
                 "tn_scope": tn_scope,
                 "sam3_tn_pair": True,
             }
@@ -2253,6 +2302,13 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                     "fixed_stagea_topk_exact_verified": exact_global_verified,
                     "proposalset_proxy_verified": proposalset_proxy_verified,
                     "stage_b_v21_token_supervision_valid": token_supervision_valid,
+                    "stage_b_candidate_trace_scope": candidate_trace_scope,
+                    "stage_b_changed_word_global_absent_verified": (
+                        changed_word_global_absent_verified
+                    ),
+                    "stage_b_changed_word_candidate_verified_indices": (
+                        candidate_verified_indices
+                    ),
                     "stage_b_data_driven_trace": data_driven_trace,
                     "tn_scope": tn_scope,
                     **(
@@ -4653,6 +4709,27 @@ class PatchEpisodeJsonlDataset(VisionDataset):
                 ],
                 dtype=torch.bool,
             )
+            target["stage_b_candidate_trace_scope"] = str(
+                meta.get("stage_b_candidate_trace_scope", "expression_only")
+            )
+            target["stage_b_changed_word_global_absent_verified"] = (
+                torch.as_tensor(
+                    [
+                        meta.get(
+                            "stage_b_changed_word_global_absent_verified", None
+                        )
+                        is True
+                    ],
+                    dtype=torch.bool,
+                )
+            )
+            candidate_verified_indices = meta.get(
+                "stage_b_changed_word_candidate_verified_indices", None
+            )
+            if candidate_verified_indices is not None:
+                target[
+                    "stage_b_changed_word_candidate_verified_indices"
+                ] = torch.as_tensor(candidate_verified_indices, dtype=torch.int64)
             if isinstance(meta.get("stage_b_data_driven_trace"), dict):
                 target["stage_b_data_driven_trace"] = dict(
                     meta["stage_b_data_driven_trace"]

@@ -317,7 +317,14 @@ def inspect() -> dict[str, Any]:
                 )
             )
             rank = fingerprint_named_tensors(payload["model"], rank_names)
-            if rank["sha256"] != RANK_SHA256:
+            rank_adaptation = int(
+                current_args.get(
+                    "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
+                    0,
+                )
+                or 0
+            )
+            if rank_adaptation == 0 and rank["sha256"] != RANK_SHA256:
                 raise ControllerError("partial checkpoint changed the selected rank tower")
             return {"status": "partial", "action": "resume", "updates": updates}
         _validate_terminal_training_state(payload, current_args)
@@ -338,7 +345,14 @@ def inspect() -> dict[str, Any]:
             if str(name).startswith("stage_b_fixed_text_scorer.rank_tower.")
         )
         rank = fingerprint_named_tensors(payload["model"], rank_names)
-        if rank["sha256"] != RANK_SHA256:
+        rank_adaptation = int(
+            current_args.get(
+                "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
+                0,
+            )
+            or 0
+        )
+        if rank_adaptation == 0 and rank["sha256"] != RANK_SHA256:
             raise ControllerError("terminal checkpoint changed the selected rank tower")
         return {
             "status": "terminal",

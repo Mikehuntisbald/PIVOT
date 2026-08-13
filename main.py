@@ -4670,6 +4670,63 @@ def _stage_b_target_iou_carrier_pair_admission_contract(args) -> str:
     )
 
 
+def _stage_b_candidate_asymmetric_formal_admission_contract(args) -> str:
+    """Resolve V32's admission lazily so unrelated revisions stay independent."""
+    positive_gradient_contract = str(
+        getattr(
+            args,
+            "stage_b_v15_tail_queue_positive_gradient_contract",
+            "mean_translation_v1",
+        )
+    ).strip()
+    tail_contracts = {
+        "exact_batch_lower_tail_st_v2": (
+            "u400_word_veto_candidate_q05_confidence_strict1607_v34"
+        ),
+        "mean_plus_exact_lower_tail_st_v3": (
+            "u400_word_veto_candidate_tail_balanced_confidence_strict1607_v35"
+        ),
+        "mean_plus_quarter_exact_lower_tail_st_v4": (
+            "u400_word_veto_candidate_tail_quarter_confidence_strict1607_v36"
+        ),
+        "bounded_mean_plus_sixteenth_exact_lower_tail_st_v5": (
+            "u400_word_veto_candidate_tail_bounded_confidence_strict1607_v37"
+        ),
+    }
+    if positive_gradient_contract in tail_contracts:
+        return tail_contracts[positive_gradient_contract]
+    if positive_gradient_contract != (
+        "elementwise_bounded_mean_plus_sixteenth_exact_lower_tail_st_v6"
+    ):
+        return "u400_word_veto_candidate_asymmetric_confidence_strict1607_v32"
+
+    veto_gate_offset = float(
+        getattr(
+            args,
+            "stage_b_dense_duty_confidence_veto_gate_offset",
+            -1.0,
+        )
+    )
+    if veto_gate_offset != 0.0:
+        return "u400_word_veto_candidate_tail_elementwise_confidence_strict1607_v38"
+
+    token_edit_query_scope = str(
+        getattr(args, "stage_b_v21_token_edit_query_scope", "target_iou_v1")
+    ).strip().lower()
+    if token_edit_query_scope == (
+        "target_iou_union_detached_role_complete_confidence_base_argmax_v3"
+    ):
+        return (
+            "u400_word_veto_candidate_role_complete_carrier_"
+            "confidence_strict1607_v41"
+        )
+    if token_edit_query_scope == (
+        "target_iou_union_detached_final_confidence_base_argmax_v2"
+    ):
+        return "u400_word_veto_candidate_hardest_edit_confidence_strict1607_v40"
+    return _stage_b_target_iou_carrier_pair_admission_contract(args)
+
+
 def _bind_stage_b_confidence_probe_admission(args) -> Optional[dict[str, Any]]:
     if not bool(getattr(args, "stage_b_dense_duty", False)) or str(
         getattr(args, "stage_b_v22_score_ownership", "")
@@ -5762,6 +5819,7 @@ def _validate_stage_b_dense_duty_args(args) -> None:
         "target_iou_v1",
         "target_iou_union_detached_final_confidence_base_argmax_v2",
         "target_iou_union_detached_role_complete_confidence_base_argmax_v3",
+        "candidate_complete_trace_v4",
     }:
         raise RuntimeError(
             "dense-duty Stage B has an unknown changed-token query scope"
@@ -6408,8 +6466,46 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     False,
                 )
             )
+            candidate_trace_contract = str(
+                getattr(
+                    args,
+                    "stage_b_dense_duty_confidence_candidate_trace_contract",
+                    "off_v1",
+                )
+            ).strip().lower()
+            candidate_trace_contracts = {
+                "off_v1": (
+                    "target_iou_v1",
+                    "rank_cloned_full_decoder_patch_softmin_veto_v2",
+                    "full_decoder_token_entailment_patch_weighted_"
+                    "existential_veto_v62",
+                    25_530_881,
+                ),
+                "candidate_complete_free_head_coverage_v1": (
+                    "candidate_complete_trace_v4",
+                    "rank_cloned_full_decoder_candidate_complete_free_head_v3",
+                    "candidate_complete_trace_free_head_coverage_c1",
+                    25_530_881,
+                ),
+                "candidate_complete_monotone_token_entailment_v2": (
+                    "candidate_complete_trace_v4",
+                    "rank_cloned_full_decoder_candidate_complete_monotone_v4",
+                    "candidate_complete_trace_monotone_token_entailment_c2",
+                    25_464_320,
+                ),
+            }
+            if candidate_trace_contract not in candidate_trace_contracts:
+                raise RuntimeError(
+                    "v60 query-veto confidence has an unknown candidate trace contract"
+                )
+            (
+                expected_token_scope,
+                expected_patch_softmin_capacity,
+                expected_patch_softmin_variant,
+                expected_patch_softmin_trainable,
+            ) = candidate_trace_contracts[candidate_trace_contract]
             expected_trainable = (
-                25_530_881
+                expected_patch_softmin_trainable
                 if veto_only_patch_softmin
                 else 25_664_258
                 if full_decoder_verifier
@@ -6422,13 +6518,67 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     "lightweight_adapter_v1",
                 )
             ).strip().lower()
+            confidence_variant = str(
+                getattr(args, "stage_b_dense_duty_confidence_variant", "")
+            ).strip().lower()
+            candidate_depth_contract = (
+                float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_all_weight",
+                        -1.0,
+                    )
+                ),
+                float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_escape_weight",
+                        -1.0,
+                    )
+                ),
+                float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_positive_weight",
+                        -1.0,
+                    )
+                ),
+                float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_tn_margin",
+                        -1.0,
+                    )
+                ),
+                float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_escape_margin",
+                        -1.0,
+                    )
+                ),
+                float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_positive_max",
+                        -1.0,
+                    )
+                ),
+                float(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_candidate_depth_temperature",
+                        -1.0,
+                    )
+                ),
+            )
             if (
                 head_gradient_contract
                 != "split_token_veto_deployment_owned_query_veto_global_absolute_v11"
                 or deployed_routing_weight != 0.0
                 or deployed_positive_max != 0.1
                 or deployed_tn_min != 0.9
-                or token_edit_query_scope != "target_iou_v1"
+                or token_edit_query_scope != expected_token_scope
                 or deployed_routing_reduction
                 != "balanced_top_quarter_cvar_v2"
                 or positive_trust_reduction != "top_quarter_cvar_v2"
@@ -6452,7 +6602,11 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                 or (
                     veto_only_patch_softmin
                     and capacity_contract
-                    != "rank_cloned_full_decoder_patch_softmin_veto_v2"
+                    != expected_patch_softmin_capacity
+                )
+                or (
+                    veto_only_patch_softmin
+                    and confidence_variant != expected_patch_softmin_variant
                 )
                 or (
                     full_decoder_verifier
@@ -6472,6 +6626,49 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     )
                 ).strip().lower()
                 != "absolute_global_confidence_logit_v2"
+                or (
+                    candidate_trace_contract != "off_v1"
+                    and (
+                        not full_decoder_verifier
+                        or not veto_only_patch_softmin
+                        or str(
+                            getattr(args, "stage_b_v21_token_objective", "")
+                        ).strip().lower()
+                        != "edit_bce_group_balanced"
+                        or candidate_depth_contract
+                        != (1.0, 1.0, 1.0, 0.5, 0.5, 0.05, 0.1)
+                        or float(
+                            getattr(
+                                args,
+                                "stage_b_dense_duty_confidence_token_depth_base_scale",
+                                0.0,
+                            )
+                        )
+                        <= 0.0
+                    )
+                )
+                or (
+                    candidate_trace_contract
+                    == "candidate_complete_monotone_token_entailment_v2"
+                    and (
+                        float(
+                            getattr(
+                                args,
+                                "stage_b_dense_duty_raw_veto_gate_weight",
+                                -1.0,
+                            )
+                        )
+                        != 0.0
+                        or float(
+                            getattr(
+                                args,
+                                "stage_b_dense_duty_raw_veto_carrier_pair_weight",
+                                -1.0,
+                            )
+                        )
+                        != 0.0
+                    )
+                )
             ):
                 raise RuntimeError(
                     "v60 deployment-owned query-veto confidence requires the "
@@ -6886,6 +7083,18 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                 or 0.0
             )
             raw_veto_revision = confidence_revision
+            monotone_candidate_trace_raw_veto_disabled = (
+                raw_veto_revision
+                == "word_veto_rank_full_expression_deployment_owned_query_veto_v60"
+                and str(
+                    getattr(
+                        args,
+                        "stage_b_dense_duty_confidence_candidate_trace_contract",
+                        "off_v1",
+                    )
+                ).strip().lower()
+                == "candidate_complete_monotone_token_entailment_v2"
+            )
             raw_veto_revisions = {
                 "word_veto_raw_gate_margin_v3": (
                     "trace_activated_word_veto_penalty_v2"
@@ -7032,7 +7241,9 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     "trace_activated_word_veto_gated_pool_absolute_cap_v5"
                 ),
             }
-            if raw_veto_weight > 0.0 or raw_veto_revision in raw_veto_revisions:
+            if not monotone_candidate_trace_raw_veto_disabled and (
+                raw_veto_weight > 0.0 or raw_veto_revision in raw_veto_revisions
+            ):
                 if (
                     raw_veto_revision not in raw_veto_revisions
                     or phrase_aggregation != raw_veto_revisions[raw_veto_revision]
@@ -7741,109 +7952,17 @@ def _validate_stage_b_dense_duty_args(args) -> None:
                     "u400_word_veto_candidate_split_global_trust_veto_confidence_"
                     "strict1607_v49"
                 ),
-                "word_veto_candidate_asymmetric_confidence_v32": (
-                    (
-                        (
-                            (
-                                "u400_word_veto_candidate_role_complete_carrier_"
-                                "confidence_strict1607_v41"
-                                if str(
-                                    getattr(
-                                        args,
-                                        "stage_b_v21_token_edit_query_scope",
-                                        "target_iou_v1",
-                                    )
-                                ).strip().lower()
-                                == "target_iou_union_detached_role_complete_"
-                                "confidence_base_argmax_v3"
-                                else "u400_word_veto_candidate_hardest_edit_"
-                                "confidence_strict1607_v40"
-                            )
-                            if str(
-                                getattr(
-                                    args,
-                                    "stage_b_v21_token_edit_query_scope",
-                                    "target_iou_v1",
-                                )
-                            ).strip().lower()
-                            in {
-                                "target_iou_union_detached_final_"
-                                "confidence_base_argmax_v2",
-                                "target_iou_union_detached_role_complete_"
-                                "confidence_base_argmax_v3",
-                            }
-                            else _stage_b_target_iou_carrier_pair_admission_contract(
-                                args
-                            )
-                        )
-                        if float(
-                            getattr(
-                                args,
-                                "stage_b_dense_duty_confidence_veto_gate_offset",
-                                -1.0,
-                            )
-                        )
-                        == 0.0
-                        else "u400_word_veto_candidate_tail_elementwise_confidence_strict1607_v38"
-                    )
-                    if str(
-                        getattr(
-                            args,
-                            "stage_b_v15_tail_queue_positive_gradient_contract",
-                            "mean_translation_v1",
-                        )
-                    ).strip()
-                    == "elementwise_bounded_mean_plus_sixteenth_exact_lower_tail_st_v6"
-                    else (
-                        "u400_word_veto_candidate_tail_bounded_confidence_strict1607_v37"
-                        if str(
-                            getattr(
-                                args,
-                                "stage_b_v15_tail_queue_positive_gradient_contract",
-                                "mean_translation_v1",
-                            )
-                        ).strip()
-                        == "bounded_mean_plus_sixteenth_exact_lower_tail_st_v5"
-                        else (
-                            "u400_word_veto_candidate_tail_quarter_confidence_strict1607_v36"
-                            if str(
-                                getattr(
-                                    args,
-                                    "stage_b_v15_tail_queue_positive_gradient_contract",
-                                    "mean_translation_v1",
-                                )
-                            ).strip()
-                            == "mean_plus_quarter_exact_lower_tail_st_v4"
-                            else (
-                                "u400_word_veto_candidate_tail_balanced_confidence_strict1607_v35"
-                                if str(
-                                    getattr(
-                                        args,
-                                        "stage_b_v15_tail_queue_positive_gradient_contract",
-                                        "mean_translation_v1",
-                                    )
-                                ).strip()
-                                == "mean_plus_exact_lower_tail_st_v3"
-                                else (
-                                    "u400_word_veto_candidate_q05_confidence_strict1607_v34"
-                                    if str(
-                                        getattr(
-                                            args,
-                                            "stage_b_v15_tail_queue_positive_gradient_contract",
-                                            "mean_translation_v1",
-                                        )
-                                    ).strip()
-                                    == "exact_batch_lower_tail_st_v2"
-                                    else "u400_word_veto_candidate_asymmetric_confidence_strict1607_v32"
-                                )
-                            )
-                        )
-                    )
-                ),
+                # V32's carrier-pair resolver is intentionally lazy. Evaluating
+                # it while selecting V60 used to reject candidate-complete scopes.
+                "word_veto_candidate_asymmetric_confidence_v32": None,
                 "word_veto_candidate_set_attention_confidence_v33": (
                     "u400_word_veto_candidate_set_attention_confidence_strict1607_v33"
                 ),
             }[raw_veto_revision]
+            if formal_admission_contract is None:
+                formal_admission_contract = (
+                    _stage_b_candidate_asymmetric_formal_admission_contract(args)
+                )
             if execution_scope == "probe":
                 if (
                     admission_contract != "disabled_for_probe_v1"
@@ -7979,6 +8098,51 @@ def _validate_stage_b_dense_duty_args(args) -> None:
         != int(getattr(args, "stage_b_dense_duty_trace_total_rows", -1))
     ):
         raise RuntimeError("dense-duty direct-trace valid/invalid counts do not close")
+    candidate_trace_contract = str(
+        getattr(
+            args,
+            "stage_b_dense_duty_confidence_candidate_trace_contract",
+            "off_v1",
+        )
+    ).strip().lower()
+    if candidate_trace_contract != "off_v1":
+        candidate_provenance = trace_audit.get("candidate_trace_provenance")
+        scope_rows = (
+            candidate_provenance.get("scope_rows")
+            if isinstance(candidate_provenance, dict)
+            else None
+        )
+        required_scopes = (
+            "expression_only",
+            "global_word_absent",
+            "candidate_verified",
+        )
+        total_rows = int(
+            getattr(args, "stage_b_dense_duty_trace_total_rows", -1)
+        )
+        if (
+            not isinstance(candidate_provenance, dict)
+            or candidate_provenance.get("contract")
+            != "fail_closed_candidate_complete_trace_v1"
+            or not isinstance(scope_rows, dict)
+            or any(type(scope_rows.get(name)) is not int for name in required_scopes)
+            or any(scope_rows[name] < 0 for name in required_scopes)
+            or sum(scope_rows[name] for name in required_scopes) != total_rows
+            or candidate_provenance.get(
+                "expression_level_depth_supervision_rows"
+            )
+            != total_rows
+            or candidate_provenance.get("global_word_absent_verified_rows")
+            != scope_rows["global_word_absent"]
+            or candidate_provenance.get("candidate_verified_rows")
+            != scope_rows["candidate_verified"]
+            or candidate_provenance.get("token_broadcast_capable_rows")
+            != scope_rows["global_word_absent"]
+            + scope_rows["candidate_verified"]
+        ):
+            raise RuntimeError(
+                "candidate-complete trace provenance receipt is invalid"
+            )
     source_closure = getattr(args, "stage_b_dense_duty_source_closure", None)
     receipt_code = trace_audit.get("code_source_closure")
     if not (
@@ -8811,7 +8975,23 @@ def _freeze_and_audit_stage_b_dense_duty(
         raise RuntimeError(
             "dense-duty rank/confidence ownership is empty or shares parameters"
         )
-    active_ids = rank_ids if phase == "rank" else confidence_ids
+    confidence_rank_adaptation = tuple(
+        scorer.confidence_rank_adaptation_parameters()
+        if hasattr(scorer, "confidence_rank_adaptation_parameters")
+        else ()
+    )
+    confidence_rank_adaptation_ids = {
+        id(parameter) for parameter in confidence_rank_adaptation
+    }
+    if not confidence_rank_adaptation_ids.issubset(rank_ids):
+        raise RuntimeError(
+            "dense-duty confidence rank adaptation must be a subset of rank ownership"
+        )
+    active_ids = (
+        rank_ids
+        if phase == "rank"
+        else confidence_ids | confidence_rank_adaptation_ids
+    )
 
     for parameter in model.parameters():
         parameter.requires_grad_(id(parameter) in active_ids)
@@ -9863,6 +10043,55 @@ def _isolate_stage_b_v15_validity_optimizer_group(
         )
     split_groups.extend(validity_groups)
     _audit_coverage(split_groups, label="after validity split")
+    return split_groups
+
+
+def _isolate_stage_b_dense_duty_rank_adaptation_optimizer_group(
+    param_dicts,
+    model,
+    *,
+    adaptation_lr: float,
+):
+    """Give the explicitly unfrozen rank-decoder suffix one conservative LR."""
+    adaptation_lr = float(adaptation_lr)
+    if not math.isfinite(adaptation_lr) or adaptation_lr <= 0.0:
+        raise ValueError("rank-adaptation learning rate must be finite and positive")
+    scorer = getattr(model, "stage_b_fixed_text_scorer", None)
+    provider = getattr(scorer, "confidence_rank_adaptation_parameters", None)
+    if not callable(provider):
+        raise RuntimeError("rank-adaptation optimizer requires explicit ownership")
+    adaptation_ids = {id(parameter) for parameter in provider()}
+    if not adaptation_ids:
+        raise RuntimeError("rank-adaptation learning rate set with an empty owner")
+
+    split_groups = []
+    adaptation_parameters = []
+    seen = set()
+    for group in param_dicts:
+        source = list(group.get("params", ()))
+        retained = [parameter for parameter in source if id(parameter) not in adaptation_ids]
+        selected = [parameter for parameter in source if id(parameter) in adaptation_ids]
+        if retained:
+            retained_group = dict(group)
+            retained_group["params"] = retained
+            split_groups.append(retained_group)
+        for parameter in selected:
+            parameter_id = id(parameter)
+            if parameter_id in seen:
+                raise RuntimeError("rank-adaptation optimizer ownership is duplicated")
+            seen.add(parameter_id)
+            adaptation_parameters.append(parameter)
+    if seen != adaptation_ids:
+        raise RuntimeError(
+            "rank-adaptation optimizer does not cover the exact decoder suffix"
+        )
+    split_groups.append(
+        {
+            "params": adaptation_parameters,
+            "lr": adaptation_lr,
+            "stage_b_dense_duty_rank_adaptation_group": True,
+        }
+    )
     return split_groups
 
 
@@ -11147,6 +11376,25 @@ def main(args):
         )
     else:
         param_dicts = get_param_dict(args, model_without_ddp)
+    rank_adaptation_last_n = int(
+        getattr(
+            args,
+            "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
+            0,
+        )
+    )
+    if rank_adaptation_last_n > 0:
+        param_dicts = _isolate_stage_b_dense_duty_rank_adaptation_optimizer_group(
+            param_dicts,
+            model_without_ddp,
+            adaptation_lr=float(
+                getattr(
+                    args,
+                    "stage_b_dense_duty_confidence_rank_decoder_lr",
+                    args.lr,
+                )
+            ),
+        )
     validity_lr = getattr(args, "stage_b_v15_validity_lr", None)
     if validity_lr is not None:
         score_ownership = str(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import torch
 from torch import nn
@@ -92,6 +92,9 @@ FULL_DECODER_VERIFIER_MIGRATION_SCHEMA = (
 FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA = (
     "pivot.stageb.rank_to_full_decoder_patch_softmin_veto/v27"
 )
+FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA = (
+    "pivot.stageb.rank_to_full_decoder_candidate_complete_monotone/v28"
+)
 ABSOLUTE_CAP_FRESH_CONFIDENCE_CONTRACT = (
     "token_adapter_patch_pool_trainable_absolute_cap_v1"
 )
@@ -179,6 +182,9 @@ FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT = (
 )
 FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT = (
     "rank_cloned_full_decoder_patch_weighted_existential_veto_v25"
+)
+FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FRESH_CONFIDENCE_CONTRACT = (
+    "rank_cloned_full_decoder_candidate_complete_monotone_token_entailment_v26"
 )
 GLOBAL_TRUST_VETO_HEAD_GRADIENT_CONTRACT = (
     "split_token_veto_global_trust_veto_v4"
@@ -438,6 +444,31 @@ EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_TENSOR_COUNT = 6
 EXPECTED_DEPLOYMENT_OWNED_DIAGNOSTIC_PARAMETER_ELEMENT_COUNT = 66_561
 EXPECTED_RANK_TENSOR_COUNT = 453
 EXPECTED_TRANSFERRED_TENSOR_COUNT = 1_588
+EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_ACTIVE_PARAMETER_TENSOR_COUNT = (
+    356
+)
+EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_ACTIVE_PARAMETER_ELEMENT_COUNT = (
+    25_464_320
+)
+EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FROZEN_PARAMETER_TENSOR_COUNT = 97
+EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FROZEN_PARAMETER_ELEMENT_COUNT = (
+    7_694_080
+)
+_CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT = (
+    "candidate_complete_monotone_token_entailment_v2"
+)
+_CANDIDATE_COMPLETE_MONOTONE_DEPLOYED_U0_CONTRACT = (
+    "rank_cloned_absolute_token_mismatch_nonzero_allowed_v1"
+)
+_CANDIDATE_COMPLETE_MONOTONE_ZERO_OUTPUT_SCOPE = (
+    "serialized_dormant_free_head_and_pool_only_v1"
+)
+_CANDIDATE_COMPLETE_MONOTONE_VERIFIER_OWNERSHIP_CONTRACT = (
+    "tower_owned_parameters_exact_active_trainable_v1"
+)
+_CANDIDATE_COMPLETE_MONOTONE_FROZEN_VERIFIER_SCOPE = (
+    "encoder_visual_layers_and_level_embed_frozen_unowned_v1"
+)
 SCORER_PREFIX = "stage_b_fixed_text_scorer."
 RANK_PREFIX = SCORER_PREFIX + "rank_tower."
 LEGACY_CONFIDENCE_PREFIX = SCORER_PREFIX + "confidence_tower."
@@ -1035,13 +1066,20 @@ def validate_confidence_adapter_migration_audit(
     if audit.get("schema") in {
         FULL_DECODER_VERIFIER_MIGRATION_SCHEMA,
         FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA,
+        FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA,
     }:
-        patch_softmin_veto_only = (
+        monotone_candidate_complete = (
             audit.get("schema")
-            == FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA
+            == FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA
         )
+        patch_softmin_veto_only = audit.get("schema") in {
+            FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA,
+            FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA,
+        }
         expected_fresh_contract = (
-            FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
+            FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FRESH_CONFIDENCE_CONTRACT
+            if monotone_candidate_complete
+            else FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
             if patch_softmin_veto_only
             else FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
         )
@@ -1055,6 +1093,49 @@ def validate_confidence_adapter_migration_audit(
             "active_confidence_parameter_tensor_count",
             "active_confidence_parameter_element_count",
             "strict_target_tensor_count",
+        )
+        expected_monotone_tensors = (
+            EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_ACTIVE_PARAMETER_TENSOR_COUNT
+        )
+        expected_monotone_elements = (
+            EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_ACTIVE_PARAMETER_ELEMENT_COUNT
+        )
+        monotone_namespace_counts = {
+            "active_verifier_parameter_tensor_count": expected_monotone_tensors,
+            "active_verifier_parameter_element_count": expected_monotone_elements,
+            "active_verifier_requires_grad_count": expected_monotone_tensors,
+            "active_verifier_veto_head_parameter_tensor_count": 0,
+            "active_verifier_veto_head_parameter_element_count": 0,
+            "active_pool_parameter_tensor_count": 0,
+            "active_pool_parameter_element_count": 0,
+            "frozen_unowned_verifier_parameter_tensor_count": (
+                EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FROZEN_PARAMETER_TENSOR_COUNT
+            ),
+            "frozen_unowned_verifier_parameter_element_count": (
+                EXPECTED_FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FROZEN_PARAMETER_ELEMENT_COUNT
+            ),
+            "frozen_unowned_verifier_requires_grad_count": 0,
+        }
+        monotone_contract_invalid = monotone_candidate_complete and (
+            audit.get("candidate_trace_contract")
+            != _CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT
+            or audit.get("deployed_u0_contract")
+            != _CANDIDATE_COMPLETE_MONOTONE_DEPLOYED_U0_CONTRACT
+            or audit.get("zero_output_scope")
+            != _CANDIDATE_COMPLETE_MONOTONE_ZERO_OUTPUT_SCOPE
+            or audit.get("verifier_parameter_ownership_contract")
+            != _CANDIDATE_COMPLETE_MONOTONE_VERIFIER_OWNERSHIP_CONTRACT
+            or audit.get("frozen_unowned_verifier_scope")
+            != _CANDIDATE_COMPLETE_MONOTONE_FROZEN_VERIFIER_SCOPE
+            or audit.get("active_confidence_parameter_tensor_count")
+            != expected_monotone_tensors
+            or audit.get("active_confidence_parameter_element_count")
+            != expected_monotone_elements
+            or any(
+                type(audit.get(field)) is not int
+                or audit.get(field) != expected
+                for field, expected in monotone_namespace_counts.items()
+            )
         )
         if (
             audit.get("token_logit_contract")
@@ -1090,6 +1171,7 @@ def validate_confidence_adapter_migration_audit(
             is not patch_softmin_veto_only
             or audit.get("retired_confidence_loaded_tensor_count") != 0
             or any(int(audit.get(field, 0)) <= 0 for field in required_positive)
+            or monotone_contract_invalid
         ):
             raise RuntimeError(
                 "full-decoder confidence-verifier migration audit is invalid"
@@ -1492,13 +1574,99 @@ def _migrate_rank_to_full_decoder_verifier(
     patch_softmin_veto_only = bool(
         getattr(scorer, "confidence_veto_only_patch_softmin", False)
     )
-    active_ids = {id(parameter) for parameter in scorer.confidence_parameters()}
+    candidate_trace_contract = str(
+        getattr(scorer, "confidence_candidate_trace_contract", "off_v1")
+    ).strip().lower()
+    monotone_candidate_complete = (
+        candidate_trace_contract == _CANDIDATE_COMPLETE_MONOTONE_TRACE_CONTRACT
+    )
+    active_parameters = tuple(scorer.confidence_parameters())
+    active_ids = {id(parameter) for parameter in active_parameters}
     active_names = sorted(
         name
         for name, parameter in runtime_parameters.items()
         if id(parameter) in active_ids
     )
-    if (
+    verifier_parameter_names = sorted(
+        name for name in runtime_parameters if name.startswith(VERIFIER_PREFIX)
+    )
+    veto_head_parameter_names = sorted(
+        name
+        for name in runtime_parameters
+        if name.startswith(VERIFIER_VETO_HEAD_PREFIX)
+    )
+    pool_parameter_names = sorted(
+        name for name in runtime_parameters if name.startswith(POOL_PREFIX)
+    )
+    verifier_owned_parameter_names: list[str] = []
+    frozen_unowned_verifier_parameter_names: list[str] = []
+    if monotone_candidate_complete:
+        owned_parameters_provider = getattr(
+            scorer.confidence_verifier_tower, "owned_parameters", None
+        )
+        if not callable(owned_parameters_provider):
+            raise RuntimeError(
+                "candidate-complete monotone verifier lacks its parameter owner"
+            )
+        verifier_owned_parameters = tuple(owned_parameters_provider())
+        verifier_owned_ids = {
+            id(parameter) for parameter in verifier_owned_parameters
+        }
+        verifier_owned_parameter_names = sorted(
+            name
+            for name, parameter in runtime_parameters.items()
+            if id(parameter) in verifier_owned_ids
+        )
+        frozen_unowned_verifier_parameter_names = sorted(
+            set(verifier_parameter_names) - set(verifier_owned_parameter_names)
+        )
+        trainable_confidence_names = sorted(
+            name
+            for name, parameter in runtime_parameters.items()
+            if parameter.requires_grad
+            and name.startswith(SCORER_PREFIX)
+            and not name.startswith(RANK_PREFIX)
+        )
+        frozen_level_embed_name = VERIFIER_PREFIX + "level_embed"
+        frozen_visual_layer_prefix = VERIFIER_PREFIX + "encoder.layers."
+        if (
+            not patch_softmin_veto_only
+            or not verifier_owned_parameters
+            or len(active_ids) != len(active_parameters)
+            or len(verifier_owned_ids) != len(verifier_owned_parameters)
+            or len(verifier_owned_parameter_names) != len(verifier_owned_ids)
+            or any(
+                not isinstance(parameter, nn.Parameter)
+                for parameter in verifier_owned_parameters
+            )
+            or any(
+                not name.startswith(VERIFIER_PREFIX)
+                for name in verifier_owned_parameter_names
+            )
+            or active_names != verifier_owned_parameter_names
+            or trainable_confidence_names != verifier_owned_parameter_names
+            or frozen_level_embed_name
+            not in frozen_unowned_verifier_parameter_names
+            or not any(
+                name.startswith(frozen_visual_layer_prefix)
+                for name in frozen_unowned_verifier_parameter_names
+            )
+            or any(
+                name != frozen_level_embed_name
+                and not name.startswith(frozen_visual_layer_prefix)
+                for name in frozen_unowned_verifier_parameter_names
+            )
+            or any(
+                runtime_parameters[name].requires_grad
+                for name in frozen_unowned_verifier_parameter_names
+            )
+        ):
+            raise RuntimeError(
+                "candidate-complete monotone verifier requires an exact "
+                "owned token-only active parameter topology with only frozen "
+                "visual-layer and level-embed state outside that owner"
+            )
+    elif (
         not active_names
         or any(
             not name.startswith(
@@ -1544,18 +1712,26 @@ def _migrate_rank_to_full_decoder_verifier(
             "full-decoder verifier and absolute pool outputs must initialize at zero"
         )
 
-    audit = {
-        "schema": (
-            FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA
-            if patch_softmin_veto_only
-            else FULL_DECODER_VERIFIER_MIGRATION_SCHEMA
-        ),
-        "token_logit_contract": FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT,
-        "fresh_confidence_contract": (
+    if monotone_candidate_complete:
+        migration_schema = (
+            FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA
+        )
+        fresh_confidence_contract = (
+            FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FRESH_CONFIDENCE_CONTRACT
+        )
+    elif patch_softmin_veto_only:
+        migration_schema = FULL_DECODER_PATCH_SOFTMIN_VETO_MIGRATION_SCHEMA
+        fresh_confidence_contract = (
             FULL_DECODER_PATCH_SOFTMIN_VETO_FRESH_CONFIDENCE_CONTRACT
-            if patch_softmin_veto_only
-            else FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
-        ),
+        )
+    else:
+        migration_schema = FULL_DECODER_VERIFIER_MIGRATION_SCHEMA
+        fresh_confidence_contract = FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT
+
+    audit = {
+        "schema": migration_schema,
+        "token_logit_contract": FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT,
+        "fresh_confidence_contract": fresh_confidence_contract,
         "source_checkpoint_sha256": str(source_checkpoint_sha256),
         "source_optimizer_updates": int(source_optimizer_updates),
         "source_checkpoint_reason": str(source_checkpoint_reason),
@@ -1590,6 +1766,68 @@ def _migrate_rank_to_full_decoder_verifier(
         "retired_confidence_pool_tensor_count": len(legacy_pool_names),
         "retired_confidence_loaded_tensor_count": 0,
     }
+    if monotone_candidate_complete:
+        active_name_set = set(active_names)
+        active_verifier_names = sorted(
+            active_name_set.intersection(verifier_parameter_names)
+        )
+        active_veto_head_names = sorted(
+            active_name_set.intersection(veto_head_parameter_names)
+        )
+        active_pool_names = sorted(
+            active_name_set.intersection(pool_parameter_names)
+        )
+
+        def active_elements(names: Sequence[str]) -> int:
+            return sum(int(runtime_parameters[name].numel()) for name in names)
+
+        audit.update(
+            {
+                "candidate_trace_contract": candidate_trace_contract,
+                "deployed_u0_contract": (
+                    _CANDIDATE_COMPLETE_MONOTONE_DEPLOYED_U0_CONTRACT
+                ),
+                "zero_output_scope": (
+                    _CANDIDATE_COMPLETE_MONOTONE_ZERO_OUTPUT_SCOPE
+                ),
+                "verifier_parameter_ownership_contract": (
+                    _CANDIDATE_COMPLETE_MONOTONE_VERIFIER_OWNERSHIP_CONTRACT
+                ),
+                "frozen_unowned_verifier_scope": (
+                    _CANDIDATE_COMPLETE_MONOTONE_FROZEN_VERIFIER_SCOPE
+                ),
+                "active_verifier_parameter_tensor_count": len(
+                    active_verifier_names
+                ),
+                "active_verifier_parameter_element_count": active_elements(
+                    active_verifier_names
+                ),
+                "active_verifier_requires_grad_count": sum(
+                    int(runtime_parameters[name].requires_grad)
+                    for name in active_verifier_names
+                ),
+                "active_verifier_veto_head_parameter_tensor_count": len(
+                    active_veto_head_names
+                ),
+                "active_verifier_veto_head_parameter_element_count": (
+                    active_elements(active_veto_head_names)
+                ),
+                "active_pool_parameter_tensor_count": len(active_pool_names),
+                "active_pool_parameter_element_count": active_elements(
+                    active_pool_names
+                ),
+                "frozen_unowned_verifier_parameter_tensor_count": len(
+                    frozen_unowned_verifier_parameter_names
+                ),
+                "frozen_unowned_verifier_parameter_element_count": (
+                    active_elements(frozen_unowned_verifier_parameter_names)
+                ),
+                "frozen_unowned_verifier_requires_grad_count": sum(
+                    int(runtime_parameters[name].requires_grad)
+                    for name in frozen_unowned_verifier_parameter_names
+                ),
+            }
+        )
     return migrated, audit
 
 
@@ -2541,6 +2779,8 @@ def migrate_legacy_rank_to_confidence_adapter(
 
 
 __all__ = [
+    "FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_FRESH_CONFIDENCE_CONTRACT",
+    "FULL_DECODER_CANDIDATE_COMPLETE_MONOTONE_MIGRATION_SCHEMA",
     "FULL_DECODER_VERIFIER_FRESH_CONFIDENCE_CONTRACT",
     "FULL_DECODER_VERIFIER_MIGRATION_SCHEMA",
     "FULL_DECODER_VERIFIER_TOKEN_LOGIT_CONTRACT",

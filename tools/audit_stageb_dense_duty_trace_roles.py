@@ -205,6 +205,45 @@ def _load_rows() -> list[dict[str, Any]]:
 
 def audit(*, batch_size: int) -> dict[str, Any]:
     rows = _load_rows()
+    candidate_scope_counts: Counter[str] = Counter()
+    defaulted_expression_only = 0
+    global_word_absent_verified = 0
+    candidate_verified = 0
+    for row in rows:
+        raw_scope = row.get("candidate_trace_scope")
+        scope = str(raw_scope or "expression_only").strip().lower()
+        if scope == "target_only":
+            scope = "expression_only"
+        if scope not in {
+            "expression_only",
+            "global_word_absent",
+            "candidate_verified",
+        }:
+            raise ValueError(f"unknown candidate trace scope {scope!r}")
+        candidate_scope_counts[scope] += 1
+        defaulted_expression_only += int(raw_scope is None)
+        if scope == "global_word_absent":
+            if row.get("changed_word_global_absent_verified") is not True:
+                raise ValueError(
+                    "global-word-absent trace lacks exact absence verification"
+                )
+            global_word_absent_verified += 1
+        elif scope == "candidate_verified":
+            indices = row.get("changed_word_candidate_verified_indices")
+            if (
+                not isinstance(indices, list)
+                or not indices
+                or any(
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+                    for value in indices
+                )
+            ):
+                raise ValueError(
+                    "candidate-verified trace lacks original-query provenance"
+                )
+            candidate_verified += 1
     canonical_names, _aliases = _build_canonical_text_maps(
         str(CANONICAL_CLASSES)
     )
@@ -309,7 +348,34 @@ def audit(*, batch_size: int) -> dict[str, Any]:
                     REPO_ROOT / "models/GroundingDINO/groundingdino.py",
                     "_build_stage_b_v21_direct_trace_token_roles",
                 ),
+                _function_record(
+                    REPO_ROOT / "datasets/patch_episode.py",
+                    "_normalize_sam3_tn_pair_metas",
+                ),
+                _function_record(
+                    REPO_ROOT / "engine.py",
+                    "_build_stage_b_candidate_complete_trace_mask",
+                ),
             ],
+        },
+        "candidate_trace_provenance": {
+            "contract": "fail_closed_candidate_complete_trace_v1",
+            "scope_rows": {
+                "expression_only": candidate_scope_counts["expression_only"],
+                "global_word_absent": candidate_scope_counts[
+                    "global_word_absent"
+                ],
+                "candidate_verified": candidate_scope_counts[
+                    "candidate_verified"
+                ],
+            },
+            "defaulted_expression_only_rows": defaulted_expression_only,
+            "global_word_absent_verified_rows": global_word_absent_verified,
+            "candidate_verified_rows": candidate_verified,
+            "token_broadcast_capable_rows": (
+                global_word_absent_verified + candidate_verified
+            ),
+            "expression_level_depth_supervision_rows": len(rows),
         },
         "counts": {
             "lexical_exact_valid_rows": lexical_valid,
@@ -349,6 +415,11 @@ def audit(*, batch_size: int) -> dict[str, Any]:
             "deletion_only_rows_have_no_tn_token_roles": True,
             "valid_invalid_accounting_closes": role_valid + len(rows) - role_valid
             == len(rows),
+            "candidate_trace_scope_accounting_closes": sum(
+                candidate_scope_counts.values()
+            )
+            == len(rows),
+            "missing_candidate_provenance_defaults_to_expression_only": True,
         },
     }
 
