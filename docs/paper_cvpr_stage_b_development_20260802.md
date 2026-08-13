@@ -1,13 +1,14 @@
 # PIVOT Stage-B CVPR Development Ledger
 
 Date: 2026-08-02
+Last updated: 2026-08-14
 
 ## Purpose and status
 
 This is the current development ledger for the single-network PIVOT Stage-B
 paper system. It connects the paper claims to the implemented score consumers,
 training contracts, checkpoint lineage, strict evaluation evidence, negative
-results, and the next preregistered experiment.
+results, and the registered experiment sequence.
 
 The current headline status is:
 
@@ -21,9 +22,9 @@ The current headline status is:
 - the final gap-3 receipt proves higher Ref `Acc@0.5` on all eight official
   splits and lower FPR95 on both strict1607 and strict2031 than the fixed B58
   GroundingDINO Stage-B data-FT baseline; and
-- the dense-duty V55--V62 line is retained as a controlled no-teacher
-  development/negative-ablation series. V62 was the final no-teacher capacity
-  experiment and did not enter formal U4412 training.
+- the dense-duty V55--V62 line and the explicitly authorized post-V62
+  candidate-complete C1/C2 probes are retained as controlled no-teacher
+  development/negative-ablation evidence. None entered formal U4412 training.
 
 The repository contains source, configuration, audit, controller, and test
 contracts. Model weights and `outputs/` are intentionally not committed. The
@@ -35,7 +36,7 @@ Evidence in this ledger is tagged by use:
 | Tier | Meaning | Current examples |
 | --- | --- | --- |
 | sealed formal | checkpoint, source, manifest, and per-example records are durably bound | U2 B56/U100 final gap-3 system |
-| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | dense-duty V45-V62 U400 strict1607 reports |
+| diagnostic only | useful controlled screen, explicitly ineligible as a headline result | dense-duty V45-V62 and candidate-complete C1/C2 U400 strict1607 reports |
 | historical non-durable | recorded measurements whose complete final artifact closure no longer exists | July P750/R100/P50 composition |
 | hypothesis | interpretation that still requires an isolating intervention | shared-trunk local-auxiliary conflict |
 
@@ -129,9 +130,12 @@ uses the traceable edit roles:
 | traceably changed word | positive source word | negative edited word |
 | padding/punctuation/non-word | ignored | ignored |
 
-The supervision is also target-query scoped. It is not an all-query blanket
-negative objective. This lets the token-veto head learn which textual
-condition failed without teaching all unchanged words to be absent.
+The direct token supervision is also target-query scoped. It is not an
+all-query blanket negative objective. This lets the token-veto head learn which
+textual condition failed without teaching all unchanged words to be absent.
+The post-V62 C1/C2 probes add exact deployed-candidate *depth* supervision, not
+all-candidate token labels; this distinction is required by their provenance
+receipt and does not weaken the paper claim here.
 
 ## Why rank and confidence must be different scores
 
@@ -260,11 +264,96 @@ a new paired comparison produced by that report.
 | V53 | full-expression global absolute pool with inherited carrier | 874 | 0.543871 | fail |
 | V54 | exact frozen-rank residual reference | 884 | 0.550093 | fail |
 | V55 | independent pool-only absolute confidence | 852 | 0.530180 | fail |
+| V51-L2 | V51 + private rank-decoder last-two-layer adaptation | 837 | 0.520846 | fail |
 
 V55 improves over V53 and V54 and is 26 false accepts behind the best dense-duty
 U400 row, V51. None of these rows beats the controller's preregistered reference
 count. Selecting a row because it is best within this failed set would not
 satisfy the paper gate.
+
+## V51 decoder-unfreeze controlled experiment (2026-08-13)
+
+This experiment tested whether the gap between dense-duty V51 and the C100
+system could be explained primarily by insufficiently adapted scoring
+features. It did **not** unfreeze the original Stage-A decoder, because V51's
+confidence branch consumes the private rank tower. Unfreezing the Stage-A
+decoder would therefore have had no confidence-loss gradient. The controlled
+change instead:
+
+- retained the complete V51 data, objective, head, seed, U6551 rank source,
+  batch construction, U400 budget, and strict1607 manifest;
+- removed the confidence stop-gradient only for the private rank-tower feature
+  graph;
+- unfroze exactly decoder layers 4 and 5 (56 tensors, 3,619,072 parameters),
+  leaving the first four decoder layers, fusion/text encoder, visual encoder,
+  Stage-A path, and patch path frozen;
+- assigned the decoder suffix a separate `2e-6` learning rate, versus `2e-5`
+  for the V51 head; and
+- clipped token-veto, deployed-router, global-absolute, and decoder-adaptation
+  owners independently at norm 0.1, so a large head gradient could not consume
+  the decoder's clipping budget.
+
+The resulting active surface was exactly 4,155,806 parameters. All 400
+optimizer steps succeeded with zero AMP skips and zero non-finite gradient
+boundaries. All 56 decoder tensors were live; decoder pre-clip norm reached
+3.9765 and was independently clipped. The rank-tower SHA changed from the
+U6551 source `e03219d5...` to `7ece52fa...`, proving that the adaptation was
+effective rather than nominal.
+
+| system | false accepts | FPR95 | FPR90 | pair win | q05 positive threshold |
+|---|---:|---:|---:|---:|---:|
+| V51 frozen rank tower | 825 / 1607 | 0.513379 | 0.421282 | 0.856876 | 0.438665 |
+| V51-L2 decoder adaptation | 837 / 1607 | 0.520846 | 0.408836 | 0.853143 | 0.433463 |
+| C100 target | 730 / 1607 | 0.454263 | n/a | n/a | n/a |
+
+V51-L2 therefore regressed by 12 false accepts (`+0.007467` FPR95) relative to
+V51 and remained 107 false accepts above C100. It raised both mean positive
+score (`0.626411 -> 0.642899`) and mean TN score (`0.468082 -> 0.472082`), while
+the deployed positive q05 threshold fell. Extra decoder capacity improved
+neither the required cross-sample tail ordering nor same-pair separation.
+
+The conclusion is deliberately narrow: under V51's no-teacher objective, U400
+budget, two-layer suffix, 0.1x learning rate, and independent clipping,
+additional rank-decoder adaptation is not sufficient to reproduce C100. This
+does not prove that every unfreeze schedule must fail. It does show that
+"unfreeze more scoring layers" alone is not an evidence-backed explanation of
+C100. C100's advantage is more consistent with its B58 data-finetuned trunk
+having already learned the task distribution under full main-path training,
+plus its later role-separated adapters, than with trainable parameter count by
+itself.
+
+The resulting architecture claim must also remain module-specific. Historical
+B58 starts from the Stage-A `checkpoint0001.pth`; its saved configuration has
+`freeze_keywords=['bert']`, `backbone_freeze_keywords=None`, and no
+`only_train_keywords` restriction. Thus BERT was frozen, while the visual
+backbone, main transformer encoder/decoder, and detector heads were available
+to the Stage-B data-FT objective. This supports the empirical claim that a
+score consumer needs an upstream representation already adapted broadly enough
+to the Stage-B positive/TN distribution. It does **not** establish that every
+backbone and encoder/decoder block must be unfrozen, nor identify which one is
+individually necessary. V51-L2 only excludes a much narrower alternative:
+adapting the private rank tower's final two decoder layers for U400 cannot
+substitute for B58's broad main-path Stage-B training. A component-level
+necessity claim would require controlled B58 ablations that freeze the visual
+backbone, encoder, and decoder separately from the same Stage-A initialization,
+data order, update budget, and objective.
+
+Durable artifacts:
+
+```text
+config/ablations/
+  cfg_stageb_dense_duty_confidence_adapter_candidate_split_independent_
+  deployed_router_rank_decoder_l2_probe_u0400_20260813.py
+
+outputs/paper_cvpr_v1/
+  dense_duty_adapter_candidate_split_independent_deployed_router_rank_
+  decoder_l2_20260813/probe/u000400_fresh/checkpoint_iter.pth
+  SHA-256: 89b7dbbf0eaa0d2234ffee4065f257c44c806824f088e8255583e3e62784fae4
+
+outputs/paper_cvpr_v1/
+  dense_duty_adapter_candidate_split_independent_deployed_router_rank_
+  decoder_l2_20260813/probe_evaluation/u000400_strict1607/summary.json
+```
 
 ## V55 architecture contract
 
@@ -1128,10 +1217,9 @@ existential negative coverage.
 Directly adding patch maximum evidence to the global logit was also rejected:
 offline replay increased false accepts to 1142--1504 across the tested scales.
 Patch evidence is therefore used only to select and weight plausible object
-candidates in the final no-teacher experiment, never as another signed
-absolute score.
+candidates in the V62 experiment, never as another signed absolute score.
 
-## V62 final no-teacher experiment: patch-softmin veto-only
+## V62 patch-softmin veto-only experiment
 
 V62 removes the compensating AbsoluteConfidencePool from both the deployed
 score and the optimizer surface. It retains the frozen U6551 rank tower and the
@@ -1158,16 +1246,18 @@ schema v27 requires the fresh U6551 verifier copy, the same exact U0 token
 entailment as rank, zero veto output, zero pool output, and
 `patch_softmin_veto_only=True`.
 
-V62 is preregistered as the final large no-teacher structural experiment. Its
-U400 run preserves the V61 data, update count, loss weights, tail queue,
-positive-q05 objective, batch semantics, and strict1607 threshold. The only
-causal change is removal of the deployable/trainable pool coordinate and its
-replacement by patch-weighted existential aggregation. Formal U4412 training
-is allowed only if the terminal health audit is valid and strict1607 has at
-most 800 integer-replayed false accepts. Failure ends the no-teacher structure
-search rather than triggering an unregistered V63.
+At launch, V62 was preregistered as the final large no-teacher structural
+experiment. Its U400 run preserves the V61 data, update count, loss weights,
+tail queue, positive-q05 objective, batch semantics, and strict1607 threshold.
+The only causal change is removal of the deployable/trainable pool coordinate
+and its replacement by patch-weighted existential aggregation. Formal U4412
+training is allowed only if the terminal health audit is valid and strict1607
+has at most 800 integer-replayed false accepts. The original stop rule forbade
+an unregistered V63. It was later superseded by explicit authorization for two
+narrow, registered post-V62 mechanism probes, C1 and C2 below; that
+authorization did not promote either probe to formal-paper evidence.
 
-### V62 terminal result: valid non-win and no formal promotion
+### V62 U400 result: valid non-win and no formal promotion
 
 The V62 U400 run completed at epoch 1 / next iteration 712 with checkpoint
 SHA-256 `513bb2db2570e4c6553eb878bc72e0889e0b0cc9908aaf7135f23da23ea73a02`.
@@ -1193,8 +1283,8 @@ is identically zero and `global_logit = -veto_depth` exactly. Instead, the
 one-sided existential readout developed a large zero-depth plateau. Aggregated
 depth was exactly zero for 89.0% of positives, which is desirable for positive
 trust, but also for 43.6% of TNs. Those TNs receive the maximum possible score
-of 0.5 after sigmoid: 701 TN records were at 0.5, and approximately 700 of the
-882 false accepts came from this zero-depth set. At the 95%-TPR threshold
+of 0.5 after sigmoid: 700 TN records were at 0.5, and those zero-depth records
+accounted for most of the 882 false accepts. At the 95%-TPR threshold
 0.469264, an additional 182 shallow-depth TNs were accepted.
 
 This falsifies the strong V62 premise under the fixed no-teacher objectives:
@@ -1203,15 +1293,167 @@ token/raw-veto/TN-tail losses do not make every patch-plausible candidate carry
 positive veto depth. With an existential soft-min, one unvetoed candidate is
 enough to return the maximum confidence. Increasing verifier capacity from the
 light adapter to a rank-cloned six-layer tower did not solve that coverage
-problem. Per preregistration, no V63 no-teacher architecture is launched; the
-result and checkpoint are retained as the terminal no-teacher capacity/owner
-ablation.
+problem. Under the original preregistration this would have closed the
+no-teacher search. The subsequent explicitly authorized C1/C2 probes isolate
+candidate coverage and token-to-depth binding rather than opening an
+unregistered broad architecture sweep. V62 remains the capacity/owner
+ablation that motivates those two interventions.
+
+## Post-V62 candidate-complete mechanism probes
+
+The probe labels C1/C2 in this section are experiment-stage labels, not the
+paper-contribution C1/C2 headings above.
+
+V62 exposed two concrete breaks between trace supervision and the deployed
+existential score:
+
+1. changed-token BCE covered target-IoU queries (plus at most a limited carrier
+   query), while inference admitted the exact category-gated Patch Top-50; and
+2. the supervised verifier token logits did not monotonically determine the
+   deployed per-query veto depth, so a free veto head could remain shallow even
+   when token trace predictions were correct.
+
+The post-V62 probes keep the frozen rank tower, patch Top-50 selection and
+weights, patch-weighted existential softmin, data view, U400 budget, and
+strict1607 gate fixed. Both reuse the inference-produced exact deployed
+candidate mask for negative expression-depth objectives. They add an
+all-candidate margin and a shallowest-candidate escape loss for TNs, while the
+positive protection remains existential over target-IoU queries: at least one
+correctly localized positive query must stay shallow.
+
+### Provenance boundary
+
+The bound receipt contains 14,196 rows, of which 13,890 are direct-trace valid.
+Its scope counts are exact:
+
+| trace scope | rows |
+|---|---:|
+| `EXPRESSION_ONLY` | 14,196 |
+| `GLOBAL_WORD_ABSENT` | 0 |
+| `CANDIDATE_VERIFIED` | 0 |
+
+Consequently, neither C1 nor C2 may broadcast the edited word as a negative
+token label over all Patch Top-50 queries. A phrase can be globally false even
+when its edited word occurs elsewhere in the image, and relationship, spatial,
+or counting edits require candidate-specific review. The 13,890 valid direct
+traces retain their permitted direct token objective; the exact Top-50 mask is
+used only for expression-level per-query depth and escape supervision.
+
+In this ledger, **candidate-complete** therefore means exact deployed-candidate
+*depth supervision*. It does not mean candidate-complete token labels,
+candidate-verified changed-word absence, or image-global TN verification. Any
+paper wording that collapses those scopes would overstate the available data.
+
+### Probe C1: coverage intervention with the free depth head retained
+
+C1 exposes per-query depth for the exact deployed mask and adds the
+all-candidate/escape objectives while deliberately retaining the independent
+free veto-depth head. It asks the narrow question: does supervising every
+candidate consumed by the existential readout remove V62's zero-depth escape
+plateau, before changing how token entailment produces depth?
+
+The U400 checkpoint is:
+
+```text
+outputs/paper_cvpr_v1/dense_duty_candidate_complete_trace_20260803/
+  c1_free_head_coverage/probe/u000400_fresh/checkpoint_iter.pth
+SHA-256:
+  8679601ecf4e5d5d4e7faada283d90cdb34d0cc3505d4363e0f317fbf4ba8cfb
+```
+
+Its terminal health audit passed. The strict1607 replay was valid but worsened
+to 910 false accepts, FPR95 0.5662725576, at positive-q05 threshold
+0.34633559. Same-pair win/tie rates were 0.801493/0.089608. TN exact-zero
+aggregated depth fell from V62's 700/1607 (43.56%) to 158/1607 (9.83%), so the
+coverage intervention substantially reduced the escape plateau. However,
+positive depth q95 rose to 0.632516, collapsing the positive low-tail threshold
+and admitting more TNs. Coverage was a real failure mode, but correcting it
+alone was insufficient for cross-sample absolute calibration.
+
+### Probe C2: monotone token-entailment depth binding
+
+C2 removes the free-head bypass. It initializes a full 256-d confidence
+verifier from the U6551/R100 text-rank tower while keeping the original rank
+tower frozen. The deployed path is:
+
+```text
+exact category-gated Patch Top-50 and detached weights
+        +
+full verifier token entailment
+        |
+        v
+absolute non-canonical token mismatch
+        |
+        v  monotone, non-negative, non-cancellable
+per-query veto depth
+        |
+        v
+patch-weighted existential softmin -> global confidence = -depth
+```
+
+No free signed absolute score is present. Both raw-veto loss weights are
+exactly 0.0, so the dormant free head cannot bypass token mismatch. Migration
+schema v28 binds a single token owner with 356 tensors and 25,464,320 trainable
+parameters. The initial semantics come from the cloned rank token logits;
+training gradients remain confined to the independent confidence verifier and
+do not enter the frozen rank tower.
+
+The U400 checkpoint is:
+
+```text
+outputs/paper_cvpr_v1/dense_duty_candidate_complete_trace_20260803/
+  c2_monotone_token_entailment/probe/u000400_fresh/checkpoint_iter.pth
+SHA-256:
+  ecfa89f48c63d6ce3c1afb4cfcc34651df2cc302fb420a6024ecaa07f5f308c1
+```
+
+The terminal health audit passed 13/13 checks, including exact single-owner
+cardinality, frozen-state preservation, zero raw-veto loss weights, and the v28
+migration contract. Its strict1607 replay was also valid, but produced 934
+false accepts and FPR95 0.5812072184 at threshold 0.348734349. Same-pair
+win/tie rates were 0.847542/0.000000. The relevant replay distributions were:
+
+| statistic | value |
+|---|---:|
+| TN zero-depth records | 0 / 1607 |
+| positive zero-depth records | 0 |
+| TN depth q05 / q50 / q95 | 0.009273 / 0.502644 / 0.914335 |
+| positive depth q95 | 0.623812 |
+| positive score q05 | 0.348734 |
+| TN score q95 | 0.497638 |
+
+### Controlled comparison and conclusion
+
+| system | false accepts | FPR95 | threshold | pair win | pair tie |
+|---|---:|---:|---:|---:|---:|
+| GDINO Stage-B data-FT | 801 | 0.498444 | fixed replay | n/a | n/a |
+| formal probe admission | at most 800 | at most 0.497822 | n/a | n/a | n/a |
+| V62 patch-softmin veto-only | 882 | 0.548849 | 0.469264 | 0.546982 | 0.415059 |
+| C1 candidate-complete free head | 910 | 0.566273 | 0.346336 | 0.801493 | 0.089608 |
+| C2 candidate-complete monotone depth | 934 | 0.581207 | 0.348734 | 0.847542 | 0.000000 |
+
+C1 verifies that exact deployed-candidate depth coverage attacks the V62
+zero-depth escape mechanism. C2 further verifies that monotone token-to-depth
+binding can eliminate the free-head bypass and all exact-zero plateaus. The
+worse strict FPR95 nonetheless falsifies the stronger sufficiency hypothesis:
+under the current expression-only provenance and no-teacher losses,
+candidate-complete depth coverage plus monotone binding is not enough to learn
+the required cross-sample absolute ordering. High same-pair win rate does not
+repair the positive q05 tail; C2's TN score q95 remains far above the deployed
+positive q05 threshold.
+
+This negative result does not show that candidate-verified token supervision
+would fail, because the receipt contains no `CANDIDATE_VERIFIED` or
+`GLOBAL_WORD_ABSENT` rows. It shows that expression-level candidate depth
+extrapolation cannot be presented as a substitute for those labels. C1/C2 are
+strict1607 TN diagnostics only: no RefCOCO-family evaluation was run, so they
+support no claim about Ref `Acc@0.5` or AP.
 
 ## Final architecture selection after the no-teacher block
 
-The V62 result closes the no-teacher confidence search, but it does not leave
-the paper without a passing single-network system. The durable formal U2
-artifact was re-audited from current files after V62:
+The C2 result closes the explicitly authorized post-V62 no-teacher mechanism
+check, but it does not leave the paper without a passing single-network
+system. The durable formal U2 artifact remains the selected CVPR main system:
 
 ```text
 checkpoint:
@@ -1256,8 +1498,10 @@ The smallest Ref gains remain narrow (`+0.00137` on RefCOCO testB and
 must not imply a large universal improvement. The FPR reductions are much
 larger and consistent across both strict manifests.
 
-No additional teacher-distillation or V63 probe is launched after this audit.
-Doing so would replace an already trained and sealed passing system with an
-unvalidated student. U2 is the final CVPR main structure; dense-duty V62 is the
-terminal no-teacher negative ablation explaining why a learned absolute anchor
-is necessary under the available TN supervision.
+The later C1/C2 probes are diagnostic mechanism tests and do not replace the
+already trained, sealed, passing U2 system. Neither was promoted to formal
+training, and neither supplies Ref evidence. U2 remains the final CVPR main
+structure; the V62--C2 no-teacher sequence is retained as negative-ablation
+evidence that candidate coverage and token-to-depth binding are necessary but
+not sufficient for absolute FPR calibration under the available
+expression-only TN provenance.
