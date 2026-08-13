@@ -31,6 +31,8 @@ from util.path_compat import remap_legacy_path  # noqa: E402
 
 
 SCHEMA = "stageb-gdino-adapter-two-phase-probe-v1"
+PROBE_WORLD_SIZE = 2
+PROBE_PER_GPU_BATCH = 4
 RANK_MILESTONES = (50, 100, 250, 500, 1000, 2000, 5000)
 CONFIDENCE_MILESTONES = (50, 100, 250, 500)
 MILESTONES_BY_PHASE = {
@@ -54,6 +56,7 @@ PHASE_SPECS = {
         "optimizer_branch": "rank",
         "learning_rate": 3.0e-5,
         "confidence_objective_code": 0,
+        "confidence_objective": "detached_recent_q05_trust",
         "criterion_positive_trust_margin": 0.0,
         "criterion_positive_trust_weight": 0.0,
         "paired_margin_weight": 0.0,
@@ -96,6 +99,7 @@ PHASE_SPECS = {
         "optimizer_branch": "confidence",
         "learning_rate": 3.0e-4,
         "confidence_objective_code": 2,
+        "confidence_objective": "detached_recent_q05_trust",
         "criterion_positive_trust_margin": 0.02,
         "criterion_positive_trust_weight": 1.0,
         "paired_margin_weight": 0.25,
@@ -424,13 +428,13 @@ def validate_phase_static(phase: str) -> Dict[str, Any]:
         "patch_only": False,
         "stage_b": False,
         "enable_patch_branch": False,
-        "batch_size": 4,
+        "batch_size": PROBE_PER_GPU_BATCH,
         "epochs": 1,
         "skip_eval": True,
         "data_aug_hflip_prob": 0.0,
         "stage_b_gdino_gate_pool_temperature": 0.01,
         "stage_b_gdino_gate_topk": 3,
-        "stage_b_gdino_confidence_objective": "detached_recent_q05_trust",
+        "stage_b_gdino_confidence_objective": spec["confidence_objective"],
         "stage_b_gdino_fpr_temperature": 0.1,
         "stage_b_gdino_fpr_margin": 0.0,
         "stage_b_gdino_paired_margin": 0.05,
@@ -454,7 +458,7 @@ def validate_phase_static(phase: str) -> Dict[str, Any]:
             {
                 "stage_b_gdino_rank_weight": 0.0,
                 "stage_b_gdino_confidence_weight": 1.0,
-                "stage_b_gdino_paired_margin_weight": 0.25,
+                "stage_b_gdino_paired_margin_weight": spec["paired_margin_weight"],
                 "stage_b_gdino_gate_lr": 3.0e-4,
                 "stage_b_gdino_queue_size": spec["queue_size"],
                 "stage_b_gdino_queue_min_count": spec["queue_min_count"],
@@ -596,9 +600,11 @@ def _stable_preflight_payload(
     world_size: int,
     per_gpu_batch: int,
 ) -> Dict[str, Any]:
-    if world_size != 2 or per_gpu_batch != 4:
+    if world_size != PROBE_WORLD_SIZE or per_gpu_batch != PROBE_PER_GPU_BATCH:
         raise ProbeAuditError(
-            "adapter probes require two DDP ranks with per-GPU batch 4 (global batch 8)"
+            "adapter probe launch mismatch: expected "
+            f"world_size={PROBE_WORLD_SIZE}, per-GPU batch={PROBE_PER_GPU_BATCH} "
+            f"(global batch {PROBE_WORLD_SIZE * PROBE_PER_GPU_BATCH})"
         )
     static = validate_phase_static(phase)
     if phase == "rank":
@@ -671,9 +677,9 @@ def _cmd_static(args: argparse.Namespace) -> None:
         "milestones": {
             phase: list(MILESTONES_BY_PHASE[phase]) for phase in phases
         },
-        "world_size": 2,
-        "per_gpu_batch": 4,
-        "global_batch": 8,
+        "world_size": PROBE_WORLD_SIZE,
+        "per_gpu_batch": PROBE_PER_GPU_BATCH,
+        "global_batch": PROBE_WORLD_SIZE * PROBE_PER_GPU_BATCH,
         "phases": {phase: validate_phase_static(phase) for phase in phases},
     }
     if args.output:
@@ -711,6 +717,23 @@ def _cmd_phase_preflight(args: argparse.Namespace) -> None:
         raise ProbeAuditError(f"refusing to overwrite phase preflight: {output}")
     write_json(output, current)
     print(f"[OK] wrote {args.phase} phase preflight: {output}")
+
+
+def _cmd_validate_initial(args: argparse.Namespace) -> None:
+    """Validate phase inputs without writing a persistent preflight."""
+
+    initial_audit = resolve_path(args.initial_audit) if args.initial_audit else None
+    payload = _stable_preflight_payload(
+        phase=args.phase,
+        initial_checkpoint=resolve_path(args.initial_checkpoint),
+        initial_audit=initial_audit,
+        world_size=int(args.world_size),
+        per_gpu_batch=int(args.per_gpu_batch),
+    )
+    print(
+        "[OK] validated "
+        f"{args.phase} initial checkpoint: {payload['initial_checkpoint']['path']}"
+    )
 
 
 def _resolve_checkpoint_arg_path(value: Any) -> Path | None:
@@ -857,16 +880,21 @@ def _validate_training_checkpoint_common(
             raise ProbeAuditError(
                 f"{phase} checkpoint {key} mismatch: expected {expected}, got {observed}"
             )
+    launch = preflight.get("launch")
+    if not isinstance(launch, Mapping):
+        raise ProbeAuditError("phase preflight has no launch section")
+    expected_world_size = int(launch.get("world_size", -1))
+    expected_per_gpu_batch = int(launch.get("per_gpu_batch", -1))
     expected_args = {
-        "world_size": 2,
-        "batch_size": 4,
-        "distributed": True,
+        "world_size": expected_world_size,
+        "batch_size": expected_per_gpu_batch,
+        "distributed": expected_world_size > 1,
         "amp": True,
         "max_train_iters": expected_target,
         "data_aug_hflip_prob": 0.0,
         "stage_b_gdino_gate_pool_temperature": 0.01,
         "stage_b_gdino_gate_topk": 3,
-        "stage_b_gdino_confidence_objective": "detached_recent_q05_trust",
+        "stage_b_gdino_confidence_objective": spec["confidence_objective"],
         "stage_b_gdino_fpr_temperature": 0.1,
         "stage_b_gdino_fpr_margin": 0.0,
         "stage_b_gdino_paired_margin": 0.05,
@@ -1578,6 +1606,19 @@ def _build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--output", required=True)
     preflight.add_argument("--continue-run", action="store_true")
     preflight.set_defaults(func=_cmd_phase_preflight)
+
+    validate_initial = subparsers.add_parser(
+        "validate-initial",
+        help="Validate phase input lineage without writing a preflight",
+    )
+    validate_initial.add_argument(
+        "--phase", choices=("rank", "confidence"), required=True
+    )
+    validate_initial.add_argument("--initial-checkpoint", required=True)
+    validate_initial.add_argument("--initial-audit")
+    validate_initial.add_argument("--world-size", type=int, required=True)
+    validate_initial.add_argument("--per-gpu-batch", type=int, required=True)
+    validate_initial.set_defaults(func=_cmd_validate_initial)
 
     segment = subparsers.add_parser("segment-lineage")
     segment.add_argument("--phase", choices=("rank", "confidence"), required=True)

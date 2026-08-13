@@ -77,7 +77,11 @@ def _preflight(phase, base_hash, rank_hash=None, confidence_hash=None):
             "config": {"path": str((root / config).resolve())},
             "datasets": {"path": str((root / datasets).resolve())},
         },
-        "launch": {"global_batch": 8},
+        "launch": {
+            "world_size": 2,
+            "per_gpu_batch": 4,
+            "global_batch": 8,
+        },
     }
 
 

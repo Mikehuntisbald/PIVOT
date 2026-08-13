@@ -16,6 +16,7 @@ Options:
   --rank-audit PATH             Milestone audit for --rank-checkpoint
   --rank-selection N            Audited R milestone selected for C (default: 500)
   --rank-max-target N           Last R milestone to run (default: 500)
+  --confidence-max-target N     Last C milestone to run (default: 500)
   --output-root DIR             Probe output root
   --continue                    Continue an existing, audited output directory
   --dry-run                     Run static input audits and print commands only
@@ -24,7 +25,9 @@ Options:
   --prefetch-factor N           DataLoader prefetch factor (default: 1)
 
 Environment:
-  CUDA_VISIBLE_DEVICES          Two visible GPUs (default: 0,1)
+  CUDA_VISIBLE_DEVICES          Visible GPU(s) (default: 0 for world 1; 0,1 otherwise)
+  STAGEB_ADAPTER_WORLD_SIZE     Number of training processes (default: 2)
+  STAGEB_ADAPTER_PER_GPU_BATCH  Batch size per process (default: 4)
   RANK_MASTER_PORT              Rank phase DDP port (default: 29521)
   CONFIDENCE_MASTER_PORT        Confidence phase DDP port (default: 29522)
 EOF
@@ -44,12 +47,14 @@ NUM_WORKERS="${NUM_WORKERS:-4}"
 PREFETCH_FACTOR="${PREFETCH_FACTOR:-1}"
 RANK_MASTER_PORT="${RANK_MASTER_PORT:-29521}"
 CONFIDENCE_MASTER_PORT="${CONFIDENCE_MASTER_PORT:-29522}"
-WORLD_SIZE=2
-PER_GPU_BATCH=4
+WORLD_SIZE="${STAGEB_ADAPTER_WORLD_SIZE:-2}"
+PER_GPU_BATCH="${STAGEB_ADAPTER_PER_GPU_BATCH:-4}"
 ITER_CHECKPOINT_INTERVAL=50
 RANK_MILESTONES=(50 100 250 500 1000 2000 5000)
 CONFIDENCE_MILESTONES=(50 100 250 500)
-AUDITOR="tools/stageb_gdino_adapter_probe_audit.py"
+CONFIDENCE_MAX_TARGET=500
+AUDITOR="${STAGEB_ADAPTER_AUDITOR:-tools/stageb_gdino_adapter_probe_audit.py}"
+CONFIDENCE_CONFIG="${STAGEB_CONFIDENCE_CONFIG:-config/ablations/cfg_stageb_gdino_score_adapter_dataft.py}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -59,6 +64,7 @@ while [[ $# -gt 0 ]]; do
         --rank-audit) RANK_AUDIT="$2"; shift 2 ;;
         --rank-selection) RANK_SELECTION="$2"; shift 2 ;;
         --rank-max-target) RANK_MAX_TARGET="$2"; shift 2 ;;
+        --confidence-max-target) CONFIDENCE_MAX_TARGET="$2"; shift 2 ;;
         --output-root) OUTPUT_ROOT="$2"; shift 2 ;;
         --continue) CONTINUE_RUN=1; shift ;;
         --dry-run) DRY_RUN=1; shift ;;
@@ -82,6 +88,14 @@ case "${RANK_MAX_TARGET}" in
     50|100|250|500|1000|2000|5000) ;;
     *) echo "[FAIL] --rank-max-target must be 50, 100, 250, 500, 1000, 2000, or 5000" >&2; exit 2 ;;
 esac
+case "${CONFIDENCE_MAX_TARGET}" in
+    50|100|250|500) ;;
+    *) echo "[FAIL] --confidence-max-target must be 50, 100, 250, or 500" >&2; exit 2 ;;
+esac
+if [[ "${WORLD_SIZE}" -lt 1 || "${PER_GPU_BATCH}" -lt 1 ]]; then
+    echo "[FAIL] invalid adapter world-size/per-GPU batch settings" >&2
+    exit 2
+fi
 if [[ "${PHASE}" == "both" && -z "${RANK_CHECKPOINT}" && "${RANK_SELECTION}" -gt "${RANK_MAX_TARGET}" ]]; then
     echo "[FAIL] --phase both cannot select R${RANK_SELECTION} when --rank-max-target is ${RANK_MAX_TARGET}" >&2
     exit 2
@@ -104,7 +118,7 @@ phase_config() {
     if [[ "$1" == "rank" ]]; then
         printf '%s\n' "config/ablations/cfg_stageb_gdino_score_adapter_rank_three_ref.py"
     else
-        printf '%s\n' "config/ablations/cfg_stageb_gdino_score_adapter_dataft.py"
+        printf '%s\n' "${CONFIDENCE_CONFIG}"
     fi
 }
 
@@ -134,7 +148,11 @@ phase_milestones() {
             fi
         done
     else
-        printf '%s\n' "${CONFIDENCE_MILESTONES[@]}"
+        for target in "${CONFIDENCE_MILESTONES[@]}"; do
+            if [[ "${target}" -le "${CONFIDENCE_MAX_TARGET}" ]]; then
+                printf '%s\n' "${target}"
+            fi
+        done
     fi
 }
 
@@ -203,11 +221,19 @@ build_train_command() {
     config="$(phase_config "${phase}")"
     datasets="$(phase_datasets "${phase}")"
     port="$(phase_port "${phase}")"
+    local -a train_entry
+    if [[ "${WORLD_SIZE}" -eq 1 ]]; then
+        train_entry=("${PYTHON_BIN}" main.py)
+    else
+        train_entry=(
+            "${PYTHON_BIN}" -m torch.distributed.run
+            --nproc_per_node="${WORLD_SIZE}"
+            --master_port="${port}"
+            main.py
+        )
+    fi
     TRAIN_COMMAND=(
-        "${PYTHON_BIN}" -m torch.distributed.run
-        --nproc_per_node="${WORLD_SIZE}"
-        --master_port="${port}"
-        main.py
+        "${train_entry[@]}"
         -c "${config}"
         --datasets "${datasets}"
         --output_dir "${phase_dir}"
@@ -406,7 +432,11 @@ run_phase() {
         echo "[RUN] ${phase} target=${target} mode=${initialization_mode} source=${source_checkpoint}"
         print_command "${TRAIN_COMMAND[@]}"
 
-        export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1}"
+        local default_visible_devices="0,1"
+        if [[ "${WORLD_SIZE}" -eq 1 ]]; then
+            default_visible_devices="0"
+        fi
+        export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-${default_visible_devices}}"
         export DATA_ROOT="${DATA_ROOT:-/home/user/datasets/pivot_data}"
         export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
         export TOKENIZERS_PARALLELISM=false
@@ -434,7 +464,11 @@ run_phase() {
 }
 
 if [[ "${DRY_RUN}" == "1" ]]; then
-    "${PYTHON_BIN}" "${AUDITOR}" static --phase all >/dev/null
+    static_phase="${PHASE}"
+    if [[ "${PHASE}" == "both" ]]; then
+        static_phase="all"
+    fi
+    "${PYTHON_BIN}" "${AUDITOR}" static --phase "${static_phase}" >/dev/null
     echo "[OK] static adapter probe inputs passed"
     for requested_phase in rank confidence; do
         if [[ "${PHASE}" != "both" && "${PHASE}" != "${requested_phase}" ]]; then
@@ -442,8 +476,26 @@ if [[ "${DRY_RUN}" == "1" ]]; then
         fi
         if [[ "${requested_phase}" == "rank" ]]; then
             dry_initial="${BASELINE_CHECKPOINT}"
+            dry_audit=""
         else
             dry_initial="${RANK_CHECKPOINT:-${OUTPUT_ROOT}/rank/milestones/checkpoint_iter_$(printf '%06d' "${RANK_SELECTION}").pth}"
+            dry_audit="${RANK_AUDIT}"
+        fi
+        if [[ -f "${dry_initial}" && ( "${requested_phase}" == "rank" || -f "${dry_audit}" ) ]]; then
+            validate_initial=(
+                "${PYTHON_BIN}" "${AUDITOR}" validate-initial
+                --phase "${requested_phase}"
+                --initial-checkpoint "${dry_initial}"
+                --world-size "${WORLD_SIZE}"
+                --per-gpu-batch "${PER_GPU_BATCH}"
+            )
+            if [[ -n "${dry_audit}" ]]; then
+                validate_initial+=(--initial-audit "${dry_audit}")
+            fi
+            "${validate_initial[@]}"
+        elif [[ "${requested_phase}" == "confidence" && -n "${RANK_CHECKPOINT}" ]]; then
+            echo "[FAIL] dry-run cannot validate explicit confidence initializer/audit" >&2
+            exit 2
         fi
         dry_phase_dir="${OUTPUT_ROOT}/${requested_phase}"
         dry_source="${dry_initial}"
