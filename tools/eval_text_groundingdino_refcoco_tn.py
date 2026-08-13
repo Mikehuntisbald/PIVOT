@@ -1015,6 +1015,16 @@ def _evaluation_summary_provenance(
                         ),
                     }
                 )
+    elif bool(getattr(cfg, "stage_b_gdino_score_adapter", False)):
+        provenance.update(
+            {
+                "ref_score_key": "stage_b_gdino_rank_score",
+                "tn_score_key": "stage_b_gdino_confidence_score",
+                "score_ownership": (
+                    "shared_frozen_gdino_trunk_independent_rank_confidence_adapters"
+                ),
+            }
+        )
     return provenance
 
 

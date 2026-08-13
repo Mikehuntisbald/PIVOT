@@ -71,12 +71,14 @@ def _write_jsonl(path: Path, rows):
     )
 
 
-def _two_phase_rank_milestone(root: Path, baseline: Path, checkpoint: Path) -> Path:
+def _two_phase_rank_milestone(
+    root: Path, baseline: Path, checkpoint: Path, *, schema: str = binding.TWO_PHASE_SCHEMA
+) -> Path:
     preflight = root / "rank.preflight.json"
     _write_json(
         preflight,
         {
-            "schema": binding.TWO_PHASE_SCHEMA,
+            "schema": schema,
             "kind": "phase_preflight",
             "phase": "rank",
             "initial_checkpoint": binding._file_record(baseline.resolve()),
@@ -86,7 +88,7 @@ def _two_phase_rank_milestone(root: Path, baseline: Path, checkpoint: Path) -> P
     _write_json(
         milestone,
         {
-            "schema": binding.TWO_PHASE_SCHEMA,
+            "schema": schema,
             "kind": "milestone_checkpoint",
             "phase": "rank",
             "checkpoint": binding._file_record(checkpoint.resolve()),
@@ -94,6 +96,55 @@ def _two_phase_rank_milestone(root: Path, baseline: Path, checkpoint: Path) -> P
         },
     )
     return milestone
+
+
+def _total_confidence_milestone_with_historical_rank(
+    root: Path, baseline: Path, rank_checkpoint: Path, candidate: Path
+) -> Path:
+    rank_preflight = root / "historical-rank.preflight.json"
+    _write_json(
+        rank_preflight,
+        {
+            "schema": binding.TWO_PHASE_SCHEMA,
+            "kind": "phase_preflight",
+            "phase": "rank",
+            "initial_checkpoint": binding._file_record(baseline.resolve()),
+        },
+    )
+    rank_milestone = root / "historical-rank.milestone.json"
+    _write_json(
+        rank_milestone,
+        {
+            "schema": binding.TWO_PHASE_SCHEMA,
+            "kind": "milestone_checkpoint",
+            "phase": "rank",
+            "checkpoint": binding._file_record(rank_checkpoint.resolve()),
+            "preflight": binding._file_record(rank_preflight.resolve()),
+        },
+    )
+    confidence_preflight = root / "total-confidence.preflight.json"
+    _write_json(
+        confidence_preflight,
+        {
+            "schema": binding.TOTAL_TRUST_SCHEMA,
+            "kind": "phase_preflight",
+            "phase": "confidence",
+            "initial_checkpoint": binding._file_record(rank_checkpoint.resolve()),
+            "initial_audit": binding._file_record(rank_milestone.resolve()),
+        },
+    )
+    confidence_milestone = root / "total-confidence.milestone.json"
+    _write_json(
+        confidence_milestone,
+        {
+            "schema": binding.TOTAL_TRUST_SCHEMA,
+            "kind": "milestone_checkpoint",
+            "phase": "confidence",
+            "checkpoint": binding._file_record(candidate.resolve()),
+            "preflight": binding._file_record(confidence_preflight.resolve()),
+        },
+    )
+    return confidence_milestone
 
 
 def _trusted_non_p0_lineage(
@@ -107,8 +158,10 @@ def _trusted_non_p0_lineage(
     if config is None:
         config = root / "candidate_config.py"
         config.write_text("stage_b_gdino_score_adapter = True\n", encoding="utf-8")
-    if schema == binding.TWO_PHASE_SCHEMA:
-        milestone = _two_phase_rank_milestone(root, baseline, candidate)
+    if schema in (binding.TWO_PHASE_SCHEMA, binding.TOTAL_TRUST_SCHEMA):
+        milestone = _two_phase_rank_milestone(
+            root, baseline, candidate, schema=schema
+        )
         payload = {
             "schema": schema,
             "kind": "evaluation_checkpoint_verified",
@@ -920,6 +973,7 @@ class FixedEvalSummaryBindingTest(unittest.TestCase):
         schemas = (
             binding.P0_SCHEMA,
             binding.TWO_PHASE_SCHEMA,
+            binding.TOTAL_TRUST_SCHEMA,
             binding.SEMANTIC_SCHEMA,
             binding.FIXED_TOP1_SCHEMA,
         )
@@ -956,10 +1010,95 @@ class FixedEvalSummaryBindingTest(unittest.TestCase):
                     binding._file_record(baseline.resolve()),
                 )
 
+    def test_total_trust_accepts_historical_rank_only_at_root(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            baseline = root / "baseline.pth"
+            rank_checkpoint = root / "rank.pth"
+            candidate = root / "candidate.pth"
+            baseline.write_bytes(b"authoritative baseline")
+            rank_checkpoint.write_bytes(b"rank checkpoint")
+            candidate.write_bytes(b"candidate")
+            milestone = _total_confidence_milestone_with_historical_rank(
+                root, baseline, rank_checkpoint, candidate
+            )
+            config = root / "candidate_config.py"
+            config.write_text("stage_b_gdino_score_adapter = True\n", encoding="utf-8")
+            lineage = root / "lineage.json"
+            _write_json(
+                lineage,
+                {
+                    "schema": binding.TOTAL_TRUST_SCHEMA,
+                    "kind": "evaluation_checkpoint_verified",
+                    "checkpoint": binding._file_record(candidate.resolve()),
+                    "config": binding._file_record(config.resolve()),
+                    "audit": binding._file_record(milestone.resolve()),
+                },
+            )
+            result = binding._audit_trusted_lineage(
+                lineage,
+                candidate_checkpoint=binding._file_record(candidate.resolve()),
+                expected_baseline_checkpoint=baseline,
+            )
+            self.assertTrue(result["pass"])
+            self.assertEqual(
+                result["root_authoritative_baseline_checkpoint"],
+                binding._file_record(baseline.resolve()),
+            )
+
+    def test_total_trust_rejects_historical_schema_on_new_confidence_node(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            baseline = root / "baseline.pth"
+            candidate = root / "candidate.pth"
+            baseline.write_bytes(b"baseline")
+            candidate.write_bytes(b"candidate")
+            preflight = root / "historical-confidence.preflight.json"
+            _write_json(
+                preflight,
+                {
+                    "schema": binding.TWO_PHASE_SCHEMA,
+                    "kind": "phase_preflight",
+                    "phase": "confidence",
+                    "initial_checkpoint": binding._file_record(baseline.resolve()),
+                },
+            )
+            milestone = root / "historical-confidence.milestone.json"
+            _write_json(
+                milestone,
+                {
+                    "schema": binding.TWO_PHASE_SCHEMA,
+                    "kind": "milestone_checkpoint",
+                    "phase": "confidence",
+                    "checkpoint": binding._file_record(candidate.resolve()),
+                    "preflight": binding._file_record(preflight.resolve()),
+                },
+            )
+            config = root / "candidate_config.py"
+            config.write_text("stage_b_gdino_score_adapter = True\n", encoding="utf-8")
+            lineage = root / "lineage.json"
+            _write_json(
+                lineage,
+                {
+                    "schema": binding.TOTAL_TRUST_SCHEMA,
+                    "kind": "evaluation_checkpoint_verified",
+                    "checkpoint": binding._file_record(candidate.resolve()),
+                    "config": binding._file_record(config.resolve()),
+                    "audit": binding._file_record(milestone.resolve()),
+                },
+            )
+            with self.assertRaises(binding.SummaryBindingError):
+                binding._audit_trusted_lineage(
+                    lineage,
+                    candidate_checkpoint=binding._file_record(candidate.resolve()),
+                    expected_baseline_checkpoint=baseline,
+                )
+
     def test_candidate_eval_config_must_match_all_supported_lineage_schemas(self):
         schemas = (
             binding.P0_SCHEMA,
             binding.TWO_PHASE_SCHEMA,
+            binding.TOTAL_TRUST_SCHEMA,
             binding.SEMANTIC_SCHEMA,
             binding.FIXED_TOP1_SCHEMA,
         )

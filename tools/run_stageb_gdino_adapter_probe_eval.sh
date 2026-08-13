@@ -14,7 +14,7 @@ Usage: tools/run_stageb_gdino_adapter_probe_eval.sh \
 Options:
   --baseline-checkpoint PATH  Fixed pure Stage-B data-FT checkpoint
   --checkpoint-audit PATH     Required trusted milestone audit for non-P0 candidates
-  --checkpoint-audit-kind K   auto|two-phase|semantic-confidence|fixed-top1-confidence
+  --checkpoint-audit-kind K   auto|two-phase|total-trust|semantic-confidence|fixed-top1-confidence
                               (default: auto)
   --output-root DIR           Evaluation output root
   --data-root DIR             Dataset root
@@ -53,7 +53,9 @@ FIXED_TOP1_AUDITOR_SHA256="b881a61004747c31f3cee03ac8d107a2506635affc6ad42f39ba5
 SEMANTIC_AUDITOR="tools/stageb_gdino_semantic_probe_audit.py"
 SEMANTIC_AUDITOR_SHA256="05a3e1b0806786d6caee2931a67713454505ade801703ad2f1f64801b83b9566"
 EVAL_SUMMARY_AUDITOR="tools/verify_stageb_fixed_eval_summary_binding.py"
-EVAL_SUMMARY_AUDITOR_SHA256="b7f396c3d8c2960a71018967a4c64b1eb60a5862518467a7246cfaa59831e44a"
+EVAL_SUMMARY_AUDITOR_SHA256="eefb1b21a477d16bfa06e347d95db63e355f1316f5b162a2ce768650a1765135"
+TOTAL_TRUST_AUDITOR="tools/stageb_gdino_adapter_total_trust_probe_audit.py"
+TOTAL_TRUST_AUDITOR_SHA256="2ad8454f79c2de845c5cf1e6f65b310ec0959e239c1ca9532c6e3a7df1056f3b"
 FIXED_TOP1_SELECTOR="tools/stageb_gdino_fixed_top1_selection.py"
 FIXED_TOP1_SELECTOR_SHA256="07d456e571fb8931c3fb62bf2a0003d918e43aceb194129cd60b5307c935f9d9"
 FPR_COMPARATOR="tools/compare_stageb_fpr95_records.py"
@@ -88,7 +90,7 @@ if [[ -z "${CHECKPOINT}" || -z "${LABEL}" ]]; then
     exit 2
 fi
 case "${CHECKPOINT_AUDIT_KIND}" in
-    auto|two-phase|semantic-confidence|fixed-top1-confidence) ;;
+    auto|two-phase|total-trust|semantic-confidence|fixed-top1-confidence) ;;
     *) echo "[FAIL] invalid --checkpoint-audit-kind: ${CHECKPOINT_AUDIT_KIND}" >&2; exit 2 ;;
 esac
 if [[ "${P0_PARITY}" != "1" && "${DRY_RUN}" != "1" && -z "${CHECKPOINT_AUDIT}" ]]; then
@@ -167,6 +169,17 @@ verify_semantic_auditor() {
     fi
 }
 
+verify_total_trust_auditor() {
+    local observed
+    observed="$("${PYTHON_BIN}" -c \
+        'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' \
+        "${TOTAL_TRUST_AUDITOR}")"
+    if [[ "${observed}" != "${TOTAL_TRUST_AUDITOR_SHA256}" ]]; then
+        echo "[FAIL] total-trust checkpoint auditor hash drifted" >&2
+        exit 2
+    fi
+}
+
 verify_eval_summary_auditor() {
     local observed
     observed="$("${PYTHON_BIN}" -c \
@@ -234,6 +247,7 @@ validate_candidate_lineage() {
     if [[ "${selected_kind}" == "auto" ]]; then
         case "${schema}" in
             stageb-gdino-adapter-two-phase-probe-v1) selected_kind="two-phase" ;;
+            stageb-gdino-adapter-total-trust-probe-v1) selected_kind="total-trust" ;;
             stageb-gdino-adapter-semantic-confidence-probe-v1) selected_kind="semantic-confidence" ;;
             stageb-gdino-adapter-fixed-top1-confidence-probe-v1) selected_kind="fixed-top1-confidence" ;;
             *) echo "[FAIL] unknown candidate checkpoint audit schema: ${schema}" >&2; exit 2 ;;
@@ -245,6 +259,17 @@ validate_candidate_lineage() {
             exit 2
         fi
         "${PYTHON_BIN}" tools/stageb_gdino_adapter_probe_audit.py verify-evaluation \
+            --checkpoint "${CHECKPOINT}" \
+            --audit "${CHECKPOINT_AUDIT}" \
+            --output "${lineage_output}"
+    elif [[ "${selected_kind}" == "total-trust" ]]; then
+        if [[ "${schema}" != "stageb-gdino-adapter-total-trust-probe-v1" ]]; then
+            echo "[FAIL] checkpoint audit kind/schema mismatch" >&2
+            exit 2
+        fi
+        verify_total_trust_auditor
+        CANDIDATE_REUSE_ALLOWED=0
+        "${PYTHON_BIN}" "${TOTAL_TRUST_AUDITOR}" verify-evaluation \
             --checkpoint "${CHECKPOINT}" \
             --audit "${CHECKPOINT_AUDIT}" \
             --output "${lineage_output}"
@@ -500,9 +525,21 @@ verify_fixed_top1_auditor
 verify_fixed_top1_acceptance_closure
 verify_eval_summary_auditor
 verify_semantic_auditor
+if [[ "${CHECKPOINT_AUDIT_KIND}" == "total-trust" ]]; then
+    verify_total_trust_auditor
+fi
 
 if [[ "${DRY_RUN}" == "1" ]]; then
-    "${PYTHON_BIN}" tools/stageb_gdino_adapter_probe_audit.py static \
+    STATIC_ADAPTER_AUDITOR="tools/stageb_gdino_adapter_probe_audit.py"
+    if [[ "${CHECKPOINT_AUDIT_KIND}" == "total-trust" ]]; then
+        STATIC_ADAPTER_AUDITOR="tools/stageb_gdino_adapter_total_trust_probe_audit.py"
+    elif [[ "${CHECKPOINT_AUDIT_KIND}" == "auto" && -f "${CHECKPOINT_AUDIT}" ]]; then
+        audit_schema="$(${PYTHON_BIN} -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get("schema", ""))' "${CHECKPOINT_AUDIT}")"
+        if [[ "${audit_schema}" == "stageb-gdino-adapter-total-trust-probe-v1" ]]; then
+            STATIC_ADAPTER_AUDITOR="tools/stageb_gdino_adapter_total_trust_probe_audit.py"
+        fi
+    fi
+    "${PYTHON_BIN}" "${STATIC_ADAPTER_AUDITOR}" static \
         --phase all >/dev/null
     "${PYTHON_BIN}" tools/stageb_fixed_protocol_audit.py static \
         --data_root "${DATA_ROOT_VALUE}" >/dev/null
@@ -516,6 +553,9 @@ from pathlib import Path
 
 audit = json.load(open(sys.argv[1], encoding="utf-8"))
 if audit.get("schema") == "stageb-gdino-adapter-two-phase-probe-v1":
+    preflight = json.load(open(audit["preflight"]["path"], encoding="utf-8"))
+    print(preflight["static"]["config"]["path"])
+elif audit.get("schema") == "stageb-gdino-adapter-total-trust-probe-v1":
     preflight = json.load(open(audit["preflight"]["path"], encoding="utf-8"))
     print(preflight["static"]["config"]["path"])
 elif audit.get("schema") == "stageb-gdino-adapter-semantic-confidence-probe-v1":

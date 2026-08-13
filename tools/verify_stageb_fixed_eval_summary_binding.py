@@ -51,8 +51,10 @@ TN_SOURCE_MANIFESTS = {
 
 P0_SCHEMA = "stageb-gdino-adapter-p0-v1"
 TWO_PHASE_SCHEMA = "stageb-gdino-adapter-two-phase-probe-v1"
+TOTAL_TRUST_SCHEMA = "stageb-gdino-adapter-total-trust-probe-v1"
 SEMANTIC_SCHEMA = "stageb-gdino-adapter-semantic-confidence-probe-v1"
 FIXED_TOP1_SCHEMA = "stageb-gdino-adapter-fixed-top1-confidence-probe-v1"
+ADAPTER_TWO_PHASE_SCHEMAS = {TWO_PHASE_SCHEMA, TOTAL_TRUST_SCHEMA}
 
 
 class SummaryBindingError(RuntimeError):
@@ -207,6 +209,8 @@ def _two_phase_root_baseline(
     milestone_value: Any,
     *,
     expected_checkpoint: Mapping[str, Any],
+    expected_schema: str | None = None,
+    allow_historical_rank_root: bool = False,
     visited: set[Path] | None = None,
 ) -> Dict[str, Any]:
     milestone_record = _current_file_identity(
@@ -220,9 +224,16 @@ def _two_phase_root_baseline(
     visited.add(milestone_path)
     try:
         milestone = _read_json(milestone_path, "two-phase milestone audit")
-        if milestone.get("schema") != TWO_PHASE_SCHEMA or milestone.get(
-            "kind"
-        ) != "milestone_checkpoint":
+        milestone_schema = milestone.get("schema")
+        schema_matches = milestone_schema in ADAPTER_TWO_PHASE_SCHEMAS
+        if expected_schema is not None:
+            schema_matches = milestone_schema == expected_schema
+            if allow_historical_rank_root and expected_schema == TOTAL_TRUST_SCHEMA:
+                schema_matches = milestone_schema in {
+                    TOTAL_TRUST_SCHEMA,
+                    TWO_PHASE_SCHEMA,
+                }
+        if not schema_matches or milestone.get("kind") != "milestone_checkpoint":
             raise SummaryBindingError("two-phase lineage has an invalid milestone audit")
         checkpoint = _current_file_identity(
             milestone.get("checkpoint"), "two-phase milestone checkpoint"
@@ -235,8 +246,28 @@ def _two_phase_root_baseline(
         )
         preflight = _read_json(Path(preflight_record["path"]), "two-phase preflight")
         phase = preflight.get("phase")
+        preflight_schema = preflight.get("schema")
+        historical_rank = (
+            allow_historical_rank_root
+            and expected_schema == TOTAL_TRUST_SCHEMA
+            and milestone_schema == TWO_PHASE_SCHEMA
+            and preflight_schema == TWO_PHASE_SCHEMA
+            and phase == "rank"
+        )
+        if expected_schema is None:
+            schema_pair_matches = (
+                milestone_schema in ADAPTER_TWO_PHASE_SCHEMAS
+                and preflight_schema == milestone_schema
+            )
+        else:
+            schema_pair_matches = (
+                milestone_schema == expected_schema
+                and preflight_schema == expected_schema
+            )
+            if historical_rank:
+                schema_pair_matches = True
         if (
-            preflight.get("schema") != TWO_PHASE_SCHEMA
+            not schema_pair_matches
             or preflight.get("kind") != "phase_preflight"
             or phase not in {"rank", "confidence"}
         ):
@@ -254,6 +285,8 @@ def _two_phase_root_baseline(
         return _two_phase_root_baseline(
             initial_audit,
             expected_checkpoint=initial_checkpoint,
+            expected_schema=expected_schema,
+            allow_historical_rank_root=allow_historical_rank_root,
             visited=visited,
         )
     finally:
@@ -345,12 +378,14 @@ def _audit_trusted_lineage(
         evaluation_config = _current_file_identity(
             audit.get("config"), "P0 evaluation config"
         )
-    elif schema == TWO_PHASE_SCHEMA:
+    elif schema in ADAPTER_TWO_PHASE_SCHEMAS:
         if kind != "evaluation_checkpoint_verified":
             raise SummaryBindingError("two-phase lineage output has the wrong kind")
         root_baseline = _two_phase_root_baseline(
             lineage.get("audit"),
             expected_checkpoint=candidate_checkpoint,
+            expected_schema=schema,
+            allow_historical_rank_root=(schema == TOTAL_TRUST_SCHEMA),
         )
         evaluation_config = _current_file_identity(
             lineage.get("config"), "two-phase evaluation config"

@@ -1,6 +1,7 @@
 import types
 import unittest
 import json
+import tempfile
 from pathlib import Path
 
 import torch
@@ -653,6 +654,34 @@ class StageBGDINOAdapterIntegrationTest(unittest.TestCase):
             ref_eval._slot_scores({}, adapter_cfg, 1.0)
         with self.assertRaisesRegex(KeyError, "confidence_score"):
             tn_eval._slot_scores({}, adapter_cfg, 1.0)
+
+    def test_joint_evaluator_records_adapter_score_ownership(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / "config.py"
+            checkpoint = root / "checkpoint.pth"
+            config.write_text(
+                "stage_b_gdino_score_adapter = True\n", encoding="utf-8"
+            )
+            checkpoint.write_bytes(b"checkpoint")
+            provenance = text_eval._evaluation_summary_provenance(
+                cfg=types.SimpleNamespace(stage_b_gdino_score_adapter=True),
+                args=types.SimpleNamespace(
+                    config=str(config), amp=True, device="cuda:0"
+                ),
+                checkpoint=checkpoint,
+                data_root=root,
+            )
+        self.assertEqual(
+            provenance["ref_score_key"], "stage_b_gdino_rank_score"
+        )
+        self.assertEqual(
+            provenance["tn_score_key"], "stage_b_gdino_confidence_score"
+        )
+        self.assertEqual(
+            provenance["score_ownership"],
+            "shared_frozen_gdino_trunk_independent_rank_confidence_adapters",
+        )
 
     def test_text_evaluator_audits_base_and_selects_requested_branch(self):
         logits = torch.tensor(
