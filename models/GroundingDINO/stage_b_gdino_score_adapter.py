@@ -42,6 +42,9 @@ GDINO_ADAPTER_TRAIN_MODE_CODES = {
 GDINO_CONFIDENCE_OBJECTIVE_CODES = {
     "queue_q05_st": 1,
     "detached_recent_q05_trust": 2,
+    # P3 protects the gate itself.  This variant protects the deployed
+    # image-global score, which is the quantity used by the FPR evaluator.
+    "detached_recent_q05_total_trust": 3,
 }
 
 
@@ -634,6 +637,7 @@ class DetachedRecentQ05TrustOutput:
     loss: Tensor
     negative_loss: Tensor
     positive_trust_loss: Tensor
+    positive_score_trust_loss: Tensor
     positive_threshold: Tensor
     current_positive_threshold: Tensor
     threshold_drift: Tensor
@@ -649,6 +653,7 @@ class DetachedRecentQ05TrustOutput:
     current_exact_tpr: Tensor
     current_exact_fpr: Tensor
     positive_trust_violation_rate: Tensor
+    positive_score_trust_violation_rate: Tensor
 
 
 def _validate_expression_gate(
@@ -685,6 +690,7 @@ def detached_recent_q05_trust_surrogate(
     positive_trust_weight: float = 1.0,
     paired_margin_weight: float = 0.0,
     paired_margin: float = 0.0,
+    positive_score_trust: bool = False,
 ) -> DetachedRecentQ05TrustOutput:
     """Optimize current TNs against a detached recent q05 and protect positives.
 
@@ -692,7 +698,10 @@ def detached_recent_q05_trust_surrogate(
     queue warmup, the exact current-global q05 is detached.  No straight-through
     gradient is attached to a current-batch order statistic.  A zero-valued
     global-mean positive-gate proxy carries only the common-translation gradient,
-    so lowering every positive and TN score cannot reduce this loss.
+    so lowering every positive and TN score cannot reduce this loss.  When
+    ``positive_score_trust`` is true, the positive protection is applied to
+    the final deployed image-global score instead of the auxiliary gate.  The
+    latter is the objective used by the total-trust confidence branch.
     """
 
     if float(temperature) <= 0.0:
@@ -703,6 +712,8 @@ def detached_recent_q05_trust_surrogate(
         raise ValueError("positive_trust_weight must be non-negative")
     if float(paired_margin_weight) < 0.0:
         raise ValueError("paired_margin_weight must be non-negative")
+    if not isinstance(positive_score_trust, bool):
+        raise TypeError("positive_score_trust must be a bool")
 
     local_positive_global = image_expression_global_max(
         positive_candidate_score,
@@ -774,21 +785,39 @@ def detached_recent_q05_trust_surrogate(
     bank_threshold = exact_tpr_operating_threshold(
         threshold_bank, target_tpr=float(target_tpr)
     ).detach()
-    positive_gate_translation = positive_gate_global.mean()
+    # The translation proxy must use the same score consumed by evaluation.
+    # P3 historically used the gate; total-trust uses the deployed global max.
+    positive_translation = (
+        positive_global.mean()
+        if positive_score_trust
+        else positive_gate_global.mean()
+    )
     surrogate_threshold = (
-        bank_threshold
-        + positive_gate_translation
-        - positive_gate_translation.detach()
+        bank_threshold + positive_translation - positive_translation.detach()
     )
 
     tau = float(temperature)
     negative_loss = tau * F.softplus(
         (negative_global - surrogate_threshold + float(margin)) / tau
     ).mean()
-    trust_violation = F.relu(
-        -float(positive_trust_margin) - positive_gate_global
-    )
+    if positive_score_trust:
+        # Keep the final positive q05 above a detached floor.  The tolerance
+        # mirrors P3's gate contract: a margin of 0.02 permits a small drop
+        # below the historical q05 while still supplying a tail gradient.
+        score_floor = bank_threshold - float(positive_trust_margin)
+        trust_violation = F.relu(score_floor - positive_global)
+        gate_violation_rate = positive_global.new_zeros(())
+    else:
+        trust_violation = F.relu(
+            -float(positive_trust_margin) - positive_gate_global
+        )
+        gate_violation_rate = (
+            positive_gate_global < -float(positive_trust_margin)
+        ).float().mean()
     positive_trust_loss = trust_violation.mean()
+    positive_score_trust_loss = (
+        positive_trust_loss if positive_score_trust else _graph_zero(positive_global)
+    )
     paired_loss = _graph_zero(negative_global)
     if float(paired_margin_weight) > 0.0:
         paired_loss = tau * F.softplus(
@@ -815,13 +844,20 @@ def detached_recent_q05_trust_surrogate(
         current_exact_fpr = (
             negative_global >= current_threshold
         ).float().mean()
-        violation_rate = (
-            positive_gate_global < -float(positive_trust_margin)
-        ).float().mean()
+        violation_rate = gate_violation_rate
+        score_violation_rate = (
+            (
+                positive_global
+                < (bank_threshold - float(positive_trust_margin))
+            ).float().mean()
+            if positive_score_trust
+            else positive_global.new_zeros(())
+        )
     return DetachedRecentQ05TrustOutput(
         loss=loss,
         negative_loss=negative_loss,
         positive_trust_loss=positive_trust_loss,
+        positive_score_trust_loss=positive_score_trust_loss,
         positive_threshold=bank_threshold,
         current_positive_threshold=current_threshold,
         threshold_drift=current_threshold - bank_threshold,
@@ -837,6 +873,7 @@ def detached_recent_q05_trust_surrogate(
         current_exact_tpr=current_exact_tpr,
         current_exact_fpr=current_exact_fpr,
         positive_trust_violation_rate=violation_rate,
+        positive_score_trust_violation_rate=score_violation_rate,
     )
 
 
@@ -1156,9 +1193,10 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
         self.fpr_margin = float(fpr_margin)
         self.paired_margin_weight = float(paired_margin_weight)
         self.paired_margin = float(paired_margin)
-        trust_enabled = (
-            self.confidence_objective == "detached_recent_q05_trust"
-        )
+        trust_enabled = self.confidence_objective in {
+            "detached_recent_q05_trust",
+            "detached_recent_q05_total_trust",
+        }
         if trust_enabled and float(positive_trust_margin) < 0.0:
             raise ValueError("positive_trust_margin must be non-negative")
         if trust_enabled and float(positive_trust_weight) < 0.0:
@@ -1171,12 +1209,9 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
         )
         self.queue_size = int(queue_size)
         self.queue_min_count = int(queue_min_count)
-        if (
-            self.confidence_objective == "detached_recent_q05_trust"
-            and (self.queue_size <= 0 or self.queue_min_count <= 0)
-        ):
+        if trust_enabled and (self.queue_size <= 0 or self.queue_min_count <= 0):
             raise ValueError(
-                "detached_recent_q05_trust requires a positive queue size and warmup"
+                "detached q05 trust objectives require a positive queue size and warmup"
             )
         self.weight_dict = {}
         if self.enable_rank:
@@ -1512,7 +1547,10 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                 positive_history = self._queue_values(self.fpr_positive_queue)
             positive_gate = None
             negative_gate = None
-            if self.confidence_objective == "detached_recent_q05_trust":
+            if self.confidence_objective in {
+                "detached_recent_q05_trust",
+                "detached_recent_q05_total_trust",
+            }:
                 positive_gate = outputs.get(
                     "stage_b_gdino_confidence_gate", None
                 )
@@ -1539,6 +1577,10 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                     positive_trust_weight=self.positive_trust_weight,
                     paired_margin_weight=self.paired_margin_weight,
                     paired_margin=self.paired_margin,
+                    positive_score_trust=(
+                        self.confidence_objective
+                        == "detached_recent_q05_total_trust"
+                    ),
                 )
             else:
                 fpr_output = fpr95_global_max_surrogate(
@@ -1566,6 +1608,11 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                     ),
                     "stage_b_gdino_confidence_trust_loss": (
                         fpr_output.positive_trust_loss.detach()
+                        if isinstance(fpr_output, DetachedRecentQ05TrustOutput)
+                        else fpr_output.negative_loss.detach().new_zeros(())
+                    ),
+                    "stage_b_gdino_confidence_positive_score_trust_loss": (
+                        fpr_output.positive_score_trust_loss.detach()
                         if isinstance(fpr_output, DetachedRecentQ05TrustOutput)
                         else fpr_output.negative_loss.detach().new_zeros(())
                     ),
@@ -1626,6 +1673,9 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                         ),
                         "stage_b_gdino_positive_trust_violation_rate": (
                             fpr_output.positive_trust_violation_rate.detach()
+                        ),
+                        "stage_b_gdino_positive_score_trust_violation_rate": (
+                            fpr_output.positive_score_trust_violation_rate.detach()
                         ),
                     }
                 )

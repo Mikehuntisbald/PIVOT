@@ -853,6 +853,94 @@ class StageBGDINOScoreLossTest(unittest.TestCase):
 
         self.assertAlmostEqual(float(common_bias.grad), 0.0, places=6)
 
+    def test_total_trust_binds_positive_protection_to_deployed_score(self):
+        positive_base = torch.tensor(
+            [[-4.0], [-3.0], [-2.0]], requires_grad=True
+        )
+        negative_base = torch.tensor(
+            [[0.6], [0.1], [-0.3]], requires_grad=True
+        )
+        positive_gate = torch.tensor(
+            [-0.01, -0.02, -0.03], requires_grad=True
+        )
+        negative_gate = torch.tensor([0.2, 0.1, -0.1], requires_grad=True)
+        positive = positive_base.detach() + positive_gate[:, None]
+        negative = negative_base.detach() + negative_gate[:, None]
+        result = detached_recent_q05_trust_surrogate(
+            positive,
+            negative,
+            positive_gate,
+            negative_gate,
+            positive_history=torch.tensor([0.5, 0.7]),
+            temperature=0.2,
+            positive_trust_margin=0.02,
+            positive_trust_weight=1.0,
+            paired_margin_weight=0.0,
+            positive_score_trust=True,
+        )
+        result.loss.backward()
+
+        # The deployed max is the only differentiable positive protection
+        # source.  The frozen base receives no gradient, while the confidence
+        # owner gets a non-zero positive-tail signal through the score itself.
+        self.assertIsNone(positive_base.grad)
+        self.assertTrue(bool((positive_gate.grad < 0).all().item()))
+        self.assertGreater(float(result.positive_score_trust_loss.detach()), 0.0)
+        self.assertEqual(
+            float(result.positive_trust_loss.detach()),
+            float(result.positive_score_trust_loss.detach()),
+        )
+        self.assertEqual(float(result.positive_trust_violation_rate), 0.0)
+        self.assertEqual(float(result.positive_score_trust_violation_rate), 1.0)
+
+    def test_total_trust_directly_differentiates_deployed_score_leaf(self):
+        positive_score = torch.tensor(
+            [[-1.0], [-1.5], [-2.0]], requires_grad=True
+        )
+        negative_score = torch.tensor(
+            [[0.6], [0.1], [-0.3]], requires_grad=True
+        )
+        positive_gate = torch.tensor(
+            [-0.01, -0.02, -0.03], requires_grad=True
+        )
+        negative_gate = torch.tensor([0.2, 0.1, -0.1], requires_grad=True)
+        result = detached_recent_q05_trust_surrogate(
+            positive_score,
+            negative_score,
+            positive_gate,
+            negative_gate,
+            positive_history=torch.tensor([0.5, 0.7]),
+            temperature=0.2,
+            positive_trust_margin=0.02,
+            positive_trust_weight=1.0,
+            paired_margin_weight=0.0,
+            positive_score_trust=True,
+        )
+        result.loss.backward()
+
+        self.assertGreater(float(positive_score.grad.abs().sum()), 0.0)
+        self.assertIsNone(positive_gate.grad)
+
+    def test_total_trust_common_translation_remains_zero(self):
+        common_bias = torch.tensor(0.0, requires_grad=True)
+        positive_base = torch.tensor([[0.4], [0.5], [0.6], [0.7]])
+        negative_base = torch.tensor([[0.2], [0.3], [0.55], [0.8]])
+        result = detached_recent_q05_trust_surrogate(
+            positive_base + common_bias,
+            negative_base + common_bias,
+            common_bias.expand(4),
+            common_bias.expand(4),
+            positive_history=torch.tensor([0.35, 0.45, 0.55, 0.65]),
+            temperature=0.1,
+            positive_trust_margin=0.02,
+            positive_trust_weight=1.0,
+            paired_margin_weight=0.25,
+            paired_margin=0.05,
+            positive_score_trust=True,
+        )
+        result.loss.backward()
+        self.assertAlmostEqual(float(common_bias.grad), 0.0, places=6)
+
     def test_two_rank_simulated_p3_gradient_matches_global_batch(self):
         positive_base = torch.tensor([0.30, 0.45, 0.25, 0.55])
         negative_base = torch.tensor([0.50, 0.10, 0.35, 0.20])

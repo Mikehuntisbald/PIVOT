@@ -498,6 +498,68 @@ class StageBGDINOAdapterIntegrationTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "missing.*confidence-objective"):
             criterion.load_state_dict(missing_mode, strict=True)
 
+    def test_total_trust_criterion_owns_deployed_positive_score(self):
+        criterion = StageBGDINOScoreAdapterCriterion(
+            tn_scope="benchmark_dataft_alltn",
+            train_mode="confidence_only",
+            confidence_objective="detached_recent_q05_total_trust",
+            positive_trust_margin=0.02,
+            positive_trust_weight=1.0,
+            queue_size=4,
+            queue_min_count=1,
+            paired_margin_weight=0.0,
+        )
+        criterion._pending_queue_payload = torch.tensor(
+            [[0.8, 0.0], [0.7, 0.0]]
+        )
+        criterion.commit_tail_queue(True)
+        positive_base = torch.tensor(
+            [[0.2, 0.1], [0.3, 0.0]], requires_grad=True
+        )
+        negative_base = torch.tensor(
+            [[0.6, 0.1], [0.5, 0.2]], requires_grad=True
+        )
+        positive_gate = torch.tensor([-0.01, -0.02], requires_grad=True)
+        negative_gate = torch.tensor([0.1, 0.05], requires_grad=True)
+        outputs = {
+            "stage_b_gdino_confidence_score": (
+                positive_base.detach() + positive_gate[:, None]
+            ),
+            "stage_b_gdino_confidence_gate": positive_gate,
+            "stage_b_gdino_tn_scope_code": torch.tensor([2, 2]),
+            "stage_b_gdino_tn_outputs": {
+                "stage_b_gdino_confidence_score": (
+                    negative_base.detach() + negative_gate[:, None]
+                ),
+                "stage_b_gdino_confidence_gate": negative_gate,
+            },
+        }
+        losses = criterion(outputs, [_target(), _target()])
+        losses["loss_stage_b_gdino_confidence"].backward()
+
+        self.assertEqual(int(criterion.criterion_confidence_objective_code), 3)
+        self.assertIn(
+            "stage_b_gdino_confidence_positive_score_trust_loss", losses
+        )
+        self.assertGreater(
+            float(losses["stage_b_gdino_confidence_positive_score_trust_loss"]),
+            0.0,
+        )
+        self.assertGreater(float(positive_gate.grad.abs().sum()), 0.0)
+        self.assertIsNone(positive_base.grad)
+        self.assertEqual(
+            float(losses["stage_b_gdino_positive_score_trust_violation_rate"]),
+            1.0,
+        )
+        restored = StageBGDINOScoreAdapterCriterion(
+            tn_scope="benchmark_dataft_alltn",
+            train_mode="confidence_only",
+            confidence_objective="detached_recent_q05_total_trust",
+            queue_size=4,
+            queue_min_count=1,
+        )
+        restored.load_state_dict(criterion.state_dict(), strict=True)
+
     def test_p3_queue_retains_only_recent_values(self):
         criterion = StageBGDINOScoreAdapterCriterion(
             tn_scope="benchmark_dataft_alltn",
