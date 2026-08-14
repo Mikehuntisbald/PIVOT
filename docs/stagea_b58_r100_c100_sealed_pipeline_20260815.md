@@ -77,6 +77,26 @@ queries. Since the Stage-A receipt separately proves the ordinary trunk is
 bitwise B58, Ref8 equality is an architectural consequence that the sealed
 replay must still verify from full per-example records.
 
+### CPU load preflight
+
+A CPU-only construction/load replay was run on 2026-08-15 with the exact
+Ref-safe R100 config and the completed epoch-0 Stage-A checkpoint (the final
+checkpoint has the same state-dict layout). It established the handoff before
+the automatic controller reaches R100:
+
+- all 938 shared ordinary-GDINO tensors had matching shapes and were bitwise
+  equal after loading;
+- the only 196 unexpected source tensors were the deliberately excluded
+  Stage-A patch branch;
+- the only 20 missing target tensors were the newly initialized score adapter;
+- the real `main.py` freeze audit left exactly the eight rank tensors trainable
+  (50,177 parameters), with the confidence tower and complete base frozen.
+
+The preflight ended with `R100_STAGEA_CPU_LOAD_PREFLIGHT=PASS`. This is an
+early compatibility proof, not a substitute for the final receipt: the R100
+launcher must still authenticate `checkpoint0007.pth` and repeat the complete
+Stage-A/trunk/update-count lineage audit.
+
 The launcher is:
 
 ```bash
