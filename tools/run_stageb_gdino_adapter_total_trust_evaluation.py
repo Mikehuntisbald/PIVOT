@@ -63,6 +63,13 @@ LINEAGE_EQUALITY_SCHEMA = (
 )
 TOTAL_TRUST_SCHEMA = "stageb-gdino-adapter-total-trust-probe-v1"
 LEGACY_RECEIPT_SCHEMA = "pivot.stageb.legacy_replay_receipt/v1"
+STAGEA_R100_RECEIPT_SCHEMA = "pivot.stagea_b58_r100_receipt/v1"
+LEGACY_R100_INITIALIZATION = (
+    "sealed_legacy_b58_r100_to_total_trust_confidence_pretrain_model_path"
+)
+STAGEA_R100_INITIALIZATION = (
+    "sealed_stagea_b58_patch_realign_r100_to_total_trust_confidence_pretrain_model_path"
+)
 TOTAL_AUDITOR = (
     REPO_ROOT / "tools/stageb_gdino_adapter_total_trust_probe_audit.py"
 )
@@ -229,36 +236,68 @@ def _validate_lineage_payload(
         milestone.get("preflight"), label="candidate phase preflight", cache=cache
     )
     preflight = _read_json(preflight_path, label="candidate phase preflight")
+    initialization = preflight.get("launch", {}).get("initialization")
     if (
         preflight.get("schema") != TOTAL_TRUST_SCHEMA
         or preflight.get("kind") != "phase_preflight"
         or preflight.get("phase") != "confidence"
-        or preflight.get("launch", {}).get("initialization")
-        != "sealed_legacy_b58_r100_to_total_trust_confidence_pretrain_model_path"
+        or initialization not in {LEGACY_R100_INITIALIZATION, STAGEA_R100_INITIALIZATION}
     ):
         raise TotalTrustEvaluationError(
-            "candidate preflight is not the sealed legacy-B58/R100 continuation"
+            "candidate preflight is not a supported sealed R100 continuation"
         )
     receipt_path = _validate_declared_file(
         preflight.get("initial_audit"),
-        label="legacy replay receipt",
+        label="sealed R100 receipt",
         cache=cache,
     )
-    receipt = _read_json(receipt_path, label="legacy replay receipt")
-    if receipt.get("schema") != LEGACY_RECEIPT_SCHEMA:
-        raise TotalTrustEvaluationError("candidate root is not the legacy replay receipt")
-    checkpoints = receipt.get("checkpoints")
-    if not isinstance(checkpoints, Mapping):
-        raise TotalTrustEvaluationError("legacy replay receipt has no checkpoints")
-    rank = checkpoints.get("rank_r100")
-    baseline = checkpoints.get("b58")
-    if not isinstance(rank, Mapping) or not isinstance(baseline, Mapping):
-        raise TotalTrustEvaluationError("legacy replay receipt lacks B58/R100 records")
-    rank_model = rank.get("model")
+    receipt = _read_json(receipt_path, label="sealed R100 receipt")
     candidate_record = payload.get("checkpoint")
-    if not isinstance(rank_model, Mapping) or not isinstance(candidate_record, Mapping):
+    if not isinstance(candidate_record, Mapping):
         raise TotalTrustEvaluationError("candidate/R100 tensor records are incomplete")
-    expected_rank_sha = rank_model.get("rank_tensor_sha256")
+    receipt_schema = receipt.get("schema")
+    root_stagea = None
+    if receipt_schema == LEGACY_RECEIPT_SCHEMA:
+        if initialization != LEGACY_R100_INITIALIZATION:
+            raise TotalTrustEvaluationError("legacy receipt uses the wrong initialization mode")
+        checkpoints = receipt.get("checkpoints")
+        if not isinstance(checkpoints, Mapping):
+            raise TotalTrustEvaluationError("legacy replay receipt has no checkpoints")
+        rank = checkpoints.get("rank_r100")
+        baseline = checkpoints.get("b58")
+        if not isinstance(rank, Mapping) or not isinstance(baseline, Mapping):
+            raise TotalTrustEvaluationError("legacy replay receipt lacks B58/R100 records")
+        rank_model = rank.get("model")
+        baseline_file = baseline.get("file")
+        if not isinstance(rank_model, Mapping) or not isinstance(baseline_file, Mapping):
+            raise TotalTrustEvaluationError("legacy replay receipt records are incomplete")
+        expected_rank_sha = rank_model.get("rank_tensor_sha256")
+    elif receipt_schema == STAGEA_R100_RECEIPT_SCHEMA:
+        if initialization != STAGEA_R100_INITIALIZATION:
+            raise TotalTrustEvaluationError("Stage-A receipt uses the wrong initialization mode")
+        from tools.build_stagea_b58_r100_receipt import (
+            StageAR100ReceiptError,
+            verify_receipt,
+        )
+
+        try:
+            verified_receipt = verify_receipt(receipt_path)
+        except (StageAR100ReceiptError, OSError, KeyError, TypeError) as error:
+            raise TotalTrustEvaluationError(
+                f"Stage-A/R100 receipt replay failed: {error}"
+            ) from error
+        if verified_receipt != receipt:
+            raise TotalTrustEvaluationError("Stage-A/R100 receipt replay changed its payload")
+        rank_model = receipt.get("rank_r100")
+        root_stagea = receipt.get("stagea")
+        if not isinstance(rank_model, Mapping) or not isinstance(root_stagea, Mapping):
+            raise TotalTrustEvaluationError("Stage-A/R100 receipt records are incomplete")
+        expected_rank_sha = rank_model.get("rank_tensor_sha256")
+        baseline_file = root_stagea.get("b58_source")
+        if not isinstance(baseline_file, Mapping):
+            raise TotalTrustEvaluationError("Stage-A/R100 receipt has no B58 source")
+    else:
+        raise TotalTrustEvaluationError(f"unsupported R100 receipt schema: {receipt_schema!r}")
     if (
         not isinstance(expected_rank_sha, str)
         or candidate_record.get("rank_sha256") != expected_rank_sha
@@ -266,9 +305,6 @@ def _validate_lineage_payload(
         raise TotalTrustEvaluationError(
             "candidate rank tensors are not bitwise-identical to sealed R100"
         )
-    baseline_file = baseline.get("file")
-    if not isinstance(baseline_file, Mapping):
-        raise TotalTrustEvaluationError("legacy replay receipt has no B58 file record")
     historical_b58 = dense._baseline_contract(cache)["checkpoint"]
     if not _same_file_record(
         baseline_file, _plain_file_record(historical_b58, cache)
@@ -284,6 +320,8 @@ def _validate_lineage_payload(
         "receipt_path": str(receipt_path),
         "r100_rank_sha256": expected_rank_sha,
         "rank_branch_unchanged_from_r100": True,
+        "lineage_root_schema": receipt_schema,
+        "root_stagea": dict(root_stagea) if isinstance(root_stagea, Mapping) else None,
         "root_historical_b58_checkpoint": dict(baseline_file),
     }
 
@@ -997,6 +1035,11 @@ def _postflight(
     all_ref_no_regression = all(
         row["no_regression"] for row in ref_comparison.values()
     )
+    stagea_lineage = (
+        plan.get("candidate_lineage", {}).get("lineage_root_schema")
+        == STAGEA_R100_RECEIPT_SCHEMA
+    )
+    all_stagea_sealed_gates = both_fpr_win and all_ref_no_regression
     comparison = {
         "schema": COMPARISON_SCHEMA,
         "baseline_id": dense.headline.BASELINE_ID,
@@ -1009,6 +1052,10 @@ def _postflight(
             "fpr95_goal_met": both_fpr_win,
             "all_ref8_splits_no_regression": all_ref_no_regression,
             "ref8_is_reported_not_an_fpr_acceptance_gate": True,
+            "stagea_r100_c100_requires_ref8_no_regression": stagea_lineage,
+            "stagea_r100_c100_all_sealed_gates_passed": (
+                all_stagea_sealed_gates if stagea_lineage else None
+            ),
             "rank_branch_unchanged_from_r100": True,
         },
     }
@@ -1031,8 +1078,19 @@ def _postflight(
     return {
         "schema": POSTFLIGHT_SCHEMA,
         "status": "passed",
-        "outcome": "fpr95_goal_met" if both_fpr_win else "fpr95_goal_not_met",
+        "outcome": (
+            "sealed_replay_goal_met"
+            if stagea_lineage and all_stagea_sealed_gates
+            else "sealed_replay_goal_not_met"
+            if stagea_lineage
+            else "fpr95_goal_met"
+            if both_fpr_win
+            else "fpr95_goal_not_met"
+        ),
         "fpr95_goal_met": both_fpr_win,
+        "stagea_r100_c100_all_sealed_gates_passed": (
+            all_stagea_sealed_gates if stagea_lineage else None
+        ),
         "validated_at_utc": paper._utc_now(),
         "evaluation_id": plan["evaluation_id"],
         "checkpoint": {

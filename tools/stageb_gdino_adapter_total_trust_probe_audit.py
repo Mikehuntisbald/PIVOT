@@ -24,6 +24,7 @@ from tools import stageb_gdino_adapter_probe_audit as _base
 _HISTORICAL_SCHEMA = _base.SCHEMA
 _HISTORICAL_PHASE_SPECS = copy.deepcopy(_base.PHASE_SPECS)
 _LEGACY_REPLAY_SCHEMA = "pivot.stageb.legacy_replay_receipt/v1"
+_STAGEA_R100_RECEIPT_SCHEMA = "pivot.stagea_b58_r100_receipt/v1"
 _LEGACY_REPLAY_RECEIPT_SHA256 = (
     "f8bd5104960eca19b90353168577a126a5577ea9aac511c6b0e3ab01b4bf2bfc"
 )
@@ -48,6 +49,9 @@ _LEGACY_R100_CONFIDENCE_SHA256 = (
 LEGACY_R100_INITIALIZATION = (
     "sealed_legacy_b58_r100_to_total_trust_confidence_pretrain_model_path"
 )
+STAGEA_R100_INITIALIZATION = (
+    "sealed_stagea_b58_patch_realign_r100_to_total_trust_confidence_pretrain_model_path"
+)
 _base.SCHEMA = "stageb-gdino-adapter-total-trust-probe-v1"
 _base.PROBE_WORLD_SIZE = 1
 _base.PROBE_PER_GPU_BATCH = 8
@@ -65,6 +69,7 @@ _base.PHASE_SPECS["confidence"].update(
 )
 _base.TRAIN_CODE_INCLUDE = tuple(_base.TRAIN_CODE_INCLUDE) + (
     "tools/build_stageb_legacy_replay_receipt.py",
+    "tools/build_stagea_b58_r100_receipt.py",
     "tools/stageb_gdino_adapter_total_trust_probe_audit.py",
 )
 _base.ORCHESTRATION_PATHS = tuple(_base.ORCHESTRATION_PATHS) + (
@@ -210,8 +215,66 @@ def _validate_legacy_r100_initial(initial_checkpoint, receipt_path, receipt):
     return record
 
 
+def _validate_stagea_r100_initial(initial_checkpoint, receipt_path):
+    from tools.build_stagea_b58_r100_receipt import (
+        StageAR100ReceiptError,
+        verify_receipt,
+    )
+
+    try:
+        receipt = verify_receipt(_base.resolve_path(receipt_path))
+    except (StageAR100ReceiptError, OSError, KeyError, TypeError) as error:
+        raise _base.ProbeAuditError(
+            f"Stage-A/R100 receipt verification failed: {error}"
+        ) from error
+    rank = receipt.get("rank_r100")
+    invariants = receipt.get("invariants")
+    if not isinstance(rank, dict) or not isinstance(invariants, dict):
+        raise _base.ProbeAuditError("Stage-A/R100 receipt is structurally incomplete")
+    required = (
+        "stagea_frozen_tensors_bitwise_equal_initializer",
+        "r100_base_bitwise_equal_stagea_nonpatch_trunk",
+        "stagea_patch_state_excluded_only_by_ordinary_gdino_architecture",
+        "r100_rank_trained_confidence_zero_initialized",
+        "r100_exactly_100_optimizer_updates",
+    )
+    if any(invariants.get(key) is not True for key in required):
+        raise _base.ProbeAuditError("Stage-A/R100 receipt invariants are incomplete")
+    checkpoint_file = rank.get("checkpoint")
+    if not isinstance(checkpoint_file, dict):
+        raise _base.ProbeAuditError("Stage-A/R100 receipt has no R100 checkpoint record")
+    initial_checkpoint = _base.resolve_path(initial_checkpoint)
+    if _base.resolve_path(checkpoint_file.get("path", "")) != initial_checkpoint:
+        raise _base.ProbeAuditError(
+            "confidence initializer is not the receipt-bound Stage-A R100"
+        )
+    if _base.file_record(initial_checkpoint) != checkpoint_file:
+        raise _base.ProbeAuditError("receipt-bound Stage-A R100 file identity drifted")
+    record = _base.checkpoint_record(initial_checkpoint)
+    expected = {
+        "iteration": 100,
+        "base_model_sha256": rank.get("base_tensor_sha256"),
+        "rank_sha256": rank.get("rank_tensor_sha256"),
+        "confidence_sha256": rank.get("confidence_tensor_sha256"),
+        "rank_final_zero": False,
+        "confidence_final_zero": True,
+    }
+    drift = {
+        key: (record.get(key), value)
+        for key, value in expected.items()
+        if record.get(key) != value
+    }
+    if drift:
+        raise _base.ProbeAuditError(
+            f"receipt-bound Stage-A R100 checkpoint drifted: {drift}"
+        )
+    return record
+
+
 def _validate_rank_initial_compat(initial_checkpoint, initial_audit):
     audit = _base.read_json(_base.resolve_path(initial_audit))
+    if audit.get("schema") == _STAGEA_R100_RECEIPT_SCHEMA:
+        return _validate_stagea_r100_initial(initial_checkpoint, initial_audit)
     if audit.get("schema") == _LEGACY_REPLAY_SCHEMA:
         return _validate_legacy_r100_initial(
             initial_checkpoint, initial_audit, audit
@@ -374,6 +437,8 @@ def _stable_preflight_payload_compat(**kwargs):
         audit = _base.read_json(_base.resolve_path(initial_audit))
         if audit.get("schema") == _LEGACY_REPLAY_SCHEMA:
             payload["launch"]["initialization"] = LEGACY_R100_INITIALIZATION
+        elif audit.get("schema") == _STAGEA_R100_RECEIPT_SCHEMA:
+            payload["launch"]["initialization"] = STAGEA_R100_INITIALIZATION
     return payload
 
 

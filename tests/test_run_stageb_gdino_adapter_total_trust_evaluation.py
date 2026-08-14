@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools import run_stageb_gdino_adapter_total_trust_evaluation as evaluator
+from tools import build_stagea_b58_r100_receipt as stagea_receipt
 
 
 def _record(path: Path, **extra):
@@ -136,6 +137,98 @@ class TotalTrustHistoricalB58EvaluationTest(unittest.TestCase):
                         audit=audit.resolve(),
                         cache=evaluator.paper.HashCache(),
                     )
+
+    def test_lineage_accepts_sealed_stagea_r100_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            checkpoint = root / "candidate.pth"
+            baseline = root / "b58.pth"
+            stagea = root / "stagea.pth"
+            rank = root / "r100.pth"
+            config = root / "config.py"
+            datasets = root / "datasets.json"
+            for path, contents in (
+                (checkpoint, b"candidate"),
+                (baseline, b"historical-b58"),
+                (stagea, b"stagea"),
+                (rank, b"r100"),
+            ):
+                path.write_bytes(contents)
+            config.write_text("stage_b_gdino_score_adapter = True\n", encoding="ascii")
+            datasets.write_text("{}\n", encoding="ascii")
+            rank_sha256 = "7" * 64
+            receipt_payload = {
+                "schema": evaluator.STAGEA_R100_RECEIPT_SCHEMA,
+                "stagea": {
+                    "checkpoint": _record(stagea),
+                    "b58_source": _record(baseline),
+                },
+                "rank_r100": {
+                    "checkpoint": _record(rank),
+                    "rank_tensor_sha256": rank_sha256,
+                },
+            }
+            receipt = root / "stagea_r100_receipt.json"
+            receipt.write_text(json.dumps(receipt_payload) + "\n", encoding="ascii")
+            preflight = root / "probe_preflight.json"
+            preflight.write_text(
+                json.dumps(
+                    {
+                        "schema": evaluator.TOTAL_TRUST_SCHEMA,
+                        "kind": "phase_preflight",
+                        "phase": "confidence",
+                        "launch": {"initialization": evaluator.STAGEA_R100_INITIALIZATION},
+                        "initial_audit": _record(receipt),
+                    }
+                )
+                + "\n",
+                encoding="ascii",
+            )
+            audit = root / "candidate.audit.json"
+            audit.write_text(
+                json.dumps(
+                    {
+                        "schema": evaluator.TOTAL_TRUST_SCHEMA,
+                        "kind": "milestone_checkpoint",
+                        "phase": "confidence",
+                        "iteration": 100,
+                        "preflight": _record(preflight),
+                    }
+                )
+                + "\n",
+                encoding="ascii",
+            )
+            payload = {
+                "schema": evaluator.TOTAL_TRUST_SCHEMA,
+                "kind": "evaluation_checkpoint_verified",
+                "phase": "confidence",
+                "iteration": 100,
+                "train_mode": "confidence_only",
+                "tn_scope": "benchmark_dataft_alltn",
+                "checkpoint": _record(checkpoint, rank_sha256=rank_sha256),
+                "audit": _record(audit),
+                "config": _record(config),
+                "datasets": _record(datasets),
+            }
+            with (
+                patch.object(
+                    evaluator.dense,
+                    "_baseline_contract",
+                    return_value={"checkpoint": baseline.resolve()},
+                ),
+                patch.object(stagea_receipt, "verify_receipt", return_value=receipt_payload),
+            ):
+                observed = evaluator._validate_lineage_payload(
+                    payload,
+                    checkpoint=checkpoint.resolve(),
+                    audit=audit.resolve(),
+                    cache=evaluator.paper.HashCache(),
+                )
+            self.assertEqual(
+                observed["lineage_root_schema"], evaluator.STAGEA_R100_RECEIPT_SCHEMA
+            )
+            self.assertEqual(observed["root_stagea"]["checkpoint"], _record(stagea))
+            self.assertTrue(observed["rank_branch_unchanged_from_r100"])
 
     def test_score_routes_use_rank_for_ref_and_confidence_for_tn(self):
         with tempfile.TemporaryDirectory() as temporary:

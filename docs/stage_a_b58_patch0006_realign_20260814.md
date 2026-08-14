@@ -148,3 +148,9 @@ fresh from the sealed initializer in
 the batch-40 checkpoint is retained for audit but is not resumed across the
 physical-batch change. Iteration checkpoints remain every 500 optimizer
 updates.
+
+The first batch-38 process was interrupted at update 160 by a full host reboot
+at 2026-08-15 00:52, not by a Python exception, AMP skip, or CUDA OOM. Its
+directory was preserved with suffix `_host_reboot_u0160`. The fresh formal run
+keeps batch 38 but writes an exact iteration checkpoint every 100 updates to
+limit recovery loss if the host restarts again.
