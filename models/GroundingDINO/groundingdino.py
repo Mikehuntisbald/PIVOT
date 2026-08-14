@@ -193,6 +193,7 @@ class GroundingDINO(nn.Module):
         self.stage_b_legacy_global_gate = None
         self.stage_b_legacy_global_gate_score_kwargs = {}
         self.stage_b_gdino_score_adapter = None
+        self.stage_b_gdino_ref_top1_guard = False
         self.stage_b_u0_patch_rank_adapter = None
         self.stage_b_u0_gate_aligned_rank_residual = None
         self.stage_b_u0_gate_aligned_patch_residual = None
@@ -1297,13 +1298,14 @@ class GroundingDINO(nn.Module):
                 "rank_residual"
             ]
             out["stage_b_gdino_rank_score"] = adapter_output["rank_score"]
-            out["stage_b_gdino_ref_safe_rank_score"] = (
-                b58_top1_anchored_rank_tail_score(
-                    adapter_output["base_score"],
-                    adapter_output["rank_score"],
-                    adapter_output["candidate_mask"],
+            if self.stage_b_gdino_ref_top1_guard:
+                out["stage_b_gdino_ref_safe_rank_score"] = (
+                    b58_top1_anchored_rank_tail_score(
+                        adapter_output["base_score"],
+                        adapter_output["rank_score"],
+                        adapter_output["candidate_mask"],
+                    )
                 )
-            )
             out["stage_b_gdino_confidence_gate"] = adapter_output[
                 "confidence_gate"
             ]
@@ -3076,6 +3078,19 @@ def build_groundingdino(args):
     stage_b_gdino_score_adapter = bool(
         getattr(args, "stage_b_gdino_score_adapter", False)
     )
+    stage_b_gdino_ref_top1_guard = bool(
+        getattr(args, "stage_b_gdino_ref_top1_guard", False)
+    )
+    if stage_b_gdino_ref_top1_guard:
+        if not stage_b_gdino_score_adapter:
+            raise ValueError(
+                "stage_b_gdino_ref_top1_guard requires the GDINO score adapter"
+            )
+        if (
+            getattr(args, "stage_b_gdino_ref_route_contract", None)
+            != "b58_top1_anchored_rank_tail_v1"
+        ):
+            raise ValueError("guarded GDINO Ref route contract drifted")
     stage_b_u0_patch_rank = bool(
         getattr(args, "stage_b_u0_patch_rank", False)
     )
@@ -3276,6 +3291,7 @@ def build_groundingdino(args):
         max_text_len=args.max_text_len,
     )
     model.stage_b_native_patch_category = stage_b_native_patch_category
+    model.stage_b_gdino_ref_top1_guard = stage_b_gdino_ref_top1_guard
 
     if stage_b_gdino_score_adapter:
         from .stage_b_gdino_score_adapter import StageBGDINOScoreAdapter
