@@ -133,6 +133,7 @@ def test_config_freezes_query_semantics_and_disables_dn_queries():
     assert cfg.patch_only is True
     assert cfg.patch_dn_num_queries == 0
     assert cfg.unfreeze_decoder_last_n_layers == 0
+    assert cfg.batch_size == 24
     assert cfg.only_train_keywords == [
         "patch_encoder.input_proj",
         "patch_encoder.norm",

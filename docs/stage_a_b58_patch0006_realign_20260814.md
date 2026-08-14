@@ -103,4 +103,25 @@ The checkpoint records `optimizer_updates=1` and
 `checkpoint_reason=max_train_iters`. A tensor-by-tensor pre/post audit found
 zero changes among all frozen tensors and changes in all 9 trainable patch
 tensors. This smoke is an execution check, not a quality measurement or a
-substitute for the formal batch-18 run.
+substitute for the then-current batch-18 run.
+
+## VRAM push
+
+The first formal batch-18 launch reached step 500 on the full support-patch
+surface, demonstrating batch 18 through that milestone. Because this
+revision backpropagates through only the 9 patch-owned tensors and does not keep
+decoder/encoder/backbone backward graphs, the formal physical batch is raised
+to 24 while keeping `lr=2e-5` unchanged. This isolates the memory/throughput
+change from learning-rate tuning.
+
+The launcher writes this revised run to
+`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs24_formal_20260814`
+by default, so it cannot mix checkpoints or logs with the earlier batch-18
+attempt.
+
+Batch 24 completed its first 20 CUDA updates on the target RTX 5090 with no AMP
+skip or OOM. Peak PyTorch allocation rose from 9.34 GiB on the first update to
+9.87 GiB by update 20; whole-card use was about 19.7/32.6 GiB including the
+resident ComfyUI process and CUDA caching. The run retains a batch-22 fallback
+for a later rare high-support spike, but the support-patch cap must not be
+reduced because that would change the Stage-A data contract.

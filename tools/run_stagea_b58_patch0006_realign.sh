@@ -8,7 +8,7 @@ PYTHON_BIN="$(stageb_resolve_python "${PYTHON_BIN:-}")"
 CONFIG="${REPO_ROOT}/config/ablations/cfg_stagea_b58_trunk_patch0006_realign_20260814.py"
 DATASETS="${REPO_ROOT}/config/datasets_patch_stage_a_lvis_coco2017_local.json"
 INITIALIZER="/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_20260814_initializer.pth"
-OUTPUT_DIR="${OUTPUT_DIR:-/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_20260814}"
+OUTPUT_DIR="${OUTPUT_DIR:-/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs24_formal_20260814}"
 CUDA_DEVICE="${CUDA_VISIBLE_DEVICES:-0}"
 
 cd "${REPO_ROOT}"
