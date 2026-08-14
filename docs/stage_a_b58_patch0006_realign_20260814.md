@@ -154,3 +154,14 @@ at 2026-08-15 00:52, not by a Python exception, AMP skip, or CUDA OOM. Its
 directory was preserved with suffix `_host_reboot_u0160`. The fresh formal run
 keeps batch 38 but writes an exact iteration checkpoint every 100 updates to
 limit recovery loss if the host restarts again.
+
+The next batch-38 attempt found a different fail-closed condition. After 4,000
+successful updates, the default GradScaler growth probe doubled the scale from
+131,072 to 262,144 and skipped one optimizer step. Its checkpoint therefore
+recorded `next_iter=4101` but `optimizer_updates=4100`, which can never satisfy
+the exact 45,608-update completion contract under a fixed eight-epoch schedule.
+That attempt was stopped and retained with suffix `_amp_growth_skip_u4060`.
+The replacement starts fresh from the sealed initializer with
+`amp_init_scale=65536` and `amp_growth_interval=1000000`; this keeps the proven
+safe scale fixed for the whole run and prevents periodic overflow probes from
+silently reducing the optimizer-update count.

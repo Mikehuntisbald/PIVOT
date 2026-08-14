@@ -30,9 +30,18 @@ skip, or CUDA OOM. That interrupted directory is retained as
 The fresh run uses an iteration-checkpoint interval of 100 so a later host
 restart cannot discard 500 updates.
 
+That run exposed one AMP overflow when the default GradScaler growth probe
+raised the scale from 131,072 to 262,144: at DataLoader iteration 4,101 the
+checkpoint recorded only 4,100 successful optimizer updates. Because the
+sealed Stage A contract requires one successful update for every one of the
+45,608 forwards, the run was stopped and retained with suffix
+`_amp_growth_skip_u4060`; its weights are not resumed. The replacement run
+starts from the initializer with scale 65,536 and growth interval 1,000,000,
+so no automatic scale probe occurs within the formal run.
+
 The Stage A completion contract expects `checkpoint0007.pth`, epoch 7 complete,
-45,608 successful optimizer updates, unchanged frozen tensors, and changes in
-all nine trainable patch tensors.
+45,608 successful optimizer updates, zero skipped AMP steps, unchanged frozen
+tensors, and changes in all nine trainable patch tensors.
 
 ## R100/C100 ownership
 
