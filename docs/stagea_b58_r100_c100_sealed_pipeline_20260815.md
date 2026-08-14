@@ -97,6 +97,27 @@ early compatibility proof, not a substitute for the final receipt: the R100
 launcher must still authenticate `checkpoint0007.pth` and repeat the complete
 Stage-A/trunk/update-count lineage audit.
 
+### Downstream data preflight
+
+The fixed R100/C100 inputs were re-audited before automatic handoff. Their row
+counts and SHA-256 identities match the two-phase audit contract: 120,624
+RefCOCO rows (`9578a59c...`), 120,191 RefCOCO+ rows (`015e6821...`), 80,512
+RefCOCOg rows (`cd4eda88...`), and 60,000 confidence pairs (`90bb0702...`). A
+full 381,327-row JSON/path replay found no missing image after legacy-path
+remapping. The confidence source also has the exact required row semantics on
+all 60,000 rows: `benchmark_dataft_alltn=true`, scope
+`benchmark_dataft_alltn`, `proposalset_proxy_verified=false`, and
+`global_tn_verified=false`. Its sidecar audit matches the fixed schema, row
+count, and output hash. The canonical-class file resolves under the launcher's
+default `/media/haoyi/T9/data` root and contains 2,048 entries.
+
+Operationally, do not run broad `find /media/haoyi/T9` or `rg --files` scans
+while this formal job is active. Such scans left reader processes traversing
+the exFAT volume and temporarily held Stage A in `exfat_get_block` after the
+u8400 checkpoint. Terminating only those scanner PIDs restored GPU execution;
+u8500 then completed with no skipped optimizer update. Subsequent monitoring
+uses explicit paths only.
+
 The launcher is:
 
 ```bash
