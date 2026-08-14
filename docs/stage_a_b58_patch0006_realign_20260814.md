@@ -111,8 +111,8 @@ The first formal batch-18 launch reached step 500 on the full support-patch
 surface, demonstrating batch 18 through that milestone. Because this
 revision backpropagates through only the 9 patch-owned tensors and does not keep
 decoder/encoder/backbone backward graphs, the physical batch was first raised
-to 24 and then validated at 40 while keeping `lr=2e-5` unchanged. This isolates
-the memory/throughput change from learning-rate tuning.
+to 24, probed at 40, and then set to 38 while keeping `lr=2e-5` unchanged. This
+isolates the memory/throughput change from learning-rate tuning.
 
 The batch-24 run was stopped cleanly after update 673 and retains its exact
 iteration checkpoint at
@@ -129,15 +129,22 @@ desktop/ComfyUI processes and CUDA caching.
 To move closer to the requested 30 GiB operating point, a full-data batch-40
 probe completed one optimizer update and saved
 `/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_vram_probe_bs40_u1_20260814/checkpoint_iter.pth`
-with `optimizer_updates=1` and `reason=max_train_iters`. Batch 40 is therefore
-the selected formal physical batch. The launcher now starts a fresh run from
-the sealed initializer in
-`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs40_formal_20260814`;
-it does not mix state with the batch-24 run. The full support-patch cap remains
-unchanged, because reducing it would change the Stage-A data contract.
+with `optimizer_updates=1` and `reason=max_train_iters`. This established that
+batch 40 could execute, but did not establish long-run stability. The full
+support-patch cap remains unchanged, because reducing it would change the
+Stage-A data contract.
 
-The fresh batch-40 formal launch reached update 31 without OOM or an AMP-skipped
-step. At that point the training process occupied 28,606 MiB and whole-card use
-was 30,452/32,607 MiB, leaving 1,657 MiB free; PyTorch reported `max mem=15366`
-MiB. This is the selected approximately-30-GiB operating point. Iteration
-checkpoints are written every 500 optimizer updates.
+The fresh batch-40 formal launch reached update 1191 with no AMP-skipped steps.
+Its observed whole-card use was about 30,452/32,607 MiB, leaving only about
+1,657 MiB free. It then exited while the NVIDIA driver was temporarily
+unavailable; the log contains no Python traceback or explicit CUDA OOM. The
+last exact interval checkpoint is preserved at update 1000 in
+`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs40_formal_20260814/checkpoint_iter.pth`.
+
+Because one-update success did not survive the longer run, batch 40 is rejected
+as the formal operating point. Batch 38 is the selected fallback and starts
+fresh from the sealed initializer in
+`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs38_formal_20260814`;
+the batch-40 checkpoint is retained for audit but is not resumed across the
+physical-batch change. Iteration checkpoints remain every 500 optimizer
+updates.

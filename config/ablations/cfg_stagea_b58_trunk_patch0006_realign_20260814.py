@@ -40,7 +40,7 @@ only_train_exclude_keywords = ["patch_encoder.backbone"]
 
 # The B58 box/query surface is already mature.  Use a smaller head-only rate
 # than historical Stage A and keep the original patch objective/data contract.
-batch_size = 40
+batch_size = 38
 lr = 2e-5
 lr_drop = 4
 epochs = 8
