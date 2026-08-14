@@ -89,3 +89,18 @@ because it intentionally has no optimizer/scheduler state.
 - model/backbone/decoder training flags after ownership setup: all frozen query
   producers are in evaluation mode;
 - focused tests: `5 passed`.
+
+A one-update runtime smoke also completed with `batch_size=1`, at most two
+support patches, and sanity rendering disabled. It exercised the real
+LVIS/COCO loaders, strict initializer validation, CUDA forward/backward, AMP,
+optimizer step, and interrupt-checkpoint write:
+
+`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_20260814_smoke_u1/checkpoint_iter.pth`
+
+Its SHA-256 is
+`fbdb35e2f0cbf91b64929c37e8e3db42e5336b757b8c312fa794ba5ed1ddbe23`.
+The checkpoint records `optimizer_updates=1` and
+`checkpoint_reason=max_train_iters`. A tensor-by-tensor pre/post audit found
+zero changes among all frozen tensors and changes in all 9 trainable patch
+tensors. This smoke is an execution check, not a quality measurement or a
+substitute for the formal batch-18 run.
