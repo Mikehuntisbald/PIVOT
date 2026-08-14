@@ -17,7 +17,7 @@ import torch
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-SCHEMA = "pivot.stagea_b58_r100_receipt/v2"
+SCHEMA = "pivot.stagea_b58_r100_receipt/v3"
 STAGEA_CONFIG = (
     REPO_ROOT
     / "config/ablations/cfg_stagea_b58_trunk_patch0006_realign_20260814.py"

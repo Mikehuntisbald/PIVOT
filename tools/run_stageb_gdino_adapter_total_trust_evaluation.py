@@ -63,7 +63,7 @@ LINEAGE_EQUALITY_SCHEMA = (
 )
 TOTAL_TRUST_SCHEMA = "stageb-gdino-adapter-total-trust-probe-v1"
 LEGACY_RECEIPT_SCHEMA = "pivot.stageb.legacy_replay_receipt/v1"
-STAGEA_R100_RECEIPT_SCHEMA = "pivot.stagea_b58_r100_receipt/v2"
+STAGEA_R100_RECEIPT_SCHEMA = "pivot.stagea_b58_r100_receipt/v3"
 LEGACY_R100_INITIALIZATION = (
     "sealed_legacy_b58_r100_to_total_trust_confidence_pretrain_model_path"
 )

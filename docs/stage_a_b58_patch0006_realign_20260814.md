@@ -172,4 +172,4 @@ output directory. The manifest records launch commit `57ee79d`, the logged
 command and config snapshots, hashes the Stage A runtime sources, and proves
 their mtimes preceded the 02:09 launch. The tracked patch preserves the exact
 dirty-worktree delta over that commit. Downstream R100 receipts use schema
-`pivot.stagea_b58_r100_receipt/v2` and refuse to build without this seal.
+`pivot.stagea_b58_r100_receipt/v3` and refuse to build without this seal.

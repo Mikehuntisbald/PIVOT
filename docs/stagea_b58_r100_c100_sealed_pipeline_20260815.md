@@ -83,7 +83,7 @@ The launcher is:
 bash tools/run_stagea_b58_r100_c100.sh
 ```
 
-It emits `pivot.stagea_b58_r100_receipt/v2` between R100 and C100. The receipt
+It emits `pivot.stagea_b58_r100_receipt/v3` between R100 and C100. The receipt
 rehashes the Stage A checkpoint, its initializer and B58 source, the R100
 checkpoint, configs, datasets, orchestration, and training code. It also
 requires the Stage A launch-source manifest. That manifest binds the logged

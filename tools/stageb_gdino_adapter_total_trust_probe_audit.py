@@ -25,7 +25,7 @@ from tools import stageb_gdino_adapter_probe_audit as _base
 _HISTORICAL_SCHEMA = _base.SCHEMA
 _HISTORICAL_PHASE_SPECS = copy.deepcopy(_base.PHASE_SPECS)
 _LEGACY_REPLAY_SCHEMA = "pivot.stageb.legacy_replay_receipt/v1"
-_STAGEA_R100_RECEIPT_SCHEMA = "pivot.stagea_b58_r100_receipt/v2"
+_STAGEA_R100_RECEIPT_SCHEMA = "pivot.stagea_b58_r100_receipt/v3"
 _LEGACY_REPLAY_RECEIPT_SHA256 = (
     "f8bd5104960eca19b90353168577a126a5577ea9aac511c6b0e3ab01b4bf2bfc"
 )
