@@ -44,3 +44,11 @@ batch_size = 38
 lr = 2e-5
 lr_drop = 4
 epochs = 8
+
+# Keep every one of the 45,608 planned forwards as a successful optimizer
+# update.  The default 2,000-step GradScaler growth probe reaches 262,144 and
+# overflows on this head, which silently makes optimizer_updates trail the
+# fixed eight-epoch DataLoader schedule.  65,536 was stable; keep it fixed for
+# the whole formal run instead of learning the ceiling through skipped steps.
+amp_init_scale = 65_536.0
+amp_growth_interval = 1_000_000

@@ -377,10 +377,20 @@ def _torch_load_compat(path: str, *, map_location: str = "cpu"):
             return _torch.load(path, map_location=map_location, weights_only=False)
 
 
-def _make_grad_scaler(enabled: bool, init_scale: Optional[float] = None):
+def _make_grad_scaler(
+    enabled: bool,
+    init_scale: Optional[float] = None,
+    growth_interval: Optional[int] = None,
+):
     scaler_kwargs = {"enabled": enabled}
     if init_scale is not None and float(init_scale) > 0:
         scaler_kwargs["init_scale"] = float(init_scale)
+    if growth_interval is not None:
+        if isinstance(growth_interval, bool) or not isinstance(growth_interval, int):
+            raise ValueError("amp_growth_interval must be a positive integer")
+        if growth_interval <= 0:
+            raise ValueError("amp_growth_interval must be a positive integer")
+        scaler_kwargs["growth_interval"] = growth_interval
     amp_mod = getattr(torch, "amp", None)
     if amp_mod is not None and hasattr(amp_mod, "GradScaler"):
         try:
@@ -11809,6 +11819,7 @@ def main(args):
     scaler = _make_grad_scaler(
         enabled=args.amp,
         init_scale=getattr(args, "amp_init_scale", None),
+        growth_interval=getattr(args, "amp_growth_interval", None),
     )
     resume_iter = 0
     resume_optimizer_updates = 0

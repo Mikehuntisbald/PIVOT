@@ -251,6 +251,8 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
             "batch_size": 38,
             "epochs": 8,
             "amp": True,
+            "amp_init_scale": 65_536.0,
+            "amp_growth_interval": 1_000_000,
             "stage_a_b58_patch_realign": True,
             "patch_dn_num_queries": 0,
             "unfreeze_decoder_last_n_layers": 0,

@@ -7,6 +7,7 @@ import pytest
 import torch
 from torch import nn
 
+import main as main_module
 from engine import _set_stage_a_b58_patch_realign_training_mode
 from tools.build_stagea_b58_patch0006_initializer import (
     compose_model_state,
@@ -134,9 +135,39 @@ def test_config_freezes_query_semantics_and_disables_dn_queries():
     assert cfg.patch_dn_num_queries == 0
     assert cfg.unfreeze_decoder_last_n_layers == 0
     assert cfg.batch_size == 38
+    assert cfg.amp_init_scale == 65_536.0
+    assert cfg.amp_growth_interval == 1_000_000
     assert cfg.only_train_keywords == [
         "patch_encoder.input_proj",
         "patch_encoder.norm",
         "query_proj_for_patch",
         "patch_logit_scale",
     ]
+
+
+def test_stagea_grad_scaler_disables_growth_probes(monkeypatch):
+    observed = {}
+
+    class _Scaler:
+        def __init__(self, device, **kwargs):
+            observed["device"] = device
+            observed.update(kwargs)
+
+    monkeypatch.setattr(main_module.torch.amp, "GradScaler", _Scaler)
+    main_module._make_grad_scaler(
+        enabled=True,
+        init_scale=65_536.0,
+        growth_interval=1_000_000,
+    )
+    assert observed == {
+        "device": "cuda",
+        "enabled": True,
+        "init_scale": 65_536.0,
+        "growth_interval": 1_000_000,
+    }
+
+
+@pytest.mark.parametrize("value", [True, 0, -1, 2.5])
+def test_grad_scaler_rejects_invalid_growth_interval(value):
+    with pytest.raises(ValueError, match="positive integer"):
+        main_module._make_grad_scaler(enabled=True, growth_interval=value)
