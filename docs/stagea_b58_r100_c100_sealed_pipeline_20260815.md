@@ -92,6 +92,29 @@ Thus the u10000 ownership result persists at the first subsequent immutable
 epoch boundary. The remaining six epochs must complete before the final
 `checkpoint0007.pth` handoff to R100.
 
+### Epoch-2 checkpoint audit
+
+The next immutable boundary, `checkpoint0002.pth`, was audited after the file
+reached its stable 695,205,625-byte size. It records `epoch=2`,
+`epoch_finished=true`, `iteration=0`, and exactly 17,103 successful optimizer
+updates: three times the fixed 5,701-update epoch length, or 37.5% of the
+45,608-update Stage A contract. The full ownership and numerical assertions
+again passed:
+
+- exactly the same nine allowlisted patch tensors changed and all 1,125 frozen
+  tensors remained bitwise equal to the initializer;
+- all 1,134 model tensors and all 27 tensors across the nine AdamW states were
+  finite;
+- the optimizer still contained exactly nine states and nine parameter-group
+  entries;
+- AMP scale remained 65,536 and its growth tracker was exactly 17,103, equal
+  to the successful optimizer-update count.
+
+The formal process and automatic R100/C100 controller remained alive after the
+checkpoint was written, and the GPU returned to full training utilization.
+This proves that the Stage A ownership boundary persisted through three of the
+eight epochs; five epochs remain before the final R100 handoff.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
