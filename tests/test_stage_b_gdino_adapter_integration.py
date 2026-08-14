@@ -683,6 +683,40 @@ class StageBGDINOAdapterIntegrationTest(unittest.TestCase):
             "shared_frozen_gdino_trunk_independent_rank_confidence_adapters",
         )
 
+    def test_joint_evaluator_routes_refsafe_stagea_lineage(self):
+        cfg = types.SimpleNamespace(
+            stage_b_gdino_score_adapter=True,
+            stage_b_gdino_ref_top1_guard=True,
+            stage_b_gdino_ref_route_contract="b58_top1_anchored_rank_tail_v1",
+        )
+        self.assertEqual(
+            text_eval._adapter_ref_score_key(cfg),
+            "stage_b_gdino_ref_safe_rank_score",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            config = root / "config.py"
+            checkpoint = root / "checkpoint.pth"
+            config.write_text("stage_b_gdino_score_adapter = True\n", encoding="utf-8")
+            checkpoint.write_bytes(b"checkpoint")
+            provenance = text_eval._evaluation_summary_provenance(
+                cfg=cfg,
+                args=types.SimpleNamespace(
+                    config=str(config), amp=True, device="cuda:0"
+                ),
+                checkpoint=checkpoint,
+                data_root=root,
+            )
+        self.assertEqual(
+            provenance["ref_score_key"],
+            "stage_b_gdino_ref_safe_rank_score",
+        )
+        self.assertTrue(
+            provenance["score_ownership"].endswith(
+                "_b58_top1_anchored_rank_tail"
+            )
+        )
+
     def test_text_evaluator_audits_base_and_selects_requested_branch(self):
         logits = torch.tensor(
             [[[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]], dtype=torch.float32

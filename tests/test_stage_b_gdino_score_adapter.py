@@ -11,6 +11,7 @@ from torch.nn.parallel import DistributedDataParallel
 from models.GroundingDINO.stage_b_gdino_score_adapter import (
     StageBGDINOScoreAdapter,
     aggregate_gdino_full_expression_score,
+    b58_top1_anchored_rank_tail_score,
     baseline_preserving_top1_rank_loss,
     detached_recent_q05_trust_surrogate,
     distributed_gather_1d_with_local_grad,
@@ -18,6 +19,20 @@ from models.GroundingDINO.stage_b_gdino_score_adapter import (
     fpr95_global_max_surrogate,
     multi_positive_listwise_rank_loss,
 )
+
+
+def test_b58_top1_anchor_preserves_winner_and_rank_tail_order():
+    base = torch.tensor([[0.7, 0.9, 0.8, 0.1], [0.6, 0.5, 0.4, 0.3]])
+    rank = torch.tensor([[9.0, 1.0, 8.0, 7.0], [0.0, 3.0, 2.0, 1.0]])
+    guarded = b58_top1_anchored_rank_tail_score(base, rank)
+
+    assert torch.equal(guarded.argmax(dim=1), base.argmax(dim=1))
+    assert guarded[0, 0] == rank[0, 0]
+    assert guarded[0, 2] == rank[0, 2]
+    assert guarded[1, 1] == rank[1, 1]
+    assert guarded[1, 2] == rank[1, 2]
+    assert guarded[0, 1] > guarded[0, 0]
+    assert guarded[1, 0] > guarded[1, 1]
 
 
 class _P3ToyGate(nn.Module):

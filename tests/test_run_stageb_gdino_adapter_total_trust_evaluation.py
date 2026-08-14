@@ -303,7 +303,15 @@ class TotalTrustHistoricalB58EvaluationTest(unittest.TestCase):
                 "tn": [dict(row)],
             }
             supplemental = {"refcoco": [], "tn": [dict(row)]}
-            plan = {"source": source, "runtime": runtime}
+            plan = {
+                "source": source,
+                "runtime": runtime,
+                "score_routes": {
+                    "ref_score_key": evaluator.REF_SCORE_KEY,
+                    "tn_score_key": evaluator.TN_SCORE_KEY,
+                    "score_ownership": evaluator.SCORE_OWNERSHIP,
+                },
+            }
             evaluator._validate_candidate_summary_provenance(
                 plan, primary, supplemental
             )

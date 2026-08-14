@@ -1036,12 +1036,22 @@ def _evaluation_summary_provenance(
                     }
                 )
     elif bool(getattr(cfg, "stage_b_gdino_score_adapter", False)):
+        ref_top1_guard = bool(
+            getattr(cfg, "stage_b_gdino_ref_top1_guard", False)
+        )
         provenance.update(
             {
-                "ref_score_key": "stage_b_gdino_rank_score",
+                "ref_score_key": (
+                    "stage_b_gdino_ref_safe_rank_score"
+                    if ref_top1_guard
+                    else "stage_b_gdino_rank_score"
+                ),
                 "tn_score_key": "stage_b_gdino_confidence_score",
                 "score_ownership": (
-                    "shared_frozen_gdino_trunk_independent_rank_confidence_adapters"
+                    "shared_frozen_gdino_trunk_independent_rank_confidence_adapters_"
+                    "b58_top1_anchored_rank_tail"
+                    if ref_top1_guard
+                    else "shared_frozen_gdino_trunk_independent_rank_confidence_adapters"
                 ),
             }
         )
@@ -3523,6 +3533,13 @@ def _adapter_ref_score_key(cfg) -> Optional[str]:
     if data_driven_score:
         return _DATA_DRIVEN_RANK_SCORE_KEY
     if adapter_enabled:
+        if bool(getattr(cfg, "stage_b_gdino_ref_top1_guard", False)):
+            if (
+                getattr(cfg, "stage_b_gdino_ref_route_contract", None)
+                != "b58_top1_anchored_rank_tail_v1"
+            ):
+                raise ValueError("guarded GDINO Ref route contract drifted")
+            return "stage_b_gdino_ref_safe_rank_score"
         return "stage_b_gdino_rank_score"
     return None
 

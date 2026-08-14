@@ -37,7 +37,7 @@ export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 
 "${PYTHON_BIN}" main.py \
-    -c config/ablations/cfg_stageb_gdino_score_adapter_rank_three_ref.py \
+    -c config/ablations/cfg_stageb_gdino_score_adapter_rank_three_ref_refsafe.py \
     --datasets config/datasets_stageb_gdino_adapter_rank_three_ref.json \
     --output_dir "${RANK_DIR}" \
     --pretrain_model_path "${STAGEA_CHECKPOINT}" \
@@ -63,6 +63,7 @@ cp --reflink=auto --preserve=timestamps \
     --rank-checkpoint "${RANK_CHECKPOINT}" \
     --output "${RANK_RECEIPT}"
 
+export STAGEB_CONFIDENCE_CONFIG="config/ablations/cfg_stageb_gdino_score_adapter_dataft_total_trust_refsafe.py"
 tools/run_stageb_gdino_adapter_total_trust_probe.sh \
     --rank-checkpoint "${RANK_CHECKPOINT}" \
     --rank-audit "${RANK_RECEIPT}" \

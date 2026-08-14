@@ -5,7 +5,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${REPO_ROOT}"
 
 export STAGEB_ADAPTER_AUDITOR="tools/stageb_gdino_adapter_total_trust_probe_audit.py"
-export STAGEB_CONFIDENCE_CONFIG="config/ablations/cfg_stageb_gdino_score_adapter_dataft_total_trust.py"
+export STAGEB_CONFIDENCE_CONFIG="${STAGEB_CONFIDENCE_CONFIG:-config/ablations/cfg_stageb_gdino_score_adapter_dataft_total_trust.py}"
 export STAGEB_ADAPTER_WORLD_SIZE=1
 export STAGEB_ADAPTER_PER_GPU_BATCH=8
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"

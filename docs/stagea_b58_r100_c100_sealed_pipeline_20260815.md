@@ -13,6 +13,13 @@ checkpoint is accepted only when the sealed replays prove all of the following:
 - the R100 ordinary-GDINO trunk is bitwise identical to the completed Stage A
   non-patch trunk.
 
+The historical unguarded R100/C100 replay already proves the confidence side:
+it reduced strict1607 false accepts from 801 to 730 and strict2031 from 1,040
+to 926. It did not satisfy the stronger Stage-A goal because its raw R100
+residual regressed three Ref splits (RefCOCO val by 7 correct rows, RefCOCO
+testB by 4, and RefCOCOg val by 2). The Stage-A lineage therefore uses a new
+Ref-only deployment contract rather than silently reusing that failed route.
+
 ## Stage A
 
 The formal run is:
@@ -54,11 +61,21 @@ tensors plus 20 adapter tensors:
 - eight R100 rank tensors;
 - twelve identity-initialized confidence tensors.
 
-R100 runs for exactly 100 optimizer updates at physical batch 32. C100 starts
-from the receipt-bound R100, runs the total-trust objective for exactly 100
-updates at physical batch 8, and is forbidden from changing either the trunk or
-rank tensors. This preserves the existing gradient-conflict boundary: ranking
-and confidence own disjoint adapter parameters over one shared frozen trunk.
+R100 runs for exactly 100 optimizer updates at physical batch 32. Its raw rank
+residual remains the optimized signal, but the Stage-A-lineage deployment route
+anchors B58's top-1 query and allows the learned tower to reorder only the
+remaining rank tail. This is a structural Ref8 no-regression boundary: unlike
+the historical unguarded R100, a residual cannot flip a B58-correct top-1 into
+an error. C100 starts from the receipt-bound R100, runs the total-trust objective
+for exactly 100 updates at physical batch 8, and is forbidden from changing
+either the trunk or rank tensors. Ranking and confidence therefore retain
+disjoint parameter and deployment ownership over one shared frozen trunk.
+The guard does not use Ref labels, split identity, or an evaluation-time
+oracle. It deterministically preserves the argmax of the frozen base score for
+every expression and uses the trained residual only to order the remaining 899
+queries. Since the Stage-A receipt separately proves the ordinary trunk is
+bitwise B58, Ref8 equality is an architectural consequence that the sealed
+replay must still verify from full per-example records.
 
 The launcher is:
 

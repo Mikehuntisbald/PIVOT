@@ -23,7 +23,10 @@ STAGEA_CONFIG = (
     / "config/ablations/cfg_stagea_b58_trunk_patch0006_realign_20260814.py"
 )
 STAGEA_DATASETS = REPO_ROOT / "config/datasets_patch_stage_a_lvis_coco2017_local.json"
-RANK_CONFIG = REPO_ROOT / "config/ablations/cfg_stageb_gdino_score_adapter_rank_three_ref.py"
+RANK_CONFIG = (
+    REPO_ROOT
+    / "config/ablations/cfg_stageb_gdino_score_adapter_rank_three_ref_refsafe.py"
+)
 RANK_DATASETS = REPO_ROOT / "config/datasets_stageb_gdino_adapter_rank_three_ref.json"
 INITIALIZER_SCHEMA = "pivot.stagea.b58_trunk_patch0006_initializer/v1"
 ADAPTER_PREFIX = "stage_b_gdino_score_adapter."
@@ -333,6 +336,8 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
             "stage_b_gdino_confidence_weight": 0.0,
             "stage_b_gdino_queue_size": 0,
             "stage_b_gdino_queue_min_count": 0,
+            "stage_b_gdino_ref_top1_guard": True,
+            "stage_b_gdino_ref_route_contract": "b58_top1_anchored_rank_tail_v1",
         },
         label="R100",
     )
@@ -341,6 +346,8 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
         STAGEA_CONFIG,
         STAGEA_DATASETS,
         RANK_CONFIG,
+        REPO_ROOT / "config/ablations/cfg_stageb_gdino_score_adapter_rank_three_ref.py",
+        REPO_ROOT / "config/ablations/cfg_stageb_gdino_score_adapter_dataft.py",
         RANK_DATASETS,
         REPO_ROOT / "tools/run_stagea_b58_r100_c100.sh",
         REPO_ROOT / "tools/build_stagea_b58_r100_receipt.py",
@@ -393,6 +400,7 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
             "stagea_patch_state_excluded_only_by_ordinary_gdino_architecture": True,
             "r100_rank_trained_confidence_zero_initialized": True,
             "r100_exactly_100_optimizer_updates": True,
+            "r100_deployed_ref_top1_anchored_to_b58": True,
         },
     }
     receipt["receipt_sha256"] = _canonical_sha256(receipt)

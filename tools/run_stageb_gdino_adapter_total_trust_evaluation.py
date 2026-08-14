@@ -74,10 +74,12 @@ TOTAL_AUDITOR = (
     REPO_ROOT / "tools/stageb_gdino_adapter_total_trust_probe_audit.py"
 )
 REF_SCORE_KEY = "stage_b_gdino_rank_score"
+REF_SAFE_SCORE_KEY = "stage_b_gdino_ref_safe_rank_score"
 TN_SCORE_KEY = "stage_b_gdino_confidence_score"
 SCORE_OWNERSHIP = (
     "shared_frozen_gdino_trunk_independent_rank_confidence_adapters"
 )
+REF_SAFE_SCORE_OWNERSHIP = SCORE_OWNERSHIP + "_b58_top1_anchored_rank_tail"
 BOOTSTRAP_ITERATIONS = dense.BOOTSTRAP_ITERATIONS
 BOOTSTRAP_CONFIDENCE = dense.BOOTSTRAP_CONFIDENCE
 BOOTSTRAP_SEED = dense.BOOTSTRAP_SEED
@@ -401,16 +403,19 @@ def _validate_score_routes(
             f"verified candidate config does not expose total-trust routes: {drift}"
         )
     ref_key = joint_eval._adapter_ref_score_key(cfg)
-    if ref_key != REF_SCORE_KEY:
+    guarded = bool(getattr(cfg, "stage_b_gdino_ref_top1_guard", False))
+    expected_ref_key = REF_SAFE_SCORE_KEY if guarded else REF_SCORE_KEY
+    expected_ownership = REF_SAFE_SCORE_OWNERSHIP if guarded else SCORE_OWNERSHIP
+    if ref_key != expected_ref_key:
         raise TotalTrustEvaluationError(
-            f"adapter Ref route drifted: expected {REF_SCORE_KEY}, got {ref_key}"
+            f"adapter Ref route drifted: expected {expected_ref_key}, got {ref_key}"
         )
     confidence = torch.tensor([[0.125, 0.75]], dtype=torch.float32)
     decoy = torch.tensor([[99.0, 99.0]], dtype=torch.float32)
     observed = tn_eval._slot_scores(
         {
             TN_SCORE_KEY: confidence,
-            REF_SCORE_KEY: decoy,
+            expected_ref_key: decoy,
             "stage_b_v7_final_score": decoy,
         },
         cfg,
@@ -429,9 +434,9 @@ def _validate_score_routes(
         data_root=runtime.data_root,
     )
     expected_provenance_routes = {
-        "ref_score_key": REF_SCORE_KEY,
+        "ref_score_key": expected_ref_key,
         "tn_score_key": TN_SCORE_KEY,
-        "score_ownership": SCORE_OWNERSHIP,
+        "score_ownership": expected_ownership,
     }
     provenance_drift = {
         key: (provenance.get(key), expected)
@@ -444,9 +449,9 @@ def _validate_score_routes(
             f"{provenance_drift}"
         )
     return {
-        "ref_score_key": REF_SCORE_KEY,
+        "ref_score_key": expected_ref_key,
         "tn_score_key": TN_SCORE_KEY,
-        "score_ownership": SCORE_OWNERSHIP,
+        "score_ownership": expected_ownership,
         "ref_route_function": "eval_text_groundingdino_refcoco_tn._adapter_ref_score_key",
         "tn_route_function": "eval_stageb_tn_val._slot_scores",
         "route_functions_executed": True,
@@ -767,9 +772,9 @@ def _validate_candidate_summary_provenance(
         )
     expected.update(
         {
-            "ref_score_key": REF_SCORE_KEY,
-            "tn_score_key": TN_SCORE_KEY,
-            "score_ownership": SCORE_OWNERSHIP,
+            "ref_score_key": plan["score_routes"]["ref_score_key"],
+            "tn_score_key": plan["score_routes"]["tn_score_key"],
+            "score_ownership": plan["score_routes"]["score_ownership"],
         }
     )
     for index, row in enumerate(rows):

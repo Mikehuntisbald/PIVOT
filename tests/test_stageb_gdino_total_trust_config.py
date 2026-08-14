@@ -9,6 +9,12 @@ CONFIG_PATH = (
     / "config/ablations/cfg_stageb_gdino_score_adapter_dataft_total_trust.py"
 )
 BASE_CONFIG_PATH = CONFIG_PATH.with_name("cfg_stageb_gdino_score_adapter_dataft.py")
+REF_SAFE_CONFIG_PATH = CONFIG_PATH.with_name(
+    "cfg_stageb_gdino_score_adapter_dataft_total_trust_refsafe.py"
+)
+REF_SAFE_RANK_CONFIG_PATH = CONFIG_PATH.with_name(
+    "cfg_stageb_gdino_score_adapter_rank_three_ref_refsafe.py"
+)
 PIPELINE_PATH = (
     Path(__file__).resolve().parents[1] / "tools/run_stagea_b58_r100_c100.sh"
 )
@@ -48,6 +54,17 @@ def test_total_trust_leaf_preserves_dataft_scope_and_confidence_ownership():
 def test_stagea_r100_c100_pipeline_runs_and_enforces_all_sealed_replays():
     launcher = PIPELINE_PATH.read_text(encoding="utf-8")
     assert "--options batch_size=32" in launcher
+    assert REF_SAFE_RANK_CONFIG_PATH.name in launcher
+    assert REF_SAFE_CONFIG_PATH.name in launcher
     assert "--confidence-max-target 100" in launcher
     assert "run_stageb_gdino_adapter_total_trust_evaluation.py run" in launcher
     assert "stagea_r100_c100_all_sealed_gates_passed" in launcher
+
+
+def test_stagea_lineage_configs_require_b58_top1_anchored_rank_tail():
+    for path in (REF_SAFE_RANK_CONFIG_PATH, REF_SAFE_CONFIG_PATH):
+        config = _literal_assignments(path)
+        assert config["stage_b_gdino_ref_top1_guard"] is True
+        assert config["stage_b_gdino_ref_route_contract"] == (
+            "b58_top1_anchored_rank_tail_v1"
+        )

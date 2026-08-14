@@ -1283,6 +1283,7 @@ class GroundingDINO(nn.Module):
             expression_token_mask = generated_phrase_mask.any(dim=1)
             from .stage_b_gdino_score_adapter import (
                 aggregate_gdino_full_expression_score,
+                b58_top1_anchored_rank_tail_score,
             )
 
             base_score = aggregate_gdino_full_expression_score(
@@ -1296,6 +1297,13 @@ class GroundingDINO(nn.Module):
                 "rank_residual"
             ]
             out["stage_b_gdino_rank_score"] = adapter_output["rank_score"]
+            out["stage_b_gdino_ref_safe_rank_score"] = (
+                b58_top1_anchored_rank_tail_score(
+                    adapter_output["base_score"],
+                    adapter_output["rank_score"],
+                    adapter_output["candidate_mask"],
+                )
+            )
             out["stage_b_gdino_confidence_gate"] = adapter_output[
                 "confidence_gate"
             ]

@@ -205,6 +205,42 @@ def _graph_zero(tensor: Tensor) -> Tensor:
     return (finite * 0.0).float().sum()
 
 
+def b58_top1_anchored_rank_tail_score(
+    base_score: Tensor,
+    rank_score: Tensor,
+    candidate_mask: Optional[Tensor] = None,
+) -> Tensor:
+    """Keep B58's top-1 query while allowing the rank tower to reorder its tail.
+
+    The safety contract is structural rather than statistical: the query chosen
+    by ``base_score`` is made strictly larger than every deployed rank-tail
+    score.  This prevents a learned rank residual from regressing a B58-correct
+    Ref example while retaining the trained residual ordering below top-1.
+    """
+
+    if tuple(rank_score.shape) != tuple(base_score.shape):
+        raise ValueError("base_score and rank_score must share shape")
+    mask = _validate_candidate_scores(
+        base_score, candidate_mask, name="base_score"
+    )
+    _validate_candidate_scores(rank_score, mask, name="rank_score")
+    masked_base = base_score.float().masked_fill(~mask, -torch.inf)
+    masked_rank = rank_score.float().masked_fill(~mask, -torch.inf)
+    base_top = masked_base.argmax(dim=1, keepdim=True)
+    rank_max = masked_rank.max(dim=1, keepdim=True).values
+    anchor = torch.nextafter(rank_max, torch.full_like(rank_max, torch.inf))
+    if not bool(torch.isfinite(anchor).all().item()):
+        raise ValueError("cannot construct a finite B58 top-1 rank anchor")
+    guarded = rank_score.clone()
+    guarded.scatter_(1, base_top, anchor.to(dtype=guarded.dtype))
+    if not torch.equal(
+        guarded.float().masked_fill(~mask, -torch.inf).argmax(dim=1),
+        masked_base.argmax(dim=1),
+    ):
+        raise RuntimeError("B58 top-1 rank anchor failed")
+    return guarded
+
+
 def _distributed_masked_mean(values: Tensor, mask: Tensor) -> Tensor:
     """Return a class-conditional mean with DDP-correct parameter gradients.
 
@@ -1714,6 +1750,7 @@ __all__ = [
     "StageBGDINOScoreAdapter",
     "StageBGDINOScoreAdapterCriterion",
     "aggregate_gdino_full_expression_score",
+    "b58_top1_anchored_rank_tail_score",
     "baseline_preserving_top1_rank_loss",
     "detached_recent_q05_trust_surrogate",
     "distributed_gather_1d_with_local_grad",

@@ -10,6 +10,7 @@ the resulting checkpoints cannot be mistaken for the older experiment.
 from __future__ import annotations
 
 import copy
+import os
 import sys
 from pathlib import Path
 
@@ -56,15 +57,30 @@ _base.SCHEMA = "stageb-gdino-adapter-total-trust-probe-v1"
 _base.PROBE_WORLD_SIZE = 1
 _base.PROBE_PER_GPU_BATCH = 8
 _base.PHASE_SPECS = copy.deepcopy(_HISTORICAL_PHASE_SPECS)
+_DEFAULT_CONFIDENCE_CONFIG = (
+    "config/ablations/cfg_stageb_gdino_score_adapter_dataft_total_trust.py"
+)
+_REF_SAFE_CONFIDENCE_CONFIG = (
+    "config/ablations/"
+    "cfg_stageb_gdino_score_adapter_dataft_total_trust_refsafe.py"
+)
+_selected_confidence_config = os.environ.get(
+    "STAGEB_CONFIDENCE_CONFIG", _DEFAULT_CONFIDENCE_CONFIG
+)
+if _selected_confidence_config not in {
+    _DEFAULT_CONFIDENCE_CONFIG,
+    _REF_SAFE_CONFIDENCE_CONFIG,
+}:
+    raise RuntimeError(
+        "unsupported total-trust confidence config: "
+        f"{_selected_confidence_config}"
+    )
 _base.PHASE_SPECS["confidence"].update(
     {
         "confidence_objective_code": 3,
         "confidence_objective": "detached_recent_q05_total_trust",
         "paired_margin_weight": 0.0,
-        "config": (
-            "config/ablations/"
-            "cfg_stageb_gdino_score_adapter_dataft_total_trust.py"
-        ),
+        "config": _selected_confidence_config,
     }
 )
 _base.TRAIN_CODE_INCLUDE = tuple(_base.TRAIN_CODE_INCLUDE) + (
@@ -237,6 +253,7 @@ def _validate_stagea_r100_initial(initial_checkpoint, receipt_path):
         "stagea_patch_state_excluded_only_by_ordinary_gdino_architecture",
         "r100_rank_trained_confidence_zero_initialized",
         "r100_exactly_100_optimizer_updates",
+        "r100_deployed_ref_top1_anchored_to_b58",
     )
     if any(invariants.get(key) is not True for key in required):
         raise _base.ProbeAuditError("Stage-A/R100 receipt invariants are incomplete")
