@@ -13,6 +13,9 @@ CUDA_DEVICE="${CUDA_VISIBLE_DEVICES:-0}"
 RANK_DIR="${OUTPUT_ROOT}/rank"
 RANK_CHECKPOINT="${RANK_DIR}/milestones/checkpoint_iter_000100.pth"
 RANK_RECEIPT="${OUTPUT_ROOT}/stagea_r100_receipt.json"
+C100_CHECKPOINT="${OUTPUT_ROOT}/confidence/milestones/checkpoint_iter_000100.pth"
+C100_AUDIT="${OUTPUT_ROOT}/confidence/milestones/checkpoint_iter_000100.audit.json"
+EVALUATION_DIR="${OUTPUT_ROOT}/formal/c100_stagea_b58_full_20260815"
 
 if [[ ! -f "${STAGEA_CHECKPOINT}" ]]; then
     echo "[FAIL] completed Stage A checkpoint is missing: ${STAGEA_CHECKPOINT}" >&2
@@ -66,4 +69,13 @@ tools/run_stageb_gdino_adapter_total_trust_probe.sh \
     --output-root "${OUTPUT_ROOT}" \
     --confidence-max-target 100
 
-echo "[OK] completed sealed R100/C100: ${OUTPUT_ROOT}"
+"${PYTHON_BIN}" tools/run_stageb_gdino_adapter_total_trust_evaluation.py run \
+    --checkpoint "${C100_CHECKPOINT}" \
+    --checkpoint-audit "${C100_AUDIT}" \
+    --output-dir "${EVALUATION_DIR}"
+
+"${PYTHON_BIN}" -c \
+    'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); assert p.get("stagea_r100_c100_all_sealed_gates_passed") is True, p.get("outcome")' \
+    "${EVALUATION_DIR}/postflight.json"
+
+echo "[OK] completed sealed Stage-A/R100/C100 and all replay gates: ${OUTPUT_ROOT}"

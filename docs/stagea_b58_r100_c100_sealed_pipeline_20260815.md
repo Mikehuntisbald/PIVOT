@@ -60,7 +60,9 @@ bash tools/run_stagea_b58_r100_c100.sh
 It emits `pivot.stagea_b58_r100_receipt/v1` between R100 and C100. The receipt
 rehashes the Stage A checkpoint, its initializer and B58 source, the R100
 checkpoint, configs, datasets, orchestration, and training code. It fails
-closed if an incomplete Stage A or a non-R100 checkpoint is supplied.
+closed if an incomplete Stage A or a non-R100 checkpoint is supplied. After
+C100, the same launcher runs the two-process sealed evaluation and exits
+successfully only if `stagea_r100_c100_all_sealed_gates_passed=true`.
 
 ## Sealed replay
 

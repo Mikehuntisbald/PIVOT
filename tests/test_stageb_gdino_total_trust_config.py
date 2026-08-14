@@ -9,6 +9,9 @@ CONFIG_PATH = (
     / "config/ablations/cfg_stageb_gdino_score_adapter_dataft_total_trust.py"
 )
 BASE_CONFIG_PATH = CONFIG_PATH.with_name("cfg_stageb_gdino_score_adapter_dataft.py")
+PIPELINE_PATH = (
+    Path(__file__).resolve().parents[1] / "tools/run_stagea_b58_r100_c100.sh"
+)
 
 
 def _literal_assignments(path):
@@ -40,3 +43,11 @@ def test_total_trust_leaf_preserves_dataft_scope_and_confidence_ownership():
     assert config["stage_b_gdino_confidence_weight"] == 1.0
     assert config["stage_b_gdino_paired_margin_weight"] == 0.0
     assert config["batch_size"] == 8
+
+
+def test_stagea_r100_c100_pipeline_runs_and_enforces_all_sealed_replays():
+    launcher = PIPELINE_PATH.read_text(encoding="utf-8")
+    assert "--options batch_size=32" in launcher
+    assert "--confidence-max-target 100" in launcher
+    assert "run_stageb_gdino_adapter_total_trust_evaluation.py run" in launcher
+    assert "stagea_r100_c100_all_sealed_gates_passed" in launcher
