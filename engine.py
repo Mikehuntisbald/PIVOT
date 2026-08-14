@@ -29,6 +29,53 @@ class GracefulTrainingExit(Exception):
     """Raised after an interrupt checkpoint has been written."""
 
 
+def _set_stage_a_b58_patch_realign_training_mode(model: torch.nn.Module) -> None:
+    """Train patch projections on deterministic, frozen B58 queries."""
+    root = model.module if hasattr(model, "module") else model
+    patch_encoder = getattr(root, "patch_encoder", None)
+    query_projection = getattr(root, "query_proj_for_patch", None)
+    if patch_encoder is None or query_projection is None:
+        raise RuntimeError("Stage-A B58 realignment requires the patch branch")
+    if getattr(patch_encoder, "backbone", None) is not root.backbone:
+        raise RuntimeError("Stage-A patch encoder must share the B58 backbone")
+    if getattr(root, "patch_dn_tgt", None) is not None:
+        raise RuntimeError("Stage-A B58 realignment forbids DN query state")
+
+    allowed_prefixes = (
+        "patch_encoder.input_proj.",
+        "patch_encoder.norm.",
+        "query_proj_for_patch.",
+    )
+    allowed_exact = {"patch_logit_scale"}
+    observed = {
+        name
+        for name, parameter in root.named_parameters()
+        if parameter.requires_grad
+    }
+    unexpected = sorted(
+        name
+        for name in observed
+        if name not in allowed_exact and not name.startswith(allowed_prefixes)
+    )
+    if unexpected or not observed:
+        raise RuntimeError(
+            "Stage-A B58 realignment trainable ownership drifted: "
+            f"unexpected={unexpected[:20]}, count={len(observed)}"
+        )
+
+    # Frozen Dropout/DropPath must use evaluation behavior, otherwise the patch
+    # head is trained against a different query distribution than deployment.
+    root.eval()
+    patch_encoder.input_proj.train(True)
+    patch_encoder.norm.train(True)
+    query_projection.train(True)
+    frozen_modules = (root.backbone, root.bert, root.transformer)
+    if any(module.training for module in frozen_modules):
+        raise RuntimeError("a frozen B58 query producer remains in train mode")
+    if patch_encoder.backbone.training:
+        raise RuntimeError("the shared B58 patch backbone remains in train mode")
+
+
 def _set_stage_b_v7_training_mode(model: torch.nn.Module) -> None:
     """Keep the frozen proposal tower deterministic while training the verifier."""
     root = model.module if hasattr(model, "module") else model
@@ -2840,6 +2887,8 @@ def _eval_stage_b_drift_batch(args, model, device, batch):
     finally:
         if was_training:
             model.train()
+            if bool(getattr(args, "stage_a_b58_patch_realign", False)):
+                _set_stage_a_b58_patch_realign_training_mode(model)
             if bool(getattr(args, "stage_b_legacy_global_gate", False)):
                 _set_stage_b_legacy_global_gate_training_mode(model)
             elif bool(getattr(args, "stage_b_v11_fixed_text", False)):
@@ -2963,7 +3012,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 
     model.train()
-    if bool(getattr(args, "stage_b_native_patch_category", False)):
+    if bool(getattr(args, "stage_a_b58_patch_realign", False)):
+        _set_stage_a_b58_patch_realign_training_mode(model)
+    elif bool(getattr(args, "stage_b_native_patch_category", False)):
         _set_stage_b_native_patch_category_training_mode(model)
     elif bool(getattr(args, "stage_b_data_driven_score", False)):
         _set_stage_b_data_driven_training_mode(

@@ -12573,6 +12573,48 @@ def main(args):
         checkpoint_payload = _torch_load_compat(
             args.pretrain_model_path, map_location="cpu"
         )
+        stage_a_b58_patch_realign = bool(
+            getattr(args, "stage_a_b58_patch_realign", False)
+        )
+        if stage_a_b58_patch_realign:
+            from tools.build_stagea_b58_patch0006_initializer import (
+                validate_payload as validate_stage_a_b58_patch_initializer,
+            )
+
+            configured_path = Path(
+                str(getattr(args, "stage_a_b58_patch_initializer_path", "") or "")
+            ).expanduser().resolve(strict=True)
+            supplied_path = Path(args.pretrain_model_path).expanduser().resolve(strict=True)
+            expected_sha = str(
+                getattr(args, "stage_a_b58_patch_initializer_sha256", "") or ""
+            ).strip()
+            observed_sha = _sha256_file(supplied_path)
+            if supplied_path != configured_path or observed_sha != expected_sha:
+                raise RuntimeError(
+                    "Stage-A B58 patch realignment requires its exact initializer: "
+                    f"configured={configured_path}, supplied={supplied_path}, "
+                    f"expected_sha={expected_sha}, observed_sha={observed_sha}"
+                )
+            validate_stage_a_b58_patch_initializer(checkpoint_payload)
+            contract = checkpoint_payload["stage_a_b58_patch0006_initializer"]
+            source_records = contract.get("sources", {})
+            expected_sources = {
+                "b58_trunk": str(
+                    getattr(args, "stage_a_b58_checkpoint_sha256", "") or ""
+                ).strip(),
+                "patch0006": str(
+                    getattr(args, "stage_a_patch0006_checkpoint_sha256", "") or ""
+                ).strip(),
+            }
+            observed_sources = {
+                role: str(source_records.get(role, {}).get("sha256", ""))
+                for role in expected_sources
+            }
+            if observed_sources != expected_sources:
+                raise RuntimeError(
+                    "Stage-A B58 patch initializer source lineage drifted: "
+                    f"expected={expected_sources}, observed={observed_sources}"
+                )
         if bool(getattr(args, "stage_b_native_patch_category", False)):
             from tools.build_stageb_native_patch_category_initializer import (
                 EXPECTED_B58_SHA256,
@@ -13059,7 +13101,8 @@ def main(args):
         from collections import OrderedDict
         _ignorekeywordlist = args.finetune_ignore if args.finetune_ignore else []
         if (
-            bool(getattr(args, "stage_b_u0_patch_rank", False))
+            stage_a_b58_patch_realign
+            or bool(getattr(args, "stage_b_u0_patch_rank", False))
             or bool(getattr(args, "stage_b_data_driven_score", False))
             or bool(getattr(args, "stage_b_native_patch_category", False))
         ) and _ignorekeywordlist:
@@ -13258,7 +13301,8 @@ def main(args):
         _load_output = model_without_ddp.load_state_dict(
             _tmp_st,
             strict=(
-                bool(getattr(args, "stage_b_u0_patch_rank", False))
+                stage_a_b58_patch_realign
+                or bool(getattr(args, "stage_b_u0_patch_rank", False))
                 or bool(getattr(args, "stage_b_data_driven_score", False))
                 or bool(getattr(args, "stage_b_native_patch_category", False))
                 or dense_confidence_adapter_init
