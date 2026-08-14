@@ -135,3 +135,9 @@ the sealed initializer in
 `/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs40_formal_20260814`;
 it does not mix state with the batch-24 run. The full support-patch cap remains
 unchanged, because reducing it would change the Stage-A data contract.
+
+The fresh batch-40 formal launch reached update 31 without OOM or an AMP-skipped
+step. At that point the training process occupied 28,606 MiB and whole-card use
+was 30,452/32,607 MiB, leaving 1,657 MiB free; PyTorch reported `max mem=15366`
+MiB. This is the selected approximately-30-GiB operating point. Iteration
+checkpoints are written every 500 optimizer updates.
