@@ -73,6 +73,25 @@ remain frozen at this milestone. This is an intermediate ownership proof; the
 same assertions must be repeated against the final `checkpoint0007.pth` before
 R100 handoff.
 
+### Epoch-1 checkpoint audit
+
+The immutable `checkpoint0001.pth` was audited after its size and mtime were
+stable and the epoch-1 averaged statistics had been written. It records
+`epoch=1`, `epoch_finished=true`, and exactly 11,402 successful optimizer
+updates: two of eight epochs, or 25% of the Stage A update contract. The same
+full assertions passed against this formal epoch checkpoint:
+
+- exactly the nine allowlisted patch tensors changed and all 1,125 frozen
+  tensors remained bitwise equal to the initializer;
+- every model tensor and all 27 tensors across the nine AdamW states remained
+  finite;
+- AMP scale remained 65,536, with growth tracker exactly 11,402 and growth
+  interval 1,000,000.
+
+Thus the u10000 ownership result persists at the first subsequent immutable
+epoch boundary. The remaining six epochs must complete before the final
+`checkpoint0007.pth` handoff to R100.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
