@@ -12,6 +12,7 @@ from engine import _set_stage_a_b58_patch_realign_training_mode
 from tools.build_stagea_b58_patch0006_initializer import (
     compose_model_state,
 )
+from tools import seal_stagea_launch_source as launch_seal
 from util.slconfig import SLConfig
 
 
@@ -171,3 +172,25 @@ def test_stagea_grad_scaler_disables_growth_probes(monkeypatch):
 def test_grad_scaler_rejects_invalid_growth_interval(value):
     with pytest.raises(ValueError, match="positive integer"):
         main_module._make_grad_scaler(enabled=True, growth_interval=value)
+
+
+def test_launch_source_manifest_rejects_sealed_artifact_drift(tmp_path):
+    info = tmp_path / "info.txt"
+    patch = tmp_path / launch_seal.PATCH_NAME
+    manifest = tmp_path / launch_seal.MANIFEST_NAME
+    info.write_text("launch evidence\n", encoding="utf-8")
+    patch.write_text("tracked diff\n", encoding="utf-8")
+    payload = {
+        "schema": launch_seal.SCHEMA,
+        "launch_artifacts": [launch_seal._file_record(info)],
+        "tracked_worktree_patch": launch_seal._file_record(patch),
+    }
+    payload["manifest_sha256"] = launch_seal._canonical_sha256(payload)
+    manifest.write_text(
+        launch_seal.json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8"
+    )
+
+    assert launch_seal.verify_manifest(manifest) == payload
+    patch.write_text("drifted diff\n", encoding="utf-8")
+    with pytest.raises(launch_seal.LaunchSourceSealError, match="drifted"):
+        launch_seal.verify_manifest(manifest)

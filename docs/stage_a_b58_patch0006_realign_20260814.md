@@ -146,7 +146,7 @@ as the formal operating point. Batch 38 is the selected fallback and starts
 fresh from the sealed initializer in
 `/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs38_formal_20260814`;
 the batch-40 checkpoint is retained for audit but is not resumed across the
-physical-batch change. Iteration checkpoints remain every 500 optimizer
+physical-batch change. Iteration checkpoints remain every 100 optimizer
 updates.
 
 The first batch-38 process was interrupted at update 160 by a full host reboot
@@ -165,3 +165,11 @@ The replacement starts fresh from the sealed initializer with
 `amp_init_scale=65536` and `amp_growth_interval=1000000`; this keeps the proven
 safe scale fixed for the whole run and prevents periodic overflow probes from
 silently reducing the optimizer-update count.
+
+The replacement launch is additionally sealed by
+`stagea_launch_source_manifest.json` and `stagea_launch_worktree.patch` in its
+output directory. The manifest records launch commit `57ee79d`, the logged
+command and config snapshots, hashes the Stage A runtime sources, and proves
+their mtimes preceded the 02:09 launch. The tracked patch preserves the exact
+dirty-worktree delta over that commit. Downstream R100 receipts use schema
+`pivot.stagea_b58_r100_receipt/v2` and refuse to build without this seal.

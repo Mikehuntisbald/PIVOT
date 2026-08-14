@@ -66,12 +66,18 @@ The launcher is:
 bash tools/run_stagea_b58_r100_c100.sh
 ```
 
-It emits `pivot.stagea_b58_r100_receipt/v1` between R100 and C100. The receipt
+It emits `pivot.stagea_b58_r100_receipt/v2` between R100 and C100. The receipt
 rehashes the Stage A checkpoint, its initializer and B58 source, the R100
-checkpoint, configs, datasets, orchestration, and training code. It fails
-closed if an incomplete Stage A or a non-R100 checkpoint is supplied. After
-C100, the same launcher runs the two-process sealed evaluation and exits
-successfully only if `stagea_r100_c100_all_sealed_gates_passed=true`.
+checkpoint, configs, datasets, orchestration, and training code. It also
+requires the Stage A launch-source manifest. That manifest binds the logged
+launch commit to the exact tracked dirty-worktree patch, the automatically
+snapshotted resolved config, and SHA-256 records for the Stage A runtime
+sources; every relevant mtime was verified not to exceed the logged launch
+time. This prevents a later source edit from being misrepresented as the code
+that produced Stage A. The receipt fails closed if an incomplete Stage A, a
+missing/drifted launch seal, or a non-R100 checkpoint is supplied. After C100,
+the same launcher runs the two-process sealed evaluation and exits successfully
+only if `stagea_r100_c100_all_sealed_gates_passed=true`.
 
 ## Sealed replay
 

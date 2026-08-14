@@ -17,7 +17,7 @@ import torch
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-SCHEMA = "pivot.stagea_b58_r100_receipt/v1"
+SCHEMA = "pivot.stagea_b58_r100_receipt/v2"
 STAGEA_CONFIG = (
     REPO_ROOT
     / "config/ablations/cfg_stagea_b58_trunk_patch0006_realign_20260814.py"
@@ -179,6 +179,25 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
     stagea = stagea.expanduser().resolve(strict=True)
     initializer = initializer.expanduser().resolve(strict=True)
     rank = rank.expanduser().resolve(strict=True)
+    from tools.seal_stagea_launch_source import (
+        MANIFEST_NAME as STAGEA_LAUNCH_MANIFEST_NAME,
+        LaunchSourceSealError,
+        verify_manifest as verify_stagea_launch_manifest,
+    )
+
+    stagea_launch_manifest_path = stagea.parent / STAGEA_LAUNCH_MANIFEST_NAME
+    try:
+        stagea_launch_manifest = verify_stagea_launch_manifest(
+            stagea_launch_manifest_path
+        )
+    except (LaunchSourceSealError, OSError) as error:
+        raise StageAR100ReceiptError(
+            f"Stage A launch source seal verification failed: {error}"
+        ) from error
+    if Path(stagea_launch_manifest["launch"]["output_dir"]).resolve() != stagea.parent:
+        raise StageAR100ReceiptError(
+            "Stage A launch source seal belongs to a different output directory"
+        )
     stagea_payload = _load(stagea)
     initializer_payload = _load(initializer)
     rank_payload = _load(rank)
@@ -325,6 +344,7 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
         RANK_DATASETS,
         REPO_ROOT / "tools/run_stagea_b58_r100_c100.sh",
         REPO_ROOT / "tools/build_stagea_b58_r100_receipt.py",
+        REPO_ROOT / "tools/seal_stagea_launch_source.py",
         REPO_ROOT / "main.py",
         REPO_ROOT / "engine.py",
         REPO_ROOT / "models/GroundingDINO/groundingdino.py",
@@ -336,6 +356,14 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
             "checkpoint": _file_record(stagea),
             "initializer": _file_record(initializer),
             "b58_source": b58_record,
+            "launch_source": {
+                "manifest": _file_record(stagea_launch_manifest_path),
+                "manifest_sha256": stagea_launch_manifest["manifest_sha256"],
+                "git_sha": stagea_launch_manifest["launch"]["git_sha"],
+                "tracked_worktree_patch": stagea_launch_manifest[
+                    "tracked_worktree_patch"
+                ],
+            },
             "epoch": EXPECTED_STAGEA_EPOCH,
             "optimizer_updates": EXPECTED_STAGEA_UPDATES,
             "model_state_keys": len(stagea_state),
@@ -360,6 +388,7 @@ def build_receipt(*, stagea: Path, initializer: Path, rank: Path) -> dict[str, A
             "stagea_all_nine_patch_tensors_updated": True,
             "stagea_frozen_tensors_bitwise_equal_initializer": True,
             "stagea_nonpatch_trunk_bitwise_equal_b58": True,
+            "stagea_launch_source_state_forensically_sealed": True,
             "r100_base_bitwise_equal_stagea_nonpatch_trunk": True,
             "stagea_patch_state_excluded_only_by_ordinary_gdino_architecture": True,
             "r100_rank_trained_confidence_zero_initialized": True,
