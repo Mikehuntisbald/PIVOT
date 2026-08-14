@@ -110,18 +110,28 @@ substitute for the then-current batch-18 run.
 The first formal batch-18 launch reached step 500 on the full support-patch
 surface, demonstrating batch 18 through that milestone. Because this
 revision backpropagates through only the 9 patch-owned tensors and does not keep
-decoder/encoder/backbone backward graphs, the formal physical batch is raised
-to 24 while keeping `lr=2e-5` unchanged. This isolates the memory/throughput
-change from learning-rate tuning.
+decoder/encoder/backbone backward graphs, the physical batch was first raised
+to 24 and then validated at 40 while keeping `lr=2e-5` unchanged. This isolates
+the memory/throughput change from learning-rate tuning.
 
-The launcher writes this revised run to
-`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs24_formal_20260814`
-by default, so it cannot mix checkpoints or logs with the earlier batch-18
-attempt.
+The batch-24 run was stopped cleanly after update 673 and retains its exact
+iteration checkpoint at
+`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs24_formal_20260814/checkpoint_iter.pth`
+(`epoch=0`, `next_iter=673`, `optimizer_updates=673`, `reason=signal`). It is
+preserved for audit but is not resumed after changing the physical batch,
+because doing so would change sample exposure at the iteration boundary.
 
-Batch 24 completed its first 20 CUDA updates on the target RTX 5090 with no AMP
-skip or OOM. Peak PyTorch allocation rose from 9.34 GiB on the first update to
-9.87 GiB by update 20; whole-card use was about 19.7/32.6 GiB including the
-resident ComfyUI process and CUDA caching. The run retains a batch-22 fallback
-for a later rare high-support spike, but the support-patch cap must not be
-reduced because that would change the Stage-A data contract.
+Batch 24 completed 673 CUDA updates on the target RTX 5090 with no AMP skip or
+OOM. Peak PyTorch allocation reached 10.0 GiB; the training process occupied
+about 17.7 GiB and whole-card use was about 19.7/32.6 GiB including resident
+desktop/ComfyUI processes and CUDA caching.
+
+To move closer to the requested 30 GiB operating point, a full-data batch-40
+probe completed one optimizer update and saved
+`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_vram_probe_bs40_u1_20260814/checkpoint_iter.pth`
+with `optimizer_updates=1` and `reason=max_train_iters`. Batch 40 is therefore
+the selected formal physical batch. The launcher now starts a fresh run from
+the sealed initializer in
+`/media/haoyi/T9/gdino/outputs/stageA_b58_trunk_patch0006_realign_bs40_formal_20260814`;
+it does not mix state with the batch-24 run. The full support-patch cap remains
+unchanged, because reducing it would change the Stage-A data contract.
