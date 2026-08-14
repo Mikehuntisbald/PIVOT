@@ -50,6 +50,29 @@ The Stage A completion contract expects `checkpoint0007.pth`, epoch 7 complete,
 45,608 successful optimizer updates, zero skipped AMP steps, unchanged frozen
 tensors, and changes in all nine trainable patch tensors.
 
+### Live u10000 ownership audit
+
+The replacement batch-38 run reached and persisted 10,000 successful optimizer
+updates on 2026-08-15. A CPU-only audit loaded the completed iteration
+checkpoint only after its save record appeared and compared every model tensor
+against the fixed initializer. All assertions passed:
+
+- the checkpoint contains 1,134 model tensors; exactly the nine allowlisted
+  patch tensors changed and the other 1,125 tensors remained bitwise equal;
+- all model tensors are finite;
+- the optimizer contains exactly nine parameter states and nine parameter-group
+  entries; all 27 AdamW state tensors are finite;
+- `optimizer_updates=10000`, AMP scale is 65,536, and the scaler growth tracker
+  is exactly 10,000 with growth interval 1,000,000.
+
+The changed set is `patch_logit_scale`, the six
+`patch_encoder.{input_proj,norm}` tensors, and the two
+`query_proj_for_patch` tensors. Therefore the decoder, query embeddings,
+ordinary GroundingDINO trunk, and every other query-semantic alignment tensor
+remain frozen at this milestone. This is an intermediate ownership proof; the
+same assertions must be repeated against the final `checkpoint0007.pth` before
+R100 handoff.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
