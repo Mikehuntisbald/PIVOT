@@ -115,6 +115,28 @@ checkpoint was written, and the GPU returned to full training utilization.
 This proves that the Stage A ownership boundary persisted through three of the
 eight epochs; five epochs remain before the final R100 handoff.
 
+### 20,000-update ownership audit
+
+The live interval checkpoint at exactly 20,000 successful optimizer updates
+was compared tensor-by-tensor with the sealed Stage A initializer. The audit
+passed the same ownership and numerical contract at 43.852% of the full
+45,608-update run:
+
+- the changed set was exactly the nine allowlisted patch tensors, with no
+  missing expected change and no unexpected change;
+- all other 1,125 model tensors remained bitwise equal to the initializer;
+- all 1,134 model tensors were finite;
+- the optimizer still contained exactly nine states, nine parameter-group
+  entries, and 27 finite state tensors;
+- AMP scale remained 65,536 and its growth tracker was exactly 20,000, equal
+  to the successful optimizer-update count.
+
+The checkpoint records `epoch=3` and `iteration=2897`. The formal Stage A
+process and downstream controller remained alive, and GPU training resumed at
+normal utilization after checkpoint serialization. This is an intermediate
+ownership proof; it does not replace the immutable epoch-3 audit or the final
+`checkpoint0007.pth` lineage gate.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
