@@ -244,6 +244,29 @@ training log entered the final epoch 7 with zero AMP skips. Seven of eight
 epochs have therefore completed without a numerical failure or frozen-boundary
 violation; one epoch remains before the final R100 handoff.
 
+### 42,000-update ownership audit
+
+The final-epoch interval checkpoint at exactly 42,000 successful optimizer
+updates was audited tensor-by-tensor against the sealed initializer. It records
+`epoch=7`, `iteration=2093`, `epoch_finished=false`, and
+`optimizer_updates=42000`, leaving 3,608 updates in the fixed 45,608-update
+Stage A contract. The complete ownership and numerical contract passed:
+
+- the changed set was exactly the nine allowlisted patch tensors and all 1,125
+  frozen tensors remained bitwise equal to the initializer;
+- all 1,134 model tensors and all 27 tensors across the nine AdamW states were
+  finite;
+- the optimizer contained exactly nine states and 27 state tensors;
+- AMP scale remained 65,536, with growth tracker exactly 42,000 and growth
+  interval 1,000,000.
+
+The preceding `u41200` through `u41900` interval checkpoints also passed
+metadata, finiteness, optimizer-ownership, and AMP-state audits. The Stage A
+process and automatic R100/C100 controller remained alive after serialization.
+This is the last scheduled full live ownership audit; `checkpoint0007.pth`
+must still pass the same complete audit before the controller's R100 output can
+be accepted.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
