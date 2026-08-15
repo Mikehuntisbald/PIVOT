@@ -267,6 +267,26 @@ This is the last scheduled full live ownership audit; `checkpoint0007.pth`
 must still pass the same complete audit before the controller's R100 output can
 be accepted.
 
+### Final Stage-A completion audit
+
+The immutable `checkpoint0007.pth` completed the fixed eight-epoch schedule
+and reached a stable size of 695,205,625 bytes. Its SHA-256 is
+`fe20fe91f3c46b6d143db13c74817ff3aa810cc51d1579104913c3d23fec9a8b`.
+The checkpoint records `epoch=7`, `iteration=0`, `epoch_finished=true`, and
+exactly 45,608 successful optimizer updates. The full terminal audit passed:
+
+- the changed set was exactly the nine allowlisted patch tensors, with all
+  1,125 frozen tensors bitwise equal to the initializer;
+- all 1,134 model tensors were finite;
+- the optimizer contained exactly nine states and 27 finite state tensors;
+- AMP scale remained 65,536, its growth tracker was exactly 45,608, and its
+  growth interval remained 1,000,000.
+
+The formal log spans 2026-08-15 02:09:24 through 13:09:24 and contains no AMP
+skip, CUDA OOM, or non-finite failure. This closes the Stage-A contract and
+authorizes the sealed checkpoint, rather than an interval or interrupted
+checkpoint, as the sole source for R100.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the

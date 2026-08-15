@@ -173,3 +173,29 @@ command and config snapshots, hashes the Stage A runtime sources, and proves
 their mtimes preceded the 02:09 launch. The tracked patch preserves the exact
 dirty-worktree delta over that commit. Downstream R100 receipts use schema
 `pivot.stagea_b58_r100_receipt/v3` and refuse to build without this seal.
+
+## Formal completion
+
+The selected batch-38 replacement run completed all eight epochs on
+2026-08-15. Its terminal artifact is:
+
+```text
+/media/haoyi/T9/gdino/outputs/
+  stageA_b58_trunk_patch0006_realign_bs38_formal_20260814/checkpoint0007.pth
+```
+
+The file is 695,205,625 bytes with SHA-256
+`fe20fe91f3c46b6d143db13c74817ff3aa810cc51d1579104913c3d23fec9a8b`.
+It records `epoch=7`, `epoch_finished=true`, `iteration=0`, and exactly 45,608
+successful optimizer updates. A tensor-by-tensor terminal audit found exactly
+the nine allowed patch tensors changed, all 1,125 frozen tensors bitwise equal
+to the initializer, all 1,134 model tensors finite, and all 27 tensors in the
+nine optimizer states finite. AMP stayed at scale 65,536 with growth tracker
+45,608 and growth interval 1,000,000. The completed formal log contains no AMP
+skip, CUDA OOM, or non-finite failure.
+
+This establishes the intended outcome of the revision: the patch readout was
+realigned for a full schedule while the B58 decoder, query semantics, box
+geometry, text/image trunk, and every other non-patch tensor remained frozen.
+Downstream quality claims still belong to the receipt-bound R100/C100 sealed
+replay, not to this ownership audit alone.
