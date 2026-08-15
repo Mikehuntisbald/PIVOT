@@ -204,6 +204,26 @@ GPU memory near the requested 30 GB envelope. Stage A is therefore at 65.8% of
 its 45,608-update contract with no observed AMP skip, numerical failure, or
 frozen-boundary violation.
 
+### Epoch-5 checkpoint audit
+
+The immutable `checkpoint0005.pth` reached a stable 695,205,625-byte size and
+was audited tensor-by-tensor against the sealed initializer. It records
+`epoch=5`, `epoch_finished=true`, `iteration=0`, and exactly 34,206 successful
+optimizer updates: six times the fixed 5,701-update epoch length, or 75% of
+the 45,608-update Stage A contract. The complete contract passed:
+
+- the changed set was exactly the nine allowlisted patch tensors and all 1,125
+  frozen tensors remained bitwise equal to the initializer;
+- all 1,134 model tensors and all 27 tensors across the nine AdamW states were
+  finite;
+- the optimizer contained exactly nine states and 27 state entries;
+- AMP scale remained 65,536 and its growth tracker was exactly 34,206.
+
+The Stage A process and automatic R100/C100 controller remained alive, and the
+training log entered epoch 6 with zero AMP skips. Six of eight epochs have
+therefore completed without a numerical failure or frozen-boundary violation;
+two epochs remain before the final R100 handoff.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
