@@ -64,6 +64,7 @@ LINEAGE_EQUALITY_SCHEMA = (
 TOTAL_TRUST_SCHEMA = "stageb-gdino-adapter-total-trust-probe-v1"
 LEGACY_RECEIPT_SCHEMA = "pivot.stageb.legacy_replay_receipt/v1"
 STAGEA_R100_RECEIPT_SCHEMA = "pivot.stagea_b58_r100_receipt/v3"
+STAGEA_LAUNCH_SOURCE_SCHEMA = "pivot.stagea.launch_source_manifest/v1"
 LEGACY_R100_INITIALIZATION = (
     "sealed_legacy_b58_r100_to_total_trust_confidence_pretrain_model_path"
 )
@@ -162,7 +163,33 @@ def _lineage_artifact_paths(
         if path in visited_json:
             return
         visited_json.add(path)
-        visit_value(_read_json(path, label=label), label=label)
+        payload = _read_json(path, label=label)
+        if payload.get("schema") == STAGEA_LAUNCH_SOURCE_SCHEMA:
+            # This manifest describes the historical worktree that launched
+            # Stage A. Its source-file records are archival evidence, not a
+            # requirement that the current evaluation worktree be rolled back
+            # to that historical state. Rehashing those original paths here
+            # makes a valid forensic seal impossible to replay after normal
+            # development. The dedicated verifier instead authenticates the
+            # manifest, launch artifacts, and reconstructible git patch; the
+            # Stage-A/R100 receipt is rebuilt independently before evaluation.
+            from tools.seal_stagea_launch_source import (
+                LaunchSourceSealError,
+                verify_manifest,
+            )
+
+            try:
+                verified = verify_manifest(path)
+            except (LaunchSourceSealError, OSError) as error:
+                raise TotalTrustEvaluationError(
+                    f"{label} forensic launch-source verification failed: {error}"
+                ) from error
+            if verified != payload:
+                raise TotalTrustEvaluationError(
+                    f"{label} forensic launch-source payload changed during verification"
+                )
+            return
+        visit_value(payload, label=label)
 
     visit_json(root, label="candidate milestone audit")
     return tuple(sorted(paths, key=str))

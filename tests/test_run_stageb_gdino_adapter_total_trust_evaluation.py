@@ -20,6 +20,44 @@ def _record(path: Path, **extra):
 
 
 class TotalTrustHistoricalB58EvaluationTest(unittest.TestCase):
+    def test_lineage_treats_stagea_launch_sources_as_forensic_history(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            historical_source = root / "historical_source.py"
+            historical_source.write_text("current bytes differ\n", encoding="ascii")
+            manifest = root / "stagea_launch_source_manifest.json"
+            manifest_payload = {
+                "schema": evaluator.STAGEA_LAUNCH_SOURCE_SCHEMA,
+                "runtime_sources": [
+                    {
+                        "path": str(historical_source.resolve()),
+                        "size_bytes": 1,
+                        "sha256": "0" * 64,
+                    }
+                ],
+            }
+            manifest.write_text(
+                json.dumps(manifest_payload) + "\n", encoding="ascii"
+            )
+            audit = root / "candidate.audit.json"
+            audit.write_text(
+                json.dumps({"launch_source": _record(manifest)}) + "\n",
+                encoding="ascii",
+            )
+
+            with patch(
+                "tools.seal_stagea_launch_source.verify_manifest",
+                return_value=manifest_payload,
+            ) as verify_manifest:
+                observed = evaluator._lineage_artifact_paths(
+                    audit, cache=evaluator.paper.HashCache()
+                )
+
+            verify_manifest.assert_called_once_with(manifest.resolve())
+            self.assertIn(audit.resolve(), observed)
+            self.assertIn(manifest.resolve(), observed)
+            self.assertNotIn(historical_source.resolve(), observed)
+
     def test_lineage_verification_refuses_to_overwrite_output(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
