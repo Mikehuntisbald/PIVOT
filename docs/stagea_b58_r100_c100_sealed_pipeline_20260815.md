@@ -137,6 +137,29 @@ normal utilization after checkpoint serialization. This is an intermediate
 ownership proof; it does not replace the immutable epoch-3 audit or the final
 `checkpoint0007.pth` lineage gate.
 
+### Epoch-3 checkpoint audit
+
+The immutable `checkpoint0003.pth` reached a stable 695,205,625-byte size and
+was then audited tensor-by-tensor against the sealed initializer. It records
+`epoch=3`, `epoch_finished=true`, `iteration=0`, and exactly 22,804 successful
+optimizer updates: four times the fixed 5,701-update epoch length, or exactly
+50% of the 45,608-update Stage A contract. Every assertion passed:
+
+- the changed set remained exactly the nine allowlisted patch tensors, while
+  all 1,125 frozen tensors remained bitwise equal to the initializer;
+- all 1,134 model tensors and all 27 tensors across the nine AdamW states were
+  finite;
+- the optimizer contained exactly nine states and nine parameter-group
+  entries;
+- AMP scale remained 65,536 and its growth tracker was exactly 22,804, equal
+  to the successful optimizer-update count.
+
+The Stage A process and automatic R100/C100 controller remained alive, and GPU
+utilization returned to 95% after checkpoint serialization. The first half of
+Stage A therefore completed without an AMP skip, numerical failure, or breach
+of the frozen query-semantic ownership boundary; four epochs remain before the
+final R100 handoff.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
