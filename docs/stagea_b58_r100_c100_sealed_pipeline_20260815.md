@@ -160,6 +160,28 @@ Stage A therefore completed without an AMP skip, numerical failure, or breach
 of the frozen query-semantic ownership boundary; four epochs remain before the
 final R100 handoff.
 
+### Epoch-4 checkpoint audit
+
+The immutable `checkpoint0004.pth` reached a stable 695,205,625-byte size and
+was audited tensor-by-tensor against the sealed initializer. It records
+`epoch=4`, `epoch_finished=true`, `iteration=0`, and exactly 28,505 successful
+optimizer updates: five times the fixed 5,701-update epoch length, or 62.5% of
+the 45,608-update Stage A contract. The full contract passed again:
+
+- the changed set was exactly the nine allowlisted patch tensors and all 1,125
+  frozen tensors remained bitwise equal to the initializer;
+- all 1,134 model tensors and all 27 tensors across the nine AdamW states were
+  finite;
+- the optimizer contained exactly nine states and nine parameter-group
+  entries;
+- AMP scale remained 65,536 and its growth tracker was exactly 28,505, equal
+  to the successful optimizer-update count.
+
+The Stage A process and automatic R100/C100 controller remained alive, and GPU
+training resumed after checkpoint serialization. Five of eight epochs have
+therefore completed with no AMP skip, numerical failure, or frozen-boundary
+violation; three epochs remain before the final R100 handoff.
+
 ## R100/C100 ownership
 
 The completed Stage A contains 1,134 tensors. Its 938 non-patch tensors are the
