@@ -382,3 +382,82 @@ the Stage A -> B58 root and makes Ref8 no-regression a required goal gate in
 addition to both strict FPR95 wins. A protocol execution may still complete and
 publish a negative result, but the full goal is achieved only when
 `stagea_r100_c100_all_sealed_gates_passed=true` in `postflight.json`.
+
+### Accepted v3 lineage
+
+The accepted downstream run is:
+
+```text
+outputs/stagea_b58_patch0006_realign_r100_c100_sealed_evaluator_v3_20260815/
+```
+
+Its R100 checkpoint is
+`rank/milestones/checkpoint_iter_000100.pth`, SHA-256
+`346e847228f7a14a70ee772233c8d5fb2b090aebab76d7deda981901e74cc2b7`.
+The Stage-A/R100 receipt authenticates exactly 100 optimizer updates, bitwise
+equality of all 938 ordinary-GDINO tensors to the completed Stage-A non-patch
+trunk, eight rank tensors, and twelve still-initial confidence tensors. A
+terminal CPU audit found exactly eight R100 optimizer states and 24 finite
+AdamW state tensors.
+
+Its C100 checkpoint is
+`confidence/milestones/checkpoint_iter_000100.pth`, SHA-256
+`c9737d6bcabec4325bd53b146782b82a4d1119237d01d87de9f8d2987e03000e`.
+It records exactly 100 optimizer updates. Relative to R100, the changed set is
+exactly all twelve confidence tensors; all eight rank tensors and all 938 trunk
+tensors remain bitwise equal (946/946). Its optimizer contains exactly twelve
+states, twelve parameter-group entries, and 36 finite AdamW state tensors.
+Thus the two training phases have disjoint gradient ownership in the produced
+checkpoints, rather than merely disjoint loss labels.
+
+Two superseded diagnostic launches attempted to replay the historical Stage-A
+launch worktree as the live R100/C100 source. They correctly failed before any
+result could be accepted: first because the historical evaluator file also
+drifted, then because that historical source predates the Ref-safe score route.
+The evaluator was corrected to verify the Stage-A launch-source manifest as
+forensic history (git commit plus preserved worktree patch), while still using
+and sealing the current R100/C100/evaluation implementation. The focused
+regression suite passed 9/9, and this correction was committed as `e864367`.
+
+### Final sealed replay result
+
+The accepted formal output is:
+
+```text
+outputs/stagea_b58_patch0006_realign_r100_c100_sealed_evaluator_v3_20260815/
+  formal/c100_stagea_b58_full_20260815/
+```
+
+Both strict manifests beat the fixed historical B58 checkpoint:
+
+| Manifest | B58 FPR95 | C100 FPR95 | Delta | False accepts | Paired 95% CI |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| strict1607 | 0.498444 | **0.454263** | -0.044182 | 801 -> 730 | [-0.071109, -0.017509] |
+| strict2031 | 0.512063 | **0.455933** | -0.056130 | 1040 -> 926 | [-0.079326, -0.032752] |
+
+The 5,000-resample paired image-cluster bootstrap supports a lower candidate
+FPR95 for both manifests (`P(delta < 0)=0.999` for strict1607 and `1.0` for
+strict2031). Ref-safe deployment exactly preserved B58's Acc@0.5 correct count
+on every Ref8 split:
+
+| Split | Expressions | B58 correct | C100 correct | Acc@0.5 delta |
+| --- | ---: | ---: | ---: | ---: |
+| refcoco_val | 10,834 | 6,993 | 6,993 | 0 |
+| refcoco_testA | 5,657 | 4,102 | 4,102 | 0 |
+| refcoco_testB | 5,095 | 2,957 | 2,957 | 0 |
+| refcocop_val | 10,758 | 7,475 | 7,475 | 0 |
+| refcocop_testA | 5,726 | 4,305 | 4,305 | 0 |
+| refcocop_testB | 4,889 | 3,108 | 3,108 | 0 |
+| refcocog_val | 4,896 | 3,942 | 3,942 | 0 |
+| refcocog_test | 9,602 | 7,876 | 7,876 | 0 |
+
+The pre- and post-evaluation lineage receipts are byte-identical, both with
+SHA-256 `b7a27f6309286681bf8d34fa84317c6966c8973a7ce4acfc5e8de842501b40a0`.
+The final comparison SHA-256 is
+`c06320d52c858d6045807b33b093e32890f7c485cf868d4f1e1f9f70d00f0bf5`,
+and the postflight SHA-256 is
+`1058b0cdfd488d479381f3c5f7d9d7446a9a4b367997247d20f9465ff490a9c8`.
+`postflight.json` reports `status=passed`,
+`both_strict_fpr95_strictly_lower=true`,
+`all_ref8_splits_no_regression=true`, `rank_branch_unchanged_from_r100=true`,
+and `stagea_r100_c100_all_sealed_gates_passed=true`.
