@@ -110,4 +110,44 @@ Tests:
   tests/test_stageb_u2v4_confidence_only_route.py
 ```
 
-Current result: 48 passed.
+Current result: 51 passed.
+
+## Locked val/calibration selection
+
+All three formal admission runs completed 100 successful optimizer updates
+with zero AMP skips. Their checkpoint SHA-256 values are:
+
+- seed17: `57e614c8244a32409feb01aa7630230a1c7935f0945a045e20f1dca978ee4f38`;
+- seed42: `0127d15ef14e772884681accf148bed25f368d1fa05980c66654fa2b706048d5`;
+- seed73: `8f5f1c15f67c5cd59f21a15f0d83765f7fab71f6174cf24170a4ca46e705d3c0`.
+
+The B16/W4/AMP val-only results are:
+
+| seed | RefCOCO val | RefCOCO+ val | RefCOCOg val |
+|---:|---:|---:|---:|
+| 17 | 0.665682 | 0.741123 | 0.806373 |
+| 42 | 0.667344 | 0.744655 | 0.806985 |
+| 73 | 0.666697 | 0.743819 | 0.806985 |
+
+Every seed strictly exceeds B58 on every val split. Seed42 exactly reproduces
+the clean U2-v4 replay result and is `+0.001108/+0.001580/+0.000000` versus
+legacy U2 Gap3 on the three val splits.
+
+Fresh D3 confidence was evaluated at U25/U50/U100 on the sealed 1,570-row
+calibration surface. The cross-seed mean/worst-seed FPR95 values were:
+
+| update | mean | worst seed |
+|---:|---:|---:|
+| 25 | 0.569639 | 0.577707 |
+| 50 | 0.536518 | 0.542675 |
+| 100 | 0.535456 | 0.544586 |
+
+The locked robust rule minimizes worst-seed FPR95, then mean FPR95, then the
+earlier update. It selects U50 for all seeds. U100 is not selected: its mean is
+only 0.001062 lower, its worst seed is worse, and its score scale is much less
+stable.
+
+Preregistration is built by
+`tools/build_stageb_u2v5_preregistration.py`. The receipt binds all six
+selected checkpoints, val/calibration summaries, the Ref8 baseline, and both
+strict manifests. No Ref test or strict result was read during this stage.

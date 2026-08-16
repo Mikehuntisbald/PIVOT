@@ -158,3 +158,25 @@ def test_clean_confidence_runtime_rejects_missing_contract():
             {"model": model.state_dict()},
             checkpoint_label="test checkpoint",
         )
+
+
+def test_preregistration_uses_robust_cross_seed_milestone_rule():
+    from tools.build_stageb_u2v5_preregistration import select_confidence
+
+    values = {
+        25: (0.56, 0.58, 0.57),
+        50: (0.54, 0.52, 0.542),
+        100: (0.53, 0.527, 0.545),
+    }
+    rows = []
+    for update, scores in values.items():
+        for seed, score in zip((17, 42, 73), scores):
+            rows.append(
+                {
+                    "run_id": f"confidence_seed{seed}_u{update}_checkpoint_iter",
+                    "fpr95tpr": score,
+                }
+            )
+    result = select_confidence({"tn": rows})
+    assert result["selected_update"] == 50
+    assert result["candidates"][0]["worst_seed_fpr95"] == pytest.approx(0.542)
