@@ -73,12 +73,20 @@ def build_training_contract(
     observed_sha = _sha256_file(initializer_path)
     if observed_sha != str(initializer_sha256):
         raise U2V4TrainingContractError("U2-v4 initializer SHA256 mismatch")
-    initializer_contract = validate_training_initializer_payload(initializer_payload)
+    clean_initializer = "u2v5_clean_initializer" in initializer_payload
+    if clean_initializer:
+        from tools.build_stageb_u2v5_clean_initializer import (
+            validate_initializer_payload as validate_clean_initializer_payload,
+        )
+
+        initializer_contract = validate_clean_initializer_payload(initializer_payload)
+    else:
+        initializer_contract = validate_training_initializer_payload(initializer_payload)
     state = _state(initializer_payload, label="U2-v4 initializer")
     if len(state) != 1165 or set(TRAINABLE_KEYS) - set(state):
         raise U2V4TrainingContractError("U2-v4 initializer ownership surface drifted")
     frozen_keys = sorted(set(state) - set(TRAINABLE_KEYS))
-    return {
+    contract = {
         "schema": SCHEMA,
         "initializer": {
             "path": str(initializer_path),
@@ -118,6 +126,29 @@ def build_training_contract(
             "auxiliary_residual_trains_surface": True,
         },
     }
+    if clean_initializer:
+        contract["clean_anchor"] = {
+            "schema": "pivot.stageb.u2v5_clean_admission_phase/v1",
+            "stagea_positive_only_r100": True,
+            "confidence12_state": "identity_untrained",
+            "c100_confidence_imported": False,
+            "next_phase": "fresh_image_disjoint_d3_confidence",
+        }
+        contract["ownership"] = {
+            "trainable": [
+                "category_admission_surface8",
+                "admission_auxiliary_residual8",
+            ],
+            "frozen": [
+                "b58_trunk",
+                "positive_only_r100_rank8",
+                "identity_untrained_confidence12",
+                "patch_backbone187",
+                "patch_logit_scale",
+                "u0_contract_buffers3",
+            ],
+        }
+    return contract
 
 
 def validate_runtime_payload(
@@ -138,13 +169,16 @@ def validate_runtime_payload(
         initializer_path=initializer_path,
         initializer_sha256=initializer_sha256,
     )
-    for key in (
+    keys = [
         "initializer", "trainable_keys", "surface_parameter_keys",
         "auxiliary_residual_keys", "trainable_tensor_count",
         "frozen_tensor_count", "frozen_tensor_sha256",
         "initial_trainable_tensor_sha256", "model_state_keys", "ownership",
         "training_mechanism",
-    ):
+    ]
+    if "clean_anchor" in expected:
+        keys.append("clean_anchor")
+    for key in keys:
         if contract.get(key) != expected[key]:
             raise U2V4TrainingContractError(
                 f"{checkpoint_label} U2-v4 contract drifted at {key}"

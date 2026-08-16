@@ -5522,7 +5522,9 @@ def build_groundingdino(args):
             }
             return model, criterion, postprocessors
         if stage_b_gdino_score_adapter:
-            if stage_b_u0_patch_rank:
+            if stage_b_u0_patch_rank and not bool(
+                getattr(args, "stage_b_u2v5_clean_confidence", False)
+            ):
                 if bool(getattr(args, "stage_b_u2v3_category_admission", False)):
                     from .stage_b_u2v3_category_admission import (
                         StageBU2V3CategoryAdmissionCriterion,

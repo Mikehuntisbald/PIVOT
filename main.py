@@ -11246,6 +11246,18 @@ def main(args):
         trainable_params, trainable_modules = _trainable_param_summary(
             model_without_ddp
         )
+    elif bool(getattr(args, "stage_b_u2v5_clean_confidence", False)):
+        total_trainable = _freeze_and_audit_stage_b_gdino_adapter(
+            model_without_ddp, train_mode="confidence_only"
+        )
+        logger.info(
+            "Stage-B U2-v5 clean confidence audit passed: frozen Stage-A, "
+            "B58, positive-only R100, and U2-v4 admission; exactly confidence12 "
+            f"train ({total_trainable:,} parameters)."
+        )
+        trainable_params, trainable_modules = _trainable_param_summary(
+            model_without_ddp
+        )
     elif bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False)):
         total_trainable = _freeze_and_audit_stage_b_u2v4_legacy_training_replay(
             model_without_ddp
@@ -11422,6 +11434,13 @@ def main(args):
             patch_lr=float(
                 getattr(args, "stage_b_data_driven_patch_lr", args.lr)
             ),
+        )
+    elif bool(getattr(args, "stage_b_u2v5_clean_confidence", False)):
+        param_dicts = _stage_b_gdino_adapter_optimizer_groups(
+            model_without_ddp,
+            rank_lr=float(getattr(args, "stage_b_gdino_rank_lr", args.lr)),
+            gate_lr=float(getattr(args, "stage_b_gdino_gate_lr", args.lr)),
+            train_mode="confidence_only",
         )
     elif bool(getattr(args, "stage_b_u2v3_category_admission", False)):
         param_dicts = _stage_b_u2v3_category_admission_optimizer_groups(
@@ -13198,14 +13217,91 @@ def main(args):
                 expected_sha = str(
                     getattr(args, "stage_b_u2v2_initializer_sha256", "") or ""
                 ).strip()
-                observed_sha = _sha256_file(
-                    Path(args.pretrain_model_path).resolve(strict=True)
-                )
-                if len(expected_sha) != 64 or observed_sha != expected_sha:
-                    raise RuntimeError(
-                        "U2-v2 initializer SHA256 mismatch: "
-                        f"expected={expected_sha!r}, observed={observed_sha}"
+                if bool(getattr(args, "stage_b_u2v5_clean_confidence", False)):
+                    from tools.stageb_u2v4_legacy_training_contract import (
+                        validate_runtime_payload,
                     )
+
+                    admission_sha = _sha256_file(
+                        Path(args.pretrain_model_path).resolve(strict=True)
+                    )
+                    admission_contract = validate_runtime_payload(
+                        model_without_ddp,
+                        checkpoint_payload,
+                        checkpoint_label=(
+                            "Stage-B U2-v5 clean confidence admission handoff "
+                            f"{args.pretrain_model_path}"
+                        ),
+                        initializer_path=Path(args.stage_b_u2v2_initializer_path),
+                        initializer_sha256=expected_sha,
+                    )
+                    clean_anchor = admission_contract.get("clean_anchor")
+                    if not isinstance(clean_anchor, Mapping) or (
+                        clean_anchor.get("c100_confidence_imported") is not False
+                        or clean_anchor.get("confidence12_state")
+                        != "identity_untrained"
+                    ):
+                        raise RuntimeError(
+                            "clean confidence handoff is not rooted at identity "
+                            "confidence12"
+                        )
+                    from models.GroundingDINO.stage_b_u0_patch_rank import (
+                        stage_b_u0_tensor_state_sha256,
+                    )
+
+                    admission_state = checkpoint_payload.get("model", {})
+                    confidence_prefixes = (
+                        "stage_b_gdino_score_adapter.confidence_norm.",
+                        "stage_b_gdino_score_adapter.confidence_trunk.",
+                        "stage_b_gdino_score_adapter.confidence_gate.",
+                    )
+                    confidence_keys = sorted(
+                        key for key in admission_state
+                        if str(key).startswith(confidence_prefixes)
+                    )
+                    frozen_keys = sorted(set(admission_state) - set(confidence_keys))
+                    if len(confidence_keys) != 12 or len(frozen_keys) != 1153:
+                        raise RuntimeError(
+                            "clean confidence handoff ownership must be "
+                            "confidence12/frozen1153"
+                        )
+                    setattr(
+                        args,
+                        "stage_b_u2v5_clean_confidence_handoff",
+                        {
+                            "schema": "pivot.stageb.u2v5_clean_confidence_handoff/v1",
+                            "admission_checkpoint": {
+                                "path": str(
+                                    Path(args.pretrain_model_path).resolve(strict=True)
+                                ),
+                                "sha256": admission_sha,
+                            },
+                            "initializer": admission_contract["initializer"],
+                            "frozen_key_count": len(frozen_keys),
+                            "frozen_keys": frozen_keys,
+                            "frozen_tensor_sha256": stage_b_u0_tensor_state_sha256(
+                                admission_state, frozen_keys
+                            ),
+                            "identity_confidence_keys": confidence_keys,
+                            "identity_confidence_tensor_sha256": (
+                                stage_b_u0_tensor_state_sha256(
+                                    admission_state, confidence_keys
+                                )
+                            ),
+                            "scope": "proposal_covered_verified",
+                            "table_b_id": "D3",
+                            "c100_confidence_imported": False,
+                        },
+                    )
+                else:
+                    observed_sha = _sha256_file(
+                        Path(args.pretrain_model_path).resolve(strict=True)
+                    )
+                    if len(expected_sha) != 64 or observed_sha != expected_sha:
+                        raise RuntimeError(
+                            "U2-v2 initializer SHA256 mismatch: "
+                            f"expected={expected_sha!r}, observed={observed_sha}"
+                        )
                 if bool(
                     getattr(args, "stage_b_u2v4_legacy_training_replay", False)
                 ):
@@ -13223,6 +13319,10 @@ def main(args):
                         "stage_b_u2v4_legacy_training_contract",
                         u2v4_contract,
                     )
+                elif bool(
+                    getattr(args, "stage_b_u2v5_clean_confidence", False)
+                ):
+                    pass
                 else:
                     from tools.build_stageb_u2v2_initializer import (
                         validate_initializer_payload,
@@ -13644,8 +13744,10 @@ def main(args):
             # Store as plain dict to stay compatible with `weights_only=True` safe loading.
             'args': vars(args),
         }
-        if bool(getattr(args, "stage_b_u2v2", False)) and not bool(
-            getattr(args, "stage_b_u2v4_legacy_training_replay", False)
+        if (
+            bool(getattr(args, "stage_b_u2v2", False))
+            and not bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False))
+            and not bool(getattr(args, "stage_b_u2v5_clean_confidence", False))
         ):
             contract = getattr(args, "stage_b_u2v2_initializer_contract", None)
             if not isinstance(contract, Mapping):
@@ -13667,6 +13769,40 @@ def main(args):
                     "cannot checkpoint U2-v4 replay without ownership provenance"
                 )
             payload["u2v4_legacy_training_replay"] = dict(contract)
+        if bool(getattr(args, "stage_b_u2v5_clean_confidence", False)):
+            handoff = getattr(
+                args, "stage_b_u2v5_clean_confidence_handoff", None
+            )
+            if not isinstance(handoff, Mapping):
+                raise RuntimeError(
+                    "cannot checkpoint clean confidence without admission handoff"
+                )
+            from models.GroundingDINO.stage_b_u0_patch_rank import (
+                stage_b_u0_tensor_state_sha256,
+            )
+
+            frozen_keys = handoff.get("frozen_keys")
+            if (
+                not isinstance(frozen_keys, list)
+                or handoff.get("frozen_tensor_sha256")
+                != stage_b_u0_tensor_state_sha256(
+                    model_without_ddp.state_dict(), frozen_keys
+                )
+            ):
+                raise RuntimeError(
+                    "clean confidence phase changed a frozen Stage-A/R100/"
+                    "admission tensor"
+                )
+            payload["u2v5_clean_confidence"] = {
+                **dict(handoff),
+                "runtime_audit": dict(
+                    getattr(
+                        args,
+                        "stage_b_u2v5_clean_confidence_runtime_audit",
+                        {},
+                    )
+                ),
+            }
         if fair_data_driven_sampling:
             if (
                 not isinstance(current_data_driven_sampling_state, Mapping)

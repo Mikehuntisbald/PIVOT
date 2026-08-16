@@ -1157,6 +1157,61 @@ def _record_stage_b_u2v4_runtime_audit(
     setattr(args, "stage_b_u2v4_runtime_audit", audit)
 
 
+def _record_stage_b_u2v5_clean_confidence_runtime_audit(
+    args, device: torch.device, *, optimizer_step_succeeded: bool,
+    branch_grad_norms: Mapping[str, float], amp_scale: Optional[float],
+) -> None:
+    if not bool(getattr(args, "stage_b_u2v5_clean_confidence", False)):
+        return
+    existing = getattr(args, "stage_b_u2v5_clean_confidence_runtime_audit", None)
+    audit = dict(existing) if isinstance(existing, Mapping) else {
+        "schema": "pivot.stageb.u2v5_clean_confidence_runtime/v1",
+        "optimizer_step_boundaries": 0,
+        "successful_optimizer_steps": 0,
+        "amp_skipped_optimizer_steps": 0,
+        "nonfinite_gradient_boundaries": 0,
+        "zero_gradient_successful_steps": 0,
+        "max_confidence_grad_norm_preclip": 0.0,
+    }
+    audit["optimizer_step_boundaries"] += 1
+    norm = float(branch_grad_norms.get("grad_norm_gdino_confidence_preclip", 0.0))
+    audit["last_confidence_grad_norm_preclip"] = norm
+    audit["max_confidence_grad_norm_preclip"] = max(
+        float(audit["max_confidence_grad_norm_preclip"]), norm
+    )
+    if not math.isfinite(norm):
+        audit["nonfinite_gradient_boundaries"] += 1
+    if optimizer_step_succeeded:
+        audit["successful_optimizer_steps"] += 1
+        if norm == 0.0:
+            audit["zero_gradient_successful_steps"] += 1
+    else:
+        audit["amp_skipped_optimizer_steps"] += 1
+    if amp_scale is not None and math.isfinite(float(amp_scale)):
+        scale = float(amp_scale)
+        audit["last_amp_scale"] = scale
+        audit["min_amp_scale"] = min(float(audit.get("min_amp_scale", scale)), scale)
+    if device.type == "cuda":
+        total = int(torch.cuda.get_device_properties(device).total_memory)
+        device_free, _ = torch.cuda.mem_get_info(device)
+        peak_reserved = int(torch.cuda.max_memory_reserved(device))
+        audit["total_device_bytes"] = total
+        audit["peak_allocated_bytes"] = max(
+            int(audit.get("peak_allocated_bytes", 0)),
+            int(torch.cuda.max_memory_allocated(device)),
+        )
+        audit["peak_reserved_bytes"] = max(
+            int(audit.get("peak_reserved_bytes", 0)), peak_reserved
+        )
+        audit["minimum_unreserved_bytes"] = min(
+            int(audit.get("minimum_unreserved_bytes", total)), total - peak_reserved
+        )
+        audit["minimum_device_free_bytes"] = min(
+            int(audit.get("minimum_device_free_bytes", total)), int(device_free)
+        )
+    setattr(args, "stage_b_u2v5_clean_confidence_runtime_audit", audit)
+
+
 def _clip_stage_b_gdino_adapter_grad_norms(
     model: torch.nn.Module,
     max_norm: float,
@@ -2697,16 +2752,29 @@ def _build_stage_b_gdino_adapter_pair_captions(targets, expected_scope: str):
                 f"GDINO adapter sample {sample_idx} scope={scope!r} does not match "
                 f"configured scope={expected_scope!r}"
             )
-        verification_key = (
-            "global_tn_verified"
-            if expected_scope == "image_global_topk_verified"
-            else "benchmark_dataft_alltn"
-        )
-        if not _strict_target_bool(target, verification_key):
-            raise RuntimeError(
-                f"GDINO adapter sample {sample_idx} requires exact boolean "
-                f"{verification_key}=True"
+        if expected_scope == "proposal_covered_verified":
+            if (
+                target.get("table_b_id") != "D3"
+                or not isinstance(target.get("table_b_audit_sha256"), str)
+                or len(target["table_b_audit_sha256"]) != 64
+                or not _strict_target_false(target, "global_tn_verified")
+                or not _strict_target_false(target, "benchmark_dataft_alltn")
+            ):
+                raise RuntimeError(
+                    f"GDINO adapter sample {sample_idx} lacks the audited D3 "
+                    "proposal-covered contract"
+                )
+        else:
+            verification_key = (
+                "global_tn_verified"
+                if expected_scope == "image_global_topk_verified"
+                else "benchmark_dataft_alltn"
             )
+            if not _strict_target_bool(target, verification_key):
+                raise RuntimeError(
+                    f"GDINO adapter sample {sample_idx} requires exact boolean "
+                    f"{verification_key}=True"
+                )
         patch_slots = _stage_b_v11_scalar_int(
             target, "verifier_num_patch_slots", sample_idx=sample_idx
         )
@@ -2781,6 +2849,8 @@ def _forward_stage_b_gdino_adapter_pair(
     positive_captions,
     negative_captions,
     scope_codes,
+    *,
+    confidence_only_route: bool = False,
 ):
     """Run one concatenated DDP forward and split its positive/TN halves."""
     batch_size = len(targets)
@@ -2801,6 +2871,7 @@ def _forward_stage_b_gdino_adapter_pair(
     paired_outputs = model(
         paired_samples,
         captions=list(positive_captions) + list(negative_captions),
+        stage_b_u2v2_confidence_only=confidence_only_route,
     )
     outputs = _split_stage_b_legacy_gate_batch(
         paired_outputs, batch_size, take_negative=False
@@ -4497,6 +4568,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                             positive_captions,
                             negative_captions,
                             scope_codes,
+                            confidence_only_route=bool(
+                                getattr(
+                                    args,
+                                    "stage_b_u2v5_clean_confidence",
+                                    False,
+                                )
+                            ),
                         )
                     if not (
                         gdino_adapter_train_mode == "rank_only"
@@ -4622,7 +4700,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         )
         separate_u0_patch_rank_grad_clip = bool(
             getattr(args, "stage_b_u0_patch_rank", False)
-        ) and not separate_u2v2_grad_clip
+        ) and not separate_u2v2_grad_clip and not bool(
+            getattr(args, "stage_b_u2v5_clean_confidence", False)
+        )
         if args.amp:
             scaler.scale(backward_losses).backward()
         else:
@@ -4783,6 +4863,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     amp_scale=amp_scale,
                 )
                 _record_stage_b_u2v4_runtime_audit(
+                    args,
+                    device,
+                    optimizer_step_succeeded=optimizer_step_succeeded,
+                    branch_grad_norms=branch_grad_norms,
+                    amp_scale=amp_scale,
+                )
+                _record_stage_b_u2v5_clean_confidence_runtime_audit(
                     args,
                     device,
                     optimizer_step_succeeded=optimizer_step_succeeded,

@@ -31,6 +31,9 @@ from groundingdino.util import box_ops
 GDINO_TN_SCOPE_CODES = {
     "image_global_topk_verified": 1,
     "benchmark_dataft_alltn": 2,
+    # D3 verifies the annotated target and every cached proposal, but not all
+    # 900 runtime queries.  Keep this distinct from image-global/all-TN scope.
+    "proposal_covered_verified": 3,
 }
 
 GDINO_ADAPTER_TRAIN_MODE_CODES = {
@@ -45,6 +48,9 @@ GDINO_CONFIDENCE_OBJECTIVE_CODES = {
     # P3 protects the gate itself.  This variant protects the deployed
     # image-global score, which is the quantity used by the FPR evaluator.
     "detached_recent_q05_total_trust": 3,
+    # Same deployed-score surrogate, with a deliberately weaker supervision
+    # contract.  This name prevents a D3 run from claiming all-query labels.
+    "detached_recent_q05_proposal_covered": 4,
 }
 
 
@@ -1232,6 +1238,7 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
         trust_enabled = self.confidence_objective in {
             "detached_recent_q05_trust",
             "detached_recent_q05_total_trust",
+            "detached_recent_q05_proposal_covered",
         }
         if trust_enabled and float(positive_trust_margin) < 0.0:
             raise ValueError("positive_trust_margin must be non-negative")
@@ -1470,11 +1477,22 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                 )
             if self.tn_scope == "image_global_topk_verified":
                 verified = _strict_scalar_bool(target, "global_tn_verified")
-            else:
+            elif self.tn_scope == "benchmark_dataft_alltn":
                 verified = _strict_scalar_bool(target, "benchmark_dataft_alltn")
+            else:
+                verified = (
+                    _strict_scalar_false(target, "global_tn_verified")
+                    and _strict_scalar_false(target, "benchmark_dataft_alltn")
+                )
             if not verified:
                 raise RuntimeError(
-                    f"sample {index} lacks exact boolean verification for {self.tn_scope}"
+                    f"sample {index} lacks exact boolean verification for "
+                    f"{self.tn_scope}: tn_scope={target.get('tn_scope')!r}, "
+                    f"table_b_id={target.get('table_b_id')!r}, "
+                    "audit_sha_present="
+                    f"{isinstance(target.get('table_b_audit_sha256'), str)}, "
+                    f"global={target.get('global_tn_verified')!r}, "
+                    f"benchmark={target.get('benchmark_dataft_alltn')!r}"
                 )
 
     def forward(
@@ -1586,6 +1604,7 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
             if self.confidence_objective in {
                 "detached_recent_q05_trust",
                 "detached_recent_q05_total_trust",
+                "detached_recent_q05_proposal_covered",
             }:
                 positive_gate = outputs.get(
                     "stage_b_gdino_confidence_gate", None
@@ -1614,8 +1633,10 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                     paired_margin_weight=self.paired_margin_weight,
                     paired_margin=self.paired_margin,
                     positive_score_trust=(
-                        self.confidence_objective
-                        == "detached_recent_q05_total_trust"
+                        self.confidence_objective in {
+                            "detached_recent_q05_total_trust",
+                            "detached_recent_q05_proposal_covered",
+                        }
                     ),
                 )
             else:
