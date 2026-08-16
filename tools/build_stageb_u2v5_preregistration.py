@@ -190,11 +190,11 @@ def main() -> None:
             "ref8_baseline": record(
                 ROOT / "outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/summary.json"
             ),
-            "strict1607": record(strict_root / "eval_manifest.jsonl", rows=1607),
-            "strict2031": record(
+            "strict1607": record(
                 strict_root / "semantic_stageb_union_image_disjoint_manifest.jsonl",
-                rows=2031,
+                rows=1607,
             ),
+            "strict2031": record(strict_root / "eval_manifest.jsonl", rows=2031),
         },
         "execution_contract": {
             "run_once_only": True,
