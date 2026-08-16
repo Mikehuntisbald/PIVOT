@@ -554,13 +554,6 @@ def _clip_stage_b_dense_duty_grad_norms(
             owned["deployed_router"] = tuple(
                 scorer.deployed_router_parameters()
             )
-        rank_adaptation = tuple(
-            scorer.confidence_rank_adaptation_parameters()
-            if hasattr(scorer, "confidence_rank_adaptation_parameters")
-            else ()
-        )
-        if rank_adaptation:
-            owned["rank_decoder_adaptation"] = rank_adaptation
         if candidate_sample_contract:
             owned["candidate_absolute"] = tuple(
                 scorer.candidate_absolute_parameters()
@@ -828,7 +821,6 @@ def _record_stage_b_dense_duty_runtime_audit(
             "sample_calibrator",
             "global_trust",
             "global_veto",
-            "rank_decoder_adaptation",
         ):
             key = f"grad_norm_dense_duty_{head}_preclip"
             if key not in branch_grad_norms:

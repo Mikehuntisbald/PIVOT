@@ -474,11 +474,6 @@ _SPLIT_CONFIDENCE_HEAD_RESUME_CONTRACT_KEYS = (
     "stage_b_dense_duty_confidence_head_gradient_contract",
 )
 
-_RANK_DECODER_ADAPTATION_RESUME_CONTRACT_KEYS = (
-    "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
-    "stage_b_dense_duty_confidence_rank_decoder_lr",
-)
-
 _V53_FULLTEXT_GLOBAL_ABSOLUTE_RESUME_CONTRACT_KEYS = (
     "stage_b_dense_duty_confidence_revision",
     "stage_b_dense_duty_confidence_head_gradient_contract",
@@ -1815,17 +1810,6 @@ def build_training_contract(args: Any) -> dict[str, Any]:
         and confidence_revision
         == "word_veto_candidate_split_independent_deployed_router_v51"
     )
-    rank_decoder_adaptation_contract = (
-        adapter_contract
-        and int(
-            values.get(
-                "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
-                0,
-            )
-            or 0
-        )
-        > 0
-    )
     candidate_sample_calibrator_split_contract = (
         adapter_contract
         and confidence_revision
@@ -1984,11 +1968,6 @@ def build_training_contract(args: Any) -> dict[str, Any]:
             else ()
         )
         + (
-            _RANK_DECODER_ADAPTATION_RESUME_CONTRACT_KEYS
-            if rank_decoder_adaptation_contract
-            else ()
-        )
-        + (
             _V53_FULLTEXT_GLOBAL_ABSOLUTE_RESUME_CONTRACT_KEYS
             if fulltext_global_absolute_contract
             else ()
@@ -2105,9 +2084,7 @@ def build_training_contract(args: Any) -> dict[str, Any]:
     source_closure = validate_source_closure(values[SOURCE_CLOSURE_ARG])
     contract_values = {key: values[key] for key in contract_keys}
     contract_values[SOURCE_CLOSURE_ARG] = source_closure
-    if rank_decoder_adaptation_contract:
-        schema = "pivot.stageb.dense_duty_training_contract/v44"
-    elif candidate_complete_trace_contract:
+    if candidate_complete_trace_contract:
         schema = "pivot.stageb.dense_duty_training_contract/v43"
     elif v60_deployment_owned_query_veto_contract:
         schema = "pivot.stageb.dense_duty_training_contract/v42"
@@ -2254,13 +2231,6 @@ def _validate_active_names(
                 "stage_b_fixed_text_scorer.confidence_pool.",
             )
         )
-        if any(
-            name.startswith("stage_b_fixed_text_scorer.rank_tower.decoder.layers.")
-            for name in active_names
-        ):
-            allowed_prefixes = allowed_prefixes + (
-                "stage_b_fixed_text_scorer.rank_tower.decoder.layers.",
-            )
     unexpected = [
         name for name in active_names if not name.startswith(allowed_prefixes)
     ]

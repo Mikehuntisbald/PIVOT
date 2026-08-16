@@ -1,7 +1,7 @@
 # PIVOT Stage-B CVPR Development Ledger
 
 Date: 2026-08-02
-Last updated: 2026-08-14
+Last updated: 2026-08-03
 
 ## Purpose and status
 
@@ -264,96 +264,11 @@ a new paired comparison produced by that report.
 | V53 | full-expression global absolute pool with inherited carrier | 874 | 0.543871 | fail |
 | V54 | exact frozen-rank residual reference | 884 | 0.550093 | fail |
 | V55 | independent pool-only absolute confidence | 852 | 0.530180 | fail |
-| V51-L2 | V51 + private rank-decoder last-two-layer adaptation | 837 | 0.520846 | fail |
 
 V55 improves over V53 and V54 and is 26 false accepts behind the best dense-duty
 U400 row, V51. None of these rows beats the controller's preregistered reference
 count. Selecting a row because it is best within this failed set would not
 satisfy the paper gate.
-
-## V51 decoder-unfreeze controlled experiment (2026-08-13)
-
-This experiment tested whether the gap between dense-duty V51 and the C100
-system could be explained primarily by insufficiently adapted scoring
-features. It did **not** unfreeze the original Stage-A decoder, because V51's
-confidence branch consumes the private rank tower. Unfreezing the Stage-A
-decoder would therefore have had no confidence-loss gradient. The controlled
-change instead:
-
-- retained the complete V51 data, objective, head, seed, U6551 rank source,
-  batch construction, U400 budget, and strict1607 manifest;
-- removed the confidence stop-gradient only for the private rank-tower feature
-  graph;
-- unfroze exactly decoder layers 4 and 5 (56 tensors, 3,619,072 parameters),
-  leaving the first four decoder layers, fusion/text encoder, visual encoder,
-  Stage-A path, and patch path frozen;
-- assigned the decoder suffix a separate `2e-6` learning rate, versus `2e-5`
-  for the V51 head; and
-- clipped token-veto, deployed-router, global-absolute, and decoder-adaptation
-  owners independently at norm 0.1, so a large head gradient could not consume
-  the decoder's clipping budget.
-
-The resulting active surface was exactly 4,155,806 parameters. All 400
-optimizer steps succeeded with zero AMP skips and zero non-finite gradient
-boundaries. All 56 decoder tensors were live; decoder pre-clip norm reached
-3.9765 and was independently clipped. The rank-tower SHA changed from the
-U6551 source `e03219d5...` to `7ece52fa...`, proving that the adaptation was
-effective rather than nominal.
-
-| system | false accepts | FPR95 | FPR90 | pair win | q05 positive threshold |
-|---|---:|---:|---:|---:|---:|
-| V51 frozen rank tower | 825 / 1607 | 0.513379 | 0.421282 | 0.856876 | 0.438665 |
-| V51-L2 decoder adaptation | 837 / 1607 | 0.520846 | 0.408836 | 0.853143 | 0.433463 |
-| C100 target | 730 / 1607 | 0.454263 | n/a | n/a | n/a |
-
-V51-L2 therefore regressed by 12 false accepts (`+0.007467` FPR95) relative to
-V51 and remained 107 false accepts above C100. It raised both mean positive
-score (`0.626411 -> 0.642899`) and mean TN score (`0.468082 -> 0.472082`), while
-the deployed positive q05 threshold fell. Extra decoder capacity improved
-neither the required cross-sample tail ordering nor same-pair separation.
-
-The conclusion is deliberately narrow: under V51's no-teacher objective, U400
-budget, two-layer suffix, 0.1x learning rate, and independent clipping,
-additional rank-decoder adaptation is not sufficient to reproduce C100. This
-does not prove that every unfreeze schedule must fail. It does show that
-"unfreeze more scoring layers" alone is not an evidence-backed explanation of
-C100. C100's advantage is more consistent with its B58 data-finetuned trunk
-having already learned the task distribution under full main-path training,
-plus its later role-separated adapters, than with trainable parameter count by
-itself.
-
-The resulting architecture claim must also remain module-specific. Historical
-B58 starts from the Stage-A `checkpoint0001.pth`; its saved configuration has
-`freeze_keywords=['bert']`, `backbone_freeze_keywords=None`, and no
-`only_train_keywords` restriction. Thus BERT was frozen, while the visual
-backbone, main transformer encoder/decoder, and detector heads were available
-to the Stage-B data-FT objective. This supports the empirical claim that a
-score consumer needs an upstream representation already adapted broadly enough
-to the Stage-B positive/TN distribution. It does **not** establish that every
-backbone and encoder/decoder block must be unfrozen, nor identify which one is
-individually necessary. V51-L2 only excludes a much narrower alternative:
-adapting the private rank tower's final two decoder layers for U400 cannot
-substitute for B58's broad main-path Stage-B training. A component-level
-necessity claim would require controlled B58 ablations that freeze the visual
-backbone, encoder, and decoder separately from the same Stage-A initialization,
-data order, update budget, and objective.
-
-Durable artifacts:
-
-```text
-config/ablations/
-  cfg_stageb_dense_duty_confidence_adapter_candidate_split_independent_
-  deployed_router_rank_decoder_l2_probe_u0400_20260813.py
-
-outputs/paper_cvpr_v1/
-  dense_duty_adapter_candidate_split_independent_deployed_router_rank_
-  decoder_l2_20260813/probe/u000400_fresh/checkpoint_iter.pth
-  SHA-256: 89b7dbbf0eaa0d2234ffee4065f257c44c806824f088e8255583e3e62784fae4
-
-outputs/paper_cvpr_v1/
-  dense_duty_adapter_candidate_split_independent_deployed_router_rank_
-  decoder_l2_20260813/probe_evaluation/u000400_strict1607/summary.json
-```
 
 ## V55 architecture contract
 

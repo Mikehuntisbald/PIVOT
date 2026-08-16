@@ -3775,13 +3775,6 @@ def build_groundingdino(args):
                         1.0,
                     )
                 ),
-                confidence_rank_decoder_unfreeze_last_n=int(
-                    getattr(
-                        args,
-                        "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
-                        0,
-                    )
-                ),
                 expression_microbatch=int(
                     getattr(args, "stage_b_v11_expression_microbatch", 1)
                 ),

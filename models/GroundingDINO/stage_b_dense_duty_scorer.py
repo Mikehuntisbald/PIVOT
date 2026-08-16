@@ -1970,7 +1970,6 @@ class TokenAwareConfidenceAdapter(nn.Module):
         patch_standardized: Tensor,
         candidate_mask: Tensor,
         score_word_group_ids: Optional[Tensor] = None,
-        allow_rank_feature_grad: bool = False,
     ) -> dict[str, Tensor]:
         if query_layers.dim() != 4 or int(query_layers.shape[-1]) != self.hidden_dim:
             raise ValueError("query_layers must have shape (L,M,N,D)")
@@ -1994,18 +1993,14 @@ class TokenAwareConfidenceAdapter(nn.Module):
         if tuple(patch_logits.shape) != tuple(query_layers.shape[1:3]):
             raise ValueError("patch logits must align with query layers")
 
-        # V51 detaches at this ownership boundary. Controlled decoder-tail
-        # adaptation may explicitly preserve the rank-feature graph while the
-        # parameter contract keeps the rest of the tower frozen.
+        # Detach again at the ownership boundary even when the caller already
+        # evaluated the rank tower under no_grad.  This is the architectural
+        # guarantee that absolute confidence cannot update relative ranking.
         # Fuse in FP32 even under AMP.  A newly learned small residual must not
         # disappear when it is subtracted from a large half-precision logit.
-        rank_token = (
-            rank_token_layers.float()
-            if allow_rank_feature_grad
-            else rank_token_layers.detach().float()
-        )
-        query = query_layers if allow_rank_feature_grad else query_layers.detach()
-        text = text_features if allow_rank_feature_grad else text_features.detach()
+        rank_token = rank_token_layers.detach().float()
+        query = query_layers.detach()
+        text = text_features.detach()
         patch = patch_logits.detach().float()
         standardized = patch_standardized.detach().float()
         mask = candidate_mask.detach().to(dtype=torch.bool)
@@ -3981,6 +3976,11 @@ class StageBDenseDutyScorer(nn.Module):
                         verifier=verifier,
                         candidate_mask=flat_eligible,
                         score_word_group_ids=flat_score_word_groups,
+                        allow_rank_feature_grad=(
+                            self.training
+                            and self.phase == "confidence"
+                            and self.confidence_rank_decoder_unfreeze_last_n > 0
+                        ),
                     )
                 else:
                     confidence = self.confidence_adapter(
@@ -3993,11 +3993,6 @@ class StageBDenseDutyScorer(nn.Module):
                         patch_standardized=flat_patch_standardized,
                         candidate_mask=flat_eligible,
                         score_word_group_ids=flat_score_word_groups,
-                        allow_rank_feature_grad=(
-                            self.training
-                            and self.phase == "confidence"
-                            and self.confidence_rank_decoder_unfreeze_last_n > 0
-                        ),
                     )
 
         rank_placeholder = False

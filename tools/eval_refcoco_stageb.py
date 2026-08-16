@@ -3274,31 +3274,6 @@ def _validate_v51_split_independent_deployed_router_config(cfg) -> bool:
             "v51 split-independent-deployed-router confidence config drifted: "
             + json.dumps(drift, sort_keys=True)
         )
-    rank_decoder_last_n = int(
-        getattr(
-            cfg,
-            "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
-            0,
-        )
-        or 0
-    )
-    if rank_decoder_last_n not in {0, 2}:
-        raise RuntimeError(
-            "v51 rank-decoder adaptation must be disabled or select two layers"
-        )
-    if rank_decoder_last_n == 2 and not math.isclose(
-        float(
-            getattr(
-                cfg,
-                "stage_b_dense_duty_confidence_rank_decoder_lr",
-                -1.0,
-            )
-        ),
-        2.0e-6,
-        rel_tol=1e-12,
-        abs_tol=1e-12,
-    ):
-        raise RuntimeError("v51 rank-decoder adaptation LR drifted")
     return True
 
 
@@ -5073,10 +5048,7 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         if (
             not isinstance(saved_training_contract, Mapping)
             or saved_training_contract.get("schema")
-            not in {
-                _V51_SPLIT_INDEPENDENT_DEPLOYED_ROUTER_TRAINING_CONTRACT_SCHEMA,
-                "pivot.stageb.dense_duty_training_contract/v44",
-            }
+            != _V51_SPLIT_INDEPENDENT_DEPLOYED_ROUTER_TRAINING_CONTRACT_SCHEMA
             or not isinstance(saved_training_contract.get("values"), Mapping)
         ):
             raise RuntimeError(
@@ -6344,18 +6316,6 @@ def _validate_dense_duty_partial_confidence_diagnostic_checkpoint(
         "stage_b_dense_duty_expected_logical_batches_per_epoch",
         "stage_b_dense_duty_expected_physical_forwards_per_epoch",
     )
-    if int(
-        getattr(
-            cfg,
-            "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
-            0,
-        )
-        or 0
-    ) > 0:
-        required_equal_args += (
-            "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
-            "stage_b_dense_duty_confidence_rank_decoder_lr",
-        )
     if candidate_complete_c2_revision_contract:
         required_equal_args += (
             "stage_b_dense_duty_confidence_candidate_trace_contract",

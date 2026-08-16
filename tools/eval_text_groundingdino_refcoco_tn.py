@@ -393,12 +393,6 @@ _CANDIDATE_SPLIT_INDEPENDENT_DEPLOYED_ROUTER_CONFIDENCE_U0400_CONFIG = (
     "cfg_stageb_dense_duty_confidence_adapter_"
     "candidate_split_independent_deployed_router_probe_u0400_20260802.py"
 )
-_V51_RANK_DECODER_L2_CONFIDENCE_U0400_CONFIG = (
-    REPO_ROOT
-    / "config/ablations/"
-    "cfg_stageb_dense_duty_confidence_adapter_candidate_split_independent_"
-    "deployed_router_rank_decoder_l2_probe_u0400_20260813.py"
-)
 _CANDIDATE_SAMPLE_CALIBRATOR_CONFIDENCE_U0400_CONFIG = (
     REPO_ROOT
     / "config/ablations/"
@@ -1685,7 +1679,6 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         _CANDIDATE_SPLIT_INDEPENDENT_DEPLOYED_ROUTER_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
-        _V51_RANK_DECODER_L2_CONFIDENCE_U0400_CONFIG.resolve(strict=True),
         _CANDIDATE_SAMPLE_CALIBRATOR_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         ),
@@ -1985,13 +1978,6 @@ def _validate_partial_dense_duty_confidence_diagnostic_args(
         == _CANDIDATE_SPLIT_INDEPENDENT_DEPLOYED_ROUTER_CONFIDENCE_U0400_CONFIG.resolve(
             strict=True
         )
-    )
-    v51_rank_decoder_l2_confidence_u0400 = observed_config == (
-        _V51_RANK_DECODER_L2_CONFIDENCE_U0400_CONFIG.resolve(strict=True)
-    )
-    candidate_split_independent_deployed_router_confidence_u0400 = (
-        candidate_split_independent_deployed_router_confidence_u0400
-        or v51_rank_decoder_l2_confidence_u0400
     )
     candidate_sample_calibrator_confidence_u0400 = observed_config == (
         _CANDIDATE_SAMPLE_CALIBRATOR_CONFIDENCE_U0400_CONFIG.resolve(

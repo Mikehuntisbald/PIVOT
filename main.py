@@ -8985,23 +8985,7 @@ def _freeze_and_audit_stage_b_dense_duty(
         raise RuntimeError(
             "dense-duty rank/confidence ownership is empty or shares parameters"
         )
-    confidence_rank_adaptation = tuple(
-        scorer.confidence_rank_adaptation_parameters()
-        if hasattr(scorer, "confidence_rank_adaptation_parameters")
-        else ()
-    )
-    confidence_rank_adaptation_ids = {
-        id(parameter) for parameter in confidence_rank_adaptation
-    }
-    if not confidence_rank_adaptation_ids.issubset(rank_ids):
-        raise RuntimeError(
-            "dense-duty confidence rank adaptation must be a subset of rank ownership"
-        )
-    active_ids = (
-        rank_ids
-        if phase == "rank"
-        else confidence_ids | confidence_rank_adaptation_ids
-    )
+    active_ids = rank_ids if phase == "rank" else confidence_ids
 
     for parameter in model.parameters():
         parameter.requires_grad_(id(parameter) in active_ids)
@@ -10053,55 +10037,6 @@ def _isolate_stage_b_v15_validity_optimizer_group(
         )
     split_groups.extend(validity_groups)
     _audit_coverage(split_groups, label="after validity split")
-    return split_groups
-
-
-def _isolate_stage_b_dense_duty_rank_adaptation_optimizer_group(
-    param_dicts,
-    model,
-    *,
-    adaptation_lr: float,
-):
-    """Give the explicitly unfrozen rank-decoder suffix one conservative LR."""
-    adaptation_lr = float(adaptation_lr)
-    if not math.isfinite(adaptation_lr) or adaptation_lr <= 0.0:
-        raise ValueError("rank-adaptation learning rate must be finite and positive")
-    scorer = getattr(model, "stage_b_fixed_text_scorer", None)
-    provider = getattr(scorer, "confidence_rank_adaptation_parameters", None)
-    if not callable(provider):
-        raise RuntimeError("rank-adaptation optimizer requires explicit ownership")
-    adaptation_ids = {id(parameter) for parameter in provider()}
-    if not adaptation_ids:
-        raise RuntimeError("rank-adaptation learning rate set with an empty owner")
-
-    split_groups = []
-    adaptation_parameters = []
-    seen = set()
-    for group in param_dicts:
-        source = list(group.get("params", ()))
-        retained = [parameter for parameter in source if id(parameter) not in adaptation_ids]
-        selected = [parameter for parameter in source if id(parameter) in adaptation_ids]
-        if retained:
-            retained_group = dict(group)
-            retained_group["params"] = retained
-            split_groups.append(retained_group)
-        for parameter in selected:
-            parameter_id = id(parameter)
-            if parameter_id in seen:
-                raise RuntimeError("rank-adaptation optimizer ownership is duplicated")
-            seen.add(parameter_id)
-            adaptation_parameters.append(parameter)
-    if seen != adaptation_ids:
-        raise RuntimeError(
-            "rank-adaptation optimizer does not cover the exact decoder suffix"
-        )
-    split_groups.append(
-        {
-            "params": adaptation_parameters,
-            "lr": adaptation_lr,
-            "stage_b_dense_duty_rank_adaptation_group": True,
-        }
-    )
     return split_groups
 
 
@@ -11386,25 +11321,6 @@ def main(args):
         )
     else:
         param_dicts = get_param_dict(args, model_without_ddp)
-    rank_adaptation_last_n = int(
-        getattr(
-            args,
-            "stage_b_dense_duty_confidence_rank_decoder_unfreeze_last_n",
-            0,
-        )
-    )
-    if rank_adaptation_last_n > 0:
-        param_dicts = _isolate_stage_b_dense_duty_rank_adaptation_optimizer_group(
-            param_dicts,
-            model_without_ddp,
-            adaptation_lr=float(
-                getattr(
-                    args,
-                    "stage_b_dense_duty_confidence_rank_decoder_lr",
-                    args.lr,
-                )
-            ),
-        )
     validity_lr = getattr(args, "stage_b_v15_validity_lr", None)
     if validity_lr is not None:
         score_ownership = str(
