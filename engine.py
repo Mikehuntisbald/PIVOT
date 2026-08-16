@@ -4336,6 +4336,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                             if stage_b_microbatch <= 0 or stage_b_microbatch > batch_size:
                                 raise ValueError("isolated Stage-B forward microbatch is invalid")
                             chunk_losses = []
+                            u2v3_outputs = []
                             for start in range(0, batch_size, stage_b_microbatch):
                                 end = min(batch_size, start + stage_b_microbatch)
                                 indices = list(range(start, end))
@@ -4351,22 +4352,55 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                         if torch.is_tensor(patch_global) else None
                                     ),
                                 )
-                                chunk_losses.append(
-                                    (
-                                        end - start,
-                                        criterion(chunk_outputs, targets[start:end]),
+                                if u2v3_training:
+                                    required = (
+                                        "pred_logits_patch",
+                                        "pred_boxes",
+                                        "stage_b_u0_teacher_rank_score",
+                                        "stage_b_u0_candidate_mask",
                                     )
-                                )
-                            keys = tuple(chunk_losses[0][1])
-                            if any(tuple(losses) != keys for _, losses in chunk_losses[1:]):
-                                raise RuntimeError("isolated Stage-B microbatch loss schema drifted")
-                            loss_dict = {
-                                key: sum(
-                                    losses[key] * (float(size) / float(batch_size))
-                                    for size, losses in chunk_losses
-                                )
-                                for key in keys
-                            }
+                                    missing = [
+                                        key for key in required
+                                        if not torch.is_tensor(chunk_outputs.get(key))
+                                    ]
+                                    if missing:
+                                        raise RuntimeError(
+                                            f"U2-v3 microbatch outputs are missing {missing}"
+                                        )
+                                    u2v3_outputs.append(
+                                        {key: chunk_outputs[key] for key in required}
+                                    )
+                                else:
+                                    chunk_losses.append(
+                                        (
+                                            end - start,
+                                            criterion(chunk_outputs, targets[start:end]),
+                                        )
+                                    )
+                            if u2v3_training:
+                                merged_outputs = {
+                                    key: torch.cat(
+                                        [output[key] for output in u2v3_outputs], dim=0
+                                    )
+                                    for key in u2v3_outputs[0]
+                                }
+                                loss_dict = criterion(merged_outputs, targets)
+                            else:
+                                keys = tuple(chunk_losses[0][1])
+                                if any(
+                                    tuple(losses) != keys
+                                    for _, losses in chunk_losses[1:]
+                                ):
+                                    raise RuntimeError(
+                                        "isolated Stage-B microbatch loss schema drifted"
+                                    )
+                                loss_dict = {
+                                    key: sum(
+                                        losses[key] * (float(size) / float(batch_size))
+                                        for size, losses in chunk_losses
+                                    )
+                                    for key in keys
+                                }
                             outputs = chunk_outputs
                         else:
                             outputs = model(

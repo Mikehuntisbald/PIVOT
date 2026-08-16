@@ -5,7 +5,7 @@ from config.ablations.cfg_stageb_u2v2_c0 import *  # noqa: F401,F403
 stage_b_u2v3_category_admission = True
 stage_b_u2v3_contract = "pivot.stageb.u2v3_category_admission/v1"
 stage_b_u2v3_training_dataset_binding = True
-stage_b_u2v3_forward_microbatch = 19
+stage_b_u2v3_forward_microbatch = 8
 
 # The hard gate is disabled during training.  The criterion differentiably
 # reproduces its standardized Gap3 boundary; the eval leaf enables it.
