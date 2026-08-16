@@ -268,6 +268,129 @@ def validate_initializer_payload(
     return dict(contract)
 
 
+def validate_confidence_runtime_payload(
+    model,
+    payload: Mapping[str, Any],
+    *,
+    checkpoint_label: str,
+) -> dict[str, Any]:
+    """Validate a phase-2 checkpoint without weakening legacy U2 schemas."""
+
+    state = _state(payload, label=checkpoint_label)
+    contract = payload.get("u2v5_clean_confidence")
+    if not isinstance(contract, Mapping) or contract.get("schema") != (
+        "pivot.stageb.u2v5_clean_confidence_handoff/v1"
+    ):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} lacks clean-confidence provenance"
+        )
+    if not (
+        contract.get("c100_confidence_imported") is False
+        and contract.get("scope") == "proposal_covered_verified"
+        and contract.get("table_b_id") == "D3"
+    ):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} changed the clean confidence ownership/scope"
+        )
+    args = payload.get("args")
+    if isinstance(args, Mapping):
+        c100_path = args.get("stage_b_u2v2_c100_checkpoint")
+        c100_sha = args.get("stage_b_u2v2_c100_sha256")
+    else:
+        c100_path = getattr(args, "stage_b_u2v2_c100_checkpoint", None)
+        c100_sha = getattr(args, "stage_b_u2v2_c100_sha256", None)
+    if c100_path is not None or c100_sha is not None:
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} serializes forbidden C100 provenance"
+        )
+
+    frozen_keys = contract.get("frozen_keys")
+    confidence_keys = contract.get("identity_confidence_keys")
+    if not (
+        isinstance(frozen_keys, list)
+        and isinstance(confidence_keys, list)
+        and len(frozen_keys) == 1153
+        and len(confidence_keys) == 12
+        and set(frozen_keys).isdisjoint(confidence_keys)
+        and set(frozen_keys) | set(confidence_keys) == set(state)
+    ):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} is not an exact frozen1153/confidence12 partition"
+        )
+    if contract.get("frozen_tensor_sha256") != stage_b_u0_tensor_state_sha256(
+        state, frozen_keys
+    ):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} changed a frozen admission tensor"
+        )
+
+    admission = contract.get("admission_checkpoint")
+    initializer = contract.get("initializer")
+    if not isinstance(admission, Mapping) or not isinstance(initializer, Mapping):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} has incomplete source bindings"
+        )
+    admission_path = Path(str(admission.get("path", ""))).resolve(strict=True)
+    initializer_path = Path(str(initializer.get("path", ""))).resolve(strict=True)
+    admission_record = file_record(admission_path)
+    if not (
+        admission_record["path"] == str(admission_path)
+        and admission_record["sha256"] == admission.get("sha256")
+    ):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} admission source changed"
+        )
+    initializer_record = file_record(initializer_path)
+    if not (
+        initializer_record["path"] == str(initializer_path)
+        and initializer_record["sha256"] == initializer.get("sha256")
+    ):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} initializer source changed"
+        )
+    initializer_payload = load_checkpoint(initializer_path)
+    initializer_contract = validate_initializer_payload(initializer_payload)
+    if initializer.get("schema") != initializer_contract.get("schema"):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} initializer schema binding drifted"
+        )
+    initial_state = _state(initializer_payload, label="clean initializer")
+    if contract.get(
+        "identity_confidence_tensor_sha256"
+    ) != stage_b_u0_tensor_state_sha256(initial_state, confidence_keys):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} identity confidence binding drifted"
+        )
+    admission_state = _state(
+        load_checkpoint(admission_path), label="clean admission checkpoint"
+    )
+    for key in frozen_keys:
+        if not torch.equal(state[key].detach().cpu(), admission_state[key].detach().cpu()):
+            raise U2V5CleanInitializerError(
+                f"{checkpoint_label} frozen tensor differs from admission: {key}"
+            )
+
+    runtime = contract.get("runtime_audit")
+    if not (
+        isinstance(runtime, Mapping)
+        and int(runtime.get("successful_optimizer_steps", 0)) > 0
+        and runtime.get("successful_optimizer_steps")
+        == payload.get("optimizer_updates")
+        and runtime.get("amp_skipped_optimizer_steps") == 0
+        and runtime.get("nonfinite_gradient_boundaries") == 0
+        and runtime.get("zero_gradient_successful_steps") == 0
+    ):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} has an invalid confidence runtime audit"
+        )
+    model_state = model.state_dict()
+    if set(model_state) != set(state):
+        raise U2V5CleanInitializerError(
+            f"{checkpoint_label} model keyset differs at runtime"
+        )
+    return dict(contract)
+
+
 def _write(path: Path, payload: Mapping[str, Any]) -> None:
     path = path.resolve()
     if path.exists():

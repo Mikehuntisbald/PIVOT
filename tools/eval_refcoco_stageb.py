@@ -7064,7 +7064,19 @@ def _load_model(cfg, ckpt_path: str, device: torch.device):
     # legacy nine-tensor surface. Their stricter ownership contracts are
     # validated by the joint evaluator after this loader returns; applying
     # the legacy U2-v2 all-patch-frozen contract here would reject them.
-    if bool(getattr(cfg, "stage_b_u2v2", False)) and not bool(
+    if bool(getattr(cfg, "stage_b_u2v5_clean_confidence", False)):
+        from tools.build_stageb_u2v5_clean_initializer import (
+            validate_confidence_runtime_payload,
+        )
+
+        validate_confidence_runtime_payload(
+            model,
+            ckpt,
+            checkpoint_label=(
+                f"Stage-B U2-v5 clean confidence checkpoint {ckpt_path}"
+            ),
+        )
+    elif bool(getattr(cfg, "stage_b_u2v2", False)) and not bool(
         getattr(cfg, "stage_b_u2v3_checkpoint_eval", False)
         or getattr(cfg, "stage_b_u2v4_checkpoint_eval", False)
     ):

@@ -11,6 +11,7 @@ from models.GroundingDINO.stage_b_gdino_score_adapter import (
 )
 from tools.build_stageb_u2v5_clean_initializer import (
     U2V5CleanInitializerError,
+    validate_confidence_runtime_payload,
     validate_initializer_payload,
 )
 
@@ -143,4 +144,14 @@ def test_d3_screen_calibration_eval_is_narrowly_allowlisted():
     with pytest.raises(ValueError, match="audit-bound"):
         _validate_adapter_tn_eval_manifest(
             cfg, [changed], allow_proposal_covered_calibration=True
+        )
+
+
+def test_clean_confidence_runtime_rejects_missing_contract():
+    model = torch.nn.Linear(1, 1)
+    with pytest.raises(U2V5CleanInitializerError, match="provenance"):
+        validate_confidence_runtime_payload(
+            model,
+            {"model": model.state_dict()},
+            checkpoint_label="test checkpoint",
         )
