@@ -7,6 +7,13 @@ stage_b_u2v4_checkpoint_eval = False
 stage_b_u2v3_category_admission = False
 stage_b_u2v2_rank_residual = False
 stage_b_u0_category_preserving_patch_gate = False
+stage_b_u2v2_initializer_path = (
+    "outputs/u2v4_legacy_admission_replay_20260816/training_initializer/"
+    "checkpoint_u2v4_init.pth"
+)
+stage_b_u2v2_initializer_sha256 = (
+    "97edb922caf2461c147c83d58bcbae3cd759457c2f7f58305293c43422c5ce02"
+)
 
 # Exact legacy U2 category-complete objective. The auxiliary U0 residual and
 # patch projection are one admission subsystem; trunk, R100 and C100 remain

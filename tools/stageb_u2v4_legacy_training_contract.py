@@ -11,7 +11,9 @@ import torch
 from models.GroundingDINO.stage_b_u0_patch_rank import (
     stage_b_u0_tensor_state_sha256,
 )
-from tools.build_stageb_u2v2_initializer import validate_initializer_payload
+from tools.build_stageb_u2v4_training_initializer import (
+    validate_training_initializer_payload,
+)
 
 
 SCHEMA = "pivot.stageb.u2v4_legacy_training_replay/v1"
@@ -71,7 +73,7 @@ def build_training_contract(
     observed_sha = _sha256_file(initializer_path)
     if observed_sha != str(initializer_sha256):
         raise U2V4TrainingContractError("U2-v4 initializer SHA256 mismatch")
-    initializer_contract = validate_initializer_payload(initializer_payload)
+    initializer_contract = validate_training_initializer_payload(initializer_payload)
     state = _state(initializer_payload, label="U2-v4 initializer")
     if len(state) != 1165 or set(TRAINABLE_KEYS) - set(state):
         raise U2V4TrainingContractError("U2-v4 initializer ownership surface drifted")

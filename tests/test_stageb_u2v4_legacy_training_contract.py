@@ -55,8 +55,8 @@ class U2V4LegacyTrainingContractTest(unittest.TestCase):
         )
 
     @mock.patch(
-        "tools.stageb_u2v4_legacy_training_contract.validate_initializer_payload",
-        return_value={"schema": "pivot.stageb.u2v2_initializer/v1"},
+        "tools.stageb_u2v4_legacy_training_contract.validate_training_initializer_payload",
+        return_value={"schema": "pivot.stageb.u2v4_training_initializer/v1"},
     )
     def test_contract_partitions_sixteen_trainable_tensors(self, _validate):
         state = {
@@ -67,7 +67,7 @@ class U2V4LegacyTrainingContractTest(unittest.TestCase):
             state[f"frozen.{index:04d}"] = torch.ones(1)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "initializer.pth"
-            torch.save({"model": state, "u2v2_initializer": {}}, path)
+            torch.save({"model": state, "u2v4_training_initializer": {}}, path)
             payload = torch.load(path, map_location="cpu", weights_only=False)
             contract = build_training_contract(
                 payload,

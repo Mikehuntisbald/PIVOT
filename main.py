@@ -13195,10 +13195,6 @@ def main(args):
                 )
         elif bool(getattr(args, "stage_b_u0_patch_rank", False)):
             if bool(getattr(args, "stage_b_u2v2", False)):
-                from tools.build_stageb_u2v2_initializer import (
-                    validate_initializer_payload,
-                )
-
                 expected_sha = str(
                     getattr(args, "stage_b_u2v2_initializer_sha256", "") or ""
                 ).strip()
@@ -13210,8 +13206,6 @@ def main(args):
                         "U2-v2 initializer SHA256 mismatch: "
                         f"expected={expected_sha!r}, observed={observed_sha}"
                     )
-                initializer_contract = validate_initializer_payload(checkpoint_payload)
-                setattr(args, "stage_b_u2v2_initializer_contract", initializer_contract)
                 if bool(
                     getattr(args, "stage_b_u2v4_legacy_training_replay", False)
                 ):
@@ -13229,7 +13223,20 @@ def main(args):
                         "stage_b_u2v4_legacy_training_contract",
                         u2v4_contract,
                     )
-                elif bool(
+                else:
+                    from tools.build_stageb_u2v2_initializer import (
+                        validate_initializer_payload,
+                    )
+
+                    initializer_contract = validate_initializer_payload(
+                        checkpoint_payload
+                    )
+                    setattr(
+                        args,
+                        "stage_b_u2v2_initializer_contract",
+                        initializer_contract,
+                    )
+                if bool(
                     getattr(args, "stage_b_u2v3_category_admission", False)
                 ):
                     from tools.stageb_u2v3_category_admission_contract import (
@@ -13637,7 +13644,9 @@ def main(args):
             # Store as plain dict to stay compatible with `weights_only=True` safe loading.
             'args': vars(args),
         }
-        if bool(getattr(args, "stage_b_u2v2", False)):
+        if bool(getattr(args, "stage_b_u2v2", False)) and not bool(
+            getattr(args, "stage_b_u2v4_legacy_training_replay", False)
+        ):
             contract = getattr(args, "stage_b_u2v2_initializer_contract", None)
             if not isinstance(contract, Mapping):
                 raise RuntimeError("cannot checkpoint U2-v2 without initializer provenance")
