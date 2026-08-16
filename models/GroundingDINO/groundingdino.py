@@ -889,6 +889,11 @@ class GroundingDINO(nn.Module):
         else:
             raise KeyError("groundingdino.forward requires `captions` (kw) or targets with `caption`.")
         bs = len(captions)
+        u2v2_confidence_only = kw.get("stage_b_u2v2_confidence_only", False)
+        if not isinstance(u2v2_confidence_only, bool):
+            raise TypeError("stage_b_u2v2_confidence_only must be boolean")
+        if u2v2_confidence_only and self.stage_b_u2v2_rank_residual is None:
+            raise RuntimeError("U2-v2 confidence-only forward requires U2-v2")
         data_driven_geometry_diagnostics = kw.get(
             "stage_b_data_driven_score_geometry_diagnostics", False
         )
@@ -1329,7 +1334,10 @@ class GroundingDINO(nn.Module):
                     "rank_residual"
                 ]
                 out["stage_b_u0_d12_rank_score"] = d12_output["rank_score"]
-            if self.stage_b_u0_patch_rank_adapter is not None:
+            if (
+                self.stage_b_u0_patch_rank_adapter is not None
+                and not u2v2_confidence_only
+            ):
                 if score_patch is None:
                     raise RuntimeError("Stage-B U0 requires patch scores")
                 u0_patch_score = score_patch
@@ -1400,6 +1408,9 @@ class GroundingDINO(nn.Module):
                         ]
                         out["stage_b_u2v2_rank_residual"] = u2v2_output[
                             "rank_residual"
+                        ]
+                        out["stage_b_u2v2_pre_demotion_rank_score"] = u2v2_output[
+                            "pre_demotion_rank_score"
                         ]
                         out["stage_b_u2v2_rank_score"] = u2v2_rank_score
                         out["stage_b_u0_rank_score"] = u2v2_rank_score

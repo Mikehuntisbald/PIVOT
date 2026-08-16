@@ -4065,7 +4065,10 @@ def _forward_tn_batch(cfg, model, batch, device: torch.device, *, amp: bool):
             pos_scores,
             valid_pos_mask,
         )
-    if u0_patch_rank:
+    # U2-v2 confidence is owned by the standalone frozen C100 path. Preserve
+    # its separate negative/positive forwards; the legacy U0 helper packs a
+    # 2B forward and changes cross-example image padding numerically.
+    if u0_patch_rank and not bool(getattr(cfg, "stage_b_u2v2", False)):
         neg_outputs, pos_outputs, targets, valid_pos = _stage_b_tn_forward_pair(
             model, batch, device, amp=amp
         )
@@ -4128,8 +4131,16 @@ def _forward_tn_batch(cfg, model, batch, device: torch.device, *, amp: bool):
         ]
         pos_captions, valid_pos = _positive_captions(targets)
     with torch.cuda.amp.autocast(enabled=bool(amp) and device.type == "cuda"):
-        neg_outputs = model(samples, captions=neg_captions)
-        pos_outputs = model(samples, captions=pos_captions)
+        u2v2_confidence_kwargs = (
+            {"stage_b_u2v2_confidence_only": True}
+            if bool(getattr(cfg, "stage_b_u2v2", False)) else {}
+        )
+        neg_outputs = model(
+            samples, captions=neg_captions, **u2v2_confidence_kwargs
+        )
+        pos_outputs = model(
+            samples, captions=pos_captions, **u2v2_confidence_kwargs
+        )
     neg_scores, valid_neg = _phrase_scores(
         neg_outputs,
         targets,
@@ -4201,6 +4212,9 @@ class RefCocoTextAccumulator:
         self.all_query_correct50 = 0
         self.all_query_correct25 = 0
         self.all_query_iou_sum = 0.0
+        self.eligible_query_correct50 = 0
+        self.eligible_query_iou_sum = 0.0
+        self.eligible_query_rows = 0
         self.eval_records: List[Dict[str, Any]] = []
 
     def update(
@@ -4210,6 +4224,7 @@ class RefCocoTextAccumulator:
         *,
         query_scores: Optional[torch.Tensor] = None,
         record_extras: Optional[Sequence[Mapping[str, Any]]] = None,
+        eligibility_mask: Optional[torch.Tensor] = None,
     ) -> None:
         start_index = int(self.total)
         if query_scores is None:
@@ -4234,6 +4249,14 @@ class RefCocoTextAccumulator:
         bsz, num_queries = scores.shape
         if record_extras is not None and len(record_extras) != int(bsz):
             raise ValueError("Ref record extras must align with the batch")
+        if eligibility_mask is not None:
+            eligibility_mask = torch.as_tensor(
+                eligibility_mask, device=scores.device, dtype=torch.bool
+            )
+            if tuple(eligibility_mask.shape) != tuple(scores.shape) or bool(
+                (~eligibility_mask.any(dim=1)).any().item()
+            ):
+                raise ValueError("Ref eligibility mask must be aligned and nonempty")
 
         def record_values(index: int, base: Dict[str, Any]) -> Dict[str, Any]:
             if record_extras is None:
@@ -4300,6 +4323,14 @@ class RefCocoTextAccumulator:
                 self.all_query_correct50 += 1
             if all_query_best_iou >= 0.25:
                 self.all_query_correct25 += 1
+            eligible_best_iou = None
+            if eligibility_mask is not None:
+                eligible_ious = all_query_ious[eligibility_mask[b]]
+                eligible_best_iou = float(eligible_ious.max().item())
+                self.eligible_query_rows += 1
+                self.eligible_query_iou_sum += eligible_best_iou
+                if eligible_best_iou >= 0.5:
+                    self.eligible_query_correct50 += 1
             ranked_best_iou: Dict[str, float] = {}
             for k in self.topks:
                 local = query_ious[: min(k, int(query_ious.numel()))]
@@ -4329,6 +4360,7 @@ class RefCocoTextAccumulator:
                                 bool(top1_iou >= 0.5) if record_valid else None
                             ),
                             "ranked_best_iou": ranked_best_iou,
+                            "eligible_query_best_iou": eligible_best_iou,
                         },
                     ),
                 )
@@ -4344,6 +4376,14 @@ class RefCocoTextAccumulator:
             "recall25@all_queries": float(self.all_query_correct25 / denom),
             "mean_best_iou@all_queries": float(self.all_query_iou_sum / denom),
         }
+        if self.eligible_query_rows:
+            eligible_denom = int(self.eligible_query_rows)
+            out["recall50@eligible_queries"] = float(
+                self.eligible_query_correct50 / eligible_denom
+            )
+            out["mean_best_iou@eligible_queries"] = float(
+                self.eligible_query_iou_sum / eligible_denom
+            )
         for k in self.topks:
             suffix = "" if k == 1 else f"@{k}"
             out[f"acc50{suffix}"] = float(self.correct50[k] / denom)
@@ -4575,6 +4615,20 @@ def evaluate_refcoco_dataset(
             _adapter_ref_score_key(cfg)
         ),
     )
+    causal_route_keys = {
+        "b58_base": "stage_b_gdino_base_score",
+        "raw_r100": "stage_b_gdino_rank_score",
+        "patch_r100": "stage_b_u2v2_patch_r100_rank_score",
+    } if bool(getattr(cfg, "stage_b_u2v2_emit_causal_ref_routes", False)) else {}
+    causal_accumulators = {
+        name: RefCocoTextAccumulator(
+            topks,
+            manifest=manifest,
+            run_id=f"{run_id}__causal_{name}",
+            adapter_score_key=score_key,
+        )
+        for name, score_key in causal_route_keys.items()
+    }
     start = time.time()
 
     print(
@@ -4592,7 +4646,53 @@ def evaluate_refcoco_dataset(
         outputs, model_targets, query_scores = _forward_ref_batch(
             cfg, model, batch, device, amp=amp
         )
-        acc.update(outputs, model_targets, query_scores=query_scores)
+        eligibility_mask = None
+        record_extras = None
+        if bool(getattr(cfg, "stage_b_u2v2", False)):
+            eligibility_mask = outputs.get(
+                "stage_b_u2v2_eligible_mask",
+                outputs.get("stage_b_u0_category_gate_eligible_mask"),
+            )
+            if not torch.is_tensor(eligibility_mask) or eligibility_mask.dtype != torch.bool:
+                raise RuntimeError("U2-v2 evaluation lacks its boolean eligibility mask")
+            record_extras = []
+            for row_mask in eligibility_mask:
+                mask_bytes = (
+                    row_mask.detach().to(device="cpu", dtype=torch.uint8)
+                    .contiguous().numpy().tobytes()
+                )
+                record_extras.append(
+                    {
+                        "stage_b_u2v2_eligible_queries": int(row_mask.sum().item()),
+                        "stage_b_u2v2_eligible_mask_sha256": hashlib.sha256(
+                            mask_bytes
+                        ).hexdigest(),
+                    }
+                )
+        acc.update(
+            outputs,
+            model_targets,
+            query_scores=query_scores,
+            record_extras=record_extras,
+            eligibility_mask=eligibility_mask,
+        )
+        for route_name, route_accumulator in causal_accumulators.items():
+            route_score = outputs.get(causal_route_keys[route_name])
+            deployed_score = (
+                query_scores if torch.is_tensor(query_scores)
+                else outputs.get(_adapter_ref_score_key(cfg))
+            )
+            if (
+                not torch.is_tensor(deployed_score)
+                or not torch.is_tensor(route_score)
+                or route_score.shape != deployed_score.shape
+            ):
+                raise RuntimeError(f"U2-v2 causal route {route_name} is unavailable")
+            route_accumulator.update(
+                outputs,
+                model_targets,
+                query_scores=route_score,
+            )
         if device.type == "cuda":
             torch.cuda.synchronize(device)
         if log_every > 0 and (batch_i == 0 or (batch_i + 1) % int(log_every) == 0):
@@ -4606,6 +4706,13 @@ def evaluate_refcoco_dataset(
                 flush=True,
             )
     row = acc.result()
+    if causal_accumulators:
+        row["stage_b_u2v2_causal_ref_routes"] = {
+            "b58_base": causal_accumulators["b58_base"].result(),
+            "raw_r100": causal_accumulators["raw_r100"].result(),
+            "patch_r100": causal_accumulators["patch_r100"].result(),
+            "patch_residual": dict(row),
+        }
     row.update(
         {
             "run_id": _ckpt_run_prefix(ckpt_path),
@@ -4825,6 +4932,7 @@ def evaluate_refcoco_category_gate_sweep(
                 model_targets,
                 query_scores=scores,
                 record_extras=extras,
+                eligibility_mask=eligible,
             )
             if include_base_expert:
                 base_scores, base_eligible = base_by_gap[gap]
@@ -4867,6 +4975,7 @@ def evaluate_refcoco_category_gate_sweep(
                     model_targets,
                     query_scores=base_scores,
                     record_extras=base_extras,
+                    eligibility_mask=base_eligible,
                 )
         totals = {
             accumulator.total

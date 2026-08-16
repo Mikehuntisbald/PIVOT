@@ -140,11 +140,19 @@ class StageBU2V2RankResidualCriterion(nn.Module):
         ):
             raise ValueError("U2-v2 criterion geometry is invalid")
         self.weight_dict = {STAGE_B_U2V2_LOSS: self.weight}
+        self.register_buffer(
+            "criterion_contract_version",
+            torch.as_tensor(STAGE_B_U2V2_CONTRACT_VERSION, dtype=torch.int64),
+            persistent=True,
+        )
 
     def forward(
         self, outputs: Mapping[str, Any], targets: Sequence[Mapping[str, Any]]
     ) -> dict[str, Tensor]:
-        adapted = outputs.get("stage_b_u2v2_rank_score")
+        # The deployed score contains a non-differentiable nextafter demotion
+        # for ineligible queries. Within the exact eligible mask its ordering
+        # is bitwise the pre-demotion score, which is the sole loss surface.
+        adapted = outputs.get("stage_b_u2v2_pre_demotion_rank_score")
         teacher = outputs.get("stage_b_u2v2_teacher_rank_score")
         residual = outputs.get("stage_b_u2v2_rank_residual")
         eligible = outputs.get("stage_b_u2v2_eligible_mask")

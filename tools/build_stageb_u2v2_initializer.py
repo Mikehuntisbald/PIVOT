@@ -276,7 +276,18 @@ def validate_runtime_payload(
     if residual_keys:
         version = state.get("stage_b_u2v2_rank_residual.contract_version")
         limit = state.get("stage_b_u2v2_rank_residual.contract_residual_limit")
-        if int(version.item()) != 1 or float(limit.item()) != 0.1:
+        expected_state = model.state_dict()
+        expected_limit = expected_state[
+            "stage_b_u2v2_rank_residual.contract_residual_limit"
+        ]
+        if (
+            not torch.is_tensor(version)
+            or not torch.is_tensor(limit)
+            or int(version.detach().cpu().item()) != 1
+            or not torch.equal(
+                limit.detach().cpu(), expected_limit.detach().cpu()
+            )
+        ):
             raise U2V2InitializerError(f"{checkpoint_label} residual buffers drifted")
     return dict(contract)
 

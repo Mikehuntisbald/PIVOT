@@ -6048,6 +6048,7 @@ def _validate_native_patch_category_dataset_binding(
         or getattr(args, "stage_b_u0_gate_aligned_d11", False)
         or getattr(args, "stage_b_u0_gate_aligned_d12", False)
         or getattr(args, "stage_b_u0_gate_aligned_d13", False)
+        or getattr(args, "stage_b_u2v2_training_dataset_binding", False)
     )
     if not enabled:
         if datasetinfo.get("native_patch_category_row_locked_support") is True:

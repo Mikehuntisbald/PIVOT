@@ -71,7 +71,7 @@ class StageBU2V2Test(unittest.TestCase):
         eligible = torch.tensor([[True, True, True, False]])
         result = module(feature, teacher, eligible)
         outputs = {
-            "stage_b_u2v2_rank_score": result["pre_demotion_rank_score"],
+            "stage_b_u2v2_pre_demotion_rank_score": result["pre_demotion_rank_score"],
             "stage_b_u2v2_teacher_rank_score": result["teacher_rank_score"],
             "stage_b_u2v2_rank_residual": result["rank_residual"],
             "stage_b_u2v2_eligible_mask": eligible,

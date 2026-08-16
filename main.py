@@ -12261,6 +12261,30 @@ def main(args):
                     resume_state,
                     checkpoint_label=f"Stage-B U0 --resume checkpoint {args.resume}",
                 )
+                if bool(getattr(args, "stage_b_u2v2", False)):
+                    from tools.build_stageb_u2v2_initializer import (
+                        validate_runtime_payload,
+                    )
+
+                    initializer_contract = validate_runtime_payload(
+                        model_without_ddp,
+                        checkpoint,
+                        checkpoint_label=f"Stage-B U2-v2 --resume {args.resume}",
+                    )
+                    setattr(
+                        args,
+                        "stage_b_u2v2_initializer_contract",
+                        initializer_contract,
+                    )
+                    saved_args = checkpoint.get("args")
+                    if not isinstance(saved_args, Mapping):
+                        raise RuntimeError("U2-v2 resume requires saved args")
+                    saved_runtime = saved_args.get("stage_b_u2v2_runtime_audit")
+                    if not isinstance(saved_runtime, Mapping):
+                        raise RuntimeError("U2-v2 resume lacks runtime audit")
+                    setattr(
+                        args, "stage_b_u2v2_runtime_audit", dict(saved_runtime)
+                    )
         elif bool(getattr(args, "stage_b_v11_fixed_text", False)):
             from models.GroundingDINO.stage_b_fixed_text_scorer import (
                 validate_stage_b_fixed_text_scorer_checkpoint,

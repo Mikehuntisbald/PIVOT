@@ -3,6 +3,8 @@
 from config.ablations.cfg_stageb_u2v2_c0 import *  # noqa: F401,F403
 
 stage_b_u2v2_rank_residual = True
+stage_b_u2v2_training_dataset_binding = True
+stage_b_u2v2_forward_microbatch = 19
 stage_b_u2v2_hidden_dim = 64
 stage_b_u2v2_residual_limit = 0.1
 stage_b_u2v2_weight = 1.0
@@ -29,7 +31,6 @@ data_aug_scales = [800]
 data_aug_max_size = 1333
 
 batch_size = 38
-gradient_accumulation_steps = 2
 epochs = 250
 lr_drop = 1000
 onecyclelr = False

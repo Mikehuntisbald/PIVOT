@@ -6,7 +6,7 @@ stage_b_u2v2 = True
 stage_b_u2v2_contract = "pivot.stageb.u2v2_initializer/v1"
 stage_b_u2v2_rank_residual = False
 stage_b_u2v2_residual_limit = 0.1
-stage_b_u2v2_category_gate_max_gap = 3.0
+stage_b_u2v2_category_gate_max_gap = 5.0
 stage_b_u0_category_preserving_patch_gate = True
 stage_b_u0_category_gate_max_gap = stage_b_u2v2_category_gate_max_gap
 
