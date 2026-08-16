@@ -151,3 +151,31 @@ Preregistration is built by
 `tools/build_stageb_u2v5_preregistration.py`. The receipt binds all six
 selected checkpoints, val/calibration summaries, the Ref8 baseline, and both
 strict manifests. No Ref test or strict result was read during this stage.
+
+## One-time final read
+
+The preregistration receipt was sealed before the read at commit `a4516df`,
+with SHA-256
+`f27f35a946b9540f5304e0348f4259fab4b082d4eedd6fbc470c764b6edac9db`.
+The selected U50 checkpoints were then evaluated exactly once on Ref8,
+strict1607, and strict2031.
+
+Ref8 micro Acc@0.5 is `0.732617/0.734602/0.733992` for seeds 17/42/73;
+the seed mean is `0.733737`, versus B58 `0.709365` and legacy U2 `0.733714`.
+Seeds 42/73 strictly improve all eight B58 splits. Seed17 strictly improves
+seven and exactly ties RefCOCO testB, so every seed/split is non-regressing but
+the strongest 8/8-strict gate is not universal.
+
+Strict FPR95 is:
+
+| surface | seed17 | seed42 | seed73 | seed mean | B58 |
+|---|---:|---:|---:|---:|---:|
+| strict1607 | 0.459863 | 0.457374 | 0.462974 | 0.460071 | 0.498444 |
+| strict2031 | 0.471196 | 0.470704 | 0.468735 | 0.470212 | 0.512063 |
+
+All seeds improve both strict surfaces over B58. Relative to the intentionally
+non-clean diagnostic C100, strict1607 remains within the `+0.01` margin, but
+strict2031 does not: the seed mean is about `+0.01428` worse than C100. This is
+reported as a limitation, not hidden by the B58 comparison. Seed-first
+image-cluster bootstrap CIs remain pending; point estimates alone are not a
+paper significance claim.
