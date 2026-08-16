@@ -9316,6 +9316,26 @@ def _freeze_and_audit_stage_b_u0_patch_rank(model) -> int:
     return sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
 
 
+def _freeze_and_audit_stage_b_u2v4_legacy_training_replay(model) -> int:
+    """Restore the legacy 8+8 admission subsystem on a frozen C100 stack."""
+    from tools.stageb_u2v4_legacy_training_contract import TRAINABLE_KEYS
+
+    trainable = _freeze_and_audit_stage_b_u0_patch_rank(model)
+    observed = {
+        name for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    if observed != set(TRAINABLE_KEYS):
+        raise RuntimeError(
+            "U2-v4 replay must expose exactly surface8 + auxiliary residual8; "
+            f"missing={sorted(set(TRAINABLE_KEYS) - observed)}, "
+            f"unexpected={sorted(observed - set(TRAINABLE_KEYS))}"
+        )
+    if model.patch_logit_scale.requires_grad:
+        raise RuntimeError("U2-v4 replay must freeze patch_logit_scale")
+    return trainable
+
+
 def _freeze_and_audit_stage_b_u0_gate_aligned_d10(model) -> int:
     """Expose only the eight D9 patch-projection tensors for D10."""
     adapter = getattr(model, "stage_b_u0_patch_rank_adapter", None)
@@ -11226,6 +11246,18 @@ def main(args):
         trainable_params, trainable_modules = _trainable_param_summary(
             model_without_ddp
         )
+    elif bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False)):
+        total_trainable = _freeze_and_audit_stage_b_u2v4_legacy_training_replay(
+            model_without_ddp
+        )
+        logger.info(
+            "Stage-B U2-v4 replay audit passed: frozen B58/R100/C100 and "
+            "patch scale; admission surface8 + auxiliary residual8 train "
+            f"({total_trainable:,} parameters)."
+        )
+        trainable_params, trainable_modules = _trainable_param_summary(
+            model_without_ddp
+        )
     elif bool(getattr(args, "stage_b_u2v3_category_admission", False)):
         total_trainable = _freeze_and_audit_stage_b_u2v3_category_admission(
             model_without_ddp
@@ -12326,6 +12358,40 @@ def main(args):
                 )
                 if bool(getattr(args, "stage_b_u2v2", False)):
                     if bool(
+                        getattr(args, "stage_b_u2v4_legacy_training_replay", False)
+                    ):
+                        from tools.stageb_u2v4_legacy_training_contract import (
+                            validate_runtime_payload,
+                        )
+
+                        initializer_contract = validate_runtime_payload(
+                            model_without_ddp,
+                            checkpoint,
+                            checkpoint_label=f"Stage-B U2-v4 --resume {args.resume}",
+                            initializer_path=Path(
+                                str(args.stage_b_u2v2_initializer_path)
+                            ),
+                            initializer_sha256=str(
+                                args.stage_b_u2v2_initializer_sha256
+                            ),
+                        )
+                        setattr(
+                            args,
+                            "stage_b_u2v4_legacy_training_contract",
+                            initializer_contract,
+                        )
+                        saved_args = checkpoint.get("args")
+                        saved_runtime = (
+                            saved_args.get("stage_b_u2v4_runtime_audit")
+                            if isinstance(saved_args, Mapping)
+                            else None
+                        )
+                        if not isinstance(saved_runtime, Mapping):
+                            raise RuntimeError("U2-v4 resume lacks runtime audit")
+                        setattr(
+                            args, "stage_b_u2v4_runtime_audit", dict(saved_runtime)
+                        )
+                    elif bool(
                         getattr(args, "stage_b_u2v3_category_admission", False)
                     ):
                         from tools.stageb_u2v3_category_admission_contract import (
@@ -13147,6 +13213,23 @@ def main(args):
                 initializer_contract = validate_initializer_payload(checkpoint_payload)
                 setattr(args, "stage_b_u2v2_initializer_contract", initializer_contract)
                 if bool(
+                    getattr(args, "stage_b_u2v4_legacy_training_replay", False)
+                ):
+                    from tools.stageb_u2v4_legacy_training_contract import (
+                        build_training_contract,
+                    )
+
+                    u2v4_contract = build_training_contract(
+                        checkpoint_payload,
+                        initializer_path=Path(args.pretrain_model_path),
+                        initializer_sha256=expected_sha,
+                    )
+                    setattr(
+                        args,
+                        "stage_b_u2v4_legacy_training_contract",
+                        u2v4_contract,
+                    )
+                elif bool(
                     getattr(args, "stage_b_u2v3_category_admission", False)
                 ):
                     from tools.stageb_u2v3_category_admission_contract import (
@@ -13566,6 +13649,15 @@ def main(args):
             if not isinstance(contract, Mapping):
                 raise RuntimeError("cannot checkpoint U2-v3 without ownership provenance")
             payload["u2v3_category_admission"] = dict(contract)
+        if bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False)):
+            contract = getattr(
+                args, "stage_b_u2v4_legacy_training_contract", None
+            )
+            if not isinstance(contract, Mapping):
+                raise RuntimeError(
+                    "cannot checkpoint U2-v4 replay without ownership provenance"
+                )
+            payload["u2v4_legacy_training_replay"] = dict(contract)
         if fair_data_driven_sampling:
             if (
                 not isinstance(current_data_driven_sampling_state, Mapping)

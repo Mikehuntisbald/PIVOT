@@ -1084,6 +1084,73 @@ def _record_stage_b_u2v3_runtime_audit(
     setattr(args, "stage_b_u2v3_runtime_audit", audit)
 
 
+def _record_stage_b_u2v4_runtime_audit(
+    args, device: torch.device, *, optimizer_step_succeeded: bool,
+    branch_grad_norms: Mapping[str, float], amp_scale: Optional[float],
+) -> None:
+    if not bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False)):
+        return
+    existing = getattr(args, "stage_b_u2v4_runtime_audit", None)
+    audit = dict(existing) if isinstance(existing, Mapping) else {
+        "schema": "pivot.stageb.u2v4_legacy_training_runtime/v1",
+        "optimizer_step_boundaries": 0,
+        "successful_optimizer_steps": 0,
+        "amp_skipped_optimizer_steps": 0,
+        "nonfinite_gradient_boundaries": 0,
+        "zero_gradient_successful_steps": 0,
+        "max_auxiliary_residual_grad_norm_preclip": 0.0,
+        "max_surface_grad_norm_preclip": 0.0,
+    }
+    audit["optimizer_step_boundaries"] += 1
+    residual_norm = float(
+        branch_grad_norms.get("grad_norm_u0_residual_preclip", 0.0)
+    )
+    surface_norm = float(
+        branch_grad_norms.get("grad_norm_u0_patch_projection_preclip", 0.0)
+    )
+    audit["last_auxiliary_residual_grad_norm_preclip"] = residual_norm
+    audit["last_surface_grad_norm_preclip"] = surface_norm
+    audit["max_auxiliary_residual_grad_norm_preclip"] = max(
+        float(audit["max_auxiliary_residual_grad_norm_preclip"]), residual_norm
+    )
+    audit["max_surface_grad_norm_preclip"] = max(
+        float(audit["max_surface_grad_norm_preclip"]), surface_norm
+    )
+    if not math.isfinite(residual_norm) or not math.isfinite(surface_norm):
+        audit["nonfinite_gradient_boundaries"] += 1
+    if optimizer_step_succeeded:
+        audit["successful_optimizer_steps"] += 1
+        if residual_norm == 0.0 or surface_norm == 0.0:
+            audit["zero_gradient_successful_steps"] += 1
+    else:
+        audit["amp_skipped_optimizer_steps"] += 1
+    if amp_scale is not None and math.isfinite(float(amp_scale)):
+        scale = float(amp_scale)
+        audit["last_amp_scale"] = scale
+        audit["min_amp_scale"] = min(
+            float(audit.get("min_amp_scale", scale)), scale
+        )
+    if device.type == "cuda":
+        total = int(torch.cuda.get_device_properties(device).total_memory)
+        device_free, _device_total = torch.cuda.mem_get_info(device)
+        peak_allocated = int(torch.cuda.max_memory_allocated(device))
+        peak_reserved = int(torch.cuda.max_memory_reserved(device))
+        audit["total_device_bytes"] = total
+        audit["peak_allocated_bytes"] = max(
+            int(audit.get("peak_allocated_bytes", 0)), peak_allocated
+        )
+        audit["peak_reserved_bytes"] = max(
+            int(audit.get("peak_reserved_bytes", 0)), peak_reserved
+        )
+        audit["minimum_unreserved_bytes"] = min(
+            int(audit.get("minimum_unreserved_bytes", total)), total - peak_reserved
+        )
+        audit["minimum_device_free_bytes"] = min(
+            int(audit.get("minimum_device_free_bytes", total)), int(device_free)
+        )
+    setattr(args, "stage_b_u2v4_runtime_audit", audit)
+
+
 def _clip_stage_b_gdino_adapter_grad_norms(
     model: torch.nn.Module,
     max_norm: float,
@@ -4703,6 +4770,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     amp_scale=amp_scale,
                 )
                 _record_stage_b_u2v3_runtime_audit(
+                    args,
+                    device,
+                    optimizer_step_succeeded=optimizer_step_succeeded,
+                    branch_grad_norms=branch_grad_norms,
+                    amp_scale=amp_scale,
+                )
+                _record_stage_b_u2v4_runtime_audit(
                     args,
                     device,
                     optimizer_step_succeeded=optimizer_step_succeeded,
