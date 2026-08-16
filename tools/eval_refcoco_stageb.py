@@ -7060,7 +7060,14 @@ def _load_model(cfg, ckpt_path: str, device: torch.device):
     stage_b_u0_patch_rank = bool(
         getattr(cfg, "stage_b_u0_patch_rank", False)
     )
-    if bool(getattr(cfg, "stage_b_u2v2", False)):
+    # U2-v3 intentionally starts from a U2-v2 initializer but re-opens the
+    # eight category-admission projection tensors.  Its stricter 8/1157
+    # ownership contract is validated by the joint evaluator after this
+    # loader returns; applying the legacy U2-v2 all-patch-frozen contract here
+    # would reject every valid U2-v3 training checkpoint.
+    if bool(getattr(cfg, "stage_b_u2v2", False)) and not bool(
+        getattr(cfg, "stage_b_u2v3_checkpoint_eval", False)
+    ):
         from tools.build_stageb_u2v2_initializer import validate_runtime_payload
 
         validate_runtime_payload(
