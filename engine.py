@@ -259,6 +259,30 @@ def _set_stage_b_u2v2_training_mode(model: torch.nn.Module) -> None:
         raise RuntimeError("a frozen U2-v2 teacher or gate remains in train mode")
 
 
+def _set_stage_b_u2v3_category_admission_training_mode(
+    model: torch.nn.Module,
+) -> None:
+    """Train only Stage-A admission projections; keep all teachers in eval."""
+    root = model.module if hasattr(model, "module") else model
+    u0_adapter = getattr(root, "stage_b_u0_patch_rank_adapter", None)
+    score_adapter = getattr(root, "stage_b_gdino_score_adapter", None)
+    patch_encoder = getattr(root, "patch_encoder", None)
+    query_projection = getattr(root, "query_proj_for_patch", None)
+    if any(
+        module is None
+        for module in (u0_adapter, score_adapter, patch_encoder, query_projection)
+    ):
+        raise RuntimeError("U2-v3 training modules are incomplete")
+    if getattr(patch_encoder, "backbone", None) is not root.backbone:
+        raise RuntimeError("U2-v3 patch encoder must share the frozen B58 backbone")
+    root.eval()
+    patch_encoder.input_proj.train(True)
+    patch_encoder.norm.train(True)
+    query_projection.train(True)
+    if any(module.training for module in (root.backbone, u0_adapter, score_adapter)):
+        raise RuntimeError("a frozen U2-v3 teacher remains in train mode")
+
+
 def _set_stage_b_u0_gate_aligned_d13_training_mode(
     model: torch.nn.Module,
 ) -> None:
@@ -1009,6 +1033,55 @@ def _record_stage_b_u2v2_runtime_audit(
             int(audit.get("minimum_device_free_bytes", total)), int(device_free)
         )
     setattr(args, "stage_b_u2v2_runtime_audit", audit)
+
+
+def _record_stage_b_u2v3_runtime_audit(
+    args, device: torch.device, *, optimizer_step_succeeded: bool,
+    branch_grad_norms: Mapping[str, float], amp_scale: Optional[float],
+) -> None:
+    if not bool(getattr(args, "stage_b_u2v3_category_admission", False)):
+        return
+    existing = getattr(args, "stage_b_u2v3_runtime_audit", None)
+    audit = dict(existing) if isinstance(existing, Mapping) else {
+        "schema": "pivot.stageb.u2v3_category_admission_runtime/v1",
+        "optimizer_step_boundaries": 0,
+        "successful_optimizer_steps": 0,
+        "amp_skipped_optimizer_steps": 0,
+        "nonfinite_gradient_boundaries": 0,
+        "zero_gradient_successful_steps": 0,
+        "max_grad_norm_preclip": 0.0,
+    }
+    audit["optimizer_step_boundaries"] += 1
+    norm = float(branch_grad_norms.get("grad_norm_u0_patch_projection_preclip", 0.0))
+    audit["last_grad_norm_preclip"] = norm
+    audit["max_grad_norm_preclip"] = max(float(audit["max_grad_norm_preclip"]), norm)
+    if not math.isfinite(norm):
+        audit["nonfinite_gradient_boundaries"] += 1
+    if optimizer_step_succeeded:
+        audit["successful_optimizer_steps"] += 1
+        if norm == 0.0:
+            audit["zero_gradient_successful_steps"] += 1
+    else:
+        audit["amp_skipped_optimizer_steps"] += 1
+    if amp_scale is not None and math.isfinite(float(amp_scale)):
+        scale = float(amp_scale)
+        audit["last_amp_scale"] = scale
+        audit["min_amp_scale"] = min(float(audit.get("min_amp_scale", scale)), scale)
+    if device.type == "cuda":
+        total = int(torch.cuda.get_device_properties(device).total_memory)
+        device_free, _device_total = torch.cuda.mem_get_info(device)
+        peak_allocated = int(torch.cuda.max_memory_allocated(device))
+        peak_reserved = int(torch.cuda.max_memory_reserved(device))
+        audit["total_device_bytes"] = total
+        audit["peak_allocated_bytes"] = max(int(audit.get("peak_allocated_bytes", 0)), peak_allocated)
+        audit["peak_reserved_bytes"] = max(int(audit.get("peak_reserved_bytes", 0)), peak_reserved)
+        audit["minimum_unreserved_bytes"] = min(
+            int(audit.get("minimum_unreserved_bytes", total)), total - peak_reserved
+        )
+        audit["minimum_device_free_bytes"] = min(
+            int(audit.get("minimum_device_free_bytes", total)), int(device_free)
+        )
+    setattr(args, "stage_b_u2v3_runtime_audit", audit)
 
 
 def _clip_stage_b_gdino_adapter_grad_norms(
@@ -3106,7 +3179,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             ),
         )
     elif bool(getattr(args, "stage_b_u0_patch_rank", False)):
-        if bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
+        if bool(getattr(args, "stage_b_u2v3_category_admission", False)):
+            _set_stage_b_u2v3_category_admission_training_mode(model)
+        elif bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
             _set_stage_b_u2v2_training_mode(model)
         elif bool(getattr(args, "stage_b_u0_gate_aligned_d13", False)):
             _set_stage_b_u0_gate_aligned_d13_training_mode(model)
@@ -4239,16 +4314,30 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                             raise RuntimeError(
                                 "rank_only must not initialize a paired TN batch"
                             )
-                        u2v2_microbatch = int(
-                            getattr(args, "stage_b_u2v2_forward_microbatch", 0) or 0
+                        u2v3_training = bool(
+                            getattr(args, "stage_b_u2v3_category_admission", False)
                         )
-                        if bool(getattr(args, "stage_b_u2v2_rank_residual", False)) and u2v2_microbatch:
+                        stage_b_microbatch = int(
+                            getattr(
+                                args,
+                                "stage_b_u2v3_forward_microbatch"
+                                if u2v3_training
+                                else "stage_b_u2v2_forward_microbatch",
+                                0,
+                            )
+                            or 0
+                        )
+                        isolated_microbatch = (
+                            bool(getattr(args, "stage_b_u2v2_rank_residual", False))
+                            or u2v3_training
+                        )
+                        if isolated_microbatch and stage_b_microbatch:
                             batch_size = len(targets)
-                            if u2v2_microbatch <= 0 or u2v2_microbatch > batch_size:
-                                raise ValueError("U2-v2 forward microbatch is invalid")
+                            if stage_b_microbatch <= 0 or stage_b_microbatch > batch_size:
+                                raise ValueError("isolated Stage-B forward microbatch is invalid")
                             chunk_losses = []
-                            for start in range(0, batch_size, u2v2_microbatch):
-                                end = min(batch_size, start + u2v2_microbatch)
+                            for start in range(0, batch_size, stage_b_microbatch):
+                                end = min(batch_size, start + stage_b_microbatch)
                                 indices = list(range(start, end))
                                 chunk_outputs = model(
                                     _index_nested_tensor(samples, indices),
@@ -4270,7 +4359,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                 )
                             keys = tuple(chunk_losses[0][1])
                             if any(tuple(losses) != keys for _, losses in chunk_losses[1:]):
-                                raise RuntimeError("U2-v2 microbatch loss schema drifted")
+                                raise RuntimeError("isolated Stage-B microbatch loss schema drifted")
                             loss_dict = {
                                 key: sum(
                                     losses[key] * (float(size) / float(batch_size))
@@ -4304,8 +4393,8 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                         )
                     if not (
                         gdino_adapter_train_mode == "rank_only"
-                        and bool(getattr(args, "stage_b_u2v2_rank_residual", False))
-                        and int(getattr(args, "stage_b_u2v2_forward_microbatch", 0) or 0)
+                        and isolated_microbatch
+                        and stage_b_microbatch
                     ):
                         loss_dict = criterion(outputs, targets)
                 else:
@@ -4573,6 +4662,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             )
             if optimizer_step_boundary:
                 _record_stage_b_u2v2_runtime_audit(
+                    args,
+                    device,
+                    optimizer_step_succeeded=optimizer_step_succeeded,
+                    branch_grad_norms=branch_grad_norms,
+                    amp_scale=amp_scale,
+                )
+                _record_stage_b_u2v3_runtime_audit(
                     args,
                     device,
                     optimizer_step_succeeded=optimizer_step_succeeded,

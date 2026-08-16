@@ -9477,6 +9477,48 @@ def _freeze_and_audit_stage_b_u2v2(model) -> int:
     return sum(parameter.numel() for parameter in active)
 
 
+def _freeze_and_audit_stage_b_u2v3_category_admission(model) -> int:
+    """Expose only eight Stage-A category-admission projection tensors."""
+    u0_adapter = getattr(model, "stage_b_u0_patch_rank_adapter", None)
+    score_adapter = getattr(model, "stage_b_gdino_score_adapter", None)
+    patch_encoder = getattr(model, "patch_encoder", None)
+    query_projection = getattr(model, "query_proj_for_patch", None)
+    if any(
+        module is None
+        for module in (u0_adapter, score_adapter, patch_encoder, query_projection)
+    ):
+        raise RuntimeError("U2-v3 requires the Stage-A/B58/R100/C100/U0 stack")
+    if getattr(model, "stage_b_u2v2_rank_residual", None) is not None:
+        raise RuntimeError("U2-v3 category admission forbids a post-gate residual")
+    active = _stage_b_native_patch_category_parameters(model)
+    for parameter in model.parameters():
+        parameter.requires_grad_(False)
+    for parameter in active:
+        parameter.requires_grad_(True)
+    observed = {
+        name: parameter for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    expected_ids = {id(parameter) for parameter in active}
+    if len(observed) != 8 or {id(value) for value in observed.values()} != expected_ids:
+        raise RuntimeError("U2-v3 did not expose exactly eight admission tensors")
+    allowed_prefixes = (
+        "patch_encoder.input_proj.",
+        "patch_encoder.norm.",
+        "query_proj_for_patch.",
+    )
+    unexpected = [name for name in observed if not name.startswith(allowed_prefixes)]
+    if unexpected:
+        raise RuntimeError(f"U2-v3 exposed unexpected tensors: {unexpected[:20]}")
+    frozen_modules = (model.backbone, u0_adapter, score_adapter)
+    if any(p.requires_grad for module in frozen_modules for p in module.parameters()):
+        raise RuntimeError("U2-v3 must freeze B58/U0/R100/C100")
+    patch_logit_scale = getattr(model, "patch_logit_scale", None)
+    if not isinstance(patch_logit_scale, torch.nn.Parameter) or patch_logit_scale.requires_grad:
+        raise RuntimeError("U2-v3 must keep patch_logit_scale frozen")
+    return sum(parameter.numel() for parameter in active)
+
+
 def _freeze_and_audit_stage_b_u0_gate_aligned_d13(model) -> int:
     """Expose only D13's independent patch-category residual."""
     d13 = getattr(model, "stage_b_u0_gate_aligned_patch_residual", None)
@@ -9688,6 +9730,13 @@ def _stage_b_u2v2_optimizer_groups(model, *, lr: float):
         "params": parameters, "lr": lr,
         "stage_b_u2v2_branch": "post_gate_rank_residual",
     }]
+
+
+def _stage_b_u2v3_category_admission_optimizer_groups(model, *, lr: float):
+    groups = _stage_b_native_patch_category_optimizer_groups(model, lr=lr)
+    groups[0].pop("stage_b_native_patch_branch")
+    groups[0]["stage_b_u2v3_branch"] = "category_admission_projection"
+    return groups
 
 
 def _stage_b_u0_gate_aligned_d13_optimizer_groups(model, *, lr: float):
@@ -11177,6 +11226,15 @@ def main(args):
         trainable_params, trainable_modules = _trainable_param_summary(
             model_without_ddp
         )
+    elif bool(getattr(args, "stage_b_u2v3_category_admission", False)):
+        total_trainable = _freeze_and_audit_stage_b_u2v3_category_admission(
+            model_without_ddp
+        )
+        logger.info(
+            "Stage-B U2-v3 audit passed: frozen B58/R100/C100/U0; exactly "
+            f"eight category-admission tensors train ({total_trainable:,} parameters)."
+        )
+        trainable_params, trainable_modules = _trainable_param_summary(model_without_ddp)
     elif bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
         total_trainable = _freeze_and_audit_stage_b_u2v2(model_without_ddp)
         logger.info(
@@ -11332,6 +11390,11 @@ def main(args):
             patch_lr=float(
                 getattr(args, "stage_b_data_driven_patch_lr", args.lr)
             ),
+        )
+    elif bool(getattr(args, "stage_b_u2v3_category_admission", False)):
+        param_dicts = _stage_b_u2v3_category_admission_optimizer_groups(
+            model_without_ddp,
+            lr=float(getattr(args, "stage_b_u2v3_patch_lr", args.lr)),
         )
     elif bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
         param_dicts = _stage_b_u2v2_optimizer_groups(
@@ -12262,28 +12325,68 @@ def main(args):
                     checkpoint_label=f"Stage-B U0 --resume checkpoint {args.resume}",
                 )
                 if bool(getattr(args, "stage_b_u2v2", False)):
-                    from tools.build_stageb_u2v2_initializer import (
-                        validate_runtime_payload,
-                    )
+                    if bool(
+                        getattr(args, "stage_b_u2v3_category_admission", False)
+                    ):
+                        from tools.stageb_u2v3_category_admission_contract import (
+                            validate_runtime_payload,
+                        )
 
-                    initializer_contract = validate_runtime_payload(
-                        model_without_ddp,
-                        checkpoint,
-                        checkpoint_label=f"Stage-B U2-v2 --resume {args.resume}",
-                    )
+                        initializer_contract = validate_runtime_payload(
+                            model_without_ddp,
+                            checkpoint,
+                            checkpoint_label=f"Stage-B U2-v3 --resume {args.resume}",
+                            initializer_path=Path(
+                                str(args.stage_b_u2v2_initializer_path)
+                            ),
+                            initializer_sha256=str(
+                                args.stage_b_u2v2_initializer_sha256
+                            ),
+                        )
+                        setattr(
+                            args,
+                            "stage_b_u2v3_category_admission_contract",
+                            initializer_contract,
+                        )
+                        saved_args = checkpoint.get("args")
+                        saved_runtime = (
+                            saved_args.get("stage_b_u2v3_runtime_audit")
+                            if isinstance(saved_args, Mapping)
+                            else None
+                        )
+                        if not isinstance(saved_runtime, Mapping):
+                            raise RuntimeError("U2-v3 resume lacks runtime audit")
+                        setattr(
+                            args, "stage_b_u2v3_runtime_audit", dict(saved_runtime)
+                        )
+                    else:
+                        from tools.build_stageb_u2v2_initializer import (
+                            validate_runtime_payload,
+                        )
+
+                        initializer_contract = validate_runtime_payload(
+                            model_without_ddp,
+                            checkpoint,
+                            checkpoint_label=f"Stage-B U2-v2 --resume {args.resume}",
+                        )
+                        setattr(
+                            args,
+                            "stage_b_u2v2_initializer_contract",
+                            initializer_contract,
+                        )
+                        saved_args = checkpoint.get("args")
+                        if not isinstance(saved_args, Mapping):
+                            raise RuntimeError("U2-v2 resume requires saved args")
+                        saved_runtime = saved_args.get("stage_b_u2v2_runtime_audit")
+                        if not isinstance(saved_runtime, Mapping):
+                            raise RuntimeError("U2-v2 resume lacks runtime audit")
+                        setattr(
+                            args, "stage_b_u2v2_runtime_audit", dict(saved_runtime)
+                        )
                     setattr(
                         args,
                         "stage_b_u2v2_initializer_contract",
-                        initializer_contract,
-                    )
-                    saved_args = checkpoint.get("args")
-                    if not isinstance(saved_args, Mapping):
-                        raise RuntimeError("U2-v2 resume requires saved args")
-                    saved_runtime = saved_args.get("stage_b_u2v2_runtime_audit")
-                    if not isinstance(saved_runtime, Mapping):
-                        raise RuntimeError("U2-v2 resume lacks runtime audit")
-                    setattr(
-                        args, "stage_b_u2v2_runtime_audit", dict(saved_runtime)
+                        checkpoint.get("u2v2_initializer"),
                     )
         elif bool(getattr(args, "stage_b_v11_fixed_text", False)):
             from models.GroundingDINO.stage_b_fixed_text_scorer import (
@@ -13043,6 +13146,23 @@ def main(args):
                     )
                 initializer_contract = validate_initializer_payload(checkpoint_payload)
                 setattr(args, "stage_b_u2v2_initializer_contract", initializer_contract)
+                if bool(
+                    getattr(args, "stage_b_u2v3_category_admission", False)
+                ):
+                    from tools.stageb_u2v3_category_admission_contract import (
+                        build_training_contract,
+                    )
+
+                    u2v3_contract = build_training_contract(
+                        checkpoint_payload,
+                        initializer_path=Path(args.pretrain_model_path),
+                        initializer_sha256=expected_sha,
+                    )
+                    setattr(
+                        args,
+                        "stage_b_u2v3_category_admission_contract",
+                        u2v3_contract,
+                    )
             elif bool(getattr(args, "stage_b_u0_gate_aligned_d10", False)) or bool(
                 getattr(args, "stage_b_u0_gate_aligned_d11", False)
             ) or bool(
@@ -13439,6 +13559,13 @@ def main(args):
             if not isinstance(contract, Mapping):
                 raise RuntimeError("cannot checkpoint U2-v2 without initializer provenance")
             payload["u2v2_initializer"] = dict(contract)
+        if bool(getattr(args, "stage_b_u2v3_category_admission", False)):
+            contract = getattr(
+                args, "stage_b_u2v3_category_admission_contract", None
+            )
+            if not isinstance(contract, Mapping):
+                raise RuntimeError("cannot checkpoint U2-v3 without ownership provenance")
+            payload["u2v3_category_admission"] = dict(contract)
         if fair_data_driven_sampling:
             if (
                 not isinstance(current_data_driven_sampling_state, Mapping)

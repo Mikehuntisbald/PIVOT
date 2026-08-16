@@ -685,6 +685,23 @@ def _load_model_with_checkpoint_contract(
 ):
     summary_fields = _merged_eval_checkpoint_summary_fields(cfg, checkpoint)
     model = _load_model(cfg, str(checkpoint), device)
+    if bool(getattr(cfg, "stage_b_u2v3_checkpoint_eval", False)):
+        from tools.stageb_u2v3_category_admission_contract import (
+            validate_runtime_payload,
+        )
+
+        checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
+        validate_runtime_payload(
+            model,
+            checkpoint_payload,
+            checkpoint_label=f"U2-v3 evaluation checkpoint {checkpoint}",
+            initializer_path=Path(
+                str(getattr(cfg, "stage_b_u2v2_initializer_path"))
+            ),
+            initializer_sha256=str(
+                getattr(cfg, "stage_b_u2v2_initializer_sha256")
+            ),
+        )
     if bool(
         getattr(cfg, "stage_b_dense_duty_confidence_full_decoder_verifier", False)
     ):

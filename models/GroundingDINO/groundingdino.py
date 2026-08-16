@@ -3158,6 +3158,9 @@ def build_groundingdino(args):
     stage_b_u2v2_rank_residual = bool(
         getattr(args, "stage_b_u2v2_rank_residual", False)
     )
+    stage_b_u2v3_category_admission = bool(
+        getattr(args, "stage_b_u2v3_category_admission", False)
+    )
     stage_b_data_driven_score = bool(
         getattr(args, "stage_b_data_driven_score", False)
     )
@@ -3168,15 +3171,28 @@ def build_groundingdino(args):
         raise ValueError(
             "stage_b_u0_patch_rank requires stage_b_gdino_score_adapter=True"
         )
-    if stage_b_u2v2 and (
-        not stage_b_u0_patch_rank
-        or not bool(getattr(args, "stage_b_u0_category_preserving_patch_gate", False))
+    if stage_b_u2v2 and not stage_b_u0_patch_rank:
+        raise ValueError("U2-v2 requires the U0 category-gate shell")
+    if (
+        stage_b_u2v2
+        and not stage_b_u2v3_category_admission
+        and not bool(getattr(args, "stage_b_u0_category_preserving_patch_gate", False))
     ):
         raise ValueError("U2-v2 requires the frozen U0 hard category gate")
     if stage_b_u2v2 and stage_b_gdino_ref_top1_guard:
         raise ValueError("U2-v2 forbids the B58 top-1 guard")
     if stage_b_u2v2_rank_residual and not stage_b_u2v2:
         raise ValueError("U2-v2 rank residual requires stage_b_u2v2=True")
+    if stage_b_u2v3_category_admission and not stage_b_u2v2:
+        raise ValueError("U2-v3 category admission requires stage_b_u2v2=True")
+    if stage_b_u2v3_category_admission and stage_b_u2v2_rank_residual:
+        raise ValueError("U2-v3 category admission must keep the U2-v2 residual absent")
+    if stage_b_u2v3_category_admission and bool(
+        getattr(args, "stage_b_u0_category_preserving_patch_gate", False)
+    ):
+        raise ValueError(
+            "U2-v3 training requires the inference-only hard category gate disabled"
+        )
     if stage_b_u2v2_rank_residual and (
         stage_b_u0_gate_aligned_rank_residual
         or stage_b_u0_gate_aligned_patch_residual
@@ -5476,7 +5492,62 @@ def build_groundingdino(args):
             return model, criterion, postprocessors
         if stage_b_gdino_score_adapter:
             if stage_b_u0_patch_rank:
-                if bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
+                if bool(getattr(args, "stage_b_u2v3_category_admission", False)):
+                    from .stage_b_u2v3_category_admission import (
+                        StageBU2V3CategoryAdmissionCriterion,
+                    )
+
+                    criterion = StageBU2V3CategoryAdmissionCriterion(
+                        weight=float(getattr(args, "stage_b_u2v3_weight", 1.0)),
+                        positive_iou_threshold=float(
+                            getattr(args, "stage_b_u2v3_positive_iou_threshold", 0.5)
+                        ),
+                        negative_iou_threshold=float(
+                            getattr(args, "stage_b_u2v3_negative_iou_threshold", 0.3)
+                        ),
+                        gate_max_gap=float(
+                            getattr(args, "stage_b_u2v3_category_gate_max_gap", 3.0)
+                        ),
+                        patch_score_clip=float(
+                            getattr(args, "stage_b_u2v3_patch_score_clip", 5.0)
+                        ),
+                        keep_gap=float(getattr(args, "stage_b_u2v3_keep_gap", 2.75)),
+                        drop_gap=float(getattr(args, "stage_b_u2v3_drop_gap", 3.25)),
+                        drop_active_gap=float(
+                            getattr(args, "stage_b_u2v3_drop_active_gap", 3.75)
+                        ),
+                        temperature=float(
+                            getattr(args, "stage_b_u2v3_temperature", 0.25)
+                        ),
+                        max_rank_blockers=int(
+                            getattr(args, "stage_b_u2v3_max_rank_blockers", 4)
+                        ),
+                        drop_weight=float(
+                            getattr(args, "stage_b_u2v3_drop_weight", 2.0)
+                        ),
+                        critical_keep_weight=float(
+                            getattr(args, "stage_b_u2v3_critical_keep_weight", 1.0)
+                        ),
+                        positive_active_gap=float(
+                            getattr(args, "stage_b_u2v3_positive_active_gap", 2.25)
+                        ),
+                        positive_target_gap=float(
+                            getattr(args, "stage_b_u2v3_positive_target_gap", 2.5)
+                        ),
+                        positive_barrier_weight=float(
+                            getattr(args, "stage_b_u2v3_positive_barrier_weight", 2.0)
+                        ),
+                        instance_active_gap=float(
+                            getattr(args, "stage_b_u2v3_instance_active_gap", 2.25)
+                        ),
+                        instance_target_gap=float(
+                            getattr(args, "stage_b_u2v3_instance_target_gap", 2.5)
+                        ),
+                        instance_coverage_weight=float(
+                            getattr(args, "stage_b_u2v3_instance_coverage_weight", 2.0)
+                        ),
+                    )
+                elif bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
                     from .stage_b_u2v2_rank_residual import (
                         StageBU2V2RankResidualCriterion,
                     )
