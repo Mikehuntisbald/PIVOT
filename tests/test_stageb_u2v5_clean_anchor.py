@@ -103,6 +103,9 @@ def test_clean_configs_lock_seeds_to_external_runner_and_never_name_c100_path():
     for cfg in (eval_cfg, conf_cfg):
         assert cfg.stage_b_u2v2_c100_checkpoint is None
         assert cfg.stage_b_u2v2_c100_sha256 is None
+    assert eval_cfg.stage_b_u2v4_checkpoint_eval is True
+    assert eval_cfg.stage_b_u2v4_legacy_training_replay is True
+    assert conf_cfg.stage_b_u2v4_checkpoint_eval is False
 
 
 def test_d3_screen_calibration_eval_is_narrowly_allowlisted():

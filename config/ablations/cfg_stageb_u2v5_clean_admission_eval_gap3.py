@@ -2,7 +2,9 @@
 
 from config.ablations.cfg_stageb_u2v5_clean_admission_u100 import *  # noqa: F401,F403
 
-stage_b_u2v4_legacy_training_replay = False
+# The clean admission checkpoint intentionally retains the complete U2-v4
+# training-replay mechanism and its ownership receipt.
+stage_b_u2v4_legacy_training_replay = True
 stage_b_u2v4_checkpoint_eval = True
 stage_b_u0_category_preserving_patch_gate = True
 stage_b_u0_category_gate_max_gap = 3.0
