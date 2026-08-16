@@ -102,3 +102,45 @@ def test_clean_configs_lock_seeds_to_external_runner_and_never_name_c100_path():
     for cfg in (eval_cfg, conf_cfg):
         assert cfg.stage_b_u2v2_c100_checkpoint is None
         assert cfg.stage_b_u2v2_c100_sha256 is None
+
+
+def test_d3_screen_calibration_eval_is_narrowly_allowlisted():
+    from types import SimpleNamespace
+
+    from tools.eval_stageb_tn_val import _validate_adapter_tn_eval_manifest
+
+    audit = "7d74d541529a3e9abfbe84b192f2d0d3608d291bf46d19263c7c06a6ccb2291d"
+    cfg = SimpleNamespace(
+        stage_b_gdino_score_adapter=True,
+        stage_b_data_driven_score=False,
+        stage_b_gdino_tn_scope="proposal_covered_verified",
+        stage_b_u2v5_clean_confidence=True,
+        stage_b_v19_table_b_audit_sha256=audit,
+    )
+    row = {
+        "tn_scope": "proposal_covered_verified",
+        "table_b_id": "D3",
+        "tn_eval_split": "screen_calibration",
+        "tn_eval_source_split": "sealed_image_disjoint_calibration",
+        "proposal_covered_verified": True,
+        "global_tn_verified": False,
+        "benchmark_dataft_alltn": False,
+        "proposalset_proxy_verified": False,
+        "cached_proposal_coverage_only": True,
+        "all_900_gdino_queries_verified": False,
+        "global_max_label_is_semantic_extrapolation": True,
+        "table_b_audit_sha256": audit,
+    }
+    with pytest.raises(ValueError, match="proposal-covered"):
+        _validate_adapter_tn_eval_manifest(cfg, [row])
+    assert (
+        _validate_adapter_tn_eval_manifest(
+            cfg, [row], allow_proposal_covered_calibration=True
+        )
+        == "proposal_covered_verified"
+    )
+    changed = dict(row, table_b_audit_sha256="0" * 64)
+    with pytest.raises(ValueError, match="audit-bound"):
+        _validate_adapter_tn_eval_manifest(
+            cfg, [changed], allow_proposal_covered_calibration=True
+        )

@@ -294,7 +294,12 @@ def _build_tn_eval_jsonl(
     return out_path, meta_rows, counts
 
 
-def _validate_adapter_tn_eval_manifest(cfg, rows: List[Dict[str, Any]]) -> Optional[str]:
+def _validate_adapter_tn_eval_manifest(
+    cfg,
+    rows: List[Dict[str, Any]],
+    *,
+    allow_proposal_covered_calibration: bool = False,
+) -> Optional[str]:
     adapter_enabled = bool(getattr(cfg, "stage_b_gdino_score_adapter", False))
     data_driven_enabled = bool(getattr(cfg, "stage_b_data_driven_score", False))
     if not (adapter_enabled or data_driven_enabled):
@@ -340,6 +345,34 @@ def _validate_adapter_tn_eval_manifest(cfg, rows: List[Dict[str, Any]]) -> Optio
         else:
             scope = row.get("tn_scope", None)
             stage_b_gdino_tn_scope_code(scope)
+            if scope == "proposal_covered_verified":
+                expected_audit = str(
+                    getattr(cfg, "stage_b_v19_table_b_audit_sha256", "")
+                ).strip()
+                if not (
+                    allow_proposal_covered_calibration
+                    and bool(getattr(cfg, "stage_b_u2v5_clean_confidence", False))
+                    and row.get("table_b_id") == "D3"
+                    and row.get("tn_eval_split") == "screen_calibration"
+                    and row.get("tn_eval_source_split")
+                    == "sealed_image_disjoint_calibration"
+                    and row.get("proposal_covered_verified") is True
+                    and row.get("global_tn_verified") is False
+                    and row.get("benchmark_dataft_alltn") is False
+                    and row.get("proposalset_proxy_verified") is False
+                    and row.get("cached_proposal_coverage_only") is True
+                    and row.get("all_900_gdino_queries_verified") is False
+                    and row.get("global_max_label_is_semantic_extrapolation") is True
+                    and len(expected_audit) == 64
+                    and row.get("table_b_audit_sha256") == expected_audit
+                ):
+                    raise ValueError(
+                        "proposal-covered adapter evaluation is allowed only for "
+                        "the audit-bound U2-v5 D3 screen calibration"
+                    )
+                protocols.add("u2v5_d3_screen_calibration")
+                eval_scopes.add(str(scope))
+                continue
             verification_key = (
                 "global_tn_verified"
                 if scope == "image_global_topk_verified"

@@ -4223,9 +4223,16 @@ def _forward_tn_batch(cfg, model, batch, device: torch.device, *, amp: bool):
 
 
 def _validate_adapter_tn_eval_scope(
-    cfg, rows: List[Dict[str, Any]]
+    cfg,
+    rows: List[Dict[str, Any]],
+    *,
+    allow_proposal_covered_calibration: bool = False,
 ) -> Optional[str]:
-    return _validate_adapter_tn_eval_manifest(cfg, rows)
+    return _validate_adapter_tn_eval_manifest(
+        cfg,
+        rows,
+        allow_proposal_covered_calibration=allow_proposal_covered_calibration,
+    )
 
 
 def _top_iou(outputs: Dict[str, torch.Tensor], targets: List[Dict[str, Any]], scores: torch.Tensor) -> np.ndarray:
@@ -5173,6 +5180,7 @@ def evaluate_tn_dataset(
     records_output_dir: Optional[Path] = None,
     checkpoint_summary_fields: Optional[Mapping[str, str]] = None,
     declared_eval_scope: Optional[str] = None,
+    allow_proposal_covered_calibration: bool = False,
 ) -> Dict[str, Any]:
     loader = _build_loader(cfg, datasetinfo, batch_size, num_workers, device, seed)
     manifest = load_eval_manifest(
@@ -5186,7 +5194,11 @@ def evaluate_tn_dataset(
             manifest.rows, declared_scope=str(declared_eval_scope)
         )
         if declared_eval_scope is not None
-        else _validate_adapter_tn_eval_scope(cfg, manifest.rows)
+        else _validate_adapter_tn_eval_scope(
+            cfg,
+            manifest.rows,
+            allow_proposal_covered_calibration=allow_proposal_covered_calibration,
+        )
     )
     train_scope = (
         str(getattr(cfg, "stage_b_gdino_tn_scope", "")).strip() or None
@@ -5935,7 +5947,13 @@ def main() -> None:
                 selected_tn_rows, declared_scope=MATCHED_EVAL_SCOPE
             )
             if args.direct_prebuilt_tn
-            else _validate_adapter_tn_eval_manifest(cfg, selected_tn_rows)
+            else _validate_adapter_tn_eval_manifest(
+                cfg,
+                selected_tn_rows,
+                allow_proposal_covered_calibration=bool(
+                    args.screen_calibration_manifest
+                ),
+            )
         )
         tn_eval_protocol = (
             "stageb_vlm_verified_strict_tn_v2"
@@ -6073,6 +6091,9 @@ def main() -> None:
                 ),
                 checkpoint_summary_fields=checkpoint_summary_fields,
                 declared_eval_scope=direct_eval_scope,
+                allow_proposal_covered_calibration=bool(
+                    args.screen_calibration_manifest
+                ),
             )
             if bool(args.immutable_v39_archived_snapshot_diagnostic):
                 post_evaluation = (
