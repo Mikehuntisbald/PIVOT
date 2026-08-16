@@ -3161,6 +3161,9 @@ def build_groundingdino(args):
     stage_b_u2v3_category_admission = bool(
         getattr(args, "stage_b_u2v3_category_admission", False)
     )
+    stage_b_u2v4_legacy_training_replay = bool(
+        getattr(args, "stage_b_u2v4_legacy_training_replay", False)
+    )
     stage_b_data_driven_score = bool(
         getattr(args, "stage_b_data_driven_score", False)
     )
@@ -3176,6 +3179,7 @@ def build_groundingdino(args):
     if (
         stage_b_u2v2
         and not stage_b_u2v3_category_admission
+        and not stage_b_u2v4_legacy_training_replay
         and not bool(getattr(args, "stage_b_u0_category_preserving_patch_gate", False))
     ):
         raise ValueError("U2-v2 requires the frozen U0 hard category gate")
@@ -3192,6 +3196,20 @@ def build_groundingdino(args):
     ):
         raise ValueError(
             "U2-v3 training requires the inference-only hard category gate disabled"
+        )
+    if stage_b_u2v4_legacy_training_replay and not stage_b_u2v2:
+        raise ValueError("U2-v4 legacy training replay requires stage_b_u2v2=True")
+    if stage_b_u2v4_legacy_training_replay and (
+        stage_b_u2v3_category_admission or stage_b_u2v2_rank_residual
+    ):
+        raise ValueError("U2-v4 legacy replay owns the admission subsystem exclusively")
+    if (
+        stage_b_u2v4_legacy_training_replay
+        and not bool(getattr(args, "stage_b_u2v4_checkpoint_eval", False))
+        and bool(getattr(args, "stage_b_u0_category_preserving_patch_gate", False))
+    ):
+        raise ValueError(
+            "U2-v4 training requires the inference-only hard category gate disabled"
         )
     if stage_b_u2v2_rank_residual and (
         stage_b_u0_gate_aligned_rank_residual
