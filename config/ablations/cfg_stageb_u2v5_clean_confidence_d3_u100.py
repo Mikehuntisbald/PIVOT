@@ -6,6 +6,10 @@ from config.ablations.cfg_stageb_u2v5_clean_admission_eval_gap3 import *  # noqa
 stage_b_u2v4_legacy_training_replay = False
 stage_b_u2v4_checkpoint_eval = False
 stage_b_u2v5_clean_confidence = True
+# Fail closed in both tensor ownership and serialized provenance.  The phase
+# starts from the clean admission handoff and never names or loads C100.
+stage_b_u2v2_c100_checkpoint = None
+stage_b_u2v2_c100_sha256 = None
 stage_b_gdino_adapter_train_mode = "confidence_only"
 stage_b_gdino_rank_weight = 0.0
 stage_b_gdino_confidence_weight = 1.0

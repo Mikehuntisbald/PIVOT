@@ -95,3 +95,10 @@ def test_clean_configs_lock_seeds_to_external_runner_and_never_name_c100_path():
     ).read_text(encoding="utf-8")
     assert 'stage_b_gdino_tn_scope = "proposal_covered_verified"' in confidence
     assert "detached_recent_q05_proposal_covered" in confidence
+
+    from config.ablations import cfg_stageb_u2v5_clean_admission_eval_gap3 as eval_cfg
+    from config.ablations import cfg_stageb_u2v5_clean_confidence_d3_u100 as conf_cfg
+
+    for cfg in (eval_cfg, conf_cfg):
+        assert cfg.stage_b_u2v2_c100_checkpoint is None
+        assert cfg.stage_b_u2v2_c100_sha256 is None
