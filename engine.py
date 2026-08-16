@@ -1098,6 +1098,8 @@ def _record_stage_b_u2v4_runtime_audit(
         "amp_skipped_optimizer_steps": 0,
         "nonfinite_gradient_boundaries": 0,
         "zero_gradient_successful_steps": 0,
+        "auxiliary_nonzero_successful_steps": 0,
+        "surface_nonzero_successful_steps": 0,
         "max_auxiliary_residual_grad_norm_preclip": 0.0,
         "max_surface_grad_norm_preclip": 0.0,
     }
@@ -1120,7 +1122,11 @@ def _record_stage_b_u2v4_runtime_audit(
         audit["nonfinite_gradient_boundaries"] += 1
     if optimizer_step_succeeded:
         audit["successful_optimizer_steps"] += 1
-        if residual_norm == 0.0 or surface_norm == 0.0:
+        if residual_norm > 0.0:
+            audit["auxiliary_nonzero_successful_steps"] += 1
+        if surface_norm > 0.0:
+            audit["surface_nonzero_successful_steps"] += 1
+        if residual_norm == 0.0 and surface_norm == 0.0:
             audit["zero_gradient_successful_steps"] += 1
     else:
         audit["amp_skipped_optimizer_steps"] += 1
