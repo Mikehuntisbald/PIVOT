@@ -702,6 +702,17 @@ def _load_model_with_checkpoint_contract(
                 getattr(cfg, "stage_b_u2v2_initializer_sha256")
             ),
         )
+    if bool(getattr(cfg, "stage_b_u2v4_checkpoint_eval", False)):
+        from tools.build_stageb_u2v4_legacy_admission_replay import (
+            validate_runtime_payload,
+        )
+
+        checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
+        validate_runtime_payload(
+            model,
+            checkpoint_payload,
+            checkpoint_label=f"U2-v4 replay evaluation checkpoint {checkpoint}",
+        )
     if bool(
         getattr(cfg, "stage_b_dense_duty_confidence_full_decoder_verifier", False)
     ):
