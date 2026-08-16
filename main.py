@@ -9444,6 +9444,39 @@ def _freeze_and_audit_stage_b_u0_gate_aligned_d12(model) -> int:
     return sum(parameter.numel() for parameter in active)
 
 
+def _freeze_and_audit_stage_b_u2v2(model) -> int:
+    """Expose only the seven post-gate U2-v2 rank-residual tensors."""
+    residual = getattr(model, "stage_b_u2v2_rank_residual", None)
+    u0_adapter = getattr(model, "stage_b_u0_patch_rank_adapter", None)
+    score_adapter = getattr(model, "stage_b_gdino_score_adapter", None)
+    patch_encoder = getattr(model, "patch_encoder", None)
+    if any(x is None for x in (residual, u0_adapter, score_adapter, patch_encoder)):
+        raise RuntimeError("U2-v2 requires its residual and frozen patch/R100/C100 stack")
+    active = tuple(residual.trainable_parameters())
+    if len(active) != 7 or len({id(parameter) for parameter in active}) != 7:
+        raise RuntimeError("U2-v2 requires exactly seven residual tensors")
+    for parameter in model.parameters():
+        parameter.requires_grad_(False)
+    for parameter in active:
+        parameter.requires_grad_(True)
+    observed = {
+        name: parameter for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    if {id(value) for value in observed.values()} != {id(x) for x in active}:
+        raise RuntimeError("U2-v2 trainable ownership drifted")
+    unexpected = [
+        name for name in observed
+        if not name.startswith("stage_b_u2v2_rank_residual.")
+    ]
+    if unexpected:
+        raise RuntimeError(f"U2-v2 exposed unexpected tensors: {unexpected[:20]}")
+    frozen = (model.backbone, patch_encoder, u0_adapter, score_adapter)
+    if any(p.requires_grad for module in frozen for p in module.parameters()):
+        raise RuntimeError("U2-v2 must freeze B58/Stage-A/U0/R100/C100")
+    return sum(parameter.numel() for parameter in active)
+
+
 def _freeze_and_audit_stage_b_u0_gate_aligned_d13(model) -> int:
     """Expose only D13's independent patch-category residual."""
     d13 = getattr(model, "stage_b_u0_gate_aligned_patch_residual", None)
@@ -9639,6 +9672,22 @@ def _stage_b_u0_gate_aligned_d12_optimizer_groups(model, *, lr: float):
             "stage_b_u0_d12_branch": "conditional_rank_residual",
         }
     ]
+
+
+def _stage_b_u2v2_optimizer_groups(model, *, lr: float):
+    lr = float(lr)
+    if not math.isfinite(lr) or lr <= 0.0:
+        raise ValueError("stage_b_u2v2_rank_lr must be finite and positive")
+    residual = getattr(model, "stage_b_u2v2_rank_residual", None)
+    if residual is None:
+        raise RuntimeError("U2-v2 residual module is missing")
+    parameters = [p for p in residual.trainable_parameters() if p.requires_grad]
+    if len(parameters) != 7:
+        raise RuntimeError("U2-v2 optimizer requires exactly seven trainable tensors")
+    return [{
+        "params": parameters, "lr": lr,
+        "stage_b_u2v2_branch": "post_gate_rank_residual",
+    }]
 
 
 def _stage_b_u0_gate_aligned_d13_optimizer_groups(model, *, lr: float):
@@ -11128,6 +11177,13 @@ def main(args):
         trainable_params, trainable_modules = _trainable_param_summary(
             model_without_ddp
         )
+    elif bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
+        total_trainable = _freeze_and_audit_stage_b_u2v2(model_without_ddp)
+        logger.info(
+            "Stage-B U2-v2 audit passed: frozen Stage-A/B58/R100/C100/U0; "
+            f"only seven post-gate residual tensors train ({total_trainable:,} parameters)."
+        )
+        trainable_params, trainable_modules = _trainable_param_summary(model_without_ddp)
     elif bool(getattr(args, "stage_b_u0_gate_aligned_d13", False)):
         total_trainable = _freeze_and_audit_stage_b_u0_gate_aligned_d13(
             model_without_ddp
@@ -11276,6 +11332,11 @@ def main(args):
             patch_lr=float(
                 getattr(args, "stage_b_data_driven_patch_lr", args.lr)
             ),
+        )
+    elif bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
+        param_dicts = _stage_b_u2v2_optimizer_groups(
+            model_without_ddp,
+            lr=float(getattr(args, "stage_b_u2v2_rank_lr", args.lr)),
         )
     elif bool(getattr(args, "stage_b_u0_gate_aligned_d13", False)):
         param_dicts = _stage_b_u0_gate_aligned_d13_optimizer_groups(
@@ -12940,7 +13001,25 @@ def main(args):
                     checkpoint_payload["data_driven_confidence_initializer"],
                 )
         elif bool(getattr(args, "stage_b_u0_patch_rank", False)):
-            if bool(getattr(args, "stage_b_u0_gate_aligned_d10", False)) or bool(
+            if bool(getattr(args, "stage_b_u2v2", False)):
+                from tools.build_stageb_u2v2_initializer import (
+                    validate_initializer_payload,
+                )
+
+                expected_sha = str(
+                    getattr(args, "stage_b_u2v2_initializer_sha256", "") or ""
+                ).strip()
+                observed_sha = _sha256_file(
+                    Path(args.pretrain_model_path).resolve(strict=True)
+                )
+                if len(expected_sha) != 64 or observed_sha != expected_sha:
+                    raise RuntimeError(
+                        "U2-v2 initializer SHA256 mismatch: "
+                        f"expected={expected_sha!r}, observed={observed_sha}"
+                    )
+                initializer_contract = validate_initializer_payload(checkpoint_payload)
+                setattr(args, "stage_b_u2v2_initializer_contract", initializer_contract)
+            elif bool(getattr(args, "stage_b_u0_gate_aligned_d10", False)) or bool(
                 getattr(args, "stage_b_u0_gate_aligned_d11", False)
             ) or bool(
                 getattr(args, "stage_b_u0_gate_aligned_d12", False)
@@ -13225,6 +13304,22 @@ def main(args):
                 raise RuntimeError("D13 initializer output must be exactly zero")
             _tmp_st.update(d13_state)
 
+        if bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
+            prefix = "stage_b_u2v2_rank_residual."
+            if any(str(key).startswith(prefix) for key in _tmp_st):
+                raise RuntimeError("U2-v2 training must start from residual-free C0")
+            runtime_state = model_without_ddp.state_dict()
+            residual_state = {
+                key: value.detach().clone() for key, value in runtime_state.items()
+                if str(key).startswith(prefix)
+            }
+            if len(residual_state) != 9:
+                raise RuntimeError("U2-v2 runtime residual must have 7 params + 2 buffers")
+            output_weight = residual_state.get(prefix + "output.weight")
+            if not torch.is_tensor(output_weight) or int(torch.count_nonzero(output_weight)):
+                raise RuntimeError("U2-v2 residual output must initialize exactly zero")
+            _tmp_st.update(residual_state)
+
         _load_output = model_without_ddp.load_state_dict(
             _tmp_st,
             strict=(
@@ -13315,6 +13410,11 @@ def main(args):
             # Store as plain dict to stay compatible with `weights_only=True` safe loading.
             'args': vars(args),
         }
+        if bool(getattr(args, "stage_b_u2v2", False)):
+            contract = getattr(args, "stage_b_u2v2_initializer_contract", None)
+            if not isinstance(contract, Mapping):
+                raise RuntimeError("cannot checkpoint U2-v2 without initializer provenance")
+            payload["u2v2_initializer"] = dict(contract)
         if fair_data_driven_sampling:
             if (
                 not isinstance(current_data_driven_sampling_state, Mapping)

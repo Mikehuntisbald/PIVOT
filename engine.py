@@ -244,6 +244,21 @@ def _set_stage_b_u0_gate_aligned_d12_training_mode(
         raise RuntimeError("a frozen D12 teacher or gate remains in train mode")
 
 
+def _set_stage_b_u2v2_training_mode(model: torch.nn.Module) -> None:
+    """Train only the post-gate residual; freeze every score/gate owner."""
+    root = model.module if hasattr(model, "module") else model
+    residual = getattr(root, "stage_b_u2v2_rank_residual", None)
+    u0_adapter = getattr(root, "stage_b_u0_patch_rank_adapter", None)
+    score_adapter = getattr(root, "stage_b_gdino_score_adapter", None)
+    patch_encoder = getattr(root, "patch_encoder", None)
+    if any(x is None for x in (residual, u0_adapter, score_adapter, patch_encoder)):
+        raise RuntimeError("U2-v2 training modules are incomplete")
+    root.eval()
+    residual.train(True)
+    if any(module.training for module in (root.backbone, patch_encoder, u0_adapter, score_adapter)):
+        raise RuntimeError("a frozen U2-v2 teacher or gate remains in train mode")
+
+
 def _set_stage_b_u0_gate_aligned_d13_training_mode(
     model: torch.nn.Module,
 ) -> None:
@@ -1005,6 +1020,24 @@ def _clip_stage_b_u0_patch_rank_grad_norms(
         if parameters:
             torch.nn.utils.clip_grad_norm_(parameters, float(max_norm))
         stats[f"grad_norm_{branch}_postclip"] = _grad_l2_norm(parameters)
+    return stats
+
+
+def _clip_stage_b_u2v2_grad_norms(
+    model: torch.nn.Module, max_norm: float,
+) -> dict:
+    root = model.module if hasattr(model, "module") else model
+    residual = getattr(root, "stage_b_u2v2_rank_residual", None)
+    if residual is None:
+        raise RuntimeError("missing U2-v2 residual for gradient clipping")
+    parameters = [
+        parameter for parameter in residual.trainable_parameters()
+        if parameter.requires_grad and parameter.grad is not None
+    ]
+    stats = {"grad_norm_u2v2_rank_residual_preclip": _grad_l2_norm(parameters)}
+    if parameters:
+        torch.nn.utils.clip_grad_norm_(parameters, float(max_norm))
+    stats["grad_norm_u2v2_rank_residual_postclip"] = _grad_l2_norm(parameters)
     return stats
 
 
@@ -3020,7 +3053,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             ),
         )
     elif bool(getattr(args, "stage_b_u0_patch_rank", False)):
-        if bool(getattr(args, "stage_b_u0_gate_aligned_d13", False)):
+        if bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
+            _set_stage_b_u2v2_training_mode(model)
+        elif bool(getattr(args, "stage_b_u0_gate_aligned_d13", False)):
             _set_stage_b_u0_gate_aligned_d13_training_mode(model)
         elif bool(getattr(args, "stage_b_u0_gate_aligned_d12", False)):
             _set_stage_b_u0_gate_aligned_d12_training_mode(model)
@@ -4287,9 +4322,12 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         separate_gdino_adapter_grad_clip = bool(
             getattr(args, "stage_b_gdino_score_adapter", False)
         )
+        separate_u2v2_grad_clip = bool(
+            getattr(args, "stage_b_u2v2_rank_residual", False)
+        )
         separate_u0_patch_rank_grad_clip = bool(
             getattr(args, "stage_b_u0_patch_rank", False)
-        )
+        ) and not separate_u2v2_grad_clip
         if args.amp:
             scaler.scale(backward_losses).backward()
         else:
@@ -4324,6 +4362,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                     )
                                 ),
                             )
+                        )
+                    elif separate_u2v2_grad_clip:
+                        branch_grad_norms = _clip_stage_b_u2v2_grad_norms(
+                            model, max_norm
                         )
                     elif separate_u0_patch_rank_grad_clip:
                         branch_grad_norms = _clip_stage_b_u0_patch_rank_grad_norms(
@@ -4381,6 +4423,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                     )
                                 ),
                             )
+                        )
+                    elif separate_u2v2_grad_clip:
+                        branch_grad_norms = _clip_stage_b_u2v2_grad_norms(
+                            model, max_norm
                         )
                     elif separate_u0_patch_rank_grad_clip:
                         branch_grad_norms = _clip_stage_b_u0_patch_rank_grad_norms(

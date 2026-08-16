@@ -197,6 +197,7 @@ class GroundingDINO(nn.Module):
         self.stage_b_u0_patch_rank_adapter = None
         self.stage_b_u0_gate_aligned_rank_residual = None
         self.stage_b_u0_gate_aligned_patch_residual = None
+        self.stage_b_u2v2_rank_residual = None
         self.stage_b_data_driven_score_heads = None
         self.stage_b_data_driven_patch_residual = None
         self.stage_b_native_patch_category = False
@@ -1372,6 +1373,36 @@ class GroundingDINO(nn.Module):
                     out["stage_b_u0_category_gate_patch_score"] = u0_output[
                         "category_gate_patch_score"
                     ]
+                    if self.stage_b_u2v2_rank_residual is not None:
+                        out["stage_b_u2v2_patch_r100_rank_score"] = u0_output[
+                            "rank_score"
+                        ]
+                        u2v2_output = self.stage_b_u2v2_rank_residual(
+                            adapter_output["rank_feature"],
+                            adapter_output["rank_score"],
+                            u0_output["category_gate_eligible_mask"],
+                        )
+                        u2v2_rank_score, u2v2_eligible = (
+                            self.stage_b_u0_patch_rank_adapter.apply_category_preserving_gate(
+                                u0_output["category_gate_patch_score"],
+                                u2v2_output["pre_demotion_rank_score"],
+                                u0_output["candidate_mask"],
+                            )
+                        )
+                        if not torch.equal(
+                            u2v2_eligible,
+                            u0_output["category_gate_eligible_mask"],
+                        ):
+                            raise RuntimeError("U2-v2 changed frozen patch eligibility")
+                        out["stage_b_u2v2_eligible_mask"] = u2v2_eligible
+                        out["stage_b_u2v2_teacher_rank_score"] = u2v2_output[
+                            "teacher_rank_score"
+                        ]
+                        out["stage_b_u2v2_rank_residual"] = u2v2_output[
+                            "rank_residual"
+                        ]
+                        out["stage_b_u2v2_rank_score"] = u2v2_rank_score
+                        out["stage_b_u0_rank_score"] = u2v2_rank_score
                     if self.stage_b_u0_gate_aligned_patch_residual is not None:
                         d13_support = patch_global
                         if d13_support.dim() == 3:
@@ -3112,6 +3143,10 @@ def build_groundingdino(args):
     stage_b_u0_gate_aligned_d13 = bool(
         getattr(args, "stage_b_u0_gate_aligned_d13", False)
     )
+    stage_b_u2v2 = bool(getattr(args, "stage_b_u2v2", False))
+    stage_b_u2v2_rank_residual = bool(
+        getattr(args, "stage_b_u2v2_rank_residual", False)
+    )
     stage_b_data_driven_score = bool(
         getattr(args, "stage_b_data_driven_score", False)
     )
@@ -3122,6 +3157,20 @@ def build_groundingdino(args):
         raise ValueError(
             "stage_b_u0_patch_rank requires stage_b_gdino_score_adapter=True"
         )
+    if stage_b_u2v2 and (
+        not stage_b_u0_patch_rank
+        or not bool(getattr(args, "stage_b_u0_category_preserving_patch_gate", False))
+    ):
+        raise ValueError("U2-v2 requires the frozen U0 hard category gate")
+    if stage_b_u2v2 and stage_b_gdino_ref_top1_guard:
+        raise ValueError("U2-v2 forbids the B58 top-1 guard")
+    if stage_b_u2v2_rank_residual and not stage_b_u2v2:
+        raise ValueError("U2-v2 rank residual requires stage_b_u2v2=True")
+    if stage_b_u2v2_rank_residual and (
+        stage_b_u0_gate_aligned_rank_residual
+        or stage_b_u0_gate_aligned_patch_residual
+    ):
+        raise ValueError("U2-v2 cannot share a legacy D12/D13 residual")
     if stage_b_u0_gate_aligned_d10 and not stage_b_u0_patch_rank:
         raise ValueError(
             "stage_b_u0_gate_aligned_d10 requires stage_b_u0_patch_rank=True"
@@ -3343,6 +3392,16 @@ def build_groundingdino(args):
                         getattr(args, "stage_b_u0_category_gate_max_gap", 2.0)
                     ),
                 )
+            )
+        if stage_b_u2v2_rank_residual:
+            from .stage_b_u2v2_rank_residual import StageBU2V2RankResidual
+
+            model.stage_b_u2v2_rank_residual = StageBU2V2RankResidual(
+                feature_dim=model.stage_b_gdino_score_adapter.adapter_dim,
+                hidden_dim=int(getattr(args, "stage_b_u2v2_hidden_dim", 64)),
+                residual_limit=float(
+                    getattr(args, "stage_b_u2v2_residual_limit", 0.1)
+                ),
             )
         if stage_b_u0_patch_rank:
             if not model.enable_patch_branch:
@@ -5406,7 +5465,39 @@ def build_groundingdino(args):
             return model, criterion, postprocessors
         if stage_b_gdino_score_adapter:
             if stage_b_u0_patch_rank:
-                if bool(getattr(args, "stage_b_u0_gate_aligned_d13", False)):
+                if bool(getattr(args, "stage_b_u2v2_rank_residual", False)):
+                    from .stage_b_u2v2_rank_residual import (
+                        StageBU2V2RankResidualCriterion,
+                    )
+
+                    criterion = StageBU2V2RankResidualCriterion(
+                        weight=float(getattr(args, "stage_b_u2v2_weight", 1.0)),
+                        positive_iou_threshold=float(
+                            getattr(args, "stage_b_u2v2_positive_iou_threshold", 0.5)
+                        ),
+                        fix_margin=float(
+                            getattr(args, "stage_b_u2v2_fix_margin", 0.05)
+                        ),
+                        preserve_tolerance=float(
+                            getattr(args, "stage_b_u2v2_preserve_tolerance", 0.01)
+                        ),
+                        preserve_floor=float(
+                            getattr(args, "stage_b_u2v2_preserve_floor", 0.005)
+                        ),
+                        temperature=float(
+                            getattr(args, "stage_b_u2v2_temperature", 0.05)
+                        ),
+                        fix_weight=float(
+                            getattr(args, "stage_b_u2v2_fix_weight", 1.0)
+                        ),
+                        preserve_weight=float(
+                            getattr(args, "stage_b_u2v2_preserve_weight", 2.0)
+                        ),
+                        residual_weight=float(
+                            getattr(args, "stage_b_u2v2_residual_weight", 0.05)
+                        ),
+                    )
+                elif bool(getattr(args, "stage_b_u0_gate_aligned_d13", False)):
                     from .stage_b_u0_gate_aligned_d13 import (
                         StageBU0GateAlignedD13Criterion,
                     )

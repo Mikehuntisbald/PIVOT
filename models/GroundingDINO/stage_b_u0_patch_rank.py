@@ -552,6 +552,17 @@ class StageBU0PatchRankAdapter(nn.Module):
         rank_score = torch.where(eligible, teacher, ineligible_score)
         return rank_score, eligible
 
+    def apply_category_preserving_gate(
+        self, patch_normalized: Tensor, teacher_rank_score: Tensor,
+        candidate_mask: Tensor,
+    ) -> tuple[Tensor, Tensor]:
+        """Public, inference-identical gate used by post-gate score adapters."""
+        if not self.category_preserving_gate:
+            raise RuntimeError("category-preserving patch gate is disabled")
+        return self._apply_category_preserving_gate(
+            patch_normalized, teacher_rank_score, candidate_mask
+        )
+
     @staticmethod
     def _standardize(
         values: Tensor,

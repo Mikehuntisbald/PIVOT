@@ -7060,6 +7060,14 @@ def _load_model(cfg, ckpt_path: str, device: torch.device):
     stage_b_u0_patch_rank = bool(
         getattr(cfg, "stage_b_u0_patch_rank", False)
     )
+    if bool(getattr(cfg, "stage_b_u2v2", False)):
+        from tools.build_stageb_u2v2_initializer import validate_runtime_payload
+
+        validate_runtime_payload(
+            model,
+            ckpt,
+            checkpoint_label=f"Stage-B U2-v2 evaluation checkpoint {ckpt_path}",
+        )
     stage_b_data_only_composite = bool(
         getattr(cfg, "stage_b_data_only_composite", False)
     )
