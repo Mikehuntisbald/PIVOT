@@ -51,6 +51,18 @@ from .stage_b_score import compute_stage_b_slot_logits
 from .matcher import build_matcher
 from .patch_encoder import PatchEncoder
 
+
+def _validate_u2v2_confidence_only_route(
+    enabled: bool, *, has_postgate_residual: bool, has_u0_admission: bool
+) -> None:
+    if not isinstance(enabled, bool):
+        raise TypeError("stage_b_u2v2_confidence_only must be boolean")
+    if enabled and not (has_postgate_residual or has_u0_admission):
+        raise RuntimeError(
+            "U2-v2 confidence-only forward requires a U2-v2 scoring route"
+        )
+
+
 class GroundingDINO(nn.Module):
     """This is the Cross-Attention Detector module that performs object detection"""
 
@@ -890,10 +902,11 @@ class GroundingDINO(nn.Module):
             raise KeyError("groundingdino.forward requires `captions` (kw) or targets with `caption`.")
         bs = len(captions)
         u2v2_confidence_only = kw.get("stage_b_u2v2_confidence_only", False)
-        if not isinstance(u2v2_confidence_only, bool):
-            raise TypeError("stage_b_u2v2_confidence_only must be boolean")
-        if u2v2_confidence_only and self.stage_b_u2v2_rank_residual is None:
-            raise RuntimeError("U2-v2 confidence-only forward requires U2-v2")
+        _validate_u2v2_confidence_only_route(
+            u2v2_confidence_only,
+            has_postgate_residual=self.stage_b_u2v2_rank_residual is not None,
+            has_u0_admission=self.stage_b_u0_patch_rank_adapter is not None,
+        )
         data_driven_geometry_diagnostics = kw.get(
             "stage_b_data_driven_score_geometry_diagnostics", False
         )
