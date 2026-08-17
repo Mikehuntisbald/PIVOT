@@ -7,7 +7,7 @@ from collections import Counter
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 import csv
 import hashlib
@@ -37,9 +37,53 @@ from util.stageb_exact_topk_contract import (
 )
 from util.stage_b_table_b_contract import (
     TABLE_B_PAIR_SCHEMA,
+    TableBConfidenceContract,
     TableBContractError,
     validate_table_b_dataset_binding,
 )
+
+
+def _validate_u2v5_matched_table_b_binding(args, datasetinfo):
+    if not bool(getattr(args, "stage_b_u2v5_matched_data", False)):
+        return None
+    table_id = str(getattr(args, "stage_b_v19_table_b_id", ""))
+    scopes = {"D2m": "traceable_counterfactual_edit", "D3m": "proposal_covered_verified"}
+    if table_id not in scopes or datasetinfo.get("paper_table_b_id") != table_id:
+        raise TableBContractError("U2-v5 matched row ID drifted")
+    scope = scopes[table_id]
+    if datasetinfo.get("paper_tn_scope") != scope or tuple(
+        getattr(args, "stage_b_v19_table_b_scope_allowlist", ())
+    ) != (scope,):
+        raise TableBContractError("U2-v5 matched scope drifted")
+    audit_path = remap_legacy_path(datasetinfo.get("paper_contract_audit")).resolve(strict=True)
+    expected_audit = Path(
+        "data/ablations/stageb_tn_c2_parent_matched_class_aligned_20260718_v2/audit.json"
+    ).resolve(strict=True)
+    if audit_path != expected_audit or sha256_file(audit_path) != (
+        "5ff62a838a5123d580a72e353147b97bb69e9d7967348b55cba4ccb9ca36cb96"
+    ):
+        raise TableBContractError("U2-v5 matched audit drifted")
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    if audit.get("schema") != "stage-b-paper-c2-parent-matched-tn-v2" or audit.get(
+        "invariants", {}
+    ).get("strict_union_image_overlap") != 0:
+        raise TableBContractError("U2-v5 matched audit invariants failed")
+    output = audit.get("outputs", {}).get(f"{table_id.lower()}_train")
+    annotation = remap_legacy_path(datasetinfo.get("anno")).resolve(strict=True)
+    if not isinstance(output, Mapping) or annotation != Path(str(output.get("path"))).resolve(strict=True) or sha256_file(annotation) != output.get("sha256"):
+        raise TableBContractError("U2-v5 matched annotation drifted")
+    if datasetinfo.get("paper_runtime_contract") != "v24_parent_matched_class_aligned_v2_fail_closed":
+        raise TableBContractError("U2-v5 matched runtime contract drifted")
+    return TableBConfidenceContract(
+        table_b_id=table_id,
+        scope=scope,
+        scope_allowlist=(scope,),
+        audit_path=audit_path,
+        audit_sha256=sha256_file(audit_path),
+        train_path=annotation,
+        train_sha256=sha256_file(annotation),
+        allow_single_edit_token_provenance=False,
+    )
 
 _WS_RE = re.compile(r"\s+")
 _PUNC_RE = re.compile(r"[^a-z0-9 _-]+")
@@ -6284,7 +6328,9 @@ def build_patch_episode(image_set: str, args, datasetinfo: Dict[str, Any]):
     table_b_contract = None
     if image_set == "train":
         try:
-            table_b_contract = validate_table_b_dataset_binding(args, datasetinfo)
+            table_b_contract = _validate_u2v5_matched_table_b_binding(
+                args, datasetinfo
+            ) or validate_table_b_dataset_binding(args, datasetinfo)
         except TableBContractError as error:
             raise ValueError(
                 f"Table-B dataset contract failed closed: {error}"

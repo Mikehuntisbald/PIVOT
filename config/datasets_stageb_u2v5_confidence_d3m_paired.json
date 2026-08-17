@@ -29,7 +29,7 @@
     "paper_contract_audit": "/home/user/PIVOT/data/ablations/stageb_tn_c2_parent_matched_class_aligned_20260718_v2/audit.json",
     "paper_matched_causal_panel": true,
     "paper_runtime_supported": true,
-    "paper_runtime_contract": "u2v5_parent_matched_fail_closed",
+    "paper_runtime_contract": "v24_parent_matched_class_aligned_v2_fail_closed",
     "mix_weight": 1.0
   }],
   "val": []

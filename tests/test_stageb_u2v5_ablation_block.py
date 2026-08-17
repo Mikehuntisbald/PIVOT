@@ -95,6 +95,10 @@ def test_paired_confidence_datasets_have_one_source_only():
         assert len(payload["train"]) == 1
         assert payload["train"][0]["source"] == "sam3_tn_pair"
         assert payload["train"][0]["mix_weight"] == 1.0
+        if row_id.endswith("m"):
+            assert payload["train"][0]["paper_runtime_contract"] == (
+                "v24_parent_matched_class_aligned_v2_fail_closed"
+            )
 
 
 @pytest.mark.parametrize(
