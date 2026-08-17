@@ -1,5 +1,10 @@
 # CVPR Stage-B Ablation Protocol
 
+> Historical protocol for the checkpoint0004/Top-50/v19-v24 model family.
+> It is not the execution authority for the leakage-clean U2-v5 main model.
+> See `paper_cvpr_u2v5_complete_ablation_design_20260817.md`; do not port this
+> matrix by changing only checkpoint or output paths.
+
 This document is the experiment contract for the three paper claims. It is
 deliberately stricter than the historical development comparisons: a row may
 enter a paper table only when its initialization, data split, update budget,
