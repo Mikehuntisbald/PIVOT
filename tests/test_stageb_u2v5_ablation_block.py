@@ -52,6 +52,13 @@ def test_registry_is_exactly_14_rows_times_three_seeds():
     }
 
 
+def test_formal_runner_locks_expandable_allocator():
+    source = (ROOT / "tools/run_stageb_u2v5_ablation_matrix.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'env["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"' in source
+
+
 def test_run_id_and_nonformal_rows_fail_closed():
     row, seed = parse_run_id("A1:17")
     assert row.row_id == "A1" and seed == 17

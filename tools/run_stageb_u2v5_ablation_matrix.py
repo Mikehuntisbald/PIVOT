@@ -196,6 +196,7 @@ def _plan(row: Row, seed: int) -> dict[str, Any]:
             "python": _record(_python()),
             "data_root": os.environ.get("DATA_ROOT", "/media/haoyi/T9/data"),
             "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", "0"),
+            "pytorch_alloc_conf": "expandable_segments:True",
         },
         "output_dir": str(_run_root(row, seed)),
         "command": _command(row, seed),
@@ -278,6 +279,7 @@ def _execute(row: Row, seed: int) -> None:
     env.setdefault("DATA_ROOT", "/media/haoyi/T9/data")
     env.setdefault("CUDA_VISIBLE_DEVICES", "0")
     env.setdefault("TOKENIZERS_PARALLELISM", "false")
+    env["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
     try:
         subprocess.run(plan["command"], cwd=ROOT, env=env, check=True)
     except subprocess.CalledProcessError as error:
