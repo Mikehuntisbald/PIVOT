@@ -1503,10 +1503,10 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
             elif self.tn_scope == "benchmark_dataft_alltn":
                 verified = _strict_scalar_bool(target, "benchmark_dataft_alltn")
             elif self.tn_scope == "unverified_all_negative":
-                verified = (
-                    _strict_scalar_false(target, "global_tn_verified")
-                    and _strict_scalar_bool(target, "benchmark_dataft_alltn")
-                )
+                # D1 is deliberately unverified.  The raw-target path already
+                # binds table/audit/scope; never upgrade it by requiring or
+                # claiming benchmark/all-TN verification here.
+                verified = _strict_scalar_false(target, "global_tn_verified")
             else:
                 verified = (
                     _strict_scalar_false(target, "global_tn_verified")

@@ -131,6 +131,21 @@ def test_new_scope_and_objective_codes_are_distinct():
     ) == 5
 
 
+def test_unverified_scope_never_requires_alltn_upgrade():
+    from models.GroundingDINO.stage_b_gdino_score_adapter import (
+        StageBGDINOScoreAdapterCriterion,
+    )
+
+    criterion = StageBGDINOScoreAdapterCriterion(
+        tn_scope="unverified_all_negative",
+        train_mode="confidence_only",
+        confidence_objective="detached_recent_q05_scope_labeled",
+        queue_size=1,
+        queue_min_count=1,
+    )
+    assert criterion.tn_scope == "unverified_all_negative"
+
+
 def test_bootstrap_is_deterministic_and_clusters_all_seed_draws():
     reference = {
         "a": {"sample_id": "a", "image_id": 1, "ann_id": 1, "ref_id": 1, "sent_id": 1, "correct50": False},
