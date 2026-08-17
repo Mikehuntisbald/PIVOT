@@ -2,9 +2,9 @@
 
 > Execution status (2026-08-18): the 42 formal trajectories, mechanism
 > evaluation, preregistered confirmatory block, bootstrap and final receipt are
-> complete. See `paper_cvpr_u2v5_ablation_results_20260818.md`. P/S additional
-> zero-training counterfactual forwards remain exploratory/pending; M/G/H are
-> sealed in `zero_training_supplement.json`.
+> complete. See `paper_cvpr_u2v5_ablation_results_20260818.md`. The exploratory
+> P/S counterfactual forwards and M/G/H analysis are sealed in
+> `zero_training_supplement_v2.json`.
 
 The executable block contains exactly 14 new rows and 42 trajectories:
 

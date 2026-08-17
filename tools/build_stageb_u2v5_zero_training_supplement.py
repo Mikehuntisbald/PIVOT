@@ -198,6 +198,7 @@ def _write(path: Path, value: dict[str, Any]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--ps-summary")
     args = parser.parse_args()
     val3 = ANCHOR / "formal/ref_val3_admission_u100/summary.json"
     causal = BLOCK / "evaluations/mechanism/A1/val3/summary.json"
@@ -231,8 +232,16 @@ def main() -> None:
             "latency": routes["single_forward_seconds"],
             "gap": {"selected": 3.0, "selection_surface": "val3 only"},
         },
-        "P_query_geometry": {"status": "requires_additional_zero_training_forward"},
-        "S_support_perturbation": {"status": "requires_additional_zero_training_forward"},
+        "P_query_geometry": (
+            {"status": "complete", "receipt": _record(Path(args.ps_summary))}
+            if args.ps_summary else
+            {"status": "requires_additional_zero_training_forward"}
+        ),
+        "S_support_perturbation": (
+            {"status": "complete", "receipt": _record(Path(args.ps_summary))}
+            if args.ps_summary else
+            {"status": "requires_additional_zero_training_forward"}
+        ),
         "confirmatory_surfaces_used": False,
     }
     _write(Path(args.output), payload)

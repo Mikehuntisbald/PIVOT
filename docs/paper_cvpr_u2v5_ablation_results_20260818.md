@@ -136,8 +136,10 @@ wider admission gate.
   `9db98af1f0fff1c91372a81af43b12627974105863302b42abe59b4675d9bb0f`
 - Final receipt v2 SHA256:
   `98173c28258a25c450530f6929c0a719228c52e401851d37307a33a4d01e8c3d`
-- Zero-training M/G/H supplement SHA256:
-  `09cd4c1c4f7430f51c328f53876669973c791315ecf6ba50cbed0896d6ccdda3`
+- Complete zero-training M/P/S/G/H supplement v2 SHA256:
+  `f3b3d58f163cb5cb39b1305e5acca9452a3c427cdf26700fd1de2de055de9483`
+- P/S per-record receipt SHA256:
+  `c459bd3323fff5b263bb2210d7c6af20e64491b18be8a54d642e25c6ea59560c`
 
 All paths are rooted at `outputs/u2v5_cvpr_ablation_20260817/`. Weight files
 remain outside Git. `paper_tables.json` and `final_receipt.json` are superseded
@@ -147,11 +149,34 @@ the O2−O0 family p-value. No bootstrap draw or model result changed.
 C100 and legacy U2 remain gray diagnostic references and are excluded from all
 formal hypotheses.
 
-## Remaining supplemental forwards
+## P/S zero-training supplement
 
-P (full/canonical/object geometry × ranking-text swap) and S (support
-counterfactuals) require additional zero-training GPU forwards. They were not
-used for selection or any claim above and are explicitly marked pending in
-`zero_training_supplement.json`. Running them later is safe as exploratory
-supplementary analysis, but their results must not modify the preregistered
+P and S were run on val3 only with the sealed seed42 checkpoint after the
+confirmatory block. They are exploratory and cannot modify the preregistered
 model or hypotheses.
+
+| Row | val3 micro Acc@0.5 | Oracle R@0.5 | Eligible R@0.5 | Mean eligible | Mask Hamming | Top-1 churn |
+|---|---:|---:|---:|---:|---:|---:|
+| P0/S0 full/full/bound | 0.724555 | 1.000000 | 0.996904 | 69.52 | 0.00 | 0.0000 |
+| P1 canonical query, full rank | 0.401691 | 1.000000 | 0.994148 | 42.03 | 82.15 | 0.1043 |
+| P2 object query, full rank | 0.305384 | 0.999434 | 0.994564 | 91.12 | 117.46 | 0.3044 |
+| P3 full query, canonical rank | 0.617223 | 1.000000 | 0.996904 | 69.52 | 0.00 | 0.3785 |
+| S1 alternate same-category | 0.724404 | 1.000000 | 0.997055 | 69.55 | 44.52 | 0.0064 |
+| S2 same-category shuffle | 0.724441 | 1.000000 | 0.997131 | 69.97 | 43.15 | 0.0058 |
+| S3 wrong-category | 0.713002 | 1.000000 | 0.988221 | 97.06 | 87.24 | 0.0227 |
+| S4 zero patch | 0.722214 | 1.000000 | 0.998188 | 249.79 | 244.74 | 0.0127 |
+
+P1/P2 show that full-expression query semantics cannot be replaced by a noun
+or `object`, even though an adequate all-query box usually still exists. P3
+keeps boxes and eligibility fixed but changes top-1 for 37.85% of expressions,
+directly establishing the role of full-expression R100 ranking.
+
+S1 changes the support tensor for 99.21% of expressions and S2 for 97.05% while
+leaving accuracy effectively unchanged, showing same-category instance
+robustness. S3 has valid wrong-category substitutions for 88.73% of expressions
+and lowers accuracy by 1.16 points while doubling mask churn. S4 is especially
+informative: a zero patch expands the eligible set from 69.5 to 249.8 queries,
+yet R100 recovers most final accuracy. Therefore the evidence supports
+"support patch controls category admission/candidate compression," not the
+stronger claim that patch pixels are strictly necessary for every correct
+top-1 prediction.
