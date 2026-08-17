@@ -4055,6 +4055,90 @@ def _forward_ref_batch(cfg, model, batch, device: torch.device, *, amp: bool):
                     f"Stage-B U0 Ref target {index} requires a non-empty caption"
                 )
         captions = [str(caption) for caption in captions]
+
+        def caption_route(mode: str) -> list[str]:
+            if mode == "full":
+                return captions
+            if mode == "canonical":
+                values = [target.get("stage_a_caption") for target in raw_targets]
+                if any(not isinstance(value, str) or not value.strip() for value in values):
+                    raise RuntimeError("canonical Ref intervention requires stage_a_caption")
+                return [str(value) for value in values]
+            if mode == "object":
+                return ["object ."] * len(raw_targets)
+            raise ValueError(f"unsupported Ref caption route {mode!r}")
+
+        query_caption_mode = str(
+            getattr(cfg, "stage_b_u2v5_ref_query_caption_mode", "full")
+        )
+        rank_caption_mode = str(
+            getattr(cfg, "stage_b_u2v5_ref_rank_caption_mode", query_caption_mode)
+        )
+        query_captions = caption_route(query_caption_mode)
+        rank_captions = caption_route(rank_caption_mode)
+
+        support_mode = str(
+            getattr(cfg, "stage_b_u2v5_ref_support_mode", "bound")
+        )
+        support = patches if patches is not None else patch_global
+        if support is None:
+            raise RuntimeError("U2-v5 support intervention lacks support tensor")
+        support_classes = []
+        for target in targets:
+            value = target.get("support_class")
+            if not torch.is_tensor(value) or value.numel() != 1:
+                raise RuntimeError("support intervention requires one support_class")
+            support_classes.append(int(value.item()))
+        intervention_valid = [True] * len(targets)
+        intervention_source_classes = list(support_classes)
+        if support_mode == "zero":
+            support = torch.zeros_like(support)
+            intervention_source_classes = [-1] * len(targets)
+        elif support_mode == "same_class_shuffle":
+            indices = list(range(len(targets)))
+            for class_id in sorted(set(support_classes)):
+                members = [i for i, value in enumerate(support_classes) if value == class_id]
+                if len(members) <= 1:
+                    intervention_valid[members[0]] = False
+                    continue
+                for position, destination in enumerate(members):
+                    indices[destination] = members[(position + 1) % len(members)]
+            support = support.index_select(
+                0, torch.as_tensor(indices, device=support.device, dtype=torch.long)
+            )
+            intervention_source_classes = [support_classes[index] for index in indices]
+        elif support_mode == "wrong_category":
+            indices = []
+            for index, class_id in enumerate(support_classes):
+                source = next(
+                    (other for other, value in enumerate(support_classes) if value != class_id),
+                    None,
+                )
+                if source is None:
+                    intervention_valid[index] = False
+                    source = index
+                indices.append(source)
+            support = support.index_select(
+                0, torch.as_tensor(indices, device=support.device, dtype=torch.long)
+            )
+            intervention_source_classes = [support_classes[index] for index in indices]
+        elif support_mode != "bound":
+            raise ValueError(f"unsupported Ref support mode {support_mode!r}")
+        if patches is not None:
+            patches = support
+        else:
+            patch_global = support
+        for row_index, (target, valid) in enumerate(zip(targets, intervention_valid)):
+            target["stage_b_u2v5_support_intervention_valid"] = bool(valid)
+            target["stage_b_u2v5_support_source_class"] = int(
+                intervention_source_classes[row_index]
+            )
+            support_bytes = (
+                support[row_index].detach().float().cpu().contiguous().numpy().tobytes()
+            )
+            target["stage_b_u2v5_support_tensor_sha256"] = hashlib.sha256(
+                support_bytes
+            ).hexdigest()
     else:
         samples, raw_targets = batch
         samples = samples.to(device)
@@ -4068,13 +4152,42 @@ def _forward_ref_batch(cfg, model, batch, device: torch.device, *, amp: bool):
             outputs = model(
                 samples,
                 targets=targets,
-                captions=captions,
+                captions=query_captions,
                 patches=patches,
                 patch_global=patch_global,
                 patch_mask=patch_mask,
                 patch_only=False,
                 disable_patch_dn=True,
             )
+            if rank_captions != query_captions:
+                rank_outputs = model(
+                    samples,
+                    targets=targets,
+                    captions=rank_captions,
+                    patches=patches,
+                    patch_global=patch_global,
+                    patch_mask=patch_mask,
+                    patch_only=False,
+                    disable_patch_dn=True,
+                )
+                root = model.module if hasattr(model, "module") else model
+                adapter = getattr(root, "stage_b_u0_patch_rank_adapter", None)
+                if adapter is None:
+                    raise RuntimeError("caption swap requires U0 admission adapter")
+                swapped_score, swapped_eligible = adapter.apply_category_preserving_gate(
+                    outputs["stage_b_u0_category_gate_patch_score"],
+                    rank_outputs["stage_b_gdino_rank_score"],
+                    outputs["stage_b_u0_candidate_mask"],
+                )
+                if not torch.equal(
+                    swapped_eligible,
+                    outputs["stage_b_u0_category_gate_eligible_mask"],
+                ):
+                    raise RuntimeError("ranking-text swap changed query eligibility")
+                outputs["stage_b_u0_teacher_rank_score"] = rank_outputs[
+                    "stage_b_gdino_rank_score"
+                ]
+                outputs["stage_b_u0_rank_score"] = swapped_score
         else:
             outputs = model(samples, captions=captions)
     return outputs, targets, None
@@ -4444,6 +4557,14 @@ class RefCocoTextAccumulator:
             top1_iou = (
                 float(query_ious[0].item()) if query_ious.numel() else float("nan")
             )
+            top1_query_index = (
+                int(top_idx[b, 0].item()) if query_ious.numel() else -1
+            )
+            top1_box_cxcywh = (
+                outputs["pred_boxes"][b, top1_query_index]
+                .detach().float().cpu().tolist()
+                if top1_query_index >= 0 else None
+            )
             record_valid = math.isfinite(top1_iou)
             self.eval_records.append(
                 make_eval_record(
@@ -4461,6 +4582,8 @@ class RefCocoTextAccumulator:
                             ),
                             "ranked_best_iou": ranked_best_iou,
                             "eligible_query_best_iou": eligible_best_iou,
+                            "top1_query_index": top1_query_index,
+                            "top1_box_cxcywh": top1_box_cxcywh,
                         },
                     ),
                 )
@@ -4768,7 +4891,7 @@ def evaluate_refcoco_dataset(
             if not torch.is_tensor(eligibility_mask) or eligibility_mask.dtype != torch.bool:
                 raise RuntimeError("U2-v2 evaluation lacks its boolean eligibility mask")
             record_extras = []
-            for row_mask in eligibility_mask:
+            for row_index, row_mask in enumerate(eligibility_mask):
                 mask_bytes = (
                     row_mask.detach().to(device="cpu", dtype=torch.uint8)
                     .contiguous().numpy().tobytes()
@@ -4779,8 +4902,36 @@ def evaluate_refcoco_dataset(
                         "stage_b_u2v2_eligible_mask_sha256": hashlib.sha256(
                             mask_bytes
                         ).hexdigest(),
+                        "stage_b_u2v5_ref_query_caption_mode": str(
+                            getattr(cfg, "stage_b_u2v5_ref_query_caption_mode", "full")
+                        ),
+                        "stage_b_u2v5_ref_rank_caption_mode": str(
+                            getattr(cfg, "stage_b_u2v5_ref_rank_caption_mode", "full")
+                        ),
+                        "stage_b_u2v5_ref_support_mode": str(
+                            getattr(cfg, "stage_b_u2v5_ref_support_mode", "bound")
+                        ),
+                        "stage_b_u2v5_support_intervention_valid": bool(
+                            model_targets[row_index].get(
+                                "stage_b_u2v5_support_intervention_valid", True
+                            )
+                        ),
+                        "stage_b_u2v5_support_source_class": int(
+                            model_targets[row_index].get(
+                                "stage_b_u2v5_support_source_class", -1
+                            )
+                        ),
+                        "stage_b_u2v5_support_tensor_sha256": str(
+                            model_targets[row_index].get(
+                                "stage_b_u2v5_support_tensor_sha256", ""
+                            )
+                        ),
                     }
                 )
+                if bool(getattr(cfg, "stage_b_u2v5_emit_eligible_indices", False)):
+                    record_extras[-1]["stage_b_u2v5_eligible_indices"] = (
+                        row_mask.nonzero(as_tuple=False).flatten().cpu().tolist()
+                    )
         acc.update(
             outputs,
             model_targets,
@@ -5830,6 +5981,29 @@ def main() -> None:
     parser.add_argument("--max_tn_batches", type=int, default=0)
     parser.add_argument("--log_every", type=int, default=50)
     parser.add_argument(
+        "--u2v5_ref_query_caption_mode",
+        choices=("full", "canonical", "object"),
+        default="full",
+        help="Val-only U2-v5 query/box text intervention.",
+    )
+    parser.add_argument(
+        "--u2v5_ref_rank_caption_mode",
+        choices=("full", "canonical", "object"),
+        default="full",
+        help="Val-only U2-v5 R100 ranking-text intervention.",
+    )
+    parser.add_argument(
+        "--u2v5_ref_support_mode",
+        choices=("bound", "same_class_shuffle", "wrong_category", "zero"),
+        default="bound",
+        help="Val-only U2-v5 support-patch counterfactual.",
+    )
+    parser.add_argument(
+        "--u2v5_emit_eligible_indices",
+        action="store_true",
+        help="Emit eligible query indices for support-counterfactual Hamming audits.",
+    )
+    parser.add_argument(
         "--candidate_count_control",
         type=int,
         default=0,
@@ -5927,6 +6101,21 @@ def main() -> None:
     cfg.use_checkpoint = False
     cfg.use_transformer_ckpt = False
     cfg.batch_size = int(args.batch_size)
+    cfg.stage_b_u2v5_ref_query_caption_mode = str(
+        args.u2v5_ref_query_caption_mode
+    )
+    cfg.stage_b_u2v5_ref_rank_caption_mode = str(
+        args.u2v5_ref_rank_caption_mode
+    )
+    cfg.stage_b_u2v5_ref_support_mode = str(args.u2v5_ref_support_mode)
+    cfg.stage_b_u2v5_emit_eligible_indices = bool(args.u2v5_emit_eligible_indices)
+    if (
+        cfg.stage_b_u2v5_ref_query_caption_mode != "full"
+        or cfg.stage_b_u2v5_ref_rank_caption_mode != "full"
+        or cfg.stage_b_u2v5_ref_support_mode != "bound"
+        or cfg.stage_b_u2v5_emit_eligible_indices
+    ) and (not bool(args.skip_tn) or bool(args.skip_ref)):
+        raise ValueError("U2-v5 Ref counterfactuals require Ref-only evaluation")
     cfg.build_text_token_masks = True
     cfg.text_mask_warn_limit = 0
     if args.direct_prebuilt_tn and bool(

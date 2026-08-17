@@ -31,6 +31,7 @@ from tools.stageb_u2v5_ablation_registry import (
     validate_registry,
 )
 from tools.build_stageb_u2v5_zero_training_supplement import attribute_ref_error
+from tools.run_stageb_u2v5_ps_supplement import _metrics as ps_metrics
 
 
 def _target(scope: str, table_id: str, audit: str, *, benchmark: bool = False):
@@ -258,6 +259,32 @@ def test_zero_training_error_attribution_is_exclusive(
         "eligible_query_best_iou": eligible_best,
         "top1_iou": top1,
     }) == expected
+
+
+def test_ps_supplement_computes_mask_and_top1_churn():
+    base = {
+        "sample": {
+            "correct50": True,
+            "all_query_best_iou": 0.9,
+            "eligible_query_best_iou": 0.8,
+            "stage_b_u2v5_eligible_indices": [1, 2],
+            "top1_query_index": 1,
+            "top1_box_cxcywh": [0.5, 0.5, 0.2, 0.2],
+            "stage_b_u2v5_support_intervention_valid": True,
+            "stage_b_u2v5_support_tensor_sha256": "a",
+        }
+    }
+    changed = {"sample": {**base["sample"],
+        "stage_b_u2v5_eligible_indices": [2, 3],
+        "top1_query_index": 2,
+        "top1_box_cxcywh": [0.6, 0.5, 0.2, 0.2],
+        "stage_b_u2v5_support_tensor_sha256": "b",
+    }}
+    result = ps_metrics(changed, base, variant="S3")
+    assert result["eligible_mask_hamming_mean"] == 2
+    assert result["top1_query_churn"] == 1
+    assert result["top1_box_l1_mean"] == pytest.approx(0.025)
+    assert result["support_tensor_changed_rate"] == 1
 
 
 @pytest.mark.parametrize(
