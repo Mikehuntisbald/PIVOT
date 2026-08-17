@@ -1212,6 +1212,76 @@ def _record_stage_b_u2v5_clean_confidence_runtime_audit(
     setattr(args, "stage_b_u2v5_clean_confidence_runtime_audit", audit)
 
 
+def _record_stage_b_u2v5_ablation_runtime_audit(
+    args, device: torch.device, *, optimizer_step_succeeded: bool,
+    branch_grad_norms: Mapping[str, float], amp_scale: Optional[float],
+) -> None:
+    if not (
+        bool(getattr(args, "stage_b_u2v5_ablation", False))
+        and str(getattr(args, "stage_b_u2v5_ablation_phase", ""))
+        == "admission"
+    ):
+        return
+    roles = tuple(getattr(args, "stage_b_u2v5_admission_train_roles", ()))
+    existing = getattr(args, "stage_b_u2v5_ablation_runtime_audit", None)
+    audit = dict(existing) if isinstance(existing, Mapping) else {
+        "schema": "pivot.stageb.u2v5_ablation_runtime/v1",
+        "row_id": str(getattr(args, "stage_b_u2v5_ablation_row_id", "")),
+        "trainable_roles": list(roles),
+        "optimizer_step_boundaries": 0,
+        "successful_optimizer_steps": 0,
+        "amp_skipped_optimizer_steps": 0,
+        "nonfinite_gradient_boundaries": 0,
+        "zero_gradient_successful_steps": 0,
+        "role_nonzero_successful_steps": {role: 0 for role in roles},
+    }
+    audit["optimizer_step_boundaries"] += 1
+    norms = {
+        "auxiliary8": float(
+            branch_grad_norms.get("grad_norm_u0_residual_preclip", 0.0)
+        ),
+        "surface8": float(
+            branch_grad_norms.get("grad_norm_u0_patch_projection_preclip", 0.0)
+        ),
+    }
+    audit["last_grad_norm_preclip"] = {
+        role: norms[role] for role in roles
+    }
+    if any(not math.isfinite(norms[role]) for role in roles):
+        audit["nonfinite_gradient_boundaries"] += 1
+    if optimizer_step_succeeded:
+        audit["successful_optimizer_steps"] += 1
+        if all(norms[role] == 0.0 for role in roles):
+            audit["zero_gradient_successful_steps"] += 1
+        for role in roles:
+            if norms[role] > 0.0:
+                audit["role_nonzero_successful_steps"][role] += 1
+    else:
+        audit["amp_skipped_optimizer_steps"] += 1
+    if amp_scale is not None and math.isfinite(float(amp_scale)):
+        scale = float(amp_scale)
+        audit["last_amp_scale"] = scale
+        audit["min_amp_scale"] = min(
+            float(audit.get("min_amp_scale", scale)), scale
+        )
+    if device.type == "cuda":
+        total = int(torch.cuda.get_device_properties(device).total_memory)
+        free, _ = torch.cuda.mem_get_info(device)
+        audit["total_device_bytes"] = total
+        audit["peak_allocated_bytes"] = max(
+            int(audit.get("peak_allocated_bytes", 0)),
+            int(torch.cuda.max_memory_allocated(device)),
+        )
+        audit["peak_reserved_bytes"] = max(
+            int(audit.get("peak_reserved_bytes", 0)),
+            int(torch.cuda.max_memory_reserved(device)),
+        )
+        audit["minimum_device_free_bytes"] = min(
+            int(audit.get("minimum_device_free_bytes", total)), int(free)
+        )
+    setattr(args, "stage_b_u2v5_ablation_runtime_audit", audit)
+
+
 def _clip_stage_b_gdino_adapter_grad_norms(
     model: torch.nn.Module,
     max_norm: float,
@@ -1275,6 +1345,153 @@ def _clip_stage_b_u0_patch_rank_grad_norms(
             torch.nn.utils.clip_grad_norm_(parameters, float(max_norm))
         stats[f"grad_norm_{branch}_postclip"] = _grad_l2_norm(parameters)
     return stats
+
+
+def _clip_stage_b_u2v5_ownership_grad_norms(
+    model: torch.nn.Module, max_norm: float, *, args, task: str,
+) -> dict:
+    root = model.module if hasattr(model, "module") else model
+    ownership = str(getattr(args, "stage_b_u2v5_score_ownership", ""))
+    adapter = root.stage_b_gdino_score_adapter
+    active = [
+        parameter for parameter in root.parameters()
+        if parameter.requires_grad and parameter.grad is not None
+    ]
+    preclip = _grad_l2_norm(active)
+    if ownership == "shared_score":
+        shared = [
+            parameter for parameter in adapter.rank_parameters()
+            if parameter.requires_grad
+        ]
+    elif ownership == "shared_trunk_two_heads":
+        rank_output_ids = {id(parameter) for parameter in adapter.rank_output.parameters()}
+        shared = [
+            parameter for parameter in adapter.rank_parameters()
+            if parameter.requires_grad and id(parameter) not in rank_output_ids
+        ]
+    else:
+        shared = []
+    if shared:
+        if any(parameter.grad is None for parameter in shared):
+            named = {id(parameter): name for name, parameter in root.named_parameters()}
+            disconnected = [
+                named.get(id(parameter), "<unnamed>")
+                for parameter in shared if parameter.grad is None
+            ]
+            raise RuntimeError(
+                f"ownership task {task} left shared parameters disconnected: "
+                f"{disconnected}"
+            )
+        vector = torch.cat(
+            [parameter.grad.detach().float().reshape(-1).cpu() for parameter in shared]
+        )
+        previous = getattr(args, "_u2v5_ownership_previous_gradients", None)
+        if not isinstance(previous, dict):
+            previous = {}
+        other = "confidence" if task == "admission" else "admission"
+        audit = getattr(args, "stage_b_u2v5_ownership_gradient_audit", None)
+        audit = dict(audit) if isinstance(audit, Mapping) else {
+            "schema": "pivot.stageb.u2v5_ownership_gradient/v1",
+            "ownership": ownership,
+            "diagnostic_pairs": 0,
+            "negative_cosine_pairs": 0,
+            "cosine_sum": 0.0,
+            "cosine_min": 1.0,
+            "sign_conflict_sum": 0.0,
+        }
+        if other in previous:
+            other_vector = previous[other]
+            denom = float(vector.norm().item() * other_vector.norm().item())
+            cosine = float(torch.dot(vector, other_vector).item() / denom) if denom > 0 else 0.0
+            conflict = float(((vector * other_vector) < 0).float().mean().item())
+            audit["diagnostic_pairs"] += 1
+            audit["negative_cosine_pairs"] += int(cosine < 0.0)
+            audit["cosine_sum"] += cosine
+            audit["cosine_min"] = min(float(audit["cosine_min"]), cosine)
+            audit["sign_conflict_sum"] += conflict
+            audit["cosine_mean"] = audit["cosine_sum"] / audit["diagnostic_pairs"]
+            audit["negative_cosine_fraction"] = (
+                audit["negative_cosine_pairs"] / audit["diagnostic_pairs"]
+            )
+            audit["sign_conflict_mean"] = (
+                audit["sign_conflict_sum"] / audit["diagnostic_pairs"]
+            )
+        previous[task] = vector
+        setattr(args, "_u2v5_ownership_previous_gradients", previous)
+        setattr(args, "stage_b_u2v5_ownership_gradient_audit", audit)
+    else:
+        from tools.stageb_u2v4_legacy_training_contract import TRAINABLE_KEYS
+
+        named = dict(root.named_parameters())
+        admission = [named[name] for name in TRAINABLE_KEYS]
+        confidence = list(adapter.gate_parameters())
+        inactive = confidence if task == "admission" else admission
+        if any(parameter.grad is not None for parameter in inactive):
+            raise RuntimeError(
+                f"isolated ownership task {task} has a structural cross-gradient"
+            )
+        audit = getattr(args, "stage_b_u2v5_ownership_gradient_audit", None)
+        audit = dict(audit) if isinstance(audit, Mapping) else {
+            "schema": "pivot.stageb.u2v5_ownership_gradient/v1",
+            "ownership": ownership,
+            "structural_isolation_checks": 0,
+            "structural_cross_gradients": 0,
+        }
+        audit["structural_isolation_checks"] += 1
+        setattr(args, "stage_b_u2v5_ownership_gradient_audit", audit)
+    if active:
+        torch.nn.utils.clip_grad_norm_(active, float(max_norm))
+    return {
+        "grad_norm_u2v5_ownership_preclip": preclip,
+        "grad_norm_u2v5_ownership_postclip": _grad_l2_norm(active),
+    }
+
+
+def _record_stage_b_u2v5_ownership_runtime_audit(
+    args, device: torch.device, *, task: str,
+    optimizer_step_succeeded: bool, branch_grad_norms: Mapping[str, float],
+    amp_scale: Optional[float],
+) -> None:
+    if not bool(getattr(args, "stage_b_u2v5_ownership", False)):
+        return
+    existing = getattr(args, "stage_b_u2v5_ownership_runtime_audit", None)
+    audit = dict(existing) if isinstance(existing, Mapping) else {
+        "schema": "pivot.stageb.u2v5_ownership_runtime/v1",
+        "optimizer_step_boundaries": 0,
+        "successful_optimizer_steps": 0,
+        "amp_skipped_optimizer_steps": 0,
+        "nonfinite_gradient_boundaries": 0,
+        "zero_gradient_successful_steps": 0,
+        "task_successful_steps": {"admission": 0, "confidence": 0},
+    }
+    audit["optimizer_step_boundaries"] += 1
+    norm = float(branch_grad_norms.get("grad_norm_u2v5_ownership_preclip", 0.0))
+    if not math.isfinite(norm):
+        audit["nonfinite_gradient_boundaries"] += 1
+    if optimizer_step_succeeded:
+        audit["successful_optimizer_steps"] += 1
+        audit["task_successful_steps"][task] += 1
+        if norm == 0.0:
+            audit["zero_gradient_successful_steps"] += 1
+    else:
+        audit["amp_skipped_optimizer_steps"] += 1
+    if amp_scale is not None and math.isfinite(float(amp_scale)):
+        audit["last_amp_scale"] = float(amp_scale)
+        audit["min_amp_scale"] = min(
+            float(audit.get("min_amp_scale", amp_scale)), float(amp_scale)
+        )
+    if device.type == "cuda":
+        total = int(torch.cuda.get_device_properties(device).total_memory)
+        free, _ = torch.cuda.mem_get_info(device)
+        audit["total_device_bytes"] = total
+        audit["peak_reserved_bytes"] = max(
+            int(audit.get("peak_reserved_bytes", 0)),
+            int(torch.cuda.max_memory_reserved(device)),
+        )
+        audit["minimum_device_free_bytes"] = min(
+            int(audit.get("minimum_device_free_bytes", total)), int(free)
+        )
+    setattr(args, "stage_b_u2v5_ownership_runtime_audit", audit)
 
 
 def _clip_stage_b_u2v2_grad_norms(
@@ -2728,7 +2945,10 @@ def _build_stage_b_data_driven_pair_captions(targets):
     return canonical_captions, expression_captions
 
 
-def _build_stage_b_gdino_adapter_pair_captions(targets, expected_scope: str):
+def _build_stage_b_gdino_adapter_pair_captions(
+    targets, expected_scope: str, *, expected_table_b_id: str | None = None,
+    expected_audit_sha256: str | None = None,
+):
     """Extract one explicitly scoped [positive, TN] pair per sample."""
     from models.GroundingDINO.stage_b_gdino_score_adapter import (
         stage_b_gdino_tn_scope_code,
@@ -2752,17 +2972,38 @@ def _build_stage_b_gdino_adapter_pair_captions(targets, expected_scope: str):
                 f"GDINO adapter sample {sample_idx} scope={scope!r} does not match "
                 f"configured scope={expected_scope!r}"
             )
-        if expected_scope == "proposal_covered_verified":
+        effective_table_b_id = expected_table_b_id
+        if (
+            effective_table_b_id is None
+            and expected_scope == "proposal_covered_verified"
+        ):
+            effective_table_b_id = "D3"
+        clean_scope_ablation = effective_table_b_id in {
+            "D1", "D2", "D2m", "D3", "D3m"
+        }
+        if clean_scope_ablation:
             if (
-                target.get("table_b_id") != "D3"
+                target.get("table_b_id") != effective_table_b_id
                 or not isinstance(target.get("table_b_audit_sha256"), str)
                 or len(target["table_b_audit_sha256"]) != 64
+                or (
+                    expected_audit_sha256 is not None
+                    and target["table_b_audit_sha256"] != expected_audit_sha256
+                )
                 or not _strict_target_false(target, "global_tn_verified")
-                or not _strict_target_false(target, "benchmark_dataft_alltn")
+                or (
+                    effective_table_b_id != "D1"
+                    and not _strict_target_false(target, "benchmark_dataft_alltn")
+                )
             ):
                 raise RuntimeError(
-                    f"GDINO adapter sample {sample_idx} lacks the audited D3 "
-                    "proposal-covered contract"
+                    f"GDINO adapter sample {sample_idx} lacks the audited "
+                    f"{effective_table_b_id} clean-ablation contract: "
+                    f"table={target.get('table_b_id')!r}, "
+                    f"audit={target.get('table_b_audit_sha256')!r}, "
+                    f"expected_audit={expected_audit_sha256!r}, "
+                    f"global={target.get('global_tn_verified')!r}, "
+                    f"benchmark={target.get('benchmark_dataft_alltn')!r}"
                 )
         else:
             verification_key = (
@@ -2868,10 +3109,14 @@ def _forward_stage_b_gdino_adapter_pair(
             else None
         ),
     )
+    confidence_kwargs = (
+        {"stage_b_u2v2_confidence_only": True}
+        if confidence_only_route else {}
+    )
     paired_outputs = model(
         paired_samples,
         captions=list(positive_captions) + list(negative_captions),
-        stage_b_u2v2_confidence_only=confidence_only_route,
+        **confidence_kwargs,
     )
     outputs = _split_stage_b_legacy_gate_batch(
         paired_outputs, batch_size, take_negative=False
@@ -3533,6 +3778,22 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             else None
         )
         raw_targets = list(targets)
+        ownership_task = None
+        if bool(getattr(args, "stage_b_u2v5_ownership", False)):
+            ownership_tasks = {
+                str(target.get("u2v5_ownership_task", ""))
+                for target in raw_targets
+            }
+            if len(ownership_tasks) != 1 or next(iter(ownership_tasks)) not in {
+                "admission", "confidence"
+            }:
+                raise RuntimeError(
+                    "U2-v5 ownership batches must be homogeneous and tagged"
+                )
+            ownership_task = next(iter(ownership_tasks))
+            gdino_adapter_train_mode = (
+                "rank_only" if ownership_task == "admission" else "confidence_only"
+            )
         gdino_adapter_pair = None
         data_driven_expression_captions = None
         if patch_only:
@@ -3581,6 +3842,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     "verifier_caption",
                     "caption",
                     "cap_list",
+                    "u2v5_ownership_task",
                 ):
                     if text_key in t:
                         t2[text_key] = t[text_key]
@@ -3672,6 +3934,20 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     gdino_adapter_pair = _build_stage_b_gdino_adapter_pair_captions(
                         raw_targets,
                         str(getattr(args, "stage_b_gdino_tn_scope", "")),
+                        expected_table_b_id=(
+                            str(getattr(args, "stage_b_v19_table_b_id", ""))
+                            or None
+                        ),
+                        expected_audit_sha256=(
+                            str(
+                                getattr(
+                                    args,
+                                    "stage_b_v19_table_b_audit_sha256",
+                                    "",
+                                )
+                            )
+                            or None
+                        ),
                     )
                     captions = gdino_adapter_pair[0]
             patches = None
@@ -4574,7 +4850,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                     "stage_b_u2v5_clean_confidence",
                                     False,
                                 )
-                            ),
+                            ) or ownership_task == "confidence",
                         )
                     if not (
                         gdino_adapter_train_mode == "rank_only"
@@ -4702,6 +4978,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             getattr(args, "stage_b_u0_patch_rank", False)
         ) and not separate_u2v2_grad_clip and not bool(
             getattr(args, "stage_b_u2v5_clean_confidence", False)
+        ) and not bool(getattr(args, "stage_b_u2v5_ownership", False))
+        separate_u2v5_ownership_grad_clip = bool(
+            getattr(args, "stage_b_u2v5_ownership", False)
         )
         if args.amp:
             scaler.scale(backward_losses).backward()
@@ -4745,6 +5024,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     elif separate_u0_patch_rank_grad_clip:
                         branch_grad_norms = _clip_stage_b_u0_patch_rank_grad_norms(
                             model, max_norm
+                        )
+                    elif separate_u2v5_ownership_grad_clip:
+                        branch_grad_norms = _clip_stage_b_u2v5_ownership_grad_norms(
+                            model, max_norm, args=args, task=str(ownership_task)
                         )
                     elif separate_gdino_adapter_grad_clip:
                         branch_grad_norms = _clip_stage_b_gdino_adapter_grad_norms(
@@ -4806,6 +5089,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     elif separate_u0_patch_rank_grad_clip:
                         branch_grad_norms = _clip_stage_b_u0_patch_rank_grad_norms(
                             model, max_norm
+                        )
+                    elif separate_u2v5_ownership_grad_clip:
+                        branch_grad_norms = _clip_stage_b_u2v5_ownership_grad_norms(
+                            model, max_norm, args=args, task=str(ownership_task)
                         )
                     elif separate_gdino_adapter_grad_clip:
                         branch_grad_norms = _clip_stage_b_gdino_adapter_grad_norms(
@@ -4872,6 +5159,21 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 _record_stage_b_u2v5_clean_confidence_runtime_audit(
                     args,
                     device,
+                    optimizer_step_succeeded=optimizer_step_succeeded,
+                    branch_grad_norms=branch_grad_norms,
+                    amp_scale=amp_scale,
+                )
+                _record_stage_b_u2v5_ablation_runtime_audit(
+                    args,
+                    device,
+                    optimizer_step_succeeded=optimizer_step_succeeded,
+                    branch_grad_norms=branch_grad_norms,
+                    amp_scale=amp_scale,
+                )
+                _record_stage_b_u2v5_ownership_runtime_audit(
+                    args,
+                    device,
+                    task=str(ownership_task),
                     optimizer_step_succeeded=optimizer_step_succeeded,
                     branch_grad_norms=branch_grad_norms,
                     amp_scale=amp_scale,

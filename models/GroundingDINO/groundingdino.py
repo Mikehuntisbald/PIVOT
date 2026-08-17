@@ -3177,6 +3177,9 @@ def build_groundingdino(args):
     stage_b_u2v4_legacy_training_replay = bool(
         getattr(args, "stage_b_u2v4_legacy_training_replay", False)
     )
+    stage_b_u2v5_ownership = bool(
+        getattr(args, "stage_b_u2v5_ownership", False)
+    )
     stage_b_data_driven_score = bool(
         getattr(args, "stage_b_data_driven_score", False)
     )
@@ -3193,6 +3196,7 @@ def build_groundingdino(args):
         stage_b_u2v2
         and not stage_b_u2v3_category_admission
         and not stage_b_u2v4_legacy_training_replay
+        and not stage_b_u2v5_ownership
         and not bool(getattr(args, "stage_b_u0_category_preserving_patch_gate", False))
     ):
         raise ValueError("U2-v2 requires the frozen U0 hard category gate")
@@ -3415,6 +3419,9 @@ def build_groundingdino(args):
                 getattr(args, "stage_b_gdino_gate_pool_temperature", 0.1)
             ),
             gate_topk=int(getattr(args, "stage_b_gdino_gate_topk", 10)),
+            u2v5_score_ownership=str(
+                getattr(args, "stage_b_u2v5_score_ownership", "isolated_heads")
+            ),
         )
         if stage_b_u0_gate_aligned_rank_residual:
             from .stage_b_u0_gate_aligned_d12 import (
@@ -3491,6 +3498,16 @@ def build_groundingdino(args):
                 ),
                 category_gate_max_gap=float(
                     getattr(args, "stage_b_u0_category_gate_max_gap", 1.0)
+                ),
+                detach_teacher=(
+                    str(
+                        getattr(
+                            args,
+                            "stage_b_u2v5_score_ownership",
+                            "isolated_heads",
+                        )
+                    )
+                    == "isolated_heads"
                 ),
             )
 

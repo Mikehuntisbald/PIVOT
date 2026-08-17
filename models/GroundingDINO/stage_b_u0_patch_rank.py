@@ -443,6 +443,7 @@ class StageBU0PatchRankAdapter(nn.Module):
         direct_patch_gain_limit: float = 0.5,
         category_preserving_gate: bool = False,
         category_gate_max_gap: float = 1.0,
+        detach_teacher: bool = True,
     ) -> None:
         super().__init__()
         if int(query_count) <= 0 or int(hidden_dim) <= 0:
@@ -459,6 +460,7 @@ class StageBU0PatchRankAdapter(nn.Module):
         self.direct_patch_gain_limit = float(direct_patch_gain_limit)
         self.category_preserving_gate = bool(category_preserving_gate)
         self.category_gate_max_gap = float(category_gate_max_gap)
+        self.detach_teacher = bool(detach_teacher)
         self.trunk = nn.Sequential(
             nn.LayerNorm(self.input_dim),
             nn.Linear(self.input_dim, int(hidden_dim)),
@@ -608,7 +610,10 @@ class StageBU0PatchRankAdapter(nn.Module):
         if bool((~mask.any(dim=1)).any().item()):
             raise ValueError("every U0 row must contain at least one candidate")
         patch = patch_score
-        teacher = teacher_rank_score.detach()
+        teacher = (
+            teacher_rank_score.detach()
+            if self.detach_teacher else teacher_rank_score
+        )
         if not bool(torch.isfinite(patch[mask]).all().item()):
             raise ValueError("valid patch scores must be finite")
         if not bool(torch.isfinite(teacher[mask]).all().item()):

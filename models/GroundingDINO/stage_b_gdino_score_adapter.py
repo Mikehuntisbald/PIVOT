@@ -34,6 +34,10 @@ GDINO_TN_SCOPE_CODES = {
     # D3 verifies the annotated target and every cached proposal, but not all
     # 900 runtime queries.  Keep this distinct from image-global/all-TN scope.
     "proposal_covered_verified": 3,
+    # Clean Table-D rows keep their weaker source labels explicit.  They are
+    # never aliases for benchmark/all-query or image-global verification.
+    "unverified_all_negative": 4,
+    "traceable_counterfactual_edit": 5,
 }
 
 GDINO_ADAPTER_TRAIN_MODE_CODES = {
@@ -51,6 +55,9 @@ GDINO_CONFIDENCE_OBJECTIVE_CODES = {
     # Same deployed-score surrogate, with a deliberately weaker supervision
     # contract.  This name prevents a D3 run from claiming all-query labels.
     "detached_recent_q05_proposal_covered": 4,
+    # Same deployed loss used by the clean D1/D2/D2m/D3m source ablation.
+    # The configured TN scope, not this objective name, owns label strength.
+    "detached_recent_q05_scope_labeled": 5,
 }
 
 
@@ -932,6 +939,7 @@ class StageBGDINOScoreAdapter(nn.Module):
         gate_hidden_dim: int = 128,
         gate_pool_temperature: float = 0.1,
         gate_topk: int = 10,
+        u2v5_score_ownership: str = "isolated_heads",
     ) -> None:
         super().__init__()
         if int(hidden_dim) <= 0 or int(adapter_dim) <= 0 or int(gate_hidden_dim) <= 0:
@@ -944,6 +952,11 @@ class StageBGDINOScoreAdapter(nn.Module):
         self.adapter_dim = int(adapter_dim)
         self.gate_pool_temperature = float(gate_pool_temperature)
         self.gate_topk = int(gate_topk)
+        self.u2v5_score_ownership = str(u2v5_score_ownership).strip()
+        if self.u2v5_score_ownership not in {
+            "isolated_heads", "shared_score", "shared_trunk_two_heads",
+        }:
+            raise ValueError("invalid U2-v5 score ownership")
 
         self.rank_norm = nn.LayerNorm(self.hidden_dim)
         self.rank_trunk = nn.Sequential(
@@ -1090,13 +1103,22 @@ class StageBGDINOScoreAdapter(nn.Module):
         rank_residual = rank_residual.masked_fill(~mask, 0.0)
         rank_score = base + rank_residual
 
-        confidence_input = torch.cat(
-            (self.confidence_norm(hs), safe_base.unsqueeze(-1)), dim=-1
-        )
-        confidence_feature = self.confidence_trunk(confidence_input)
-        gate_input = self._gate_inputs(confidence_feature, base, mask)
-        gate = self.confidence_gate(gate_input).squeeze(-1).to(dtype=base.dtype)
-        confidence_score = base + gate[:, None]
+        if self.u2v5_score_ownership == "shared_score":
+            confidence_feature = rank_feature
+            masked_residual = rank_residual.masked_fill(~mask, -torch.inf)
+            gate = masked_residual.max(dim=1).values
+            confidence_score = rank_score
+        else:
+            if self.u2v5_score_ownership == "shared_trunk_two_heads":
+                confidence_feature = rank_feature
+            else:
+                confidence_input = torch.cat(
+                    (self.confidence_norm(hs), safe_base.unsqueeze(-1)), dim=-1
+                )
+                confidence_feature = self.confidence_trunk(confidence_input)
+            gate_input = self._gate_inputs(confidence_feature, base, mask)
+            gate = self.confidence_gate(gate_input).squeeze(-1).to(dtype=base.dtype)
+            confidence_score = base + gate[:, None]
         return {
             "base_score": base,
             "rank_feature": rank_feature,
@@ -1239,6 +1261,7 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
             "detached_recent_q05_trust",
             "detached_recent_q05_total_trust",
             "detached_recent_q05_proposal_covered",
+            "detached_recent_q05_scope_labeled",
         }
         if trust_enabled and float(positive_trust_margin) < 0.0:
             raise ValueError("positive_trust_margin must be non-negative")
@@ -1479,6 +1502,11 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                 verified = _strict_scalar_bool(target, "global_tn_verified")
             elif self.tn_scope == "benchmark_dataft_alltn":
                 verified = _strict_scalar_bool(target, "benchmark_dataft_alltn")
+            elif self.tn_scope == "unverified_all_negative":
+                verified = (
+                    _strict_scalar_false(target, "global_tn_verified")
+                    and _strict_scalar_bool(target, "benchmark_dataft_alltn")
+                )
             else:
                 verified = (
                     _strict_scalar_false(target, "global_tn_verified")
@@ -1605,6 +1633,7 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                 "detached_recent_q05_trust",
                 "detached_recent_q05_total_trust",
                 "detached_recent_q05_proposal_covered",
+                "detached_recent_q05_scope_labeled",
             }:
                 positive_gate = outputs.get(
                     "stage_b_gdino_confidence_gate", None
@@ -1636,6 +1665,7 @@ class StageBGDINOScoreAdapterCriterion(nn.Module):
                         self.confidence_objective in {
                             "detached_recent_q05_total_trust",
                             "detached_recent_q05_proposal_covered",
+                            "detached_recent_q05_scope_labeled",
                         }
                     ),
                 )

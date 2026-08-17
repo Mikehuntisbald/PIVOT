@@ -284,10 +284,41 @@ def validate_confidence_runtime_payload(
         raise U2V5CleanInitializerError(
             f"{checkpoint_label} lacks clean-confidence provenance"
         )
+    ablation_row_id = contract.get("ablation_row_id")
+    expected_scope = "proposal_covered_verified"
+    expected_table = "D3"
+    if ablation_row_id is not None:
+        from tools.stageb_u2v5_ablation_registry import get_row
+
+        try:
+            row = get_row(str(ablation_row_id))
+        except KeyError as exc:
+            raise U2V5CleanInitializerError(
+                f"{checkpoint_label} names an unknown confidence row"
+            ) from exc
+        if row.phase != "confidence":
+            raise U2V5CleanInitializerError(
+                f"{checkpoint_label} confidence row has wrong phase"
+            )
+        if row.row_id in {"D1"}:
+            expected_scope, expected_table = "unverified_all_negative", "D1"
+        elif row.row_id in {"D2", "D2m"}:
+            expected_scope, expected_table = (
+                "traceable_counterfactual_edit", row.row_id
+            )
+        elif row.row_id == "D3m":
+            expected_scope, expected_table = "proposal_covered_verified", "D3m"
     if not (
         contract.get("c100_confidence_imported") is False
-        and contract.get("scope") == "proposal_covered_verified"
-        and contract.get("table_b_id") == "D3"
+        and contract.get("scope") == expected_scope
+        and contract.get("table_b_id") == expected_table
+        and (
+            ablation_row_id is None
+            or (
+                isinstance(contract.get("table_b_audit_sha256"), str)
+                and len(contract["table_b_audit_sha256"]) == 64
+            )
+        )
     ):
         raise U2V5CleanInitializerError(
             f"{checkpoint_label} changed the clean confidence ownership/scope"

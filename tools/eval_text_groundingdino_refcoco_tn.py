@@ -121,6 +121,12 @@ from tools.stageb_screen_calibration import (  # noqa: E402
     meta_rows as screen_calibration_meta_rows,
     summary_fields as screen_calibration_summary_fields,
 )
+from tools.stageb_u2v5_ablation_calibration import (  # noqa: E402
+    Binding as U2V5CalibrationBinding,
+    build_manifest as build_u2v5_calibration_manifest,
+    meta_rows as u2v5_calibration_meta_rows,
+    summary_fields as u2v5_calibration_summary_fields,
+)
 from tools.stageb_table_b_matched_eval_surface import (  # noqa: E402
     DECLARED_SCOPE as MATCHED_EVAL_SCOPE,
     MatchedEvalSurfaceBinding,
@@ -685,7 +691,35 @@ def _load_model_with_checkpoint_contract(
 ):
     summary_fields = _merged_eval_checkpoint_summary_fields(cfg, checkpoint)
     model = _load_model(cfg, str(checkpoint), device)
-    if bool(getattr(cfg, "stage_b_u2v3_checkpoint_eval", False)):
+    if bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False)):
+        from tools.stageb_u2v5_ablation_contract import (
+            validate_ownership_runtime_payload,
+        )
+
+        checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
+        validate_ownership_runtime_payload(
+            model,
+            checkpoint_payload,
+            checkpoint_label=f"U2-v5 ownership checkpoint {checkpoint}",
+        )
+    elif bool(getattr(cfg, "stage_b_u2v5_ablation_eval", False)):
+        from tools.stageb_u2v5_ablation_contract import (
+            validate_admission_runtime_payload,
+        )
+
+        checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
+        validate_admission_runtime_payload(
+            model,
+            checkpoint_payload,
+            checkpoint_label=f"U2-v5 admission ablation checkpoint {checkpoint}",
+            initializer_path=Path(
+                str(getattr(cfg, "stage_b_u2v2_initializer_path"))
+            ),
+            initializer_sha256=str(
+                getattr(cfg, "stage_b_u2v2_initializer_sha256")
+            ),
+        )
+    elif bool(getattr(cfg, "stage_b_u2v3_checkpoint_eval", False)):
         from tools.stageb_u2v3_category_admission_contract import (
             validate_runtime_payload,
         )
@@ -702,7 +736,11 @@ def _load_model_with_checkpoint_contract(
                 getattr(cfg, "stage_b_u2v2_initializer_sha256")
             ),
         )
-    if bool(getattr(cfg, "stage_b_u2v4_checkpoint_eval", False)):
+    if (
+        bool(getattr(cfg, "stage_b_u2v4_checkpoint_eval", False))
+        and not bool(getattr(cfg, "stage_b_u2v5_ablation_eval", False))
+        and not bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False))
+    ):
         checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
         if bool(getattr(cfg, "stage_b_u2v4_legacy_admission_replay", False)):
             from tools.build_stageb_u2v4_legacy_admission_replay import (
@@ -4227,11 +4265,13 @@ def _validate_adapter_tn_eval_scope(
     rows: List[Dict[str, Any]],
     *,
     allow_proposal_covered_calibration: bool = False,
+    allow_u2v5_ablation_calibration: bool = False,
 ) -> Optional[str]:
     return _validate_adapter_tn_eval_manifest(
         cfg,
         rows,
         allow_proposal_covered_calibration=allow_proposal_covered_calibration,
+        allow_u2v5_ablation_calibration=allow_u2v5_ablation_calibration,
     )
 
 
@@ -4675,11 +4715,23 @@ def evaluate_refcoco_dataset(
             _adapter_ref_score_key(cfg)
         ),
     )
-    causal_route_keys = {
-        "b58_base": "stage_b_gdino_base_score",
-        "raw_r100": "stage_b_gdino_rank_score",
-        "patch_r100": "stage_b_u2v2_patch_r100_rank_score",
-    } if bool(getattr(cfg, "stage_b_u2v2_emit_causal_ref_routes", False)) else {}
+    if bool(getattr(cfg, "stage_b_u2v5_emit_causal_ref_routes", False)):
+        causal_route_keys = {
+            "b58_base": "stage_b_gdino_base_score",
+            "raw_r100": "stage_b_gdino_rank_score",
+            "admission_r100": "stage_b_u0_rank_score",
+        }
+        causal_schema = "pivot.stageb.u2v5_causal_ref_routes/v1"
+    elif bool(getattr(cfg, "stage_b_u2v2_emit_causal_ref_routes", False)):
+        causal_route_keys = {
+            "b58_base": "stage_b_gdino_base_score",
+            "raw_r100": "stage_b_gdino_rank_score",
+            "patch_r100": "stage_b_u2v2_patch_r100_rank_score",
+        }
+        causal_schema = "pivot.stageb.u2v2_causal_ref_routes/v1"
+    else:
+        causal_route_keys = {}
+        causal_schema = None
     causal_accumulators = {
         name: RefCocoTextAccumulator(
             topks,
@@ -4747,7 +4799,7 @@ def evaluate_refcoco_dataset(
                 or not torch.is_tensor(route_score)
                 or route_score.shape != deployed_score.shape
             ):
-                raise RuntimeError(f"U2-v2 causal route {route_name} is unavailable")
+                raise RuntimeError(f"causal Ref route {route_name} is unavailable")
             route_accumulator.update(
                 outputs,
                 model_targets,
@@ -4767,12 +4819,18 @@ def evaluate_refcoco_dataset(
             )
     row = acc.result()
     if causal_accumulators:
-        row["stage_b_u2v2_causal_ref_routes"] = {
-            "b58_base": causal_accumulators["b58_base"].result(),
-            "raw_r100": causal_accumulators["raw_r100"].result(),
-            "patch_r100": causal_accumulators["patch_r100"].result(),
-            "patch_residual": dict(row),
+        route_results = {
+            name: accumulator.result()
+            for name, accumulator in causal_accumulators.items()
         }
+        route_results["deployed"] = dict(row)
+        route_results["schema"] = causal_schema
+        route_key = (
+            "stage_b_u2v5_causal_ref_routes"
+            if bool(getattr(cfg, "stage_b_u2v5_emit_causal_ref_routes", False))
+            else "stage_b_u2v2_causal_ref_routes"
+        )
+        row[route_key] = route_results
     row.update(
         {
             "run_id": _ckpt_run_prefix(ckpt_path),
@@ -4814,6 +4872,23 @@ def evaluate_refcoco_dataset(
                 ),
             }
         )
+        if causal_accumulators:
+            route_records = {}
+            for route_name, route_accumulator in causal_accumulators.items():
+                route_path = Path(records_output_dir) / (
+                    f"{run_id}__route_{_safe_name(route_name)}__"
+                    f"{_safe_name(dataset_name)}.records.jsonl"
+                )
+                write_eval_records(route_path, route_accumulator.eval_records)
+                if len(route_accumulator.eval_records) != int(acc.total):
+                    raise RuntimeError(
+                        f"causal route {route_name} record count drifted"
+                    )
+                route_records[route_name] = str(route_path)
+            row["causal_route_records"] = {
+                "schema": causal_schema,
+                "records": route_records,
+            }
     _bind_checkpoint_summary_fields(row, checkpoint_summary_fields)
     return row
 
@@ -5181,6 +5256,7 @@ def evaluate_tn_dataset(
     checkpoint_summary_fields: Optional[Mapping[str, str]] = None,
     declared_eval_scope: Optional[str] = None,
     allow_proposal_covered_calibration: bool = False,
+    allow_u2v5_ablation_calibration: bool = False,
 ) -> Dict[str, Any]:
     loader = _build_loader(cfg, datasetinfo, batch_size, num_workers, device, seed)
     manifest = load_eval_manifest(
@@ -5198,6 +5274,7 @@ def evaluate_tn_dataset(
             cfg,
             manifest.rows,
             allow_proposal_covered_calibration=allow_proposal_covered_calibration,
+            allow_u2v5_ablation_calibration=allow_u2v5_ablation_calibration,
         )
     )
     train_scope = (
@@ -5647,6 +5724,19 @@ def main() -> None:
         help="Audit bound to --screen_calibration_manifest.",
     )
     parser.add_argument(
+        "--u2v5_ablation_calibration_manifest",
+        action="store_true",
+        help=(
+            "Consume an audit-bound D1/D2/D2m/D3m calibration manifest for "
+            "a registered U2-v5 confidence row."
+        ),
+    )
+    parser.add_argument(
+        "--u2v5_ablation_calibration_audit",
+        default=None,
+        help="Audit bound to --u2v5_ablation_calibration_manifest.",
+    )
+    parser.add_argument(
         "--direct_prebuilt_tn",
         action="store_true",
         help=(
@@ -5773,6 +5863,19 @@ def main() -> None:
         raise ValueError(
             "the sealed screen calibration manifest cannot be filtered by holdout options"
         )
+    if args.u2v5_ablation_calibration_manifest and (
+        args.skip_tn
+        or not args.tn_jsonl
+        or not args.u2v5_ablation_calibration_audit
+        or args.screen_calibration_manifest
+        or args.direct_prebuilt_tn
+    ):
+        raise ValueError(
+            "U2-v5 ablation calibration requires TN + source + audit and "
+            "cannot combine with another calibration mode"
+        )
+    if args.u2v5_ablation_calibration_manifest and args.holdout_level != "none":
+        raise ValueError("U2-v5 ablation calibration cannot be holdout-filtered")
 
     if str(args.device).startswith("cuda") and not torch.cuda.is_available():
         raise RuntimeError("CUDA requested but torch.cuda.is_available() is False.")
@@ -5900,6 +6003,7 @@ def main() -> None:
     tn_meta_rows: List[Dict[str, Any]] = []
     tn_datasetinfo = None
     screen_calibration_binding: Optional[ScreenCalibrationBinding] = None
+    u2v5_calibration_binding: Optional[U2V5CalibrationBinding] = None
     matched_eval_binding: Optional[MatchedEvalSurfaceBinding] = None
     direct_eval_scope: Optional[str] = None
     if not bool(args.skip_tn):
@@ -5912,6 +6016,20 @@ def main() -> None:
             tn_meta_rows = matched_eval_surface_meta_rows(matched_eval_binding)
             tn_counts = {"matched_calibration": len(tn_meta_rows)}
             direct_eval_scope = MATCHED_EVAL_SCOPE
+        elif args.u2v5_ablation_calibration_manifest:
+            tn_eval_jsonl = (
+                output_dir / "tn_eval_inputs/tn_u2v5_ablation_calibration.jsonl"
+            )
+            u2v5_calibration_binding = build_u2v5_calibration_manifest(
+                source_path=tn_jsonl,
+                audit_path=Path(args.u2v5_ablation_calibration_audit),
+                derived_path=tn_eval_jsonl,
+                data_root=data_root,
+                table_id=str(getattr(cfg, "stage_b_v19_table_b_id", "")),
+                scope=str(getattr(cfg, "stage_b_gdino_tn_scope", "")),
+            )
+            tn_meta_rows = u2v5_calibration_meta_rows(u2v5_calibration_binding)
+            tn_counts = {"u2v5_ablation_calibration": len(tn_meta_rows)}
         elif args.screen_calibration_manifest:
             tn_eval_jsonl = (
                 output_dir / "tn_eval_inputs/tn_screen_calibration.jsonl"
@@ -5952,6 +6070,9 @@ def main() -> None:
                 selected_tn_rows,
                 allow_proposal_covered_calibration=bool(
                     args.screen_calibration_manifest
+                ),
+                allow_u2v5_ablation_calibration=bool(
+                    args.u2v5_ablation_calibration_manifest
                 ),
             )
         )
@@ -6094,6 +6215,9 @@ def main() -> None:
                 allow_proposal_covered_calibration=bool(
                     args.screen_calibration_manifest
                 ),
+                allow_u2v5_ablation_calibration=bool(
+                    args.u2v5_ablation_calibration_manifest
+                ),
             )
             if bool(args.immutable_v39_archived_snapshot_diagnostic):
                 post_evaluation = (
@@ -6199,6 +6323,10 @@ def main() -> None:
             if screen_calibration_binding is not None:
                 tn_row.update(
                     screen_calibration_summary_fields(screen_calibration_binding)
+                )
+            if u2v5_calibration_binding is not None:
+                tn_row.update(
+                    u2v5_calibration_summary_fields(u2v5_calibration_binding)
                 )
             if matched_eval_binding is not None:
                 tn_row.update(matched_eval_surface_summary_fields(matched_eval_binding))

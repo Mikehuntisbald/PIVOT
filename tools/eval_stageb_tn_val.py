@@ -299,6 +299,7 @@ def _validate_adapter_tn_eval_manifest(
     rows: List[Dict[str, Any]],
     *,
     allow_proposal_covered_calibration: bool = False,
+    allow_u2v5_ablation_calibration: bool = False,
 ) -> Optional[str]:
     adapter_enabled = bool(getattr(cfg, "stage_b_gdino_score_adapter", False))
     data_driven_enabled = bool(getattr(cfg, "stage_b_data_driven_score", False))
@@ -345,13 +346,46 @@ def _validate_adapter_tn_eval_manifest(
         else:
             scope = row.get("tn_scope", None)
             stage_b_gdino_tn_scope_code(scope)
+            if allow_u2v5_ablation_calibration:
+                expected_table = str(
+                    getattr(cfg, "stage_b_v19_table_b_id", "")
+                )
+                expected_audit = str(
+                    getattr(cfg, "stage_b_v19_table_b_audit_sha256", "")
+                )
+                expected_scope = str(
+                    getattr(cfg, "stage_b_gdino_tn_scope", "")
+                )
+                if not (
+                    bool(getattr(cfg, "stage_b_u2v5_ablation", False))
+                    and str(getattr(cfg, "stage_b_u2v5_ablation_phase", ""))
+                    == "confidence"
+                    and row.get("tn_eval_split")
+                    == "u2v5_ablation_calibration"
+                    and row.get("tn_eval_source_split")
+                    == "sealed_image_disjoint_calibration"
+                    and row.get("table_b_id") == expected_table
+                    and row.get("table_b_audit_sha256") == expected_audit
+                    and scope == expected_scope
+                    and row.get("global_tn_verified") is False
+                    and row.get("proposalset_proxy_verified") is False
+                ):
+                    raise ValueError(
+                        "U2-v5 calibration row changed its audit/scope binding"
+                    )
+                protocols.add("u2v5_ablation_calibration")
+                eval_scopes.add(str(scope))
+                continue
             if scope == "proposal_covered_verified":
                 expected_audit = str(
                     getattr(cfg, "stage_b_v19_table_b_audit_sha256", "")
                 ).strip()
                 if not (
                     allow_proposal_covered_calibration
-                    and bool(getattr(cfg, "stage_b_u2v5_clean_confidence", False))
+                    and (
+                        bool(getattr(cfg, "stage_b_u2v5_clean_confidence", False))
+                        or bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False))
+                    )
                     and row.get("table_b_id") == "D3"
                     and row.get("tn_eval_split") == "screen_calibration"
                     and row.get("tn_eval_source_split")

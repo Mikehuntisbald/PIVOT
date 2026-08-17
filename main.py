@@ -9336,6 +9336,43 @@ def _freeze_and_audit_stage_b_u2v4_legacy_training_replay(model) -> int:
     return trainable
 
 
+def _freeze_and_audit_stage_b_u2v5_admission_ablation(
+    model, roles,
+) -> int:
+    """Expose the exact registered A-row owner subset."""
+    from tools.stageb_u2v5_ablation_contract import admission_trainable_keys
+
+    expected = set(admission_trainable_keys(roles))
+    named = dict(model.named_parameters())
+    missing = sorted(expected - set(named))
+    if missing:
+        raise RuntimeError(f"U2-v5 admission row is missing parameters: {missing}")
+    for parameter in model.parameters():
+        parameter.requires_grad_(False)
+    for name in expected:
+        named[name].requires_grad_(True)
+    observed = {
+        name for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    if observed != expected:
+        raise RuntimeError(
+            "U2-v5 admission ablation ownership drifted: "
+            f"missing={sorted(expected - observed)}, "
+            f"unexpected={sorted(observed - expected)}"
+        )
+    if model.patch_logit_scale.requires_grad:
+        raise RuntimeError("U2-v5 admission ablation must freeze patch_logit_scale")
+    if any(parameter.requires_grad for parameter in model.backbone.parameters()):
+        raise RuntimeError("U2-v5 admission ablation must freeze B58")
+    if any(
+        parameter.requires_grad
+        for parameter in model.stage_b_gdino_score_adapter.parameters()
+    ):
+        raise RuntimeError("U2-v5 admission ablation must freeze R100/confidence")
+    return sum(named[name].numel() for name in expected)
+
+
 def _freeze_and_audit_stage_b_u0_gate_aligned_d10(model) -> int:
     """Expose only the eight D9 patch-projection tensors for D10."""
     adapter = getattr(model, "stage_b_u0_patch_rank_adapter", None)
@@ -10025,6 +10062,40 @@ def _stage_b_u0_patch_rank_optimizer_groups(
                 "stage_b_u0_branch": "direct_patch_gain",
             },
         )
+    return groups
+
+
+def _stage_b_u2v5_admission_ablation_optimizer_groups(
+    model, *, residual_lr: float, patch_projection_lr: float,
+):
+    """Create one or two non-empty groups for A1-A4."""
+    from tools.stageb_u2v4_legacy_training_contract import (
+        AUXILIARY_RESIDUAL_KEYS,
+        SURFACE_PARAMETER_KEYS,
+    )
+
+    named = dict(model.named_parameters())
+    groups = []
+    for branch, keys, lr in (
+        ("patch_rank_residual", AUXILIARY_RESIDUAL_KEYS, residual_lr),
+        ("patch_projection", SURFACE_PARAMETER_KEYS, patch_projection_lr),
+    ):
+        parameters = [named[key] for key in keys if named[key].requires_grad]
+        if parameters:
+            groups.append(
+                {
+                    "params": parameters,
+                    "lr": float(lr),
+                    "stage_b_u0_branch": branch,
+                }
+            )
+    covered = {id(parameter) for group in groups for parameter in group["params"]}
+    trainable = {
+        id(parameter) for parameter in model.parameters()
+        if parameter.requires_grad
+    }
+    if not groups or covered != trainable:
+        raise RuntimeError("U2-v5 admission optimizer ownership is incomplete")
     return groups
 
 
@@ -11246,6 +11317,24 @@ def main(args):
         trainable_params, trainable_modules = _trainable_param_summary(
             model_without_ddp
         )
+    elif (
+        bool(getattr(args, "stage_b_u2v5_ablation", False))
+        and str(getattr(args, "stage_b_u2v5_ablation_phase", ""))
+        == "admission"
+    ):
+        total_trainable = _freeze_and_audit_stage_b_u2v5_admission_ablation(
+            model_without_ddp,
+            getattr(args, "stage_b_u2v5_admission_train_roles", ()),
+        )
+        logger.info(
+            "Stage-B U2-v5 admission-ablation audit passed: "
+            f"row={getattr(args, 'stage_b_u2v5_ablation_row_id', '')}, "
+            f"roles={getattr(args, 'stage_b_u2v5_admission_train_roles', ())}, "
+            f"trainable parameters={total_trainable:,}."
+        )
+        trainable_params, trainable_modules = _trainable_param_summary(
+            model_without_ddp
+        )
     elif bool(getattr(args, "stage_b_u2v5_clean_confidence", False)):
         total_trainable = _freeze_and_audit_stage_b_gdino_adapter(
             model_without_ddp, train_mode="confidence_only"
@@ -11433,6 +11522,20 @@ def main(args):
             ),
             patch_lr=float(
                 getattr(args, "stage_b_data_driven_patch_lr", args.lr)
+            ),
+        )
+    elif (
+        bool(getattr(args, "stage_b_u2v5_ablation", False))
+        and str(getattr(args, "stage_b_u2v5_ablation_phase", ""))
+        == "admission"
+    ):
+        param_dicts = _stage_b_u2v5_admission_ablation_optimizer_groups(
+            model_without_ddp,
+            residual_lr=float(
+                getattr(args, "stage_b_u0_patch_rank_lr", args.lr)
+            ),
+            patch_projection_lr=float(
+                getattr(args, "stage_b_u0_patch_projection_lr", args.lr)
             ),
         )
     elif bool(getattr(args, "stage_b_u2v5_clean_confidence", False)):
@@ -12379,37 +12482,73 @@ def main(args):
                     if bool(
                         getattr(args, "stage_b_u2v4_legacy_training_replay", False)
                     ):
-                        from tools.stageb_u2v4_legacy_training_contract import (
-                            validate_runtime_payload,
-                        )
+                        if (
+                            bool(getattr(args, "stage_b_u2v5_ablation", False))
+                            and str(
+                                getattr(args, "stage_b_u2v5_ablation_phase", "")
+                            )
+                            == "admission"
+                        ):
+                            from tools.stageb_u2v5_ablation_contract import (
+                                validate_admission_runtime_payload,
+                            )
 
-                        initializer_contract = validate_runtime_payload(
-                            model_without_ddp,
-                            checkpoint,
-                            checkpoint_label=f"Stage-B U2-v4 --resume {args.resume}",
-                            initializer_path=Path(
-                                str(args.stage_b_u2v2_initializer_path)
-                            ),
-                            initializer_sha256=str(
-                                args.stage_b_u2v2_initializer_sha256
-                            ),
-                        )
-                        setattr(
-                            args,
-                            "stage_b_u2v4_legacy_training_contract",
-                            initializer_contract,
-                        )
+                            initializer_contract = validate_admission_runtime_payload(
+                                model_without_ddp,
+                                checkpoint,
+                                checkpoint_label=(
+                                    f"Stage-B U2-v5 ablation --resume {args.resume}"
+                                ),
+                                initializer_path=Path(
+                                    str(args.stage_b_u2v2_initializer_path)
+                                ),
+                                initializer_sha256=str(
+                                    args.stage_b_u2v2_initializer_sha256
+                                ),
+                            )
+                            setattr(
+                                args,
+                                "stage_b_u2v5_ablation_contract",
+                                initializer_contract,
+                            )
+                        else:
+                            from tools.stageb_u2v4_legacy_training_contract import (
+                                validate_runtime_payload,
+                            )
+
+                            initializer_contract = validate_runtime_payload(
+                                model_without_ddp,
+                                checkpoint,
+                                checkpoint_label=f"Stage-B U2-v4 --resume {args.resume}",
+                                initializer_path=Path(
+                                    str(args.stage_b_u2v2_initializer_path)
+                                ),
+                                initializer_sha256=str(
+                                    args.stage_b_u2v2_initializer_sha256
+                                ),
+                            )
+                            setattr(
+                                args,
+                                "stage_b_u2v4_legacy_training_contract",
+                                initializer_contract,
+                            )
                         saved_args = checkpoint.get("args")
+                        runtime_key = (
+                            "stage_b_u2v5_ablation_runtime_audit"
+                            if bool(
+                                getattr(args, "stage_b_u2v5_ablation", False)
+                            )
+                            else "stage_b_u2v4_runtime_audit"
+                        )
                         saved_runtime = (
-                            saved_args.get("stage_b_u2v4_runtime_audit")
-                            if isinstance(saved_args, Mapping)
-                            else None
+                            saved_args.get(runtime_key)
+                            if isinstance(saved_args, Mapping) else None
                         )
                         if not isinstance(saved_runtime, Mapping):
-                            raise RuntimeError("U2-v4 resume lacks runtime audit")
-                        setattr(
-                            args, "stage_b_u2v4_runtime_audit", dict(saved_runtime)
-                        )
+                            raise RuntimeError(
+                                f"U2-v4/U2-v5 resume lacks {runtime_key}"
+                            )
+                        setattr(args, runtime_key, dict(saved_runtime))
                     elif bool(
                         getattr(args, "stage_b_u2v3_category_admission", False)
                     ):
@@ -13288,8 +13427,27 @@ def main(args):
                                     admission_state, confidence_keys
                                 )
                             ),
-                            "scope": "proposal_covered_verified",
-                            "table_b_id": "D3",
+                            "scope": str(args.stage_b_gdino_tn_scope),
+                            "table_b_id": str(
+                                getattr(args, "stage_b_v19_table_b_id", "D3")
+                            ),
+                            "table_b_audit_sha256": str(
+                                getattr(
+                                    args,
+                                    "stage_b_v19_table_b_audit_sha256",
+                                    "",
+                                )
+                            ),
+                            "ablation_row_id": (
+                                str(
+                                    getattr(
+                                        args,
+                                        "stage_b_u2v5_ablation_row_id",
+                                        "",
+                                    )
+                                )
+                                or None
+                            ),
                             "c100_confidence_imported": False,
                         },
                     )
@@ -13305,20 +13463,46 @@ def main(args):
                 if bool(
                     getattr(args, "stage_b_u2v4_legacy_training_replay", False)
                 ):
-                    from tools.stageb_u2v4_legacy_training_contract import (
-                        build_training_contract,
-                    )
+                    if (
+                        bool(getattr(args, "stage_b_u2v5_ablation", False))
+                        and str(
+                            getattr(args, "stage_b_u2v5_ablation_phase", "")
+                        )
+                        == "admission"
+                    ):
+                        from tools.stageb_u2v5_ablation_contract import (
+                            build_admission_contract,
+                        )
 
-                    u2v4_contract = build_training_contract(
-                        checkpoint_payload,
-                        initializer_path=Path(args.pretrain_model_path),
-                        initializer_sha256=expected_sha,
-                    )
-                    setattr(
-                        args,
-                        "stage_b_u2v4_legacy_training_contract",
-                        u2v4_contract,
-                    )
+                        contract = build_admission_contract(
+                            checkpoint_payload,
+                            initializer_path=Path(args.pretrain_model_path),
+                            initializer_sha256=expected_sha,
+                            row_id=str(args.stage_b_u2v5_ablation_row_id),
+                            roles=tuple(args.stage_b_u2v5_admission_train_roles),
+                            category_loss_weight=float(
+                                args.stage_b_u2_category_loss_weight
+                            ),
+                            preserve_weight=float(
+                                args.stage_b_u2_target_preserve_weight
+                            ),
+                        )
+                        setattr(args, "stage_b_u2v5_ablation_contract", contract)
+                    else:
+                        from tools.stageb_u2v4_legacy_training_contract import (
+                            build_training_contract,
+                        )
+
+                        u2v4_contract = build_training_contract(
+                            checkpoint_payload,
+                            initializer_path=Path(args.pretrain_model_path),
+                            initializer_sha256=expected_sha,
+                        )
+                        setattr(
+                            args,
+                            "stage_b_u2v4_legacy_training_contract",
+                            u2v4_contract,
+                        )
                 elif bool(
                     getattr(args, "stage_b_u2v5_clean_confidence", False)
                 ):
@@ -13760,7 +13944,18 @@ def main(args):
             if not isinstance(contract, Mapping):
                 raise RuntimeError("cannot checkpoint U2-v3 without ownership provenance")
             payload["u2v3_category_admission"] = dict(contract)
-        if bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False)):
+        if (
+            bool(getattr(args, "stage_b_u2v5_ablation", False))
+            and str(getattr(args, "stage_b_u2v5_ablation_phase", ""))
+            == "admission"
+        ):
+            contract = getattr(args, "stage_b_u2v5_ablation_contract", None)
+            if not isinstance(contract, Mapping):
+                raise RuntimeError(
+                    "cannot checkpoint U2-v5 admission ablation without contract"
+                )
+            payload["u2v5_ablation"] = dict(contract)
+        elif bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False)):
             contract = getattr(
                 args, "stage_b_u2v4_legacy_training_contract", None
             )

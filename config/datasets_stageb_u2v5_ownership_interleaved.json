@@ -1,0 +1,5 @@
+{
+  "admission": "config/datasets_stageb_u2_category_complete_three_ref.json",
+  "confidence": "config/datasets_stageb_u2v5_clean_confidence_d3.json",
+  "schedule": "admission_every_step_confidence_every_second_step"
+}
