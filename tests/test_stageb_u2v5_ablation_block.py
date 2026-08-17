@@ -21,7 +21,7 @@ from tools.aggregate_stageb_u2v5_bootstrap import (
     _bootstrap_ref_comparison,
     _threshold,
 )
-from tools.render_stageb_u2v5_ablation_paper_tables import _holm
+from tools.render_stageb_u2v5_ablation_paper_tables import _bootstrap_tables, _holm
 from tools.stageb_u2v5_ablation_registry import (
     FORMAL_ROWS,
     ROOT,
@@ -30,6 +30,7 @@ from tools.stageb_u2v5_ablation_registry import (
     parse_run_id,
     validate_registry,
 )
+from tools.build_stageb_u2v5_zero_training_supplement import attribute_ref_error
 
 
 def _target(scope: str, table_id: str, audit: str, *, benchmark: bool = False):
@@ -224,6 +225,39 @@ def test_paper_table_holm_is_step_down_monotone():
         "first": pytest.approx(0.02),
         "second": pytest.approx(0.03),
     }
+
+
+def test_ownership_isolation_family_p_uses_strict_superiority(tmp_path):
+    report = tmp_path / "ownership_isolation.json"
+    report.write_text(json.dumps({
+        "schema": "pivot.stageb.u2v5_paired_bootstrap/v1",
+        "contrast": "ownership_isolation",
+        "test5": {"one_sided_p": 0.5},
+        "strict2031": {"one_sided_p": 0.001},
+        "strict1607": {"one_sided_p": 0.01},
+    }))
+    tables, adjusted = _bootstrap_tables([report])
+    assert tables["ownership_isolation"]["family_raw_p"] == 0.001
+    assert adjusted["ownership"]["ownership_isolation"] == 0.001
+
+
+@pytest.mark.parametrize(
+    "all_best,eligible_best,top1,expected",
+    [
+        (0.4, 0.4, 0.4, "geometry"),
+        (0.8, 0.4, 0.4, "admission"),
+        (0.8, 0.8, 0.4, "rank"),
+        (0.8, 0.8, 0.8, "correct"),
+    ],
+)
+def test_zero_training_error_attribution_is_exclusive(
+    all_best, eligible_best, top1, expected
+):
+    assert attribute_ref_error({
+        "all_query_best_iou": all_best,
+        "eligible_query_best_iou": eligible_best,
+        "top1_iou": top1,
+    }) == expected
 
 
 @pytest.mark.parametrize(

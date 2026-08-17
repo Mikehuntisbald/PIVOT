@@ -161,6 +161,14 @@ def _bootstrap_tables(paths: list[Path]) -> tuple[dict[str, Any], dict[str, Any]
                 raise TableError("ownership_schedule requires Test5 NI and strict superiority")
             raw_p = max(float(ni), float(strict))
             reports[contrast]["intersection_union_p"] = raw_p
+        elif contrast == "ownership_isolation":
+            strict = payload.get("strict2031", {}).get("one_sided_p")
+            if strict is None:
+                raise TableError("ownership_isolation requires strict superiority")
+            raw_p = float(strict)
+            reports[contrast]["test5_role"] = (
+                "paired route-preservation effect and CI; not a superiority null"
+            )
         elif endpoint_ps:
             raw_p = max(endpoint_ps)
         else:
