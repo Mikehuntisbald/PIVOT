@@ -76,6 +76,11 @@ def test_all_leaf_configs_bind_registry_and_erase_c100():
         assert values["stage_b_u2v5_ablation_row_id"] == row.row_id
         assert values.get("stage_b_u2v2_c100_checkpoint") is None
         assert values.get("stage_b_u2v2_c100_sha256") is None
+    a4 = runpy.run_path(
+        str(ROOT / "config/ablations/cfg_stageb_u2v5_ablation_a4_no_category_complete.py")
+    )
+    assert a4["stage_b_u2_category_complete_supervision"] is False
+    assert a4["stage_b_u2_category_loss_weight"] == 0.0
 
 
 def test_paired_confidence_datasets_have_one_source_only():

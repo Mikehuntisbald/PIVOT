@@ -278,7 +278,21 @@ def _execute(row: Row, seed: int) -> None:
     env.setdefault("DATA_ROOT", "/media/haoyi/T9/data")
     env.setdefault("CUDA_VISIBLE_DEVICES", "0")
     env.setdefault("TOKENIZERS_PARALLELISM", "false")
-    subprocess.run(plan["command"], cwd=ROOT, env=env, check=True)
+    try:
+        subprocess.run(plan["command"], cwd=ROOT, env=env, check=True)
+    except subprocess.CalledProcessError as error:
+        failure = {
+            "schema": "pivot.stageb.u2v5_ablation_failure/v1",
+            "failed_at": _now(),
+            "row_id": row.row_id,
+            "seed": seed,
+            "returncode": int(error.returncode),
+            "git": _git(),
+            "launch_manifest": _record(launch_path),
+            "status": "failed",
+        }
+        _write(root / "failed_postflight.json", failure)
+        raise
     receipt = _postflight(row, seed, plan)
     _write(root / "postflight.json", receipt)
     print(json.dumps(receipt, indent=2, sort_keys=True))
