@@ -57,6 +57,10 @@ def test_formal_runner_locks_expandable_allocator():
         encoding="utf-8"
     )
     assert 'env["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"' in source
+    ownership = (ROOT / "tools/train_stageb_u2v5_ownership.py").read_text(
+        encoding="utf-8"
+    )
+    assert '4096.0 if row.row_id == "O2" else 8192.0' in ownership
 
 
 def test_run_id_and_nonformal_rows_fail_closed():

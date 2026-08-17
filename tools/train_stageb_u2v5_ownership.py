@@ -313,7 +313,11 @@ def main() -> None:
     criterion = _OwnershipCriterion(admission_criterion.to(device), confidence_criterion).to(device)
     trainable_keys = _set_trainable(model, row.row_id)
     optimizer = _optimizer(model, trainable_keys, args)
-    scaler = torch.amp.GradScaler("cuda", enabled=True, init_scale=8192.0)
+    ownership_amp_init_scale = 4096.0 if row.row_id == "O2" else 8192.0
+    args.amp_init_scale = ownership_amp_init_scale
+    scaler = torch.amp.GradScaler(
+        "cuda", enabled=True, init_scale=ownership_amp_init_scale
+    )
     admission_sets = _datasets(ROOT / "config/datasets_stageb_u2_category_complete_three_ref.json", args)
     confidence_sets = _datasets(ROOT / "config/datasets_stageb_u2v5_clean_confidence_d3.json", args)
     schedule = _TaggedSchedule(
@@ -339,6 +343,7 @@ def main() -> None:
                 payload["model"], frozen_keys
             ),
             "exposure": {"admission": admission_updates, "confidence": confidence_updates},
+            "amp_init_scale": ownership_amp_init_scale,
             "runtime_audit": runtime,
             "gradient_audit": gradient,
             "c100_confidence_imported": False,
