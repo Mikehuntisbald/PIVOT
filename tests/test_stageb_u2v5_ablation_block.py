@@ -61,6 +61,10 @@ def test_formal_runner_locks_expandable_allocator():
         encoding="utf-8"
     )
     assert '4096.0 if row.row_id == "O2" else 8192.0' in ownership
+    evaluator = (
+        ROOT / "tools/run_stageb_u2v5_ablation_evaluations.py"
+    ).read_text(encoding="utf-8")
+    assert "pivot.stageb.u2v5_a2_deployment_parity/v1" in evaluator
 
 
 def test_run_id_and_nonformal_rows_fail_closed():

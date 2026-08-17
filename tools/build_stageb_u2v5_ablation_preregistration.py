@@ -55,7 +55,10 @@ def _git() -> dict[str, str]:
 def _mechanism_summaries(row_id: str, block: str) -> list[Path]:
     root = EVALUATIONS / row_id
     if block == "A":
-        paths = [root / "val3/summary.json"]
+        paths = (
+            [root / "deployment_parity.json"]
+            if row_id == "A2" else [root / "val3/summary.json"]
+        )
     elif block == "C":
         paths = [root / "d3_calibration/summary.json"]
     elif block == "D":

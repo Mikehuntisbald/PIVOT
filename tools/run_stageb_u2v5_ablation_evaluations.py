@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +16,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.stageb_u2v5_ablation_registry import SEEDS, get_row
+from tools.stageb_u2v4_legacy_training_contract import AUXILIARY_RESIDUAL_KEYS
+import torch
 
 
 PYTHON = Path("/home/haoyi/miniconda/envs/cvpr/bin/python")
@@ -42,6 +45,8 @@ def commands(row_id: str, *, require: bool = True) -> list[list[str]]:
     if not row.formal_training:
         raise ValueError(f"row {row_id} is not a new formal row")
     if row.block == "A":
+        if row_id == "A2":
+            return []
         return [[
             *_base(row_id, "val3", require=require),
             "--config", "config/ablations/cfg_stageb_u2v5_ablation_admission_eval_gap3.py",
@@ -101,6 +106,56 @@ def main() -> None:
     env.setdefault("DATA_ROOT", "/media/haoyi/T9/data")
     env.setdefault("CUDA_VISIBLE_DEVICES", "0")
     env.setdefault("TOKENIZERS_PARALLELISM", "false")
+    if args.row_id == "A2":
+        output = EVALUATIONS / "A2" / "deployment_parity.json"
+        if output.exists():
+            raise FileExistsError(f"parity output must be fresh: {output}")
+        initializer = torch.load(
+            ROOT / "outputs/u2v5_leakage_clean_anchor_20260817/initializer/checkpoint_clean_init.pth",
+            map_location="cpu", weights_only=False,
+        )["model"]
+        deploy_keys = sorted(set(initializer) - set(AUXILIARY_RESIDUAL_KEYS))
+        rows = []
+        for seed, checkpoint_path in zip(SEEDS, _checkpoints("A2")):
+            state = torch.load(
+                checkpoint_path, map_location="cpu", weights_only=False
+            )["model"]
+            unequal = [
+                key for key in deploy_keys
+                if not torch.equal(state[key], initializer[key])
+            ]
+            if unequal:
+                raise RuntimeError(
+                    f"A2 seed{seed} changed deployed tensors: {unequal[:8]}"
+                )
+            digest = hashlib.sha256()
+            for key in deploy_keys:
+                digest.update(key.encode("utf-8"))
+                digest.update(state[key].contiguous().numpy().tobytes())
+            rows.append(
+                {
+                    "seed": seed,
+                    "checkpoint": checkpoint_path,
+                    "deploy_tensor_count": len(deploy_keys),
+                    "deploy_tensor_sha256": digest.hexdigest(),
+                    "bitwise_equal_initializer": True,
+                }
+            )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps(
+                {
+                    "schema": "pivot.stageb.u2v5_a2_deployment_parity/v1",
+                    "auxiliary_residual_deployed": False,
+                    "rows": rows,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return
     for command in planned:
         output = Path(command[command.index("--output_dir") + 1])
         if output.exists():
