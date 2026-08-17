@@ -207,7 +207,14 @@ def _reference_by_seed(values: dict, seeds: tuple[int, ...]) -> dict[int, dict]:
     raise BootstrapError("reference records must be shared or seed-aligned")
 
 
-def _bootstrap_ref_comparison(candidate: dict, reference_values: dict, *, iterations: int, rng: np.random.Generator) -> dict[str, Any]:
+def _bootstrap_ref_comparison(
+    candidate: dict,
+    reference_values: dict,
+    *,
+    iterations: int,
+    rng: np.random.Generator,
+    noninferiority_margin: float | None = None,
+) -> dict[str, Any]:
     seeds = _candidate_seeds(candidate)
     references = _reference_by_seed(reference_values, seeds)
     ids = sorted(references[seeds[0]])
@@ -238,7 +245,7 @@ def _bootstrap_ref_comparison(candidate: dict, reference_values: dict, *, iterat
         ]))
     candidate_mean = float(np.mean(list(candidate_observed.values())))
     reference_mean = float(np.mean(list(reference_observed.values())))
-    return {
+    result = {
         "metric": "test5_micro_acc50_gain",
         "expressions": len(ids),
         "unique_images": len(images),
@@ -250,6 +257,17 @@ def _bootstrap_ref_comparison(candidate: dict, reference_values: dict, *, iterat
         "ci95": _percentile(draws),
         "one_sided_p": _pvalue(draws),
     }
+    if noninferiority_margin is not None:
+        if noninferiority_margin < 0:
+            raise BootstrapError("noninferiority margin must be non-negative")
+        result["noninferiority"] = {
+            "margin": float(noninferiority_margin),
+            "one_sided_p": float(
+                (1 + np.count_nonzero(draws <= -float(noninferiority_margin)))
+                / (len(draws) + 1)
+            ),
+        }
+    return result
 
 
 def _threshold(pos: np.ndarray, target_tpr: float = 0.95) -> float:
@@ -355,38 +373,91 @@ def _write(path: Path, value: Mapping[str, Any]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--candidate-ref-summary", required=True)
-    parser.add_argument("--reference-ref-summary", required=True)
-    parser.add_argument("--candidate-strict2031-summary", required=True)
-    parser.add_argument("--reference-strict2031-summary", required=True)
+    parser.add_argument(
+        "--surface",
+        choices=("both", "test5", "strict2031"),
+        default="both",
+        help="Evaluate both endpoints or only the endpoint named by a planned contrast.",
+    )
+    parser.add_argument(
+        "--contrast",
+        default="unspecified",
+        help="Stable planned-contrast identifier written into the receipt.",
+    )
+    parser.add_argument("--candidate-ref-summary")
+    parser.add_argument("--reference-ref-summary")
+    parser.add_argument("--candidate-strict2031-summary")
+    parser.add_argument("--reference-strict2031-summary")
     parser.add_argument("--strict1607-manifest", default=str(DEFAULT_STRICT1607))
     parser.add_argument("--iterations", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=20260719)
+    parser.add_argument("--test5-noninferiority-margin", type=float)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     if args.iterations <= 0:
         raise BootstrapError("iterations must be positive")
-    paths = {
-        "candidate_ref": Path(args.candidate_ref_summary),
-        "reference_ref": Path(args.reference_ref_summary),
-        "candidate_strict2031": Path(args.candidate_strict2031_summary),
-        "reference_strict2031": Path(args.reference_strict2031_summary),
-        "strict1607_manifest": Path(args.strict1607_manifest),
-    }
-    ref_candidate, ref_reference = _load_ref(paths["candidate_ref"]), _load_ref(paths["reference_ref"])
-    tn_candidate, tn_reference = _load_tn(paths["candidate_strict2031"]), _load_tn(paths["reference_strict2031"])
-    strict_ids = sorted(next(iter(tn_candidate.values())))
+    include_ref = args.surface in {"both", "test5"}
+    include_strict = args.surface in {"both", "strict2031"}
+    paths: dict[str, Path] = {}
+    if include_ref:
+        if not args.candidate_ref_summary or not args.reference_ref_summary:
+            raise BootstrapError(
+                "test5 bootstrap requires candidate/reference Ref summaries"
+            )
+        paths.update(
+            candidate_ref=Path(args.candidate_ref_summary),
+            reference_ref=Path(args.reference_ref_summary),
+        )
+    if include_strict:
+        if not args.candidate_strict2031_summary or not args.reference_strict2031_summary:
+            raise BootstrapError(
+                "strict bootstrap requires candidate/reference strict2031 summaries"
+            )
+        paths.update(
+            candidate_strict2031=Path(args.candidate_strict2031_summary),
+            reference_strict2031=Path(args.reference_strict2031_summary),
+            strict1607_manifest=Path(args.strict1607_manifest),
+        )
     seed_sequence = np.random.SeedSequence(args.seed)
     ref_rng, strict2031_rng, strict1607_rng = [np.random.default_rng(child) for child in seed_sequence.spawn(3)]
-    subset = _strict1607_ids(paths["strict1607_manifest"])
     payload = {
         "schema": SCHEMA,
+        "contrast": args.contrast,
+        "surface": args.surface,
         "bootstrap": {"iterations": args.iterations, "base_seed": args.seed, "generator": "PCG64", "cluster": "image_id", "same_draw_all_seeds": True},
         "inputs": {name: _record(path) for name, path in paths.items()},
-        "test5": _bootstrap_ref_comparison(ref_candidate, ref_reference, iterations=args.iterations, rng=ref_rng),
-        "strict2031": _bootstrap_tn_comparison(tn_candidate, tn_reference, strict_ids, iterations=args.iterations, rng=strict2031_rng, name="strict2031"),
-        "strict1607": _bootstrap_tn_comparison(tn_candidate, tn_reference, sorted(subset), iterations=args.iterations, rng=strict1607_rng, name="strict1607"),
     }
+    if include_ref:
+        ref_candidate = _load_ref(paths["candidate_ref"])
+        ref_reference = _load_ref(paths["reference_ref"])
+        payload["test5"] = _bootstrap_ref_comparison(
+            ref_candidate,
+            ref_reference,
+            iterations=args.iterations,
+            rng=ref_rng,
+            noninferiority_margin=args.test5_noninferiority_margin,
+        )
+    if include_strict:
+        tn_candidate = _load_tn(paths["candidate_strict2031"])
+        tn_reference = _load_tn(paths["reference_strict2031"])
+        strict_ids = sorted(next(iter(tn_candidate.values())))
+        subset = _strict1607_ids(paths["strict1607_manifest"])
+        payload["strict2031"] = _bootstrap_tn_comparison(
+            tn_candidate,
+            tn_reference,
+            strict_ids,
+            iterations=args.iterations,
+            rng=strict2031_rng,
+            name="strict2031",
+        )
+        payload["strict1607"] = _bootstrap_tn_comparison(
+            tn_candidate,
+            tn_reference,
+            sorted(subset),
+            iterations=args.iterations,
+            rng=strict1607_rng,
+            name="strict1607",
+        )
     _write(Path(args.output).resolve(), payload)
     print(json.dumps(payload, indent=2, sort_keys=True))
 

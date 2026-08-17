@@ -16,7 +16,12 @@ from models.GroundingDINO.stage_b_gdino_score_adapter import (
     stage_b_gdino_tn_scope_code,
 )
 from tools.stageb_u2v5_ablation_contract import admission_trainable_keys
-from tools.aggregate_stageb_u2v5_bootstrap import _bootstrap_ref, _threshold
+from tools.aggregate_stageb_u2v5_bootstrap import (
+    _bootstrap_ref,
+    _bootstrap_ref_comparison,
+    _threshold,
+)
+from tools.render_stageb_u2v5_ablation_paper_tables import _holm
 from tools.stageb_u2v5_ablation_registry import (
     FORMAL_ROWS,
     ROOT,
@@ -192,6 +197,33 @@ def test_bootstrap_is_deterministic_and_clusters_all_seed_draws():
 
 def test_fpr_threshold_recomputes_positive_q05():
     assert _threshold(np.asarray([0.1, 0.2, 0.3, 0.4]), 0.5) == pytest.approx(0.3)
+
+
+def test_bootstrap_reports_preregistered_noninferiority_gate():
+    reference = {
+        "a": {"sample_id": "a", "image_id": 1, "correct50": False},
+        "b": {"sample_id": "b", "image_id": 2, "correct50": True},
+    }
+    candidate = {
+        seed: {key: {**row, "correct50": True} for key, row in reference.items()}
+        for seed in SEEDS
+    }
+    result = _bootstrap_ref_comparison(
+        candidate,
+        {None: reference},
+        iterations=20,
+        rng=np.random.default_rng(11),
+        noninferiority_margin=0.005,
+    )
+    assert result["noninferiority"]["margin"] == 0.005
+    assert 0 < result["noninferiority"]["one_sided_p"] <= 1
+
+
+def test_paper_table_holm_is_step_down_monotone():
+    assert _holm([("first", 0.01), ("second", 0.03)]) == {
+        "first": pytest.approx(0.02),
+        "second": pytest.approx(0.03),
+    }
 
 
 @pytest.mark.parametrize(
