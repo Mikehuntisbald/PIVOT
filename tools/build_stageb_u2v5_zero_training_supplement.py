@@ -199,6 +199,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True)
     parser.add_argument("--ps-summary")
+    parser.add_argument("--gap-summary")
     args = parser.parse_args()
     val3 = ANCHOR / "formal/ref_val3_admission_u100/summary.json"
     causal = BLOCK / "evaluations/mechanism/A1/val3/summary.json"
@@ -230,7 +231,14 @@ def main() -> None:
         "H_sensitivity": {
             "confidence_milestone": _confidence_milestones(confidence),
             "latency": routes["single_forward_seconds"],
-            "gap": {"selected": 3.0, "selection_surface": "val3 only"},
+            "gap": {
+                "selected": 3.0,
+                "selection_surface": "val3 only",
+                **(
+                    {"sweep_receipt": _record(Path(args.gap_summary))}
+                    if args.gap_summary else {}
+                ),
+            },
         },
         "P_query_geometry": (
             {"status": "complete", "receipt": _record(Path(args.ps_summary))}

@@ -136,8 +136,8 @@ wider admission gate.
   `9db98af1f0fff1c91372a81af43b12627974105863302b42abe59b4675d9bb0f`
 - Final receipt v2 SHA256:
   `98173c28258a25c450530f6929c0a719228c52e401851d37307a33a4d01e8c3d`
-- Complete zero-training M/P/S/G/H supplement v2 SHA256:
-  `f3b3d58f163cb5cb39b1305e5acca9452a3c427cdf26700fd1de2de055de9483`
+- Complete zero-training M/P/S/G/H-core supplement v3 SHA256:
+  `a4a6d43fd705bbabaf578595fed46a8af632676e1c41cd0a92981bb009a43b1c`
 - P/S per-record receipt SHA256:
   `c459bd3323fff5b263bb2210d7c6af20e64491b18be8a54d642e25c6ea59560c`
 
@@ -180,3 +180,30 @@ yet R100 recovers most final accuracy. Therefore the evidence supports
 "support patch controls category admission/candidate compression," not the
 stronger claim that patch pixels are strictly necessary for every correct
 top-1 prediction.
+
+## H sensitivity
+
+The single-forward seed42 val3 gap sweep gives:
+
+| Gap | val3 micro Acc@0.5 |
+|---:|---:|
+| 0 | 0.649539 |
+| 0.5 | 0.693257 |
+| 1 | 0.715154 |
+| 2 | 0.725649 |
+| 3 | 0.724555 |
+| 5 | 0.709831 |
+| 10 / ∞ | 0.695107 |
+
+Gap2 is 0.001095 above the frozen Gap3 anchor on this exploratory seed42 val
+surface. The held-out block has already been opened, so this cannot trigger a
+main-model change or a second Test5/strict evaluation. It is reported only as
+sensitivity and a future-version hypothesis. The curve nevertheless confirms
+that both an overly narrow gate and no effective gate are materially worse.
+
+Confidence milestone sensitivity is sealed for U25/U50/U100; U50 was selected
+by the preregistered worst-seed/mean/earlier-update rule. Queue128/1024,
+candidate-count and support-bank-size sweeps were not added after held-out
+evaluation because they would require new trained checkpoints or new design
+choices outside the frozen 42-trajectory registry. They remain optional future
+exploration rather than missing evidence for the claims tested here.
