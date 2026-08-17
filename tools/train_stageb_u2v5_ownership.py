@@ -10,6 +10,7 @@ import math
 import os
 import random
 import sys
+import traceback
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterable, Mapping
@@ -384,4 +385,15 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        if "--output-dir" in sys.argv:
+            index = sys.argv.index("--output-dir") + 1
+            if index < len(sys.argv):
+                output = Path(sys.argv[index]).resolve()
+                output.mkdir(parents=True, exist_ok=True)
+                (output / "failure_traceback.txt").write_text(
+                    traceback.format_exc(), encoding="utf-8"
+                )
+        raise
