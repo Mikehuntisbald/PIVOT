@@ -1,3 +1,6 @@
+> **Historical pre-ARROW artifact.** PIVOT names and schemas below identify the
+> sealed implementation lineage and are intentionally preserved.
+
 # PIVOT Stage-B CVPR Development Ledger
 
 Date: 2026-08-02

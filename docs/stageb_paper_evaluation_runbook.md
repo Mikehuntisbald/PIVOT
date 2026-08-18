@@ -1,3 +1,6 @@
+> **Historical pre-ARROW artifact.** PIVOT names and schemas below identify the
+> sealed implementation lineage and are intentionally preserved.
+
 # Stage-B Paper Evaluation Runbook
 
 This runbook covers the sealed evaluation path after a training runner has

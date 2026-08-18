@@ -1,4 +1,4 @@
-# U2-v5 CVPR complete ablation design
+# ARROW CVPR complete ablation design (U2-v5 lineage)
 
 Date: 2026-08-17
 

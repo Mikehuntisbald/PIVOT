@@ -1,3 +1,6 @@
+> **Historical pre-ARROW artifact.** PIVOT names and schemas below identify the
+> sealed implementation lineage and are intentionally preserved.
+
 # Semantic Confidence Probe for the Pure-GDINO Adapter
 
 This is an independent confidence-only probe for the frozen pure-GDINO score

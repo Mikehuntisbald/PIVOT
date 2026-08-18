@@ -1,10 +1,32 @@
+# ARROW
+
+**Admission, Ranking, and Rejection with Ownership-Separated Weights for
+Reliable Visual Grounding**
+
+ARROW separates three inference duties that otherwise compete for the same
+score parameters:
+
+- **Admission** determines which detector queries are category-eligible.
+- **Ranking** uses the complete referring expression to order eligible queries.
+- **Rejection** produces an independent absolute confidence for false-positive
+  control.
+
+The public ARROW name covers the paper and release interface. Historical
+checkpoints and receipts retain their original PIVOT/U2-v5 field names,
+`pivot.*` schemas, absolute paths, and hashes as a compatibility lineage; they
+must not be rewritten.
+
+ARROW is implemented on top of the third-party Grounding DINO training code
+below. The original implementation and paper remain credited to their authors:
+**[Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object
+Detection](https://arxiv.org/abs/2303.05499)**.
+
 <div align="center">
   <img src="figs/cute_dino.png" width="35%">
 </div>
 
-This is the third party implementation of the paper **[Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object Detection](https://arxiv.org/abs/2303.05499)** by [Zuwei Long]() and [Wei Li](https://github.com/bigballon).
-
-**You can use this code to fine-tune a model on your own dataset, or start pretraining a model from scratch.**
+**This repository can also be used to fine-tune Grounding DINO on custom data
+or to start pretraining from scratch.**
 
 - [Supported Features](#supported-features)
 - [Setup](#setup)

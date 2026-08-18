@@ -1,3 +1,6 @@
+> **Historical pre-ARROW artifact.** PIVOT names and schemas below identify the
+> sealed implementation lineage and are intentionally preserved.
+
 # Stage-B single-GPU serial matrix queue
 
 `tools/run_stageb_serial_matrix_queue.py` is the durable queue layer for the

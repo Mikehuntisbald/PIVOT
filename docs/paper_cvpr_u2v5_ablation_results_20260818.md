@@ -1,4 +1,4 @@
-# U2-v5 CVPR ablation results (2026-08-18)
+# ARROW CVPR ablation results (U2-v5 lineage, 2026-08-18)
 
 ## Paper-level conclusion
 

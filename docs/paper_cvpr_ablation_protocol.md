@@ -1,3 +1,6 @@
+> **Historical pre-ARROW artifact.** PIVOT names and schemas below identify the
+> sealed implementation lineage and are intentionally preserved.
+
 # CVPR Stage-B Ablation Protocol
 
 > Historical protocol for the checkpoint0004/Top-50/v19-v24 model family.

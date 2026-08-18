@@ -1,4 +1,4 @@
-# U2-v5 CVPR ablation trajectory receipt (2026-08-18)
+# ARROW CVPR ablation trajectory receipt (U2-v5 lineage, 2026-08-18)
 
 ## Scope
 

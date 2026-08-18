@@ -1,4 +1,4 @@
-# U2-v5 CVPR ablation execution runbook
+# ARROW CVPR ablation execution runbook (U2-v5 lineage)
 
 > Execution status (2026-08-18): 42 historical trajectories were executed;
 > 33 remain manuscript-visible after archiving D2/D2m/D3m. Mechanism

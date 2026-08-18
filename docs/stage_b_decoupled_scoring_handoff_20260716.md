@@ -1,3 +1,6 @@
+> **Historical pre-ARROW artifact.** PIVOT names and schemas below identify the
+> sealed implementation lineage and are intentionally preserved.
+
 # Stage-B Decoupled Scoring Development Handoff
 
 Date: 2026-07-16
