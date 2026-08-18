@@ -776,10 +776,16 @@ class GroundingDINO(nn.Module):
         spatial = int(self.stage_b_arrow_source_spatial_size)
         if spatial <= 0:
             raise RuntimeError("ARROW Admission spatial size must be positive")
-        feature = source[:, :, None, None].expand(-1, -1, spatial, spatial)
-        projected = self.patch_encoder.input_proj(feature)
-        pooled = self.patch_encoder.pool(projected).flatten(1)
-        return F.normalize(self.patch_encoder.norm(pooled), dim=-1)
+        # The category-agnostic constant route can create a large first-step
+        # fp16 surface gradient. Keep the shared source projection in fp32 while
+        # retaining the global AMP scale and optimizer contract.
+        with torch.autocast(device_type=source.device.type, enabled=False):
+            feature = source.float()[:, :, None, None].expand(
+                -1, -1, spatial, spatial
+            )
+            projected = self.patch_encoder.input_proj(feature)
+            pooled = self.patch_encoder.pool(projected).flatten(1)
+            return F.normalize(self.patch_encoder.norm(pooled), dim=-1)
 
     def _stage_b_arrow_canonical_source(
         self, captions: Sequence[str], device: torch.device,
@@ -1263,13 +1269,33 @@ class GroundingDINO(nn.Module):
             if self.patch_logit_scale is None or self.query_proj_for_patch is None:
                 raise RuntimeError("patch_global was provided but this model was built without a patch branch.")
             logit_scale = self.patch_logit_scale.exp().clamp(max=self.patch_logit_scale_max)
-            query_proj = F.normalize(self.query_proj_for_patch(hs[-1]), dim=-1)
+            if (
+                self.stage_b_arrow_admission_input_ablation
+                and arrow_source != "support_patch"
+            ):
+                with torch.autocast(device_type=hs[-1].device.type, enabled=False):
+                    query_proj = F.normalize(
+                        self.query_proj_for_patch(hs[-1].float()), dim=-1
+                    )
+            else:
+                query_proj = F.normalize(self.query_proj_for_patch(hs[-1]), dim=-1)
             patch_global = F.normalize(patch_global, dim=-1)
             # Support both single-patch (B,d) and multi-patch (B,K,d) inputs.
             if patch_global.dim() == 2:
-                base_score_patch = logit_scale * torch.einsum(
-                    "bqd,bd->bq", query_proj, patch_global
-                )
+                if (
+                    self.stage_b_arrow_admission_input_ablation
+                    and arrow_source != "support_patch"
+                ):
+                    with torch.autocast(
+                        device_type=query_proj.device.type, enabled=False
+                    ):
+                        base_score_patch = logit_scale.float() * torch.einsum(
+                            "bqd,bd->bq", query_proj.float(), patch_global.float()
+                        )
+                else:
+                    base_score_patch = logit_scale * torch.einsum(
+                        "bqd,bd->bq", query_proj, patch_global
+                    )
                 if self.stage_b_data_driven_patch_residual is not None:
                     residual_inputs = (query_proj, patch_global)
                     if bool(
