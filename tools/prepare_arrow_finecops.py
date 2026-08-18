@@ -558,6 +558,17 @@ def build_manifests(
         or hf_receipt.get("all_required_present") is not True
     ):
         raise ValueError("selective GQA image-source receipt is incomplete")
+    official_zip_receipt_path = manifest_dir / "official_gqa_zip_verification.json"
+    if not official_zip_receipt_path.is_file():
+        raise ValueError("official GQA zip verification receipt is missing")
+    official_zip_receipt = load_json(official_zip_receipt_path)
+    if (
+        official_zip_receipt.get("schema")
+        != "arrow.finecops.gqa_zip_verification/v1"
+        or official_zip_receipt.get("required_image_crc_parity") is not True
+        or int(official_zip_receipt.get("required_image_count", -1)) != 4313
+    ):
+        raise ValueError("official GQA zip byte parity is incomplete")
     payload = {
         "schema": DATASET_SCHEMA,
         "status": "prepared_before_model_forward",
@@ -571,6 +582,11 @@ def build_manifests(
             "claim": "benchmark_specific_zero_shot_not_image_disjoint",
             "finecops_test_gqa_images": len(test_gqa_ids),
             "finecops_test_coco_crosswalk_images": len(test_coco_ids),
+        },
+        "image_pixel_source": {
+            "role": "official_gqa_zip_bytes",
+            "verification": file_record(official_zip_receipt_path),
+            "hf_mirror_role": "discovery_only_reencoded_bytes_not_used",
         },
         "manifests": {
             "all": file_record(all_path, rows=len(all_rows)),
@@ -591,6 +607,9 @@ def build_manifests(
             "support_cache": file_record(support_cache),
             "vg_metadata": file_record(vg_metadata),
             "hf_gqa_selective_download": file_record(hf_receipt_path),
+            "official_gqa_zip_verification": file_record(
+                official_zip_receipt_path
+            ),
             "coco_train2017": file_record(
                 DEFAULT_COCO_ROOT / "annotations" / "instances_train2017.json"
             ),

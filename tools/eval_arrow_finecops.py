@@ -213,8 +213,13 @@ def run(
     if route not in {"A", "B", "C"} or seed not in {17, 42, 73}:
         raise ValueError("FineCops route/seed is outside preregistration")
     prereg = load_json(preregistration_path)
-    if prereg.get("schema") != PREREG_SCHEMA or prereg.get("status") != (
-        "locked_before_any_finecops_model_forward"
+    allowed_statuses = {
+        "locked_before_any_finecops_model_forward",
+        "locked_before_official_gqa_byte_correction_replay",
+    }
+    if (
+        prereg.get("schema") != PREREG_SCHEMA
+        or prereg.get("status") not in allowed_statuses
     ):
         raise ValueError("FineCops preregistration is not locked")
     _verify_artifact(file_record(preregistration_path), label="preregistration")

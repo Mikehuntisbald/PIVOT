@@ -39,6 +39,10 @@ DEFAULT_CALIBRATION = (
 DEFAULT_OUTPUT = REPO_ROOT / "outputs/arrow_finecops_20260819/preregistration.json"
 DEFAULT_RESULTS = REPO_ROOT / "outputs/arrow_finecops_20260819/evaluations"
 DEFAULT_OFFICIAL_REPO = Path("/media/haoyi/T9/data/FineCops-Ref/v1/official_repo")
+DEFAULT_CORRECTION_PARENT = REPO_ROOT / (
+    "outputs/arrow_finecops_hf_reencoded_diagnostic_20260819/"
+    "diagnostic_relocation.json"
+)
 
 
 def _git(command: list[str]) -> str:
@@ -116,6 +120,7 @@ def build(
     output_path: Path,
     results_root: Path,
     official_repo: Path,
+    correction_parent: Path | None,
 ) -> dict[str, Any]:
     if results_root.exists() and any(results_root.iterdir()):
         raise ValueError(
@@ -165,9 +170,27 @@ def build(
         REPO_ROOT / "tools/build_arrow_finecops_final_receipt.py",
         Path(__file__).resolve(),
     ]
+    correction = None
+    status = "locked_before_any_finecops_model_forward"
+    if correction_parent is not None:
+        correction_payload = load_json(correction_parent)
+        if (
+            correction_payload.get("schema")
+            != "arrow.finecops.hf_reencoded_diagnostic_relocation/v1"
+            or correction_payload.get("model_results_viewed") is not True
+        ):
+            raise ValueError("FineCops correction parent contract drifted")
+        correction = {
+            "parent": file_record(correction_parent),
+            "reason": "HF GQA mirror reencoded 4313/4313 JPEGs relative to official GQA zip",
+            "scope": "official_gqa_image_bytes_only",
+            "prior_results_viewed": True,
+            "planned_models_contrasts_statistics_unchanged": True,
+        }
+        status = "locked_before_official_gqa_byte_correction_replay"
     payload = {
         "schema": PREREG_SCHEMA,
-        "status": "locked_before_any_finecops_model_forward",
+        "status": status,
         "claim": "finecops_specific_external_zero_shot_not_image_disjoint",
         "prohibitions": {
             "finecops_train_or_val": True,
@@ -176,6 +199,7 @@ def build(
             "post_result_alias_addition": True,
             "gap_change": True,
         },
+        "correction_replay": correction,
         "dataset": file_record(dataset_manifest_path),
         "release_manifest": file_record(release_manifest_path),
         "checkpoint_lock": file_record(checkpoint_lock_path),
@@ -252,6 +276,9 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--results-root", type=Path, default=DEFAULT_RESULTS)
     parser.add_argument("--official-repo", type=Path, default=DEFAULT_OFFICIAL_REPO)
+    parser.add_argument(
+        "--correction-parent", type=Path, default=DEFAULT_CORRECTION_PARENT
+    )
     args = parser.parse_args()
     payload = build(
         dataset_manifest_path=args.dataset_manifest.resolve(strict=True),
@@ -261,6 +288,11 @@ def main() -> None:
         output_path=args.output,
         results_root=args.results_root,
         official_repo=args.official_repo.resolve(strict=True),
+        correction_parent=(
+            args.correction_parent.resolve(strict=True)
+            if args.correction_parent is not None
+            else None
+        ),
     )
     print(json.dumps(payload, indent=2, sort_keys=True))
 
