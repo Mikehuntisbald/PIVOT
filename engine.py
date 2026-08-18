@@ -1216,17 +1216,39 @@ def _record_stage_b_u2v5_ablation_runtime_audit(
     args, device: torch.device, *, optimizer_step_succeeded: bool,
     branch_grad_norms: Mapping[str, float], amp_scale: Optional[float],
 ) -> None:
-    if not (
+    legacy_ablation = (
         bool(getattr(args, "stage_b_u2v5_ablation", False))
         and str(getattr(args, "stage_b_u2v5_ablation_phase", ""))
         == "admission"
-    ):
+    )
+    arrow_ablation = bool(
+        getattr(args, "stage_b_arrow_admission_input_ablation", False)
+    )
+    if not (legacy_ablation or arrow_ablation):
         return
-    roles = tuple(getattr(args, "stage_b_u2v5_admission_train_roles", ()))
-    existing = getattr(args, "stage_b_u2v5_ablation_runtime_audit", None)
+    roles = (
+        ("surface8", "auxiliary8")
+        if arrow_ablation
+        else tuple(getattr(args, "stage_b_u2v5_admission_train_roles", ()))
+    )
+    audit_attr = (
+        "stage_b_arrow_admission_runtime_audit"
+        if arrow_ablation else "stage_b_u2v5_ablation_runtime_audit"
+    )
+    existing = getattr(args, audit_attr, None)
     audit = dict(existing) if isinstance(existing, Mapping) else {
-        "schema": "pivot.stageb.u2v5_ablation_runtime/v1",
-        "row_id": str(getattr(args, "stage_b_u2v5_ablation_row_id", "")),
+        "schema": (
+            "arrow.stageb.admission_input_runtime/v1"
+            if arrow_ablation else "pivot.stageb.u2v5_ablation_runtime/v1"
+        ),
+        "row_id": str(
+            getattr(
+                args,
+                "stage_b_arrow_admission_row_id"
+                if arrow_ablation else "stage_b_u2v5_ablation_row_id",
+                "",
+            )
+        ),
         "trainable_roles": list(roles),
         "optimizer_step_boundaries": 0,
         "successful_optimizer_steps": 0,
@@ -1279,7 +1301,7 @@ def _record_stage_b_u2v5_ablation_runtime_audit(
         audit["minimum_device_free_bytes"] = min(
             int(audit.get("minimum_device_free_bytes", total)), int(free)
         )
-    setattr(args, "stage_b_u2v5_ablation_runtime_audit", audit)
+    setattr(args, audit_attr, audit)
 
 
 def _clip_stage_b_gdino_adapter_grad_norms(
@@ -3764,6 +3786,16 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         stage_b_u0_patch_rank = bool(
             getattr(args, "stage_b_u0_patch_rank", False)
         )
+        stage_b_arrow_admission_input_ablation = bool(
+            getattr(args, "stage_b_arrow_admission_input_ablation", False)
+        )
+        stage_b_arrow_admission_source = str(
+            getattr(args, "stage_b_arrow_admission_source", "support_patch")
+        ).strip().lower()
+        arrow_requires_support = (
+            not stage_b_arrow_admission_input_ablation
+            or stage_b_arrow_admission_source == "support_patch"
+        )
         stage_b_data_driven_score = bool(
             getattr(args, "stage_b_data_driven_score", False)
         )
@@ -3778,6 +3810,21 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             else None
         )
         raw_targets = list(targets)
+        stage_b_arrow_admission_captions = None
+        if stage_b_arrow_admission_input_ablation:
+            if stage_b_arrow_admission_source == "canonical_text":
+                stage_b_arrow_admission_captions = []
+                for row_index, target in enumerate(raw_targets):
+                    canonical = target.get("stage_a_caption")
+                    if not isinstance(canonical, str) or not canonical.strip():
+                        raise RuntimeError(
+                            f"ARROW canonical row {row_index} lacks stage_a_caption"
+                        )
+                    stage_b_arrow_admission_captions.append(canonical)
+            elif stage_b_arrow_admission_source != "learned_null" and (
+                stage_b_arrow_admission_source != "support_patch"
+            ):
+                raise RuntimeError("ARROW Admission source contract drifted")
         ownership_task = None
         if bool(getattr(args, "stage_b_u2v5_ownership", False)):
             ownership_tasks = {
@@ -3954,7 +4001,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             if (
                 (
                     not stage_b_gdino_adapter
-                    or stage_b_u0_patch_rank
+                    or (stage_b_u0_patch_rank and arrow_requires_support)
                     or stage_b_data_driven_score
                 )
                 and all(("patch" in t) for t in targets)
@@ -3964,7 +4011,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             if (
                 (
                     not stage_b_gdino_adapter
-                    or stage_b_u0_patch_rank
+                    or (stage_b_u0_patch_rank and arrow_requires_support)
                     or stage_b_data_driven_score
                 )
                 and all(("patch_global" in t) for t in targets)
@@ -3972,7 +4019,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                 patch_global = torch.stack([t["patch_global"] for t in targets], dim=0).to(device, non_blocking=True)
             if (
                 (
-                    stage_b_u0_patch_rank
+                    (stage_b_u0_patch_rank and arrow_requires_support)
                     or stage_b_data_driven_score
                     or stage_b_native_patch_category
                 )
@@ -4771,6 +4818,11 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                         patch_global[start:end]
                                         if torch.is_tensor(patch_global) else None
                                     ),
+                                    stage_b_arrow_admission_captions=(
+                                        stage_b_arrow_admission_captions[start:end]
+                                        if stage_b_arrow_admission_captions is not None
+                                        else None
+                                    ),
                                 )
                                 if u2v3_training:
                                     required = (
@@ -4828,6 +4880,9 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                                 captions=captions,
                                 patches=patches,
                                 patch_global=patch_global,
+                                stage_b_arrow_admission_captions=(
+                                    stage_b_arrow_admission_captions
+                                ),
                             )
                     else:
                         if gdino_adapter_pair is None:

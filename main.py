@@ -9336,6 +9336,24 @@ def _freeze_and_audit_stage_b_u2v4_legacy_training_replay(model) -> int:
     return trainable
 
 
+def _freeze_and_audit_stage_b_arrow_admission(model) -> int:
+    """Expose exactly the shared legacy surface8 + auxiliary8 for ARROW."""
+    from tools.stageb_u2v4_legacy_training_contract import TRAINABLE_KEYS
+
+    total = _freeze_and_audit_stage_b_u2v4_legacy_training_replay(model)
+    observed = {
+        name for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    if observed != set(TRAINABLE_KEYS):
+        raise RuntimeError("ARROW Admission ownership differs from surface16")
+    if any(parameter.requires_grad for parameter in model.bert.parameters()):
+        raise RuntimeError("ARROW Admission must freeze B58 BERT")
+    if any(parameter.requires_grad for parameter in model.backbone.parameters()):
+        raise RuntimeError("ARROW Admission must freeze the shared backbone")
+    return total
+
+
 def _freeze_and_audit_stage_b_u2v5_admission_ablation(
     model, roles,
 ) -> int:
@@ -11317,6 +11335,19 @@ def main(args):
         trainable_params, trainable_modules = _trainable_param_summary(
             model_without_ddp
         )
+    elif bool(getattr(args, "stage_b_arrow_admission_input_ablation", False)):
+        total_trainable = _freeze_and_audit_stage_b_arrow_admission(
+            model_without_ddp
+        )
+        logger.info(
+            "ARROW Admission-input audit passed: "
+            f"row={getattr(args, 'stage_b_arrow_admission_row_id', '')}, "
+            f"source={getattr(args, 'stage_b_arrow_admission_source', '')}, "
+            f"surface8+auxiliary8 parameters={total_trainable:,}."
+        )
+        trainable_params, trainable_modules = _trainable_param_summary(
+            model_without_ddp
+        )
     elif (
         bool(getattr(args, "stage_b_u2v5_ablation", False))
         and str(getattr(args, "stage_b_u2v5_ablation_phase", ""))
@@ -11522,6 +11553,14 @@ def main(args):
             ),
             patch_lr=float(
                 getattr(args, "stage_b_data_driven_patch_lr", args.lr)
+            ),
+        )
+    elif bool(getattr(args, "stage_b_arrow_admission_input_ablation", False)):
+        param_dicts = _stage_b_u2v5_admission_ablation_optimizer_groups(
+            model_without_ddp,
+            residual_lr=float(getattr(args, "stage_b_u0_patch_rank_lr", args.lr)),
+            patch_projection_lr=float(
+                getattr(args, "stage_b_u0_patch_projection_lr", args.lr)
             ),
         )
     elif (
@@ -12482,7 +12521,28 @@ def main(args):
                     if bool(
                         getattr(args, "stage_b_u2v4_legacy_training_replay", False)
                     ):
-                        if (
+                        if bool(
+                            getattr(
+                                args, "stage_b_arrow_admission_input_ablation", False
+                            )
+                        ):
+                            from tools.stageb_arrow_admission_contract import (
+                                validate_checkpoint_payload,
+                            )
+
+                            initializer_contract = validate_checkpoint_payload(
+                                model_without_ddp,
+                                checkpoint,
+                                row_id=str(args.stage_b_arrow_admission_row_id),
+                                source=str(args.stage_b_arrow_admission_source),
+                                state_from_payload=True,
+                            )
+                            setattr(
+                                args,
+                                "stage_b_arrow_admission_contract",
+                                initializer_contract,
+                            )
+                        elif (
                             bool(getattr(args, "stage_b_u2v5_ablation", False))
                             and str(
                                 getattr(args, "stage_b_u2v5_ablation_phase", "")
@@ -12534,7 +12594,15 @@ def main(args):
                             )
                         saved_args = checkpoint.get("args")
                         runtime_key = (
-                            "stage_b_u2v5_ablation_runtime_audit"
+                            "stage_b_arrow_admission_runtime_audit"
+                            if bool(
+                                getattr(
+                                    args,
+                                    "stage_b_arrow_admission_input_ablation",
+                                    False,
+                                )
+                            )
+                            else "stage_b_u2v5_ablation_runtime_audit"
                             if bool(
                                 getattr(args, "stage_b_u2v5_ablation", False)
                             )
@@ -13463,7 +13531,28 @@ def main(args):
                 if bool(
                     getattr(args, "stage_b_u2v4_legacy_training_replay", False)
                 ):
-                    if (
+                    if bool(
+                        getattr(
+                            args, "stage_b_arrow_admission_input_ablation", False
+                        )
+                    ):
+                        from tools.stageb_arrow_admission_contract import (
+                            build_training_contract,
+                        )
+
+                        arrow_contract = build_training_contract(
+                            checkpoint_payload,
+                            initializer_path=Path(args.pretrain_model_path),
+                            initializer_sha256=expected_sha,
+                            row_id=str(args.stage_b_arrow_admission_row_id),
+                            source=str(args.stage_b_arrow_admission_source),
+                        )
+                        setattr(
+                            args,
+                            "stage_b_arrow_admission_contract",
+                            arrow_contract,
+                        )
+                    elif (
                         bool(getattr(args, "stage_b_u2v5_ablation", False))
                         and str(
                             getattr(args, "stage_b_u2v5_ablation_phase", "")
@@ -13944,6 +14033,18 @@ def main(args):
             if not isinstance(contract, Mapping):
                 raise RuntimeError("cannot checkpoint U2-v3 without ownership provenance")
             payload["u2v3_category_admission"] = dict(contract)
+        if bool(getattr(args, "stage_b_arrow_admission_input_ablation", False)):
+            contract = getattr(args, "stage_b_arrow_admission_contract", None)
+            if not isinstance(contract, Mapping):
+                raise RuntimeError(
+                    "cannot checkpoint ARROW Admission input without contract"
+                )
+            payload["arrow_admission_input"] = {
+                **dict(contract),
+                "runtime_audit": dict(
+                    getattr(args, "stage_b_arrow_admission_runtime_audit", {})
+                ),
+            }
         if (
             bool(getattr(args, "stage_b_u2v5_ablation", False))
             and str(getattr(args, "stage_b_u2v5_ablation_phase", ""))
@@ -13955,7 +14056,12 @@ def main(args):
                     "cannot checkpoint U2-v5 admission ablation without contract"
                 )
             payload["u2v5_ablation"] = dict(contract)
-        elif bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False)):
+        elif (
+            bool(getattr(args, "stage_b_u2v4_legacy_training_replay", False))
+            and not bool(
+                getattr(args, "stage_b_arrow_admission_input_ablation", False)
+            )
+        ):
             contract = getattr(
                 args, "stage_b_u2v4_legacy_training_contract", None
             )

@@ -210,6 +210,9 @@ class GroundingDINO(nn.Module):
         self.stage_b_u0_gate_aligned_rank_residual = None
         self.stage_b_u0_gate_aligned_patch_residual = None
         self.stage_b_u2v2_rank_residual = None
+        self.stage_b_arrow_admission_input_ablation = False
+        self.stage_b_arrow_admission_source = "support_patch"
+        self.stage_b_arrow_source_spatial_size = 7
         self.stage_b_data_driven_score_heads = None
         self.stage_b_data_driven_patch_residual = None
         self.stage_b_native_patch_category = False
@@ -752,6 +755,73 @@ class GroundingDINO(nn.Module):
             "text_self_attention_masks": text_self_attention_masks,
         }, phrase_token_mask
 
+    def _project_stage_b_arrow_source(
+        self, source: torch.Tensor,
+    ) -> torch.Tensor:
+        """Project one frozen 768-d Admission source through legacy surface8."""
+        if not self.stage_b_arrow_admission_input_ablation:
+            raise RuntimeError("ARROW Admission source projection is disabled")
+        if self.patch_encoder is None or self.query_proj_for_patch is None:
+            raise RuntimeError("ARROW Admission requires the legacy patch surface")
+        expected_dim = int(self.patch_encoder.input_proj[0].in_channels)
+        if (
+            not torch.is_tensor(source)
+            or source.dim() != 2
+            or int(source.shape[1]) != expected_dim
+            or not source.is_floating_point()
+        ):
+            raise ValueError(
+                f"ARROW Admission source must have shape (B,{expected_dim})"
+            )
+        spatial = int(self.stage_b_arrow_source_spatial_size)
+        if spatial <= 0:
+            raise RuntimeError("ARROW Admission spatial size must be positive")
+        feature = source[:, :, None, None].expand(-1, -1, spatial, spatial)
+        projected = self.patch_encoder.input_proj(feature)
+        pooled = self.patch_encoder.pool(projected).flatten(1)
+        return F.normalize(self.patch_encoder.norm(pooled), dim=-1)
+
+    def _stage_b_arrow_canonical_source(
+        self, captions: Sequence[str], device: torch.device,
+    ) -> torch.Tensor:
+        if len(captions) <= 0 or any(
+            not isinstance(caption, str) or not caption.strip()
+            for caption in captions
+        ):
+            raise ValueError(
+                "canonical_text Admission requires one non-empty caption per row"
+            )
+        raw_text, phrase_mask = self._encode_stage_b_v11_captions(
+            list(captions), device, apply_feat_map=False
+        )
+        encoded = raw_text["encoded_text"].detach()
+        phrase_mask = phrase_mask.to(device=device, dtype=torch.bool)
+        if tuple(phrase_mask.shape) != tuple(encoded.shape[:2]) or bool(
+            (~phrase_mask.any(dim=1)).any().item()
+        ):
+            raise RuntimeError("canonical Admission phrase-token mask is invalid")
+        count = phrase_mask.sum(dim=1, keepdim=True).to(dtype=encoded.dtype)
+        return (
+            encoded.masked_fill(~phrase_mask[:, :, None], 0.0).sum(dim=1)
+            / count
+        )
+
+    def _stage_b_arrow_null_source(
+        self, batch_size: int, device: torch.device, dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if int(batch_size) <= 0:
+            raise ValueError("learned_null Admission requires a positive batch")
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(20260818)
+        sentinel = torch.randint(
+            0, 2, (int(self.bert.config.hidden_size),), generator=generator,
+            dtype=torch.int64,
+        ).to(dtype=torch.float32)
+        sentinel = (sentinel.mul_(2.0).sub_(1.0)) / sentinel.numel() ** 0.5
+        return sentinel.to(device=device, dtype=dtype)[None, :].expand(
+            int(batch_size), -1
+        )
+
     def _build_stage_b_dense_duty_context(
         self,
         captions: Sequence[str],
@@ -1140,14 +1210,54 @@ class GroundingDINO(nn.Module):
         residual_score_patch = None
         aux_score_patch_list = None
         patch_gate = None
-        patch_global = patch_global_in
-        if patch_global is None and patches is not None:
+        arrow_source = (
+            str(self.stage_b_arrow_admission_source)
+            if self.stage_b_arrow_admission_input_ablation
+            else "support_patch"
+        )
+        if arrow_source not in {
+            "support_patch", "canonical_text", "learned_null"
+        }:
+            raise RuntimeError(f"unknown ARROW Admission source {arrow_source!r}")
+        patch_global = patch_global_in if arrow_source == "support_patch" else None
+        if arrow_source == "canonical_text":
+            arrow_captions = kw.get("stage_b_arrow_admission_captions")
+            if (
+                not isinstance(arrow_captions, (list, tuple))
+                or len(arrow_captions) != bs
+            ):
+                raise RuntimeError(
+                    "canonical_text Admission requires an explicit aligned "
+                    "stage_b_arrow_admission_captions batch"
+                )
+            canonical_source = self._stage_b_arrow_canonical_source(
+                list(arrow_captions), hs[-1].device
+            )
+            patch_global = self._project_stage_b_arrow_source(canonical_source)
+        elif arrow_source == "learned_null":
+            if kw.get("stage_b_arrow_admission_captions") is not None:
+                raise RuntimeError(
+                    "learned_null Admission forbids canonical caption input"
+                )
+            null_source = self._stage_b_arrow_null_source(
+                bs, hs[-1].device, hs[-1].dtype
+            )
+            patch_global = self._project_stage_b_arrow_source(null_source)
+        if patch_global is None and patches is not None and arrow_source == "support_patch":
             if self.patch_encoder is None:
                 raise RuntimeError("Patch inputs were provided but this model was built without a patch branch.")
             patch_text_dict = text_dict if self.patch_encoder.gate_with_text else None
             patch_enc_out = self.patch_encoder(patches, text_dict=patch_text_dict, return_tokens=False)
             patch_global = patch_enc_out.get("patch_global", None)
             patch_gate = patch_enc_out.get("patch_gate", None)
+
+        if (
+            self.stage_b_arrow_admission_input_ablation
+            and patch_global is None
+        ):
+            raise RuntimeError(
+                f"ARROW Admission source {arrow_source!r} produced no global input"
+            )
 
         if patch_global is not None:
             if self.patch_logit_scale is None or self.query_proj_for_patch is None:
@@ -1262,6 +1372,10 @@ class GroundingDINO(nn.Module):
             "pred_logits_patch_residual": residual_score_patch,
             "pred_boxes": outputs_coord_list[-1],
         }
+        if self.stage_b_arrow_admission_input_ablation:
+            out["stage_b_arrow_admission_raw_score"] = score_patch
+            if bool(kw.get("stage_b_arrow_panel_diagnostics", False)):
+                out["stage_b_arrow_query_projection"] = query_proj
         if return_main_phrase_mask:
             main_phrase_rows = text_dict.get("phrase_to_token_mask", None)
             if (
@@ -1384,6 +1498,13 @@ class GroundingDINO(nn.Module):
                 out["stage_b_u0_candidate_mask"] = u0_output[
                     "candidate_mask"
                 ]
+                if self.stage_b_arrow_admission_input_ablation:
+                    out["stage_b_arrow_admission_standardized_score"] = (
+                        u0_output["admission_standardized_score"]
+                    )
+                    out["stage_b_arrow_admission_rank_score"] = u0_output[
+                        "rank_score"
+                    ]
                 if "category_gate_eligible_mask" in u0_output:
                     out["stage_b_u0_pre_category_gate_rank_score"] = u0_output[
                         "pre_category_gate_rank_score"
@@ -1394,6 +1515,10 @@ class GroundingDINO(nn.Module):
                     out["stage_b_u0_category_gate_patch_score"] = u0_output[
                         "category_gate_patch_score"
                     ]
+                    if self.stage_b_arrow_admission_input_ablation:
+                        out["stage_b_arrow_admission_eligible_mask"] = u0_output[
+                            "category_gate_eligible_mask"
+                        ]
                     if self.stage_b_u2v2_rank_residual is not None:
                         out["stage_b_u2v2_patch_r100_rank_score"] = u0_output[
                             "rank_score"
@@ -3180,6 +3305,25 @@ def build_groundingdino(args):
     stage_b_u2v5_ownership = bool(
         getattr(args, "stage_b_u2v5_ownership", False)
     )
+    stage_b_arrow_admission_input_ablation = bool(
+        getattr(args, "stage_b_arrow_admission_input_ablation", False)
+    )
+    stage_b_arrow_admission_source = str(
+        getattr(args, "stage_b_arrow_admission_source", "support_patch")
+    ).strip().lower()
+    if stage_b_arrow_admission_source not in {
+        "support_patch", "canonical_text", "learned_null"
+    }:
+        raise ValueError(
+            f"unknown stage_b_arrow_admission_source "
+            f"{stage_b_arrow_admission_source!r}"
+        )
+    if stage_b_arrow_admission_input_ablation and (
+        not stage_b_u0_patch_rank or not stage_b_u2v2
+    ):
+        raise ValueError(
+            "ARROW Admission input ablation requires the U2-v5 U0/Gap shell"
+        )
     stage_b_data_driven_score = bool(
         getattr(args, "stage_b_data_driven_score", False)
     )
@@ -3403,6 +3547,15 @@ def build_groundingdino(args):
     )
     model.stage_b_native_patch_category = stage_b_native_patch_category
     model.stage_b_gdino_ref_top1_guard = stage_b_gdino_ref_top1_guard
+    model.stage_b_arrow_admission_input_ablation = (
+        stage_b_arrow_admission_input_ablation
+    )
+    model.stage_b_arrow_admission_source = stage_b_arrow_admission_source
+    model.stage_b_arrow_source_spatial_size = int(
+        getattr(args, "stage_b_arrow_source_spatial_size", 7)
+    )
+    if model.stage_b_arrow_source_spatial_size != 7:
+        raise ValueError("ARROW shared surface8 contract requires a 7x7 source")
 
     if stage_b_gdino_score_adapter:
         from .stage_b_gdino_score_adapter import StageBGDINOScoreAdapter

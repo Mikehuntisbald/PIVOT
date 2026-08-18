@@ -663,6 +663,7 @@ class StageBU0PatchRankAdapter(nn.Module):
             eligible = mask
         result = {
             "teacher_rank_score": teacher,
+            "admission_standardized_score": patch_normalized,
             "patch_rank_residual": residual,
             "learned_patch_rank_residual": learned_residual,
             "direct_patch_rank_residual": direct_residual,

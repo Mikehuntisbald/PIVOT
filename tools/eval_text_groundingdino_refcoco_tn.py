@@ -691,7 +691,24 @@ def _load_model_with_checkpoint_contract(
 ):
     summary_fields = _merged_eval_checkpoint_summary_fields(cfg, checkpoint)
     model = _load_model(cfg, str(checkpoint), device)
-    if bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False)):
+    arrow_eval = bool(
+        getattr(cfg, "stage_b_arrow_admission_input_ablation", False)
+    ) and str(getattr(cfg, "stage_b_arrow_admission_source", "")) in {
+        "canonical_text", "learned_null"
+    }
+    if arrow_eval:
+        from tools.stageb_arrow_admission_contract import (
+            validate_checkpoint_payload,
+        )
+
+        checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
+        validate_checkpoint_payload(
+            model,
+            checkpoint_payload,
+            row_id=str(getattr(cfg, "stage_b_arrow_admission_row_id")),
+            source=str(getattr(cfg, "stage_b_arrow_admission_source")),
+        )
+    elif bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False)):
         from tools.stageb_u2v5_ablation_contract import (
             validate_ownership_runtime_payload,
         )
@@ -738,6 +755,7 @@ def _load_model_with_checkpoint_contract(
         )
     if (
         bool(getattr(cfg, "stage_b_u2v4_checkpoint_eval", False))
+        and not arrow_eval
         and not bool(getattr(cfg, "stage_b_u2v5_ablation_eval", False))
         and not bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False))
     ):
@@ -4055,6 +4073,24 @@ def _forward_ref_batch(cfg, model, batch, device: torch.device, *, amp: bool):
                     f"Stage-B U0 Ref target {index} requires a non-empty caption"
                 )
         captions = [str(caption) for caption in captions]
+        arrow_source = str(
+            getattr(cfg, "stage_b_arrow_admission_source", "support_patch")
+        ).strip().lower()
+        arrow_captions = None
+        if bool(getattr(cfg, "stage_b_arrow_admission_input_ablation", False)):
+            if arrow_source == "canonical_text":
+                arrow_captions = []
+                for index, target in enumerate(raw_targets):
+                    canonical = target.get("stage_a_caption")
+                    if not isinstance(canonical, str) or not canonical.strip():
+                        raise RuntimeError(
+                            f"ARROW canonical Ref row {index} lacks stage_a_caption"
+                        )
+                    arrow_captions.append(canonical)
+            elif arrow_source == "learned_null":
+                pass
+            elif arrow_source != "support_patch":
+                raise RuntimeError("ARROW Ref source contract drifted")
 
         def caption_route(mode: str) -> list[str]:
             if mode == "full":
@@ -4158,6 +4194,7 @@ def _forward_ref_batch(cfg, model, batch, device: torch.device, *, amp: bool):
                 patch_mask=patch_mask,
                 patch_only=False,
                 disable_patch_dn=True,
+                stage_b_arrow_admission_captions=arrow_captions,
             )
             if rank_captions != query_captions:
                 rank_outputs = model(
