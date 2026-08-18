@@ -104,6 +104,7 @@ def _write(path: Path, payload: Mapping[str, Any]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--supersedes")
     args = parser.parse_args()
     if (OUTPUT_ROOT / "training").exists():
         raise ArrowPreregistrationError("training root already exists before design lock")
@@ -190,6 +191,19 @@ def main() -> None:
         "test5": {"status": "prospectively_frozen_post_release", "noninferiority_margin": 0.005, "strict_forward": False},
         "inputs": inputs,
     }
+    if args.supersedes:
+        previous_path = Path(args.supersedes).resolve(strict=True)
+        previous = json.loads(previous_path.read_text(encoding="utf-8"))
+        if previous.get("schema") != SCHEMA:
+            raise ArrowPreregistrationError("superseded preregistration schema drifted")
+        payload["supersedes"] = _record(previous_path)
+        payload["amendment"] = {
+            "reason": "fp32 shared provider surface after pre-evaluation C-null AMP overflow",
+            "amp_init_scale_unchanged": 8192,
+            "all_six_rows_retrained": True,
+            "model_results_viewed": False,
+            "heldout_results_viewed": False,
+        }
     _write(Path(args.output), payload)
     print(json.dumps({"status": "locked", "receipt": _record(Path(args.output))}, indent=2))
 
