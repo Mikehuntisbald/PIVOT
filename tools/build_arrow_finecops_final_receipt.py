@@ -15,7 +15,13 @@ if str(REPO_ROOT) not in sys.path:
 from tools.arrow_finecops_common import FINAL_SCHEMA, file_record, load_json, write_json_atomic
 
 
-def build(preregistration: Path, results: Path, table: Path, output: Path) -> dict:
+def build(
+    preregistration: Path,
+    results: Path,
+    table: Path,
+    gqa_zip_verification: Path,
+    output: Path,
+) -> dict:
     prereg = load_json(preregistration)
     result = load_json(results)
     if prereg.get("schema") != "arrow.finecops.preregistration/v1":
@@ -28,6 +34,13 @@ def build(preregistration: Path, results: Path, table: Path, output: Path) -> di
         raise ValueError("FineCops frozen-route parity did not pass")
     if result.get("official_exact_status") != "complete_external_pinned_evaluator":
         raise ValueError("pinned official evaluator has not completed")
+    gqa = load_json(gqa_zip_verification)
+    if (
+        gqa.get("schema") != "arrow.finecops.gqa_zip_verification/v1"
+        or gqa.get("required_image_crc_parity") is not True
+        or int(gqa.get("required_image_count", -1)) != 4313
+    ):
+        raise ValueError("official GQA zip verification is incomplete")
     payload = {
         "schema": FINAL_SCHEMA,
         "status": "complete",
@@ -35,6 +48,7 @@ def build(preregistration: Path, results: Path, table: Path, output: Path) -> di
         "preregistration": file_record(preregistration),
         "results": file_record(results),
         "paper_table": file_record(table),
+        "official_gqa_zip_verification": file_record(gqa_zip_verification),
         "dataset": dict(prereg["dataset"]),
         "checkpoints": dict(prereg["checkpoints"]),
         "official_exact": result["official_exact"],
@@ -64,6 +78,14 @@ def main() -> None:
         default=REPO_ROOT / "outputs/arrow_finecops_20260819/paper_table.md",
     )
     parser.add_argument(
+        "--gqa-zip-verification",
+        type=Path,
+        default=Path(
+            "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/"
+            "official_gqa_zip_verification.json"
+        ),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=REPO_ROOT / "outputs/arrow_finecops_20260819/final_receipt.json",
@@ -73,6 +95,7 @@ def main() -> None:
         args.preregistration.resolve(strict=True),
         args.results.resolve(strict=True),
         args.table.resolve(strict=True),
+        args.gqa_zip_verification.resolve(strict=True),
         args.output,
     )
     print(json.dumps(payload, indent=2, sort_keys=True))
