@@ -1,0 +1,18 @@
+{
+  "archive": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/raw/gqa/images.zip",
+    "sha256": "02ce5c49c793accd5305356de9c39a50f80a7aaac193b0203de30dbbc65bde62",
+    "size_bytes": 21817965542
+  },
+  "mismatch_count": 0,
+  "origin_contract": {
+    "accept_ranges": "bytes",
+    "content_length": 21817965542,
+    "etag": "\"5c55f4cb-51473bbe6\""
+  },
+  "required_image_count": 4313,
+  "required_image_crc_parity": true,
+  "schema": "arrow.finecops.gqa_zip_verification/v1",
+  "source_url": "https://downloads.cs.stanford.edu/nlp/data/gqa/images.zip",
+  "zip_member_count": 148855
+}

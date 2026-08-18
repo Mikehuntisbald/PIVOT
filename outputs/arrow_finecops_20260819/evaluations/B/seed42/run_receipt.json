@@ -1,0 +1,37 @@
+{
+  "amp": true,
+  "batch_size": 16,
+  "checkpoint": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed42.pth",
+    "sha256": "1eca2d3e3dc21e557dc8eba0b9506620469a717edb025009e039ea5a566a9b1b",
+    "size_bytes": 693721254
+  },
+  "checkpoint_contract_summary": {},
+  "config": {
+    "path": "/media/haoyi/T9/pivot/config/ablations/cfg_arrow_finecops_b.py",
+    "sha256": "8fc38ced07fad60557a666e189f95bafd42b8d5432887698db1be8c22cc81de9",
+    "size_bytes": 260
+  },
+  "device": "cuda:0",
+  "finecops_threshold_fitted": false,
+  "manifest": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/finecops_test_bc_full.jsonl",
+    "rows": 27926,
+    "sha256": "cf076f3d3685dd170955b83348eb07438d20e6f11510a72213bd476d800e0c0b",
+    "size_bytes": 48804717
+  },
+  "num_workers": 4,
+  "preregistration_amendment": null,
+  "records": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/evaluations/B/seed42/records.jsonl",
+    "rows": 27926,
+    "sha256": "907f436d599e8827178043f21d56de0482ee763032178114c363d33f56f1029c",
+    "size_bytes": 32446254
+  },
+  "route": "B",
+  "rows": 27926,
+  "schema": "arrow.finecops.run_receipt/v1",
+  "seconds": 988.8545024394989,
+  "seed": 42,
+  "status": "complete"
+}

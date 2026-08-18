@@ -1,0 +1,2959 @@
+{
+  "a_support_contract": {
+    "coverage": 0.955960437272254,
+    "coverage_penalized_precision1_lower_bound_by_seed": {
+      "17": 0.5143154606975534,
+      "42": 0.5147319104633004,
+      "73": 0.5149401353461739
+    },
+    "coverage_penalized_precision1_lower_bound_mean": 0.5146625021690093,
+    "covered_positive_count": 9182,
+    "total_positive_count": 9605,
+    "unsupported_negative_counted_as_rejection": false
+  },
+  "bootstrap": {
+    "cluster": "parent_positive_gqa_image",
+    "contrasts": {
+      "image_A_minus_B": {
+        "ci95": [
+          0.0044857620898715546,
+          0.011132148068956743
+        ],
+        "family": "image",
+        "gain": 0.007742309443961315,
+        "holm_adjusted_p": 0.0003999200159968006,
+        "one_sided_p": 0.0001999600079984003
+      },
+      "image_B_minus_C": {
+        "ci95": [
+          0.013157124180591529,
+          0.021524347112030485
+        ],
+        "family": "image",
+        "gain": 0.017264936032791,
+        "holm_adjusted_p": 0.0003999200159968006,
+        "one_sided_p": 0.0001999600079984003
+      },
+      "positive_A_minus_B": {
+        "ci95": [
+          0.0019877739998312785,
+          0.009298844563202235
+        ],
+        "family": "positive",
+        "gain": 0.0056300428349486675,
+        "holm_adjusted_p": 0.001999600079984003,
+        "one_sided_p": 0.001999600079984003
+      },
+      "positive_B_minus_C": {
+        "ci95": [
+          0.01176241244734558,
+          0.020713176852387487
+        ],
+        "family": "positive",
+        "gain": 0.016082856199043816,
+        "holm_adjusted_p": 0.0003999200159968006,
+        "one_sided_p": 0.0001999600079984003
+      },
+      "text_A_minus_B": {
+        "ci95": [
+          0.0029693632633655586,
+          0.008611060061536965
+        ],
+        "family": "text",
+        "gain": 0.005734118002112598,
+        "holm_adjusted_p": 0.0003999200159968006,
+        "one_sided_p": 0.0001999600079984003
+      },
+      "text_B_minus_C": {
+        "ci95": [
+          0.0123574185091299,
+          0.02041723317415048
+        ],
+        "family": "text",
+        "gain": 0.01629696695337257,
+        "holm_adjusted_p": 0.0003999200159968006,
+        "one_sided_p": 0.0001999600079984003
+      }
+    },
+    "iterations": 5000,
+    "seed": 20260819
+  },
+  "claim": "finecops_specific_external_zero_shot_not_image_disjoint",
+  "finecops_threshold_fitted": false,
+  "metrics": {
+    "A": {
+      "17": {
+        "positive_count": 9182,
+        "precision1_by_level": {
+          "1": 0.66930729550479,
+          "2": 0.3534925914726338,
+          "3": 0.3087248322147651
+        },
+        "precision1_macro": 0.44384157306406297,
+        "precision1_micro": 0.5380091483336964,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.950010890873448,
+              "aupr": 0.5987595828459554,
+              "auroc": 0.5980113340837048,
+              "fpr95": 0.8438703266674947,
+              "negative_count": 8051,
+              "positive_count": 9182,
+              "threshold_at_95tpr": 0.4853445589542389
+            },
+            "negative_count": 8051,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500736919675755,
+              "aupr": 0.5022665804551204,
+              "auroc": 0.6246734043574643,
+              "fpr95": 0.8377841261955037,
+              "negative_count": 8051,
+              "positive_count": 5428,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500683144950938,
+              "aupr": 0.6063766016080585,
+              "auroc": 0.6294714151575102,
+              "fpr95": 0.8387777915786859,
+              "negative_count": 8051,
+              "positive_count": 8051,
+              "threshold_at_95tpr": 0.488499253988266
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1210,
+                "recall1": 0.5289256198347108
+              },
+              "attribute|L2": {
+                "count": 544,
+                "recall1": 0.3694852941176471
+              },
+              "flip|L1": {
+                "count": 1022,
+                "recall1": 0.33170254403131116
+              },
+              "flip|L2": {
+                "count": 457,
+                "recall1": 0.3347921225382932
+              },
+              "object|L1": {
+                "count": 2458,
+                "recall1": 0.5793327908868999
+              },
+              "object|L2": {
+                "count": 1482,
+                "recall1": 0.4001349527665317
+              },
+              "order|L1": {
+                "count": 282,
+                "recall1": 0.34397163120567376
+              },
+              "swap_attr|L1": {
+                "count": 462,
+                "recall1": 0.4199134199134199
+              },
+              "swap_attr|L2": {
+                "count": 134,
+                "recall1": 0.44029850746268656
+              }
+            },
+            "recall1_strict_tie_fail": 0.4595702397217737,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.46395120888695274,
+              "negative_fpr": 0.657930691839523,
+              "positive_tpr": 0.806904813766064,
+              "threshold": 0.2301006317138672
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.950010890873448,
+              "aupr": 0.5593645234796563,
+              "auroc": 0.5695709205396154,
+              "fpr95": 0.881167949298325,
+              "negative_count": 8836,
+              "positive_count": 9182,
+              "threshold_at_95tpr": 0.4853445589542389
+            },
+            "negative_count": 8836,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500736919675755,
+              "aupr": 0.4625128163894917,
+              "auroc": 0.598093476793035,
+              "fpr95": 0.8758488003621548,
+              "negative_count": 8836,
+              "positive_count": 5428,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500905387052965,
+              "aupr": 0.5875092475294166,
+              "auroc": 0.6039289696908466,
+              "fpr95": 0.870076957899502,
+              "negative_count": 8836,
+              "positive_count": 8836,
+              "threshold_at_95tpr": 0.4923725426197052
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1117,
+                "recall1": 0.5622202327663384
+              },
+              "attribute|L2": {
+                "count": 515,
+                "recall1": 0.36893203883495146
+              },
+              "object|L1": {
+                "count": 2110,
+                "recall1": 0.5469194312796208
+              },
+              "object|L2": {
+                "count": 1401,
+                "recall1": 0.3761598857958601
+              },
+              "order|L1": {
+                "count": 1254,
+                "recall1": 0.4154704944178628
+              },
+              "order|L2": {
+                "count": 152,
+                "recall1": 0.3092105263157895
+              },
+              "relation|L1": {
+                "count": 1271,
+                "recall1": 0.34382376081825333
+              },
+              "relation|L2": {
+                "count": 519,
+                "recall1": 0.3583815028901734
+              },
+              "swap_attr|L1": {
+                "count": 382,
+                "recall1": 0.4214659685863874
+              },
+              "swap_attr|L2": {
+                "count": 115,
+                "recall1": 0.45217391304347826
+              }
+            },
+            "recall1_strict_tie_fail": 0.44171570846536895,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.46395120888695274,
+              "negative_fpr": 0.7086917157084653,
+              "positive_tpr": 0.806904813766064,
+              "threshold": 0.2301006317138672
+            }
+          }
+        }
+      },
+      "42": {
+        "positive_count": 9182,
+        "precision1_by_level": {
+          "1": 0.6700442151805454,
+          "2": 0.3528878137284548,
+          "3": 0.3131991051454139
+        },
+        "precision1_macro": 0.44537704468480466,
+        "precision1_micro": 0.5384447832716184,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.950010890873448,
+              "aupr": 0.605249515345107,
+              "auroc": 0.6043571177329798,
+              "fpr95": 0.8376599180226059,
+              "negative_count": 8051,
+              "positive_count": 9182,
+              "threshold_at_95tpr": 0.47590187191963196
+            },
+            "negative_count": 8051,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500736919675755,
+              "aupr": 0.5070489082736575,
+              "auroc": 0.6303220616323334,
+              "fpr95": 0.8345547137001614,
+              "negative_count": 8051,
+              "positive_count": 5428,
+              "threshold_at_95tpr": 0.4779551327228546
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500683144950938,
+              "aupr": 0.6096208477201045,
+              "auroc": 0.634756333293895,
+              "fpr95": 0.8346789218730593,
+              "negative_count": 8051,
+              "positive_count": 8051,
+              "threshold_at_95tpr": 0.4778003990650177
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1210,
+                "recall1": 0.5247933884297521
+              },
+              "attribute|L2": {
+                "count": 544,
+                "recall1": 0.3639705882352941
+              },
+              "flip|L1": {
+                "count": 1022,
+                "recall1": 0.34344422700587085
+              },
+              "flip|L2": {
+                "count": 457,
+                "recall1": 0.3304157549234136
+              },
+              "object|L1": {
+                "count": 2458,
+                "recall1": 0.5781122864117169
+              },
+              "object|L2": {
+                "count": 1482,
+                "recall1": 0.41025641025641024
+              },
+              "order|L1": {
+                "count": 282,
+                "recall1": 0.35815602836879434
+              },
+              "swap_attr|L1": {
+                "count": 462,
+                "recall1": 0.4199134199134199
+              },
+              "swap_attr|L2": {
+                "count": 134,
+                "recall1": 0.44776119402985076
+              }
+            },
+            "recall1_strict_tie_fail": 0.46193019500683147,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.45894140710084946,
+              "negative_fpr": 0.6369395106197988,
+              "positive_tpr": 0.7943803093008059,
+              "threshold": 0.31912317872047424
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.950010890873448,
+              "aupr": 0.5660806148429731,
+              "auroc": 0.5763747521451175,
+              "fpr95": 0.8753961068356723,
+              "negative_count": 8836,
+              "positive_count": 9182,
+              "threshold_at_95tpr": 0.47590187191963196
+            },
+            "negative_count": 8836,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500736919675755,
+              "aupr": 0.46718779677596894,
+              "auroc": 0.6041463866416379,
+              "fpr95": 0.8734721593481213,
+              "negative_count": 8836,
+              "positive_count": 5428,
+              "threshold_at_95tpr": 0.4779551327228546
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500905387052965,
+              "aupr": 0.5906997019332813,
+              "auroc": 0.6092607795468598,
+              "fpr95": 0.8660027161611589,
+              "negative_count": 8836,
+              "positive_count": 8836,
+              "threshold_at_95tpr": 0.4836971163749695
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1117,
+                "recall1": 0.5532676812891674
+              },
+              "attribute|L2": {
+                "count": 515,
+                "recall1": 0.3572815533980582
+              },
+              "object|L1": {
+                "count": 2110,
+                "recall1": 0.5440758293838862
+              },
+              "object|L2": {
+                "count": 1401,
+                "recall1": 0.3783012134189864
+              },
+              "order|L1": {
+                "count": 1254,
+                "recall1": 0.41068580542264754
+              },
+              "order|L2": {
+                "count": 152,
+                "recall1": 0.34868421052631576
+              },
+              "relation|L1": {
+                "count": 1271,
+                "recall1": 0.3485444531864674
+              },
+              "relation|L2": {
+                "count": 519,
+                "recall1": 0.35067437379576105
+              },
+              "swap_attr|L1": {
+                "count": 382,
+                "recall1": 0.4319371727748691
+              },
+              "swap_attr|L2": {
+                "count": 115,
+                "recall1": 0.43478260869565216
+              }
+            },
+            "recall1_strict_tie_fail": 0.4400181077410593,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.45894140710084946,
+              "negative_fpr": 0.6860570393843368,
+              "positive_tpr": 0.7943803093008059,
+              "threshold": 0.31912317872047424
+            }
+          }
+        }
+      },
+      "73": {
+        "positive_count": 9182,
+        "precision1_by_level": {
+          "1": 0.66930729550479,
+          "2": 0.35500453583308134,
+          "3": 0.31096196868008946
+        },
+        "precision1_macro": 0.44509126667265364,
+        "precision1_micro": 0.5386626007405794,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.950010890873448,
+              "aupr": 0.5988660558278696,
+              "auroc": 0.5982609543640883,
+              "fpr95": 0.8393988324431748,
+              "negative_count": 8051,
+              "positive_count": 9182,
+              "threshold_at_95tpr": 0.5910544991493225
+            },
+            "negative_count": 8051,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500736919675755,
+              "aupr": 0.5031655122680998,
+              "auroc": 0.6274760400420788,
+              "fpr95": 0.8313253012048193,
+              "negative_count": 8051,
+              "positive_count": 5428,
+              "threshold_at_95tpr": 0.5964414477348328
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9504409390137871,
+              "aupr": 0.6056882167595202,
+              "auroc": 0.6309027018339998,
+              "fpr95": 0.8339336728356725,
+              "negative_count": 8051,
+              "positive_count": 8051,
+              "threshold_at_95tpr": 0.5948983430862427
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1210,
+                "recall1": 0.5223140495867769
+              },
+              "attribute|L2": {
+                "count": 544,
+                "recall1": 0.3602941176470588
+              },
+              "flip|L1": {
+                "count": 1022,
+                "recall1": 0.34637964774951074
+              },
+              "flip|L2": {
+                "count": 457,
+                "recall1": 0.3347921225382932
+              },
+              "object|L1": {
+                "count": 2458,
+                "recall1": 0.5768917819365338
+              },
+              "object|L2": {
+                "count": 1482,
+                "recall1": 0.3960863697705803
+              },
+              "order|L1": {
+                "count": 282,
+                "recall1": 0.3475177304964539
+              },
+              "swap_attr|L1": {
+                "count": 462,
+                "recall1": 0.42207792207792205
+              },
+              "swap_attr|L2": {
+                "count": 134,
+                "recall1": 0.43283582089552236
+              }
+            },
+            "recall1_strict_tie_fail": 0.4584523661656937,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.46297103027662817,
+              "negative_fpr": 0.6457582908955409,
+              "positive_tpr": 0.7948159442387279,
+              "threshold": 0.753686785697937
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.950010890873448,
+              "aupr": 0.5626497867848139,
+              "auroc": 0.5721579343784693,
+              "fpr95": 0.8763014938886374,
+              "negative_count": 8836,
+              "positive_count": 9182,
+              "threshold_at_95tpr": 0.5910544991493225
+            },
+            "negative_count": 8836,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500736919675755,
+              "aupr": 0.46704770120130257,
+              "auroc": 0.6033892738155325,
+              "fpr95": 0.8695110909913988,
+              "negative_count": 8836,
+              "positive_count": 5428,
+              "threshold_at_95tpr": 0.5964414477348328
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9502037120869171,
+              "aupr": 0.5891460101544841,
+              "auroc": 0.6065273080863278,
+              "fpr95": 0.8681530104119511,
+              "negative_count": 8836,
+              "positive_count": 8836,
+              "threshold_at_95tpr": 0.598119854927063
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1117,
+                "recall1": 0.5577439570277529
+              },
+              "attribute|L2": {
+                "count": 515,
+                "recall1": 0.37087378640776697
+              },
+              "object|L1": {
+                "count": 2110,
+                "recall1": 0.5497630331753555
+              },
+              "object|L2": {
+                "count": 1401,
+                "recall1": 0.38187009279086365
+              },
+              "order|L1": {
+                "count": 1254,
+                "recall1": 0.40749601275917063
+              },
+              "order|L2": {
+                "count": 152,
+                "recall1": 0.3092105263157895
+              },
+              "relation|L1": {
+                "count": 1271,
+                "recall1": 0.35641227380015733
+              },
+              "relation|L2": {
+                "count": 519,
+                "recall1": 0.35452793834296725
+              },
+              "swap_attr|L1": {
+                "count": 382,
+                "recall1": 0.4293193717277487
+              },
+              "swap_attr|L2": {
+                "count": 115,
+                "recall1": 0.4260869565217391
+              }
+            },
+            "recall1_strict_tie_fail": 0.44330013580805794,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.46297103027662817,
+              "negative_fpr": 0.6912630149388864,
+              "positive_tpr": 0.7948159442387279,
+              "threshold": 0.753686785697937
+            }
+          }
+        }
+      }
+    },
+    "B": {
+      "17": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6546247818499127,
+          "2": 0.34782608695652173,
+          "3": 0.3057324840764331
+        },
+        "precision1_macro": 0.4360611176276225,
+        "precision1_micro": 0.5287870900572619,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5964289535170785,
+              "auroc": 0.5970280285451911,
+              "fpr95": 0.8460091689197132,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4854263365268707
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.5007908931067819,
+              "auroc": 0.6219896313702031,
+              "fpr95": 0.840014106030328,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500411425884565,
+              "aupr": 0.6049932116253166,
+              "auroc": 0.6269055366473034,
+              "fpr95": 0.8409545080521923,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.488499253988266
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.5130228887134964
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.36048526863084923
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.31215469613259667
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.3283582089552239
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.5662327718223583
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.3887107119948685
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.3127035830618892
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.4086242299794661
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4125874125874126
+              }
+            },
+            "recall1_strict_tie_fail": 0.4455154578582344,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.45611660593440917,
+              "negative_fpr": 0.6576936640413776,
+              "positive_tpr": 0.8048932847475273,
+              "threshold": 0.2301006317138672
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5451549964001722,
+              "auroc": 0.57037912990048,
+              "fpr95": 0.8820052985530874,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4854263365268707
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.44897318540550135,
+              "auroc": 0.5969823267754047,
+              "fpr95": 0.8764010597106174,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500713266761769,
+              "aupr": 0.5868859256319359,
+              "auroc": 0.602735716194044,
+              "fpr95": 0.8713062971265539,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.4919978082180023
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5533731853116994
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.3664259927797834
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5233118971061094
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3663704716336295
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.41452442159383035
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.3072289156626506
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.33432171979243885
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.34870848708487084
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.4119106699751861
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4426229508196721
+              }
+            },
+            "recall1_strict_tie_fail": 0.4325453433869982,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.45611660593440917,
+              "negative_fpr": 0.7057265131444874,
+              "positive_tpr": 0.8048932847475273,
+              "threshold": 0.2301006317138672
+            }
+          }
+        }
+      },
+      "42": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6518324607329843,
+          "2": 0.34430082256169214,
+          "3": 0.29936305732484075
+        },
+        "precision1_macro": 0.4318321135398391,
+        "precision1_micro": 0.5255596043727225,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.6028129269509693,
+              "auroc": 0.6032010995996988,
+              "fpr95": 0.8398965557775949,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4763910472393036
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.505542614156558,
+              "auroc": 0.6275258174614848,
+              "fpr95": 0.837310450217468,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4783760905265808
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501586928411896,
+              "aupr": 0.6082429947983495,
+              "auroc": 0.6321527452986152,
+              "fpr95": 0.8376631009756671,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.4778003990650177
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.5074980268350434
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.35008665511265163
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.32044198895027626
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.32196162046908317
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.5624042879019908
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.3989737010904426
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.3289902280130293
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.4004106776180698
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4125874125874126
+              }
+            },
+            "recall1_strict_tie_fail": 0.4455154578582344,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.44924518479958353,
+              "negative_fpr": 0.6362995180439638,
+              "positive_tpr": 0.7916710046850599,
+              "threshold": 0.31912317872047424
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5515313487792189,
+              "auroc": 0.5769875541394773,
+              "fpr95": 0.8759934787038924,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4763910472393036
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.4533165503973182,
+              "auroc": 0.6029106832103299,
+              "fpr95": 0.8738536784185857,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4783760905265808
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9502751171795394,
+              "aupr": 0.5898100907616477,
+              "auroc": 0.6079529316615728,
+              "fpr95": 0.8672304870593031,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.4831934869289398
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5388556789069172
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.34657039711191334
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5209003215434084
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.36363636363636365
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.4055269922879177
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.3313253012048193
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.33580429948109713
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.33579335793357934
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.41687344913151364
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4180327868852459
+              }
+            },
+            "recall1_strict_tie_fail": 0.4270429997962095,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.44924518479958353,
+              "negative_fpr": 0.6833095577746077,
+              "positive_tpr": 0.7916710046850599,
+              "threshold": 0.31912317872047424
+            }
+          }
+        }
+      },
+      "73": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6485165794066318,
+          "2": 0.34224441833137487,
+          "3": 0.3036093418259023
+        },
+        "precision1_macro": 0.4314567798546363,
+        "precision1_micro": 0.5230609057782405,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5965419580054424,
+              "auroc": 0.5972033748487864,
+              "fpr95": 0.842835312095921,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5905121564865112
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.5016015995171336,
+              "auroc": 0.6245640434496916,
+              "fpr95": 0.834489244151875,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.596257746219635
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9503937933466557,
+              "aupr": 0.6042537070060519,
+              "auroc": 0.6281560159785988,
+              "fpr95": 0.8367226989538028,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.5948983430862427
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.4956590370955012
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.35008665511265163
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.32136279926335176
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.31982942430703626
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.5547473200612557
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.38486209108402825
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.31596091205211724
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.39630390143737165
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4125874125874126
+              }
+            },
+            "recall1_strict_tie_fail": 0.43810979193605265,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.44986985944820407,
+              "negative_fpr": 0.6444104854825438,
+              "positive_tpr": 0.7921915668922436,
+              "threshold": 0.753686785697937
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5484921817685833,
+              "auroc": 0.5728904739025626,
+              "fpr95": 0.877725697982474,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5905121564865112
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.45345578219848687,
+              "auroc": 0.6020367313710406,
+              "fpr95": 0.8704911351131037,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.596257746219635
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501732219278581,
+              "aupr": 0.588505756286728,
+              "auroc": 0.6051553546463508,
+              "fpr95": 0.8688608110862034,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.5979846715927124
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5388556789069172
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.3664259927797834
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5188906752411575
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3663704716336295
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.40424164524421596
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.30120481927710846
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.3365455893254262
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.3376383763837638
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.4119106699751861
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4098360655737705
+              }
+            },
+            "recall1_strict_tie_fail": 0.427246790299572,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.44986985944820407,
+              "negative_fpr": 0.6873853678418586,
+              "positive_tpr": 0.7921915668922436,
+              "threshold": 0.753686785697937
+            }
+          }
+        }
+      }
+    },
+    "B58": {
+      "17": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6565445026178011,
+          "2": 0.34665099882491185,
+          "3": 0.29723991507430997
+        },
+        "precision1_macro": 0.433478472172341,
+        "precision1_micro": 0.5290994273815721,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5821597762432317,
+              "auroc": 0.5781099339020008,
+              "fpr95": 0.8632890560714706,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5615811944007874
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.4860681226681888,
+              "auroc": 0.6030397715791389,
+              "fpr95": 0.8556482896438228,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.5625623464584351
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501586928411896,
+              "aupr": 0.592687768886085,
+              "auroc": 0.6101237699005828,
+              "fpr95": 0.8542376866110262,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.5626958012580872
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.4909234411996843
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3396880415944541
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.31031307550644566
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.3326226012793177
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.555895865237366
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.36754329698524696
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.32247557003257327
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.39014373716632444
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.40559440559440557
+              }
+            },
+            "recall1_strict_tie_fail": 0.43293758081579875
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5319552198908395,
+              "auroc": 0.5545749748020097,
+              "fpr95": 0.8912777664560831,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5615811944007874
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.43557843657613443,
+              "auroc": 0.5807569483492436,
+              "fpr95": 0.8835337273283065,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.5625623464584351
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9502751171795394,
+              "aupr": 0.5744815886539719,
+              "auroc": 0.587067789808307,
+              "fpr95": 0.879967393519462,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.5631471872329712
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5431255337318531
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.351985559566787
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5180868167202572
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3513328776486671
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.4003856041131105
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.29518072289156627
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.3306152705707932
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.33579335793357934
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.3771712158808933
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.39344262295081966
+              }
+            },
+            "recall1_strict_tie_fail": 0.421234970450377
+          }
+        }
+      },
+      "42": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6565445026178011,
+          "2": 0.34665099882491185,
+          "3": 0.29723991507430997
+        },
+        "precision1_macro": 0.433478472172341,
+        "precision1_micro": 0.5290994273815721,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5821597762432317,
+              "auroc": 0.5781099339020008,
+              "fpr95": 0.8632890560714706,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5615811944007874
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.4860681226681888,
+              "auroc": 0.6030397715791389,
+              "fpr95": 0.8556482896438228,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.5625623464584351
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501586928411896,
+              "aupr": 0.592687768886085,
+              "auroc": 0.6101237699005828,
+              "fpr95": 0.8542376866110262,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.5626958012580872
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.4909234411996843
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3396880415944541
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.31031307550644566
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.3326226012793177
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.555895865237366
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.36754329698524696
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.32247557003257327
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.39014373716632444
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.40559440559440557
+              }
+            },
+            "recall1_strict_tie_fail": 0.43293758081579875
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5319552198908395,
+              "auroc": 0.5545749748020097,
+              "fpr95": 0.8912777664560831,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5615811944007874
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.43557843657613443,
+              "auroc": 0.5807569483492436,
+              "fpr95": 0.8835337273283065,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.5625623464584351
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9502751171795394,
+              "aupr": 0.5744815886539719,
+              "auroc": 0.587067789808307,
+              "fpr95": 0.879967393519462,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.5631471872329712
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5431255337318531
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.351985559566787
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5180868167202572
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3513328776486671
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.4003856041131105
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.29518072289156627
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.3306152705707932
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.33579335793357934
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.3771712158808933
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.39344262295081966
+              }
+            },
+            "recall1_strict_tie_fail": 0.421234970450377
+          }
+        }
+      },
+      "73": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6565445026178011,
+          "2": 0.34665099882491185,
+          "3": 0.29723991507430997
+        },
+        "precision1_macro": 0.433478472172341,
+        "precision1_micro": 0.5290994273815721,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5821597762432317,
+              "auroc": 0.5781099339020008,
+              "fpr95": 0.8632890560714706,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5615811944007874
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.4860681226681888,
+              "auroc": 0.6030397715791389,
+              "fpr95": 0.8556482896438228,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.5625623464584351
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501586928411896,
+              "aupr": 0.592687768886085,
+              "auroc": 0.6101237699005828,
+              "fpr95": 0.8542376866110262,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.5626958012580872
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.4909234411996843
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3396880415944541
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.31031307550644566
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.3326226012793177
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.555895865237366
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.36754329698524696
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.32247557003257327
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.39014373716632444
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.40559440559440557
+              }
+            },
+            "recall1_strict_tie_fail": 0.43293758081579875
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5319552198908395,
+              "auroc": 0.5545749748020097,
+              "fpr95": 0.8912777664560831,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5615811944007874
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.43557843657613443,
+              "auroc": 0.5807569483492436,
+              "fpr95": 0.8835337273283065,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.5625623464584351
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9502751171795394,
+              "aupr": 0.5744815886539719,
+              "auroc": 0.587067789808307,
+              "fpr95": 0.879967393519462,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.5631471872329712
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5431255337318531
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.351985559566787
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5180868167202572
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3513328776486671
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.4003856041131105
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.29518072289156627
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.3306152705707932
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.33579335793357934
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.3771712158808933
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.39344262295081966
+              }
+            },
+            "recall1_strict_tie_fail": 0.421234970450377
+          }
+        }
+      }
+    },
+    "C": {
+      "17": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6190226876090751,
+          "2": 0.33490011750881316,
+          "3": 0.28662420382165604
+        },
+        "precision1_macro": 0.41351566964651476,
+        "precision1_micro": 0.5020301926080166,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5964289535170785,
+              "auroc": 0.5970280285451911,
+              "fpr95": 0.8460091689197132,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4854263365268707
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.5007908931067819,
+              "auroc": 0.6219896313702031,
+              "fpr95": 0.840014106030328,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500411425884565,
+              "aupr": 0.6049932116253166,
+              "auroc": 0.6269055366473034,
+              "fpr95": 0.8409545080521923,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.488499253988266
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.47671665351223363
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3483535528596187
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.3029465930018416
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.31130063965884863
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.5421133231240429
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.36754329698524696
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.2931596091205212
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.3757700205338809
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4195804195804196
+              }
+            },
+            "recall1_strict_tie_fail": 0.4234160103444222,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4389380530973451,
+              "negative_fpr": 0.6576936640413776,
+              "positive_tpr": 0.8048932847475273,
+              "threshold": 0.2301006317138672
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5451549964001722,
+              "auroc": 0.57037912990048,
+              "fpr95": 0.8820052985530874,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4854263365268707
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.44897318540550135,
+              "auroc": 0.5969823267754047,
+              "fpr95": 0.8764010597106174,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500713266761769,
+              "aupr": 0.5868859256319359,
+              "auroc": 0.602735716194044,
+              "fpr95": 0.8713062971265539,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.4919978082180023
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.511528608027327
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.34657039711191334
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.4967845659163987
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3547505126452495
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.39588688946015427
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.2891566265060241
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.3143068939955523
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.3376383763837638
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.38957816377171217
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4426229508196721
+              }
+            },
+            "recall1_strict_tie_fail": 0.41043407377216223,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4389380530973451,
+              "negative_fpr": 0.7057265131444874,
+              "positive_tpr": 0.8048932847475273,
+              "threshold": 0.2301006317138672
+            }
+          }
+        }
+      },
+      "42": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6453752181500872,
+          "2": 0.3425381903642773,
+          "3": 0.2951167728237792
+        },
+        "precision1_macro": 0.4276767271127146,
+        "precision1_micro": 0.5208745445080687,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.6028129269509693,
+              "auroc": 0.6032010995996988,
+              "fpr95": 0.8398965557775949,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4763910472393036
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.505542614156558,
+              "auroc": 0.6275258174614848,
+              "fpr95": 0.837310450217468,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4783760905265808
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501586928411896,
+              "aupr": 0.6082429947983495,
+              "auroc": 0.6321527452986152,
+              "fpr95": 0.8376631009756671,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.4778003990650177
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.5059194948697711
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3483535528596187
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.31952117863720075
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.31769722814498935
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.55895865237366
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.39255933290570877
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.32247557003257327
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.3942505133470226
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4125874125874126
+              }
+            },
+            "recall1_strict_tie_fail": 0.4419889502762431,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4447683498178032,
+              "negative_fpr": 0.6362995180439638,
+              "positive_tpr": 0.7916710046850599,
+              "threshold": 0.31912317872047424
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5515313487792189,
+              "auroc": 0.5769875541394773,
+              "fpr95": 0.8759934787038924,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4763910472393036
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.4533165503973182,
+              "auroc": 0.6029106832103299,
+              "fpr95": 0.8738536784185857,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4783760905265808
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9502751171795394,
+              "aupr": 0.5898100907616477,
+              "auroc": 0.6079529316615728,
+              "fpr95": 0.8672304870593031,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.4831934869289398
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5345858240819812
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.3447653429602888
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.514871382636656
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3595352016404648
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.4023136246786632
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.3253012048192771
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.335063009636768
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.33210332103321033
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.4044665012406948
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4180327868852459
+              }
+            },
+            "recall1_strict_tie_fail": 0.42286529447727733,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4447683498178032,
+              "negative_fpr": 0.6833095577746077,
+              "positive_tpr": 0.7916710046850599,
+              "threshold": 0.31912317872047424
+            }
+          }
+        }
+      },
+      "73": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6095986038394415,
+          "2": 0.33460634547591067,
+          "3": 0.2823779193205945
+        },
+        "precision1_macro": 0.4088609562119822,
+        "precision1_micro": 0.4960957834461218,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5965419580054424,
+              "auroc": 0.5972033748487864,
+              "fpr95": 0.842835312095921,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5905121564865112
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.5016015995171336,
+              "auroc": 0.6245640434496916,
+              "fpr95": 0.834489244151875,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.596257746219635
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9503937933466557,
+              "aupr": 0.6042537070060519,
+              "auroc": 0.6281560159785988,
+              "fpr95": 0.8367226989538028,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.5948983430862427
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.4648776637726914
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3344887348353553
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.30386740331491713
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.3049040511727079
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.527947932618683
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.35728030788967285
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.2931596091205212
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.351129363449692
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4125874125874126
+              }
+            },
+            "recall1_strict_tie_fail": 0.4127189373457153,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.43092139510671523,
+              "negative_fpr": 0.6444104854825438,
+              "positive_tpr": 0.7921915668922436,
+              "threshold": 0.753686785697937
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5484921817685833,
+              "auroc": 0.5728904739025626,
+              "fpr95": 0.877725697982474,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5905121564865112
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.45345578219848687,
+              "auroc": 0.6020367313710406,
+              "fpr95": 0.8704911351131037,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.596257746219635
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501732219278581,
+              "aupr": 0.588505756286728,
+              "auroc": 0.6051553546463508,
+              "fpr95": 0.8688608110862034,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.5979846715927124
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.49701110162254486
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.34657039711191334
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.4915594855305466
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.35269993164730007
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.38881748071979433
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.27710843373493976
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.32097850259451444
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.3210332103321033
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.3746898263027295
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4180327868852459
+              }
+            },
+            "recall1_strict_tie_fail": 0.40482983492969227,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.43092139510671523,
+              "negative_fpr": 0.6873853678418586,
+              "positive_tpr": 0.7921915668922436,
+              "threshold": 0.753686785697937
+            }
+          }
+        }
+      }
+    },
+    "R100_D3": {
+      "17": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6546247818499127,
+          "2": 0.34518213866039954,
+          "3": 0.29723991507430997
+        },
+        "precision1_macro": 0.43234894519487405,
+        "precision1_micro": 0.5274336283185841,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5964289535170785,
+              "auroc": 0.5970280285451911,
+              "fpr95": 0.8460091689197132,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4854263365268707
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.5007908931067819,
+              "auroc": 0.6219896313702031,
+              "fpr95": 0.840014106030328,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500411425884565,
+              "aupr": 0.6049932116253166,
+              "auroc": 0.6269055366473034,
+              "fpr95": 0.8409545080521923,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.488499253988266
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.5185477505919495
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.36221837088388215
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.3139963167587477
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.326226012793177
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.5677641653905053
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.3893521488133419
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.31596091205211724
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.406570841889117
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4125874125874126
+              }
+            },
+            "recall1_strict_tie_fail": 0.447161161396497,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4551795939614784,
+              "negative_fpr": 0.6576936640413776,
+              "positive_tpr": 0.8048932847475273,
+              "threshold": 0.2301006317138672
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5451549964001722,
+              "auroc": 0.57037912990048,
+              "fpr95": 0.8820052985530874,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4854263365268707
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.44897318540550135,
+              "auroc": 0.5969823267754047,
+              "fpr95": 0.8764010597106174,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4888554513454437
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9500713266761769,
+              "aupr": 0.5868859256319359,
+              "auroc": 0.602735716194044,
+              "fpr95": 0.8713062971265539,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.4919978082180023
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5542271562766866
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.36101083032490977
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5245176848874598
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.367053998632946
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.4138817480719794
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.29518072289156627
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.335063009636768
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.34686346863468637
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.4094292803970223
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4344262295081967
+              }
+            },
+            "recall1_strict_tie_fail": 0.4322396576319544,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4551795939614784,
+              "negative_fpr": 0.7057265131444874,
+              "positive_tpr": 0.8048932847475273,
+              "threshold": 0.2301006317138672
+            }
+          }
+        }
+      },
+      "42": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6546247818499127,
+          "2": 0.34518213866039954,
+          "3": 0.29723991507430997
+        },
+        "precision1_macro": 0.43234894519487405,
+        "precision1_micro": 0.5274336283185841,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.6028129269509693,
+              "auroc": 0.6032010995996988,
+              "fpr95": 0.8398965557775949,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4763910472393036
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.505542614156558,
+              "auroc": 0.6275258174614848,
+              "fpr95": 0.837310450217468,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4783760905265808
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501586928411896,
+              "aupr": 0.6082429947983495,
+              "auroc": 0.6321527452986152,
+              "fpr95": 0.8376631009756671,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.4778003990650177
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.5177584846093133
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3535528596187175
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.32044198895027626
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.32196162046908317
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.5666156202143952
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.3983322642719692
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.3289902280130293
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.40451745379876797
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.4125874125874126
+              }
+            },
+            "recall1_strict_tie_fail": 0.44868931468202655,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4501821967725143,
+              "negative_fpr": 0.6362995180439638,
+              "positive_tpr": 0.7916710046850599,
+              "threshold": 0.31912317872047424
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5515313487792189,
+              "auroc": 0.5769875541394773,
+              "fpr95": 0.8759934787038924,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.4763910472393036
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.4533165503973182,
+              "auroc": 0.6029106832103299,
+              "fpr95": 0.8738536784185857,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.4783760905265808
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9502751171795394,
+              "aupr": 0.5898100907616477,
+              "auroc": 0.6079529316615728,
+              "fpr95": 0.8672304870593031,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.4831934869289398
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5456874466268147
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.34657039711191334
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5233118971061094
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3650034176349966
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.40681233933161953
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.3253012048192771
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.3380281690140845
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.33579335793357934
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.4143920595533499
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4180327868852459
+              }
+            },
+            "recall1_strict_tie_fail": 0.42897900957815366,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.4501821967725143,
+              "negative_fpr": 0.6833095577746077,
+              "positive_tpr": 0.7916710046850599,
+              "threshold": 0.31912317872047424
+            }
+          }
+        }
+      },
+      "73": {
+        "positive_count": 9605,
+        "precision1_by_level": {
+          "1": 0.6546247818499127,
+          "2": 0.34518213866039954,
+          "3": 0.29723991507430997
+        },
+        "precision1_macro": 0.43234894519487405,
+        "precision1_micro": 0.5274336283185841,
+        "rejection": {
+          "image": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5965419580054424,
+              "auroc": 0.5972033748487864,
+              "fpr95": 0.842835312095921,
+              "negative_count": 8507,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5905121564865112
+            },
+            "negative_count": 8507,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.5016015995171336,
+              "auroc": 0.6245640434496916,
+              "fpr95": 0.834489244151875,
+              "negative_count": 8507,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.596257746219635
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9503937933466557,
+              "aupr": 0.6042537070060519,
+              "auroc": 0.6281560159785988,
+              "fpr95": 0.8367226989538028,
+              "negative_count": 8507,
+              "positive_count": 8507,
+              "threshold_at_95tpr": 0.5948983430862427
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1267,
+                "recall1": 0.5114443567482242
+              },
+              "attribute|L2": {
+                "count": 577,
+                "recall1": 0.3483535528596187
+              },
+              "flip|L1": {
+                "count": 1086,
+                "recall1": 0.3259668508287293
+              },
+              "flip|L2": {
+                "count": 469,
+                "recall1": 0.32409381663113007
+              },
+              "object|L1": {
+                "count": 2612,
+                "recall1": 0.5669984686064319
+              },
+              "object|L2": {
+                "count": 1559,
+                "recall1": 0.38357921744708146
+              },
+              "order|L1": {
+                "count": 307,
+                "recall1": 0.32247557003257327
+              },
+              "swap_attr|L1": {
+                "count": 487,
+                "recall1": 0.406570841889117
+              },
+              "swap_attr|L2": {
+                "count": 143,
+                "recall1": 0.40559440559440557
+              }
+            },
+            "recall1_strict_tie_fail": 0.44539790760550135,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.45361790733992713,
+              "negative_fpr": 0.6444104854825438,
+              "positive_tpr": 0.7921915668922436,
+              "threshold": 0.753686785697937
+            }
+          },
+          "text": {
+            "audited_all_positive": {
+              "actual_tpr": 0.9500260281103592,
+              "aupr": 0.5484921817685833,
+              "auroc": 0.5728904739025626,
+              "fpr95": 0.877725697982474,
+              "negative_count": 9814,
+              "positive_count": 9605,
+              "threshold_at_95tpr": 0.5905121564865112
+            },
+            "negative_count": 9814,
+            "official_exact_scope": {
+              "actual_tpr": 0.9500872600349041,
+              "aupr": 0.45345578219848687,
+              "auroc": 0.6020367313710406,
+              "fpr95": 0.8704911351131037,
+              "negative_count": 9814,
+              "positive_count": 5730,
+              "threshold_at_95tpr": 0.596257746219635
+            },
+            "paired_one_to_one": {
+              "actual_tpr": 0.9501732219278581,
+              "aupr": 0.588505756286728,
+              "auroc": 0.6051553546463508,
+              "fpr95": 0.8688608110862034,
+              "negative_count": 9814,
+              "positive_count": 9814,
+              "threshold_at_95tpr": 0.5979846715927124
+            },
+            "recall1_by_type_level": {
+              "attribute|L1": {
+                "count": 1171,
+                "recall1": 0.5491033304867634
+              },
+              "attribute|L2": {
+                "count": 554,
+                "recall1": 0.3592057761732852
+              },
+              "object|L1": {
+                "count": 2488,
+                "recall1": 0.5289389067524116
+              },
+              "object|L2": {
+                "count": 1463,
+                "recall1": 0.3697881066302119
+              },
+              "order|L1": {
+                "count": 1556,
+                "recall1": 0.4074550128534704
+              },
+              "order|L2": {
+                "count": 166,
+                "recall1": 0.29518072289156627
+              },
+              "relation|L1": {
+                "count": 1349,
+                "recall1": 0.3446997776130467
+              },
+              "relation|L2": {
+                "count": 542,
+                "recall1": 0.3376383763837638
+              },
+              "swap_attr|L1": {
+                "count": 403,
+                "recall1": 0.4119106699751861
+              },
+              "swap_attr|L2": {
+                "count": 122,
+                "recall1": 0.4098360655737705
+              }
+            },
+            "recall1_strict_tie_fail": 0.43264723863867943,
+            "sealed_d3_threshold": {
+              "localized_and_accepted": 0.45361790733992713,
+              "negative_fpr": 0.6873853678418586,
+              "positive_tpr": 0.7921915668922436,
+              "threshold": 0.753686785697937
+            }
+          }
+        }
+      }
+    }
+  },
+  "official_exact": {
+    "annotation": {
+      "path": "/media/haoyi/T9/data/FineCops-Ref/v1/raw/benchmark/test_expression_all_coco_format.json",
+      "sha256": "ed0fa31efd9352914a4538acbc56cfadac14f71a2e3a625008f11e0428c2ddf9",
+      "size_bytes": 21099434
+    },
+    "receipts": {
+      "A": {
+        "17": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/A/seed17/receipt.json",
+          "sha256": "272ee86283237dd7c9d1831da16390cc531ea0f4f853b8a18cfab4a38e97c9ce",
+          "size_bytes": 9437
+        },
+        "42": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/A/seed42/receipt.json",
+          "sha256": "f363ef3d5ed41c720512992e1eb26a0606314d817b5e355d6ecc1d0d3df76155",
+          "size_bytes": 9429
+        },
+        "73": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/A/seed73/receipt.json",
+          "sha256": "90679ea5ec437b314de8fb7ff820312e2bdf61f6771e514c417f20d137fc6a02",
+          "size_bytes": 9432
+        }
+      },
+      "B": {
+        "17": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/B/seed17/receipt.json",
+          "sha256": "c729c5400f658cd74871fdfe9b8f8b467a8cc7079b5dee308dcca76c2c63d2a1",
+          "size_bytes": 9432
+        },
+        "42": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/B/seed42/receipt.json",
+          "sha256": "e3eced2aaa94a441269b1eee9d5807783f26f8b96ec23df84f4f3302d77ccb6a",
+          "size_bytes": 9429
+        },
+        "73": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/B/seed73/receipt.json",
+          "sha256": "db2c6c20fa6ac592eba0faa61248349f9bf27099d456f414e0aa0cea7fe5fab1",
+          "size_bytes": 9439
+        }
+      },
+      "B58": {
+        "17": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/B58/seed17/receipt.json",
+          "sha256": "d9a1959a1c66d3512fc39bc1f53724683c3468cb0c83b1b15bcf16a20610ba99",
+          "size_bytes": 9446
+        },
+        "42": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/B58/seed42/receipt.json",
+          "sha256": "bb6ab6a488fbe548e498bdd5dc5ec5348173fc160f662c97934fefdbf6d0eafa",
+          "size_bytes": 9446
+        },
+        "73": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/B58/seed73/receipt.json",
+          "sha256": "4c6cd227681dfc1ad12dc24800b3f6bd1886ca653df77df3ceffb418fcde8330",
+          "size_bytes": 9446
+        }
+      },
+      "C": {
+        "17": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/C/seed17/receipt.json",
+          "sha256": "83bb1600b6dd011e7ec281701142e2fe64d3089f1c77ff52c414fac519f89f66",
+          "size_bytes": 9432
+        },
+        "42": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/C/seed42/receipt.json",
+          "sha256": "917ea20dca5f03929d6249acfe913017842a6889f8ded8d890c01aeea02dee93",
+          "size_bytes": 9433
+        },
+        "73": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/C/seed73/receipt.json",
+          "sha256": "239893b90795711d74c42ba3ff7be4d5ca27eaec78d1dac1af9cc313d57bc042",
+          "size_bytes": 9436
+        }
+      },
+      "R100_D3": {
+        "17": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/R100_D3/seed17/receipt.json",
+          "sha256": "564ba46c040738e15ed7b7b733ded3e3e8482e02c45940faba74f9c9e1bcee8d",
+          "size_bytes": 9460
+        },
+        "42": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/R100_D3/seed42/receipt.json",
+          "sha256": "2d7d61ea8341b0e6eced36cfbd875ec92a28397c8f6f5fa1af5ef2f873f09a56",
+          "size_bytes": 9460
+        },
+        "73": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/R100_D3/seed73/receipt.json",
+          "sha256": "460dbfd92691f5d15f4a73bdae9c18868373441cee5ce67f44a4a62d9ee3ccf0",
+          "size_bytes": 9466
+        }
+      }
+    },
+    "repo_commit": "31d2c8615e65ccef6a4ff516925ef5ae465ec747",
+    "source": {
+      "path": "/media/haoyi/T9/data/FineCops-Ref/v1/official_repo/evaluation/eval_metric_mmdet.py",
+      "sha256": "7956c4c00bcce00d124a958d2f2b7f69777f9fe38b9327f044c30998d1461778",
+      "size_bytes": 16306
+    },
+    "status": "complete_external_pinned_evaluator"
+  },
+  "official_exact_status": "complete_external_pinned_evaluator",
+  "official_prediction_artifacts": {
+    "A": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/A_seed17.jsonl",
+        "rows": 26069,
+        "sha256": "d9a409ef2675380e1fda7b651f26ec3519993eafc849ce613ffd490b454136b4",
+        "size_bytes": 3482405
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/A_seed42.jsonl",
+        "rows": 26069,
+        "sha256": "82e924d632a46000b403d955ef1079a0607d89d2d0b815f7b827ecae449e5ea5",
+        "size_bytes": 3482152
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/A_seed73.jsonl",
+        "rows": 26069,
+        "sha256": "fc0416b6947e8589d9ddeb1f9c2c1ea9885ca4bd9e85fb72ab62ad683eeda49f",
+        "size_bytes": 3481004
+      }
+    },
+    "B": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/B_seed17.jsonl",
+        "rows": 27926,
+        "sha256": "66f5624998e0641606550ed113f1c990f1324f7ca31e54d5a1de5504d9c5cc02",
+        "size_bytes": 3730381
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/B_seed42.jsonl",
+        "rows": 27926,
+        "sha256": "1434d8dd4d9b0fdba34041d09760775a8ffc4d02a26c6751df52861f902daaae",
+        "size_bytes": 3730119
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/B_seed73.jsonl",
+        "rows": 27926,
+        "sha256": "31a0fd58e041e8d1950829c97a431c0ea902320eaebf8ba05435abda436a8bc9",
+        "size_bytes": 3728468
+      }
+    },
+    "B58": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/B58_seed17.jsonl",
+        "rows": 27926,
+        "sha256": "498259e98e22ee41e6f63f620cf0ce8ddaff9987e51e60fd93e7769f56d7c5b0",
+        "size_bytes": 3728776
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/B58_seed42.jsonl",
+        "rows": 27926,
+        "sha256": "498259e98e22ee41e6f63f620cf0ce8ddaff9987e51e60fd93e7769f56d7c5b0",
+        "size_bytes": 3728776
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/B58_seed73.jsonl",
+        "rows": 27926,
+        "sha256": "498259e98e22ee41e6f63f620cf0ce8ddaff9987e51e60fd93e7769f56d7c5b0",
+        "size_bytes": 3728776
+      }
+    },
+    "C": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/C_seed17.jsonl",
+        "rows": 27926,
+        "sha256": "3b2e5ab638881c18c1d60f8d4686dd58ec07a057cd8bf04c686ed7ce137510cf",
+        "size_bytes": 3728736
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/C_seed42.jsonl",
+        "rows": 27926,
+        "sha256": "138d0bb70b80b6e4c89128fb3a6f2757680d6d613d1d999c3c433fc8f767cb28",
+        "size_bytes": 3729721
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/C_seed73.jsonl",
+        "rows": 27926,
+        "sha256": "deb94b7d6cecbb967826e90df74998a97dc2cff652e59ebd11098bf65ce45476",
+        "size_bytes": 3726552
+      }
+    },
+    "R100_D3": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/R100_D3_seed17.jsonl",
+        "rows": 27926,
+        "sha256": "fc4fc4b3dabc24852895aa6eb05e34d6eff34b372b77c83a61d55e65b5096f87",
+        "size_bytes": 3730296
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/R100_D3_seed42.jsonl",
+        "rows": 27926,
+        "sha256": "5e239bf82c6660b75e0d87a17d79ab4860bf1313b72f270e7cadb76f896b6d43",
+        "size_bytes": 3730452
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/R100_D3_seed73.jsonl",
+        "rows": 27926,
+        "sha256": "c5f9d325957b659c389b98fce0788d3182ef97f3f3b7712b88e7aba827b77003",
+        "size_bytes": 3729067
+      }
+    }
+  },
+  "parity": {
+    "b58_across_routes_and_seeds": true,
+    "d3_confidence_across_routes_within_seed": true,
+    "r100_geometry_across_routes_and_seeds": true,
+    "records_compared": 27926,
+    "status": "bitwise_equal"
+  },
+  "preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/preregistration.json",
+    "sha256": "668dc6813e33abedfada50bf420d90d3543075c2e17d56b673814eb4bd9ee631",
+    "size_bytes": 10791
+  },
+  "schema": "arrow.finecops.results/v1",
+  "seed_aggregates": {
+    "A": {
+      "image_recall1": {
+        "by_seed": {
+          "17": 0.4595702397217737,
+          "42": 0.46193019500683147,
+          "73": 0.4584523661656937
+        },
+        "mean": 0.45998426696476624,
+        "sample_sd": 0.0017754963476497168
+      },
+      "precision1_macro": {
+        "by_seed": {
+          "17": 0.44384157306406297,
+          "42": 0.44537704468480466,
+          "73": 0.44509126667265364
+        },
+        "mean": 0.44476996147384046,
+        "sample_sd": 0.0008166064214871693
+      },
+      "precision1_micro": {
+        "by_seed": {
+          "17": 0.5380091483336964,
+          "42": 0.5384447832716184,
+          "73": 0.5386626007405794
+        },
+        "mean": 0.5383721774486313,
+        "sample_sd": 0.00033272167973247724
+      },
+      "text_recall1": {
+        "by_seed": {
+          "17": 0.44171570846536895,
+          "42": 0.4400181077410593,
+          "73": 0.44330013580805794
+        },
+        "mean": 0.44167798400482877,
+        "sample_sd": 0.001641339212147801
+      }
+    },
+    "B": {
+      "image_recall1": {
+        "by_seed": {
+          "17": 0.4455154578582344,
+          "42": 0.4455154578582344,
+          "73": 0.43810979193605265
+        },
+        "mean": 0.4430469025508405,
+        "sample_sd": 0.0042756632137000575
+      },
+      "precision1_macro": {
+        "by_seed": {
+          "17": 0.4360611176276225,
+          "42": 0.4318321135398391,
+          "73": 0.4314567798546363
+        },
+        "mean": 0.4331166703406993,
+        "sample_sd": 0.002556862572160272
+      },
+      "precision1_micro": {
+        "by_seed": {
+          "17": 0.5287870900572619,
+          "42": 0.5255596043727225,
+          "73": 0.5230609057782405
+        },
+        "mean": 0.5258025334027416,
+        "sample_sd": 0.0028708112937891666
+      },
+      "text_recall1": {
+        "by_seed": {
+          "17": 0.4325453433869982,
+          "42": 0.4270429997962095,
+          "73": 0.427246790299572
+        },
+        "mean": 0.4289450444942599,
+        "sample_sd": 0.0031196148368195257
+      }
+    },
+    "B58": {
+      "image_recall1": {
+        "by_seed": {
+          "17": 0.43293758081579875,
+          "42": 0.43293758081579875,
+          "73": 0.43293758081579875
+        },
+        "mean": 0.43293758081579875,
+        "sample_sd": 0.0
+      },
+      "precision1_macro": {
+        "by_seed": {
+          "17": 0.433478472172341,
+          "42": 0.433478472172341,
+          "73": 0.433478472172341
+        },
+        "mean": 0.433478472172341,
+        "sample_sd": 0.0
+      },
+      "precision1_micro": {
+        "by_seed": {
+          "17": 0.5290994273815721,
+          "42": 0.5290994273815721,
+          "73": 0.5290994273815721
+        },
+        "mean": 0.5290994273815721,
+        "sample_sd": 0.0
+      },
+      "text_recall1": {
+        "by_seed": {
+          "17": 0.421234970450377,
+          "42": 0.421234970450377,
+          "73": 0.421234970450377
+        },
+        "mean": 0.421234970450377,
+        "sample_sd": 0.0
+      }
+    },
+    "C": {
+      "image_recall1": {
+        "by_seed": {
+          "17": 0.4234160103444222,
+          "42": 0.4419889502762431,
+          "73": 0.4127189373457153
+        },
+        "mean": 0.4260412993221269,
+        "sample_sd": 0.014810554375196728
+      },
+      "precision1_macro": {
+        "by_seed": {
+          "17": 0.41351566964651476,
+          "42": 0.4276767271127146,
+          "73": 0.4088609562119822
+        },
+        "mean": 0.4166844509904039,
+        "sample_sd": 0.009799958675996884
+      },
+      "precision1_micro": {
+        "by_seed": {
+          "17": 0.5020301926080166,
+          "42": 0.5208745445080687,
+          "73": 0.4960957834461218
+        },
+        "mean": 0.5063335068540691,
+        "sample_sd": 0.012937760048264612
+      },
+      "text_recall1": {
+        "by_seed": {
+          "17": 0.41043407377216223,
+          "42": 0.42286529447727733,
+          "73": 0.40482983492969227
+        },
+        "mean": 0.412709734393044,
+        "sample_sd": 0.009230570064693628
+      }
+    },
+    "R100_D3": {
+      "image_recall1": {
+        "by_seed": {
+          "17": 0.447161161396497,
+          "42": 0.44868931468202655,
+          "73": 0.44539790760550135
+        },
+        "mean": 0.4470827945613416,
+        "sample_sd": 0.001647102351552337
+      },
+      "precision1_macro": {
+        "by_seed": {
+          "17": 0.43234894519487405,
+          "42": 0.43234894519487405,
+          "73": 0.43234894519487405
+        },
+        "mean": 0.43234894519487405,
+        "sample_sd": 0.0
+      },
+      "precision1_micro": {
+        "by_seed": {
+          "17": 0.5274336283185841,
+          "42": 0.5274336283185841,
+          "73": 0.5274336283185841
+        },
+        "mean": 0.5274336283185841,
+        "sample_sd": 0.0
+      },
+      "text_recall1": {
+        "by_seed": {
+          "17": 0.4322396576319544,
+          "42": 0.42897900957815366,
+          "73": 0.43264723863867943
+        },
+        "mean": 0.4312886352829292,
+        "sample_sd": 0.002010549363079787
+      }
+    }
+  },
+  "status": "aggregated"
+}

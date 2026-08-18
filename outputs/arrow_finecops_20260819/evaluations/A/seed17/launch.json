@@ -1,0 +1,22 @@
+{
+  "command": [
+    "/home/haoyi/miniconda/envs/gdino5090/bin/python",
+    "/media/haoyi/T9/pivot/tools/eval_arrow_finecops.py",
+    "--preregistration",
+    "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/preregistration.json",
+    "--route",
+    "A",
+    "--seed",
+    "17",
+    "--device",
+    "cuda:0"
+  ],
+  "preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/preregistration.json",
+    "sha256": "8f91c586bc39660601173ab42477fc94e76972154dbe2ee53f20ac091ae3d7cd",
+    "size_bytes": 11309
+  },
+  "route": "A",
+  "schema": "arrow.finecops.launch/v1",
+  "seed": 17
+}

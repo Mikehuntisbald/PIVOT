@@ -1,0 +1,20 @@
+type,level,cate,Recall @ 1, Recall @ 5,Recall @ 10,count
+attribute,1,text,54.91,70.2,70.2,1171
+object,1,text,53.34,69.49,69.49,2488
+swap_attr,2,text,44.26,59.84,59.84,122
+swap_attr,1,text,43.92,60.3,60.3,403
+order,1,text,39.97,58.8,58.8,1556
+object,2,text,37.59,61.11,61.11,1463
+order,2,text,34.94,55.42,55.42,166
+attribute,2,text,34.66,52.35,52.35,554
+relation,2,text,34.32,59.78,59.78,542
+relation,1,text,34.1,59.08,59.08,1349
+object,1,image,56.2,69.37,69.37,2612
+attribute,1,image,50.59,71.03,71.03,1267
+swap_attr,1,image,41.68,57.08,57.08,487
+swap_attr,2,image,40.56,59.44,59.44,143
+object,2,image,38.36,59.01,59.01,1559
+attribute,2,image,33.97,53.21,53.21,577
+flip,2,image,33.48,63.75,63.75,469
+flip,1,image,32.41,53.31,53.31,1086
+order,1,image,32.25,51.79,51.79,307

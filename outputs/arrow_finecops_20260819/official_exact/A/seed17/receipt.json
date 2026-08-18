@@ -1,0 +1,434 @@
+{
+  "annotation": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/raw/benchmark/test_expression_all_coco_format.json",
+    "sha256": "ed0fa31efd9352914a4538acbc56cfadac14f71a2e3a625008f11e0428c2ddf9",
+    "size_bytes": 21099434
+  },
+  "auroc": [
+    {
+      "AUPR": 68.76,
+      "AUROC": 69.67,
+      "FPR95": 76.28,
+      "cate": "text",
+      "count": 1117,
+      "level": 1,
+      "type": "attribute"
+    },
+    {
+      "AUPR": 64.7,
+      "AUROC": 67.73,
+      "FPR95": 81.33,
+      "cate": "text",
+      "count": 2110,
+      "level": 1,
+      "type": "object"
+    },
+    {
+      "AUPR": 65.64,
+      "AUROC": 66.98,
+      "FPR95": 79.13,
+      "cate": "text",
+      "count": 115,
+      "level": 2,
+      "type": "swap_attr"
+    },
+    {
+      "AUPR": 60.06,
+      "AUROC": 61.83,
+      "FPR95": 87.96,
+      "cate": "text",
+      "count": 382,
+      "level": 1,
+      "type": "swap_attr"
+    },
+    {
+      "AUPR": 58.81,
+      "AUROC": 61.42,
+      "FPR95": 83.88,
+      "cate": "text",
+      "count": 515,
+      "level": 2,
+      "type": "attribute"
+    },
+    {
+      "AUPR": 59.74,
+      "AUROC": 59.96,
+      "FPR95": 89.47,
+      "cate": "text",
+      "count": 152,
+      "level": 2,
+      "type": "order"
+    },
+    {
+      "AUPR": 58.42,
+      "AUROC": 58.96,
+      "FPR95": 92.26,
+      "cate": "text",
+      "count": 1254,
+      "level": 1,
+      "type": "order"
+    },
+    {
+      "AUPR": 56.51,
+      "AUROC": 57.37,
+      "FPR95": 90.08,
+      "cate": "text",
+      "count": 1401,
+      "level": 2,
+      "type": "object"
+    },
+    {
+      "AUPR": 52.27,
+      "AUROC": 52.55,
+      "FPR95": 95.76,
+      "cate": "text",
+      "count": 519,
+      "level": 2,
+      "type": "relation"
+    },
+    {
+      "AUPR": 51.61,
+      "AUROC": 51.59,
+      "FPR95": 94.57,
+      "cate": "text",
+      "count": 1271,
+      "level": 1,
+      "type": "relation"
+    },
+    {
+      "AUPR": 69.11,
+      "AUROC": 70.75,
+      "FPR95": 77.79,
+      "cate": "image",
+      "count": 2458,
+      "level": 1,
+      "type": "object"
+    },
+    {
+      "AUPR": 64.31,
+      "AUROC": 66.82,
+      "FPR95": 78.6,
+      "cate": "image",
+      "count": 1210,
+      "level": 1,
+      "type": "attribute"
+    },
+    {
+      "AUPR": 61.83,
+      "AUROC": 62.62,
+      "FPR95": 88.53,
+      "cate": "image",
+      "count": 462,
+      "level": 1,
+      "type": "swap_attr"
+    },
+    {
+      "AUPR": 60.61,
+      "AUROC": 62.53,
+      "FPR95": 82.09,
+      "cate": "image",
+      "count": 134,
+      "level": 2,
+      "type": "swap_attr"
+    },
+    {
+      "AUPR": 58.32,
+      "AUROC": 61.17,
+      "FPR95": 86.03,
+      "cate": "image",
+      "count": 1482,
+      "level": 2,
+      "type": "object"
+    },
+    {
+      "AUPR": 58.44,
+      "AUROC": 61.15,
+      "FPR95": 83.82,
+      "cate": "image",
+      "count": 544,
+      "level": 2,
+      "type": "attribute"
+    },
+    {
+      "AUPR": 54.72,
+      "AUROC": 58.11,
+      "FPR95": 91.49,
+      "cate": "image",
+      "count": 282,
+      "level": 1,
+      "type": "order"
+    },
+    {
+      "AUPR": 52.82,
+      "AUROC": 53.03,
+      "FPR95": 93.74,
+      "cate": "image",
+      "count": 1022,
+      "level": 1,
+      "type": "flip"
+    },
+    {
+      "AUPR": 50.57,
+      "AUROC": 50.5,
+      "FPR95": 95.84,
+      "cate": "image",
+      "count": 457,
+      "level": 2,
+      "type": "flip"
+    },
+    {
+      "AUPR": 32.47,
+      "AUROC": 61.77,
+      "FPR95": 85.57,
+      "cate": "0",
+      "count": 16887,
+      "level": 0,
+      "type": "overall"
+    }
+  ],
+  "auroc_csv": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/A/seed17/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+    "sha256": "a62a417c24ac0bf201e12c8f0dad67dc66b22949a748260d234c29b6ca026a18",
+    "size_bytes": 795
+  },
+  "official_repo_commit": "31d2c8615e65ccef6a4ff516925ef5ae465ec747",
+  "official_source": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/official_repo/evaluation/eval_metric_mmdet.py",
+    "sha256": "7956c4c00bcce00d124a958d2f2b7f69777f9fe38b9327f044c30998d1461778",
+    "size_bytes": 16306
+  },
+  "precision": [
+    {
+      " Precision @ 5": 67.59,
+      "Precision @ 1": 67.59,
+      "Precision @ 10": 67.59,
+      "level": 1
+    },
+    {
+      " Precision @ 5": 35.86,
+      "Precision @ 1": 35.86,
+      "Precision @ 10": 35.86,
+      "level": 2
+    },
+    {
+      " Precision @ 5": 29.08,
+      "Precision @ 1": 29.08,
+      "Precision @ 10": 29.08,
+      "level": 3
+    }
+  ],
+  "precision_csv": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/A/seed17/precision.csv",
+    "sha256": "7ea20d59feea45e0e5ce38f70d8988da50077b66ea8721b7e813fee0536616d5",
+    "size_bytes": 110
+  },
+  "predictions": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_predictions/A_seed17.jsonl",
+    "rows": 26069,
+    "sha256": "c8d9ae707f7765a8d9c59d1dc7cf08786913bd3996317d33217424c64c455e91",
+    "size_bytes": 3481828
+  },
+  "recall": [
+    {
+      " Recall @ 5": 72.34,
+      "Recall @ 1": 56.58,
+      "Recall @ 10": 72.34,
+      "cate": "text",
+      "count": 1117,
+      "level": 1,
+      "type": "attribute"
+    },
+    {
+      " Recall @ 5": 72.42,
+      "Recall @ 1": 56.16,
+      "Recall @ 10": 72.42,
+      "cate": "text",
+      "count": 2110,
+      "level": 1,
+      "type": "object"
+    },
+    {
+      " Recall @ 5": 60.0,
+      "Recall @ 1": 47.83,
+      "Recall @ 10": 60.0,
+      "cate": "text",
+      "count": 115,
+      "level": 2,
+      "type": "swap_attr"
+    },
+    {
+      " Recall @ 5": 62.3,
+      "Recall @ 1": 45.03,
+      "Recall @ 10": 62.3,
+      "cate": "text",
+      "count": 382,
+      "level": 1,
+      "type": "swap_attr"
+    },
+    {
+      " Recall @ 5": 59.41,
+      "Recall @ 1": 40.99,
+      "Recall @ 10": 59.41,
+      "cate": "text",
+      "count": 1254,
+      "level": 1,
+      "type": "order"
+    },
+    {
+      " Recall @ 5": 62.6,
+      "Recall @ 1": 38.26,
+      "Recall @ 10": 62.6,
+      "cate": "text",
+      "count": 1401,
+      "level": 2,
+      "type": "object"
+    },
+    {
+      " Recall @ 5": 56.58,
+      "Recall @ 1": 38.16,
+      "Recall @ 10": 56.58,
+      "cate": "text",
+      "count": 152,
+      "level": 2,
+      "type": "order"
+    },
+    {
+      " Recall @ 5": 61.27,
+      "Recall @ 1": 36.61,
+      "Recall @ 10": 61.27,
+      "cate": "text",
+      "count": 519,
+      "level": 2,
+      "type": "relation"
+    },
+    {
+      " Recall @ 5": 54.76,
+      "Recall @ 1": 36.12,
+      "Recall @ 10": 54.76,
+      "cate": "text",
+      "count": 515,
+      "level": 2,
+      "type": "attribute"
+    },
+    {
+      " Recall @ 5": 61.45,
+      "Recall @ 1": 35.01,
+      "Recall @ 10": 61.45,
+      "cate": "text",
+      "count": 1271,
+      "level": 1,
+      "type": "relation"
+    },
+    {
+      " Recall @ 5": 71.6,
+      "Recall @ 1": 58.1,
+      "Recall @ 10": 71.6,
+      "cate": "image",
+      "count": 2458,
+      "level": 1,
+      "type": "object"
+    },
+    {
+      " Recall @ 5": 73.14,
+      "Recall @ 1": 53.06,
+      "Recall @ 10": 73.14,
+      "cate": "image",
+      "count": 1210,
+      "level": 1,
+      "type": "attribute"
+    },
+    {
+      " Recall @ 5": 59.09,
+      "Recall @ 1": 42.42,
+      "Recall @ 10": 59.09,
+      "cate": "image",
+      "count": 462,
+      "level": 1,
+      "type": "swap_attr"
+    },
+    {
+      " Recall @ 5": 61.19,
+      "Recall @ 1": 41.04,
+      "Recall @ 10": 61.19,
+      "cate": "image",
+      "count": 134,
+      "level": 2,
+      "type": "swap_attr"
+    },
+    {
+      " Recall @ 5": 61.0,
+      "Recall @ 1": 40.01,
+      "Recall @ 10": 61.0,
+      "cate": "image",
+      "count": 1482,
+      "level": 2,
+      "type": "object"
+    },
+    {
+      " Recall @ 5": 55.15,
+      "Recall @ 1": 36.4,
+      "Recall @ 10": 55.15,
+      "cate": "image",
+      "count": 544,
+      "level": 2,
+      "type": "attribute"
+    },
+    {
+      " Recall @ 5": 56.03,
+      "Recall @ 1": 35.11,
+      "Recall @ 10": 56.03,
+      "cate": "image",
+      "count": 282,
+      "level": 1,
+      "type": "order"
+    },
+    {
+      " Recall @ 5": 56.75,
+      "Recall @ 1": 33.56,
+      "Recall @ 10": 56.75,
+      "cate": "image",
+      "count": 1022,
+      "level": 1,
+      "type": "flip"
+    },
+    {
+      " Recall @ 5": 63.46,
+      "Recall @ 1": 32.17,
+      "Recall @ 10": 63.46,
+      "cate": "image",
+      "count": 457,
+      "level": 2,
+      "type": "flip"
+    }
+  ],
+  "recall_csv": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/official_exact/A/seed17/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+    "sha256": "2d061bfe3a6ec0c45338fc4781d5579f54745bc0599318f11f423a65974de46f",
+    "size_bytes": 768
+  },
+  "returned_result_keys": [
+    "('attribute', 1, 'image')",
+    "('attribute', 1, 'text')",
+    "('attribute', 2, 'image')",
+    "('attribute', 2, 'text')",
+    "('flip', 1, 'image')",
+    "('flip', 2, 'image')",
+    "('object', 1, 'image')",
+    "('object', 1, 'text')",
+    "('object', 2, 'image')",
+    "('object', 2, 'text')",
+    "('order', 1, 'image')",
+    "('order', 1, 'text')",
+    "('order', 2, 'text')",
+    "('overall', 0, 0)",
+    "('relation', 1, 'text')",
+    "('relation', 2, 'text')",
+    "('swap_attr', 1, 'image')",
+    "('swap_attr', 1, 'text')",
+    "('swap_attr', 2, 'image')",
+    "('swap_attr', 2, 'text')"
+  ],
+  "schema": "arrow.finecops.official_exact_receipt/v1",
+  "seed": 17,
+  "surface": "A"
+}

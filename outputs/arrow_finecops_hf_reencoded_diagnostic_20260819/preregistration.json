@@ -1,0 +1,270 @@
+{
+  "calibration": {
+    "summary": {
+      "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/calibration_u25_u50_u100/summary.json",
+      "sha256": "d84a4947f33040f70e64b87d78b913681ba47b97bc5f20cda5346aba619a75b0",
+      "size_bytes": 923858
+    },
+    "thresholds": {
+      "17": {
+        "calibration_run_id": "confidence_seed17_u50_checkpoint_iter",
+        "checkpoint_sha256": "b8045f97d3fa4d21e95b49e6c4f50d12651775862d3a60ca479d51242665cf25",
+        "raw_threshold_at_95tpr": 0.2301006317138672
+      },
+      "42": {
+        "calibration_run_id": "confidence_seed42_u50_checkpoint_iter",
+        "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+        "raw_threshold_at_95tpr": 0.31912317872047424
+      },
+      "73": {
+        "calibration_run_id": "confidence_seed73_u50_checkpoint_iter",
+        "checkpoint_sha256": "90c05708e792248acffae27ca435e33ef86dea2e88518ed9fe501e72f064aef2",
+        "raw_threshold_at_95tpr": 0.753686785697937
+      }
+    }
+  },
+  "checkpoint_lock": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/checkpoint_lock_v2.json",
+    "sha256": "44c60285aa9ed462f907e770a44feacc2117cf1e40a48867c2955ba9f527752e",
+    "size_bytes": 6032
+  },
+  "checkpoints": {
+    "A": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed17_u50/checkpoint_iter.pth",
+        "sha256": "b8045f97d3fa4d21e95b49e6c4f50d12651775862d3a60ca479d51242665cf25",
+        "size_bytes": 694409337
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed42_u50/checkpoint_iter.pth",
+        "sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+        "size_bytes": 694409209
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed73_u50/checkpoint_iter.pth",
+        "sha256": "90c05708e792248acffae27ca435e33ef86dea2e88518ed9fe501e72f064aef2",
+        "size_bytes": 694409145
+      }
+    },
+    "B": {
+      "17": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed17.receipt.json",
+          "sha256": "c47063dc3c2399558190a45712071863214acc8921aba45e168eb3a605bc74df",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed17.pth",
+        "sha256": "d04c2097ceb30060d78d4ceedff26d722587cc8a4bf380b8584d5682d75340a0",
+        "size_bytes": 693721382
+      },
+      "42": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed42.receipt.json",
+          "sha256": "b13584b6af8ca3f226c2f3056c0b2c6991cf504e33948283ff8235734933d16f",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed42.pth",
+        "sha256": "1eca2d3e3dc21e557dc8eba0b9506620469a717edb025009e039ea5a566a9b1b",
+        "size_bytes": 693721254
+      },
+      "73": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed73.receipt.json",
+          "sha256": "ef4b548141b21c0ff1c15d808a11feb786451c843cebc46d9bbcb1726c5e923c",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed73.pth",
+        "sha256": "b384159c7f50521c0b5ce49c584cc354f4685426a7d720196d116fb701cf053c",
+        "size_bytes": 693721190
+      }
+    },
+    "C": {
+      "17": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed17.receipt.json",
+          "sha256": "0b5c4a31205ffec77791c5ec05131e8eef0bcfce27e9918c006f837c57f42179",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed17.pth",
+        "sha256": "bccc6f4cfa2d168a1479eecdcc9c946d6ea7867fc8f9b642e3dd99288030b6d7",
+        "size_bytes": 693721382
+      },
+      "42": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed42.receipt.json",
+          "sha256": "0a23d02dc20f06a84f0eaf0a542f7297b66bca5fd5efe52acf98af9d14e400e8",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed42.pth",
+        "sha256": "114cd37259273b8f1294730608edf6d0aa36a7f3a4d35c0b91fb8da9fab35e1a",
+        "size_bytes": 693721254
+      },
+      "73": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed73.receipt.json",
+          "sha256": "07c56cbcbdad7a1cbe9595e971e7e1627bf3498cbe21df996d8d6dcb7fc0de5f",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed73.pth",
+        "sha256": "732029593fdccacc0abe247ae5661b5e09c8ad619b589f8471239c972d0fd876",
+        "size_bytes": 693721190
+      }
+    }
+  },
+  "claim": "finecops_specific_external_zero_shot_not_image_disjoint",
+  "configs": {
+    "A": {
+      "path": "/media/haoyi/T9/pivot/config/ablations/cfg_arrow_finecops_a.py",
+      "sha256": "908a7e671648ac30582cc6efcaa8aea39e41e54c346e804e99528c9650e8ac68",
+      "size_bytes": 260
+    },
+    "B": {
+      "path": "/media/haoyi/T9/pivot/config/ablations/cfg_arrow_finecops_b.py",
+      "sha256": "8fc38ced07fad60557a666e189f95bafd42b8d5432887698db1be8c22cc81de9",
+      "size_bytes": 260
+    },
+    "C": {
+      "path": "/media/haoyi/T9/pivot/config/ablations/cfg_arrow_finecops_c.py",
+      "sha256": "0b49890842d4c7b77aa1b3a46ab6a31f1678e43915a4f16b593946a32698ad61",
+      "size_bytes": 258
+    }
+  },
+  "dataset": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/dataset_manifest.json",
+    "sha256": "9b0aaaa22321a1f1361e2e295ab52f4991a3fa8c808bdde927b1cc070b04e605",
+    "size_bytes": 5236
+  },
+  "environment": {
+    "packages": {
+      "numpy": "2.4.3",
+      "pandas": "3.0.2",
+      "pyarrow": "21.0.0",
+      "scikit-learn": "1.7.2",
+      "torch": "2.9.1+cu130",
+      "torchvision": "0.24.1+cu130"
+    },
+    "python": "3.11.15 (main, Mar 11 2026, 17:20:07) [GCC 14.3.0]"
+  },
+  "execution": {
+    "amp": true,
+    "batch_size": 16,
+    "flip": false,
+    "gap": 3.0,
+    "num_workers": 4,
+    "resize_max": 1333,
+    "resize_short": 800,
+    "results_root": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/evaluations",
+    "routes": [
+      "A",
+      "B",
+      "C"
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ]
+  },
+  "git": {
+    "commit": "fd3e759ad6e3bc5460015900c41dbd055fd63f60",
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status_porcelain": ""
+  },
+  "official_exact": {
+    "commit": "31d2c8615e65ccef6a4ff516925ef5ae465ec747",
+    "overall_positive_scope": "level_1_historical_behavior",
+    "repository": "https://github.com/liujunzhuo/FineCops-Ref",
+    "source": {
+      "path": "/media/haoyi/T9/data/FineCops-Ref/v1/official_repo/evaluation/eval_metric_mmdet.py",
+      "sha256": "7956c4c00bcce00d124a958d2f2b7f69777f9fe38b9327f044c30998d1461778",
+      "size_bytes": 16306
+    },
+    "vendor_code": false
+  },
+  "prohibitions": {
+    "finecops_checkpoint_selection": true,
+    "finecops_threshold_fitting": true,
+    "finecops_train_or_val": true,
+    "gap_change": true,
+    "post_result_alias_addition": true
+  },
+  "release_manifest": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_release_20260818/release_manifest.json",
+    "sha256": "ebe587bee63ed4288f464d1a4872184735a2d0ba0b3ce8cba121973cf1bc49a7",
+    "size_bytes": 2438
+  },
+  "schema": "arrow.finecops.preregistration/v1",
+  "sources": [
+    {
+      "path": "/media/haoyi/T9/pivot/tools/arrow_finecops_common.py",
+      "sha256": "cde05b5a36e6cb96937dc530a686514c3e66253078fcd6f79af5ba64e413d9e8",
+      "size_bytes": 4246
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/download_arrow_finecops_gqa.py",
+      "sha256": "5d6b04fbdcf58a5ce7ad752d7728046bf9dba38554d97175ee0911f028476f44",
+      "size_bytes": 6646
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/download_arrow_finecops_hf_images.py",
+      "sha256": "26a692a72252d953e08e86893e8b4b9ca31002a67134901b67ab833aa4bdd713",
+      "size_bytes": 11017
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/prepare_arrow_finecops.py",
+      "sha256": "569f01343f0bb571c4c04c2211cdfc64112219cde3ecd8509a9d72eef789f75a",
+      "size_bytes": 26635
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/eval_arrow_finecops.py",
+      "sha256": "686d58e9063142276f39833972b0b8dd57c262cefc8e1299841f32c445fbaf14",
+      "size_bytes": 15950
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/run_arrow_finecops_evaluations.py",
+      "sha256": "f5196fd900f5602d434e802d61a705fd281e9312c45936eb873e9698991472bb",
+      "size_bytes": 4280
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_arrow_finecops.py",
+      "sha256": "a1c1b45ed43468e2ba8cc29c0a2bd2d3a0d6ff856a417130326fc9dc730c259a",
+      "size_bytes": 24004
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/run_arrow_finecops_official.py",
+      "sha256": "b3c16e402e1a5196ea1e955ecde36465801f2f05193fba98b8672c6944f75bc4",
+      "size_bytes": 8957
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/render_arrow_finecops_table.py",
+      "sha256": "cbf2e42d0e8a1f3f428fc38f32ad7519ad0a610596a531fa1ff21904c4dfa2fa",
+      "size_bytes": 2892
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/build_arrow_finecops_final_receipt.py",
+      "sha256": "e52d626e68b2ccae86800e191a08fea3d42e35a1db2495ca0f7b1fbbb5fe824f",
+      "size_bytes": 2873
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/build_arrow_finecops_preregistration.py",
+      "sha256": "9602ae08a84a94989e405007fbde06e15c061ade895a141450da0c612f984c4e",
+      "size_bytes": 10478
+    }
+  ],
+  "statistics": {
+    "bootstrap": {
+      "cluster": "parent_positive_gqa_image",
+      "iterations": 5000,
+      "same_draw_across_routes_and_seeds": true,
+      "seed": 20260819
+    },
+    "contrast_surface": "A_support_covered_matched",
+    "holm_family": true,
+    "planned_contrasts": [
+      "A_minus_B",
+      "B_minus_C"
+    ],
+    "strict_tie_policy": "tie_is_failure"
+  },
+  "status": "locked_before_any_finecops_model_forward"
+}

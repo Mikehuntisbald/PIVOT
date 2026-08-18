@@ -1,0 +1,544 @@
+{
+  "files": [
+    {
+      "relative_path": "evaluations/A/seed17/records.jsonl",
+      "sha256": "97b89c801677b7c5694e00f4f0a4d25571e63001af39e4a26bb2c3374813ecf6",
+      "size_bytes": 32295908
+    },
+    {
+      "relative_path": "evaluations/A/seed17/run_receipt.json",
+      "sha256": "cce21c42d16a3298c1fa7e1925672a871559cc55d1245239160de4a54715d54d",
+      "size_bytes": 1510
+    },
+    {
+      "relative_path": "evaluations/A/seed42/launch.json",
+      "sha256": "823f4c0cb5760685771bfdfbec61b363ec603799a6cfab66d8833956fa4906cb",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/A/seed42/records.jsonl",
+      "sha256": "91a0c53580e4fc7a1b5ff37c865a93620ce6f210b379cda148562d0e07052e28",
+      "size_bytes": 32291997
+    },
+    {
+      "relative_path": "evaluations/A/seed42/run_receipt.json",
+      "sha256": "54a39028b679fab68a7a16ae3add4a2aef6cbc97ea44af764576bd52114080a9",
+      "size_bytes": 1511
+    },
+    {
+      "relative_path": "evaluations/A/seed73/launch.json",
+      "sha256": "4c57149f51eaafed87d99a9e6300c001ccd587ca696badaab7a6437754b99f31",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/A/seed73/records.jsonl",
+      "sha256": "be9cdee44facd87f14685fa4ac0b0aa030a3ea451888b8bfceb2e68fce25d39b",
+      "size_bytes": 32270232
+    },
+    {
+      "relative_path": "evaluations/A/seed73/run_receipt.json",
+      "sha256": "a252d7aa217464cb689b57eb0946300752383aa566d42a9d2b83101f4af6ade9",
+      "size_bytes": 1510
+    },
+    {
+      "relative_path": "evaluations/B/seed17/launch.json",
+      "sha256": "ffb539dc974d81f8326e8f7401a858c57c1c3b4bb4f15334d56db897304b75f8",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/B/seed17/records.jsonl",
+      "sha256": "9822e76060b246eb8c1ba937560e4d54d812a175d1f319eaa1832d83d5c09b3a",
+      "size_bytes": 32450537
+    },
+    {
+      "relative_path": "evaluations/B/seed17/run_receipt.json",
+      "sha256": "185c73398bd1e8a84916b8749a631e4fc601fd544db6c1c130aec634aabaf696",
+      "size_bytes": 1486
+    },
+    {
+      "relative_path": "evaluations/B/seed42/launch.json",
+      "sha256": "c6bcf0ac190b8bd1275b09544dc4a57e2421752c7f35d72b59a0a5c23bf32a0b",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/B/seed42/records.jsonl",
+      "sha256": "987ec5f123e166cea72031501e3a1d68435a06e0fa0ed2c5c5b4c4503a4b522a",
+      "size_bytes": 32443557
+    },
+    {
+      "relative_path": "evaluations/B/seed42/run_receipt.json",
+      "sha256": "31ede72ee31210acce12a842d0827c026f500edc4582093cb79a7f9f4f631ea3",
+      "size_bytes": 1486
+    },
+    {
+      "relative_path": "evaluations/B/seed73/launch.json",
+      "sha256": "a1eb5116f211078a6cd5c6ec19e5764453b67a433af9ef776e74928da52606c9",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/B/seed73/records.jsonl",
+      "sha256": "72d259ae1e60625914d5452e68b02274265ffbd004bc5d4df5afe0ba257bc6fd",
+      "size_bytes": 32423758
+    },
+    {
+      "relative_path": "evaluations/B/seed73/run_receipt.json",
+      "sha256": "4bc7270c411c9b638d0e6c11c01d24479895daa0dd6a05a293d51da03a0aef75",
+      "size_bytes": 1485
+    },
+    {
+      "relative_path": "evaluations/C/seed17/launch.json",
+      "sha256": "72dafebcdc167faf52fd302449d60f6995d7f62c16e80fe7004c2754bc14af9f",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/C/seed17/records.jsonl",
+      "sha256": "546dc928c95568b4f6746067087935eef4d11cfa377e28d36f8100feb4e9de81",
+      "size_bytes": 32294940
+    },
+    {
+      "relative_path": "evaluations/C/seed17/run_receipt.json",
+      "sha256": "67dd4b07d194b271d2f9a971774cc9046a254ea2b6f1a3a237d8d13cd41f24e1",
+      "size_bytes": 1486
+    },
+    {
+      "relative_path": "evaluations/C/seed42/launch.json",
+      "sha256": "ae4307ca4ca557ad57fb06a927dce52baabb00c31e17442d32fb9f7dff8fccc6",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/C/seed42/records.jsonl",
+      "sha256": "6c5799f0aca206c72218c593363e94857bd194c77e9eb8e035c22d31b7c7c219",
+      "size_bytes": 32297736
+    },
+    {
+      "relative_path": "evaluations/C/seed42/run_receipt.json",
+      "sha256": "80993d7849fc51c4fc27d956cd7e647653cafa31401fffa5abfa54dace4fba64",
+      "size_bytes": 1486
+    },
+    {
+      "relative_path": "evaluations/C/seed73/launch.json",
+      "sha256": "bd63b00872163469951dacf9842aa8e92acca4acdc57acef2a20cd8c59e959c8",
+      "size_bytes": 614
+    },
+    {
+      "relative_path": "evaluations/C/seed73/records.jsonl",
+      "sha256": "b30a73f0c38af8b26d63d5973bb2665e5fa62c10d04805383d4271f5f8ad99af",
+      "size_bytes": 32267640
+    },
+    {
+      "relative_path": "evaluations/C/seed73/run_receipt.json",
+      "sha256": "bf6d1d22b2633de835f1d224080ae5c02620ebd2b3d033e9d284e0e32da46309",
+      "size_bytes": 1485
+    },
+    {
+      "relative_path": "failed_attempts/A_seed17_box_iou_tuple_v1/records.jsonl.tmp",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size_bytes": 0
+    },
+    {
+      "relative_path": "final_receipt.json",
+      "sha256": "1bf02118f92aa269fce724063cc4d09481fe33fe1050b9e9e7a8edba03795261",
+      "size_bytes": 10087
+    },
+    {
+      "relative_path": "official_exact/A/seed17/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "6240d982736a7490d80857e4bf1d40111643074b3c96340e72ebe58294af3ad4",
+      "size_bytes": 794
+    },
+    {
+      "relative_path": "official_exact/A/seed17/precision.csv",
+      "sha256": "1b757c7824fa7185327b80344e0d69dcd981677bdc0ba12446816bc36bee2f82",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/A/seed17/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "e942e62f4b3b747a338475baadd04d92cc774d9cda2926487bf7dac830bd518f",
+      "size_bytes": 775
+    },
+    {
+      "relative_path": "official_exact/A/seed17/receipt.json",
+      "sha256": "272ee86283237dd7c9d1831da16390cc531ea0f4f853b8a18cfab4a38e97c9ce",
+      "size_bytes": 9437
+    },
+    {
+      "relative_path": "official_exact/A/seed42/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "e3337ab21df85b49b7e3477b2e5be47c6aeec68f4ad3ca6f2d1d97d6d8466d5e",
+      "size_bytes": 791
+    },
+    {
+      "relative_path": "official_exact/A/seed42/precision.csv",
+      "sha256": "802a5be2fd0e27d12c8a28e1fa954ecb36cfb76aa070ecf6469d6122902833bb",
+      "size_bytes": 107
+    },
+    {
+      "relative_path": "official_exact/A/seed42/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "3efb3c12320b1750f51e9275e7f8de39f84a15649a1fe9bfc76893ec133fc5cb",
+      "size_bytes": 773
+    },
+    {
+      "relative_path": "official_exact/A/seed42/receipt.json",
+      "sha256": "f363ef3d5ed41c720512992e1eb26a0606314d817b5e355d6ecc1d0d3df76155",
+      "size_bytes": 9429
+    },
+    {
+      "relative_path": "official_exact/A/seed73/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "d98ca5e7a61e469a600e9f27aad101c26520c4dfd183c8eaac61a8649af8f70e",
+      "size_bytes": 794
+    },
+    {
+      "relative_path": "official_exact/A/seed73/precision.csv",
+      "sha256": "b07fd1883227202ba1ad4c6eb87953beb4127d8f48a25e5102343f1ac04358cd",
+      "size_bytes": 104
+    },
+    {
+      "relative_path": "official_exact/A/seed73/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "97ab3223df5c9f76296db7c3576d416ce922db523da0e5fe367dead98c14969c",
+      "size_bytes": 776
+    },
+    {
+      "relative_path": "official_exact/A/seed73/receipt.json",
+      "sha256": "90679ea5ec437b314de8fb7ff820312e2bdf61f6771e514c417f20d137fc6a02",
+      "size_bytes": 9432
+    },
+    {
+      "relative_path": "official_exact/B/seed17/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "c7f22fb6ba13c02fe16df3b23aefd914c4ca35d5315f60e0c5d71404ef47a3cd",
+      "size_bytes": 791
+    },
+    {
+      "relative_path": "official_exact/B/seed17/precision.csv",
+      "sha256": "b9f617ae591d25b4e561894a0870a82176b2f1d28d5cfe863820ba218a440513",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/B/seed17/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "d3267ef230faf790c13738f122c0ab1899a221febf53887912baf21bf3fa5be0",
+      "size_bytes": 773
+    },
+    {
+      "relative_path": "official_exact/B/seed17/receipt.json",
+      "sha256": "c729c5400f658cd74871fdfe9b8f8b467a8cc7079b5dee308dcca76c2c63d2a1",
+      "size_bytes": 9432
+    },
+    {
+      "relative_path": "official_exact/B/seed42/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "69c06313aa130aef5c5965b3f9d582883a7bf8d088bcb273ada1814072adb875",
+      "size_bytes": 793
+    },
+    {
+      "relative_path": "official_exact/B/seed42/precision.csv",
+      "sha256": "84a18cf862fc8abd27ec4b03dcd4226e5c089c6ae9924e2c7f4809abf0285dfc",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/B/seed42/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "d1abb98dec410a7857002cb3f0a0c215445c35b4b34a056444bc83b7bf640b96",
+      "size_bytes": 768
+    },
+    {
+      "relative_path": "official_exact/B/seed42/receipt.json",
+      "sha256": "e3eced2aaa94a441269b1eee9d5807783f26f8b96ec23df84f4f3302d77ccb6a",
+      "size_bytes": 9429
+    },
+    {
+      "relative_path": "official_exact/B/seed73/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "46aeafda315c64b8e3e9d4edc1362debbc05c514eb1ecb64a9af381f24eadb68",
+      "size_bytes": 796
+    },
+    {
+      "relative_path": "official_exact/B/seed73/precision.csv",
+      "sha256": "ed85cd27fd4125f1bb6599402b0ab353534ddf75a5a47a77638d78f4e9fdb17a",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/B/seed73/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "fc78446a93e14ae53f4ad98ede53c3f7dee26c028154ebe296405cdee5c63c74",
+      "size_bytes": 775
+    },
+    {
+      "relative_path": "official_exact/B/seed73/receipt.json",
+      "sha256": "db2c6c20fa6ac592eba0faa61248349f9bf27099d456f414e0aa0cea7fe5fab1",
+      "size_bytes": 9439
+    },
+    {
+      "relative_path": "official_exact/B58/seed17/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "51d10219563777bb7940604ade411e8520d9532186aeb683e9bb0fa26fb366ee",
+      "size_bytes": 793
+    },
+    {
+      "relative_path": "official_exact/B58/seed17/precision.csv",
+      "sha256": "7d893cbb2c6e2e977d4d91eed6b2f761ed36b9f5c78169b4ddd13a7e76e72196",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/B58/seed17/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "7dd35b09dfbac0851743b57b3c96522df66a2178768df41827ac92c96023fd86",
+      "size_bytes": 775
+    },
+    {
+      "relative_path": "official_exact/B58/seed17/receipt.json",
+      "sha256": "d9a1959a1c66d3512fc39bc1f53724683c3468cb0c83b1b15bcf16a20610ba99",
+      "size_bytes": 9446
+    },
+    {
+      "relative_path": "official_exact/B58/seed42/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "51d10219563777bb7940604ade411e8520d9532186aeb683e9bb0fa26fb366ee",
+      "size_bytes": 793
+    },
+    {
+      "relative_path": "official_exact/B58/seed42/precision.csv",
+      "sha256": "7d893cbb2c6e2e977d4d91eed6b2f761ed36b9f5c78169b4ddd13a7e76e72196",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/B58/seed42/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "7dd35b09dfbac0851743b57b3c96522df66a2178768df41827ac92c96023fd86",
+      "size_bytes": 775
+    },
+    {
+      "relative_path": "official_exact/B58/seed42/receipt.json",
+      "sha256": "bb6ab6a488fbe548e498bdd5dc5ec5348173fc160f662c97934fefdbf6d0eafa",
+      "size_bytes": 9446
+    },
+    {
+      "relative_path": "official_exact/B58/seed73/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "51d10219563777bb7940604ade411e8520d9532186aeb683e9bb0fa26fb366ee",
+      "size_bytes": 793
+    },
+    {
+      "relative_path": "official_exact/B58/seed73/precision.csv",
+      "sha256": "7d893cbb2c6e2e977d4d91eed6b2f761ed36b9f5c78169b4ddd13a7e76e72196",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/B58/seed73/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "7dd35b09dfbac0851743b57b3c96522df66a2178768df41827ac92c96023fd86",
+      "size_bytes": 775
+    },
+    {
+      "relative_path": "official_exact/B58/seed73/receipt.json",
+      "sha256": "4c6cd227681dfc1ad12dc24800b3f6bd1886ca653df77df3ceffb418fcde8330",
+      "size_bytes": 9446
+    },
+    {
+      "relative_path": "official_exact/C/seed17/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "c7f22fb6ba13c02fe16df3b23aefd914c4ca35d5315f60e0c5d71404ef47a3cd",
+      "size_bytes": 791
+    },
+    {
+      "relative_path": "official_exact/C/seed17/precision.csv",
+      "sha256": "a1d567793041c35ce9c14c98de2693fb5c51b3c0c162a3d1e7ddea836ecd5caf",
+      "size_bytes": 107
+    },
+    {
+      "relative_path": "official_exact/C/seed17/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "32415635c37cfa4ba2c58a38cf350c23c704a9aa21f1ec02fe8d9f4932ba8794",
+      "size_bytes": 776
+    },
+    {
+      "relative_path": "official_exact/C/seed17/receipt.json",
+      "sha256": "83bb1600b6dd011e7ec281701142e2fe64d3089f1c77ff52c414fac519f89f66",
+      "size_bytes": 9432
+    },
+    {
+      "relative_path": "official_exact/C/seed42/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "69c06313aa130aef5c5965b3f9d582883a7bf8d088bcb273ada1814072adb875",
+      "size_bytes": 793
+    },
+    {
+      "relative_path": "official_exact/C/seed42/precision.csv",
+      "sha256": "dcb0075219e6ff30801265b9e092e5114ce59d040b26548a1e544bdd7b7f2f1c",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/C/seed42/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "6fb515ad45373e14c2b845685825c2182cb391b7a5459ddd1876b5cb4709a840",
+      "size_bytes": 772
+    },
+    {
+      "relative_path": "official_exact/C/seed42/receipt.json",
+      "sha256": "917ea20dca5f03929d6249acfe913017842a6889f8ded8d890c01aeea02dee93",
+      "size_bytes": 9433
+    },
+    {
+      "relative_path": "official_exact/C/seed73/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "46aeafda315c64b8e3e9d4edc1362debbc05c514eb1ecb64a9af381f24eadb68",
+      "size_bytes": 796
+    },
+    {
+      "relative_path": "official_exact/C/seed73/precision.csv",
+      "sha256": "9001244f990f8b07186f0a6af2378b2d6dd748f5c6b5e004d3113182649c616e",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/C/seed73/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "d349a31199f8db825326189b0eac35035197b397ed216241822886a9cb045d20",
+      "size_bytes": 772
+    },
+    {
+      "relative_path": "official_exact/C/seed73/receipt.json",
+      "sha256": "239893b90795711d74c42ba3ff7be4d5ca27eaec78d1dac1af9cc313d57bc042",
+      "size_bytes": 9436
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed17/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "c7f22fb6ba13c02fe16df3b23aefd914c4ca35d5315f60e0c5d71404ef47a3cd",
+      "size_bytes": 791
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed17/precision.csv",
+      "sha256": "945f582ab3ebf86d6cc2af07d30301bb20f3f4d6dacea7ae8b0014b61bcc8658",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed17/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "2041e3c5f300af66c6cfe72492219b53d3920e81fd077096d1607f5ed8229a35",
+      "size_bytes": 771
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed17/receipt.json",
+      "sha256": "564ba46c040738e15ed7b7b733ded3e3e8482e02c45940faba74f9c9e1bcee8d",
+      "size_bytes": 9460
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed42/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "69c06313aa130aef5c5965b3f9d582883a7bf8d088bcb273ada1814072adb875",
+      "size_bytes": 793
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed42/precision.csv",
+      "sha256": "945f582ab3ebf86d6cc2af07d30301bb20f3f4d6dacea7ae8b0014b61bcc8658",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed42/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "132fa93f3e096c0f56b4ce8f6de6bbe75c2dcf69f2e3acecdf3670a19ae4f8da",
+      "size_bytes": 769
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed42/receipt.json",
+      "sha256": "2d7d61ea8341b0e6eced36cfbd875ec92a28397c8f6f5fa1af5ef2f873f09a56",
+      "size_bytes": 9460
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed73/auroc_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "46aeafda315c64b8e3e9d4edc1362debbc05c514eb1ecb64a9af381f24eadb68",
+      "size_bytes": 796
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed73/precision.csv",
+      "sha256": "945f582ab3ebf86d6cc2af07d30301bb20f3f4d6dacea7ae8b0014b61bcc8658",
+      "size_bytes": 110
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed73/recall_['negative_type', 'negative_level', 'negative_cate'].csv",
+      "sha256": "fab264f6eea58a377895bd3a83462d5c0e6d71a761e09f5e397463164f393a54",
+      "size_bytes": 772
+    },
+    {
+      "relative_path": "official_exact/R100_D3/seed73/receipt.json",
+      "sha256": "460dbfd92691f5d15f4a73bdae9c18868373441cee5ce67f44a4a62d9ee3ccf0",
+      "size_bytes": 9466
+    },
+    {
+      "relative_path": "official_predictions/A_seed17.jsonl",
+      "sha256": "d9a409ef2675380e1fda7b651f26ec3519993eafc849ce613ffd490b454136b4",
+      "size_bytes": 3482405
+    },
+    {
+      "relative_path": "official_predictions/A_seed42.jsonl",
+      "sha256": "82e924d632a46000b403d955ef1079a0607d89d2d0b815f7b827ecae449e5ea5",
+      "size_bytes": 3482152
+    },
+    {
+      "relative_path": "official_predictions/A_seed73.jsonl",
+      "sha256": "fc0416b6947e8589d9ddeb1f9c2c1ea9885ca4bd9e85fb72ab62ad683eeda49f",
+      "size_bytes": 3481004
+    },
+    {
+      "relative_path": "official_predictions/B58_seed17.jsonl",
+      "sha256": "498259e98e22ee41e6f63f620cf0ce8ddaff9987e51e60fd93e7769f56d7c5b0",
+      "size_bytes": 3728776
+    },
+    {
+      "relative_path": "official_predictions/B58_seed42.jsonl",
+      "sha256": "498259e98e22ee41e6f63f620cf0ce8ddaff9987e51e60fd93e7769f56d7c5b0",
+      "size_bytes": 3728776
+    },
+    {
+      "relative_path": "official_predictions/B58_seed73.jsonl",
+      "sha256": "498259e98e22ee41e6f63f620cf0ce8ddaff9987e51e60fd93e7769f56d7c5b0",
+      "size_bytes": 3728776
+    },
+    {
+      "relative_path": "official_predictions/B_seed17.jsonl",
+      "sha256": "66f5624998e0641606550ed113f1c990f1324f7ca31e54d5a1de5504d9c5cc02",
+      "size_bytes": 3730381
+    },
+    {
+      "relative_path": "official_predictions/B_seed42.jsonl",
+      "sha256": "1434d8dd4d9b0fdba34041d09760775a8ffc4d02a26c6751df52861f902daaae",
+      "size_bytes": 3730119
+    },
+    {
+      "relative_path": "official_predictions/B_seed73.jsonl",
+      "sha256": "31a0fd58e041e8d1950829c97a431c0ea902320eaebf8ba05435abda436a8bc9",
+      "size_bytes": 3728468
+    },
+    {
+      "relative_path": "official_predictions/C_seed17.jsonl",
+      "sha256": "3b2e5ab638881c18c1d60f8d4686dd58ec07a057cd8bf04c686ed7ce137510cf",
+      "size_bytes": 3728736
+    },
+    {
+      "relative_path": "official_predictions/C_seed42.jsonl",
+      "sha256": "138d0bb70b80b6e4c89128fb3a6f2757680d6d613d1d999c3c433fc8f767cb28",
+      "size_bytes": 3729721
+    },
+    {
+      "relative_path": "official_predictions/C_seed73.jsonl",
+      "sha256": "deb94b7d6cecbb967826e90df74998a97dc2cff652e59ebd11098bf65ce45476",
+      "size_bytes": 3726552
+    },
+    {
+      "relative_path": "official_predictions/R100_D3_seed17.jsonl",
+      "sha256": "fc4fc4b3dabc24852895aa6eb05e34d6eff34b372b77c83a61d55e65b5096f87",
+      "size_bytes": 3730296
+    },
+    {
+      "relative_path": "official_predictions/R100_D3_seed42.jsonl",
+      "sha256": "5e239bf82c6660b75e0d87a17d79ab4860bf1313b72f270e7cadb76f896b6d43",
+      "size_bytes": 3730452
+    },
+    {
+      "relative_path": "official_predictions/R100_D3_seed73.jsonl",
+      "sha256": "c5f9d325957b659c389b98fce0788d3182ef97f3f3b7712b88e7aba827b77003",
+      "size_bytes": 3729067
+    },
+    {
+      "relative_path": "paper_table.md",
+      "sha256": "705efcabb648ca4ffc484cc30067a07208c2263586ffea3e1f143a3e2881d19e",
+      "size_bytes": 1348
+    },
+    {
+      "relative_path": "preregistration.json",
+      "sha256": "668dc6813e33abedfada50bf420d90d3543075c2e17d56b673814eb4bd9ee631",
+      "size_bytes": 10791
+    },
+    {
+      "relative_path": "preregistration_amendment.json",
+      "sha256": "0f93701104dc1799f617c05848bbb35a4251cb403241416f0e59c9dc83c00573",
+      "size_bytes": 1299
+    },
+    {
+      "relative_path": "results.json",
+      "sha256": "e4488092fbeb5a8720ec5178f25879cd563ac52d3c05489d5ec589d8a510de14",
+      "size_bytes": 101205
+    }
+  ],
+  "model_results_viewed": true,
+  "original_root": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819",
+  "reason": "HF GQA mirror JPEG bytes differ from official GQA zip for 4313/4313 images",
+  "relocated_root": "/media/haoyi/T9/pivot/outputs/arrow_finecops_hf_reencoded_diagnostic_20260819",
+  "schema": "arrow.finecops.hf_reencoded_diagnostic_relocation/v1"
+}
