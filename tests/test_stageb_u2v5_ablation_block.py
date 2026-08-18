@@ -21,7 +21,11 @@ from tools.aggregate_stageb_u2v5_bootstrap import (
     _bootstrap_ref_comparison,
     _threshold,
 )
-from tools.render_stageb_u2v5_ablation_paper_tables import _bootstrap_tables, _holm
+from tools.render_stageb_u2v5_ablation_paper_tables import (
+    PAPER_EXCLUDED_ROWS,
+    _bootstrap_tables,
+    _holm,
+)
 from tools.stageb_u2v5_ablation_registry import (
     FORMAL_ROWS,
     ROOT,
@@ -240,6 +244,19 @@ def test_ownership_isolation_family_p_uses_strict_superiority(tmp_path):
     tables, adjusted = _bootstrap_tables([report])
     assert tables["ownership_isolation"]["family_raw_p"] == 0.001
     assert adjusted["ownership"]["ownership_isolation"] == 0.001
+
+
+def test_rule_swap_and_matched_rows_are_absent_from_paper_tables(tmp_path):
+    assert PAPER_EXCLUDED_ROWS == ("D2", "D2m", "D3m")
+    report = tmp_path / "matched_scope.json"
+    report.write_text(json.dumps({
+        "schema": "pivot.stageb.u2v5_paired_bootstrap/v1",
+        "contrast": "matched_scope",
+        "strict2031": {"one_sided_p": 0.01},
+    }))
+    tables, adjusted = _bootstrap_tables([report])
+    assert tables == {}
+    assert all("matched_scope" not in family for family in adjusted.values())
 
 
 @pytest.mark.parametrize(

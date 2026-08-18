@@ -57,6 +57,10 @@ def main() -> None:
         "bootstrap": bootstrap,
         "paper_tables": _record(tables),
         "formal_trajectory_count": 42,
+        "paper_visible_formal_trajectory_count": 33,
+        "paper_excluded_rows": ["D2", "D2m", "D3m"],
+        "paper_excluded_contrasts": ["matched_scope"],
+        "historical_excluded_artifacts_retained": True,
         "strict1607_derived_from_strict2031": True,
         "c100_excluded_from_formal_hypotheses": True,
     }

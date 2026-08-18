@@ -27,6 +27,8 @@ TEST5 = (
     "refcocog_test",
 )
 SCHEMA = "pivot.stageb.u2v5_ablation_paper_tables/v1"
+PAPER_EXCLUDED_ROWS = ("D2", "D2m", "D3m")
+PAPER_EXCLUDED_CONTRASTS = ("matched_scope",)
 
 
 class TableError(RuntimeError):
@@ -136,7 +138,6 @@ def _bootstrap_tables(paths: list[Path]) -> tuple[dict[str, Any], dict[str, Any]
     family = {
         "admission": "admission",
         "confidence": "confidence_data",
-        "matched_scope": "confidence_data",
         "ownership_isolation": "ownership",
         "ownership_schedule": "ownership",
     }
@@ -145,6 +146,8 @@ def _bootstrap_tables(paths: list[Path]) -> tuple[dict[str, Any], dict[str, Any]
         if payload.get("schema") != "pivot.stageb.u2v5_paired_bootstrap/v1":
             raise TableError(f"bootstrap schema mismatch: {path}")
         contrast = str(payload.get("contrast", path.stem))
+        if contrast in PAPER_EXCLUDED_CONTRASTS:
+            continue
         if contrast in reports:
             raise TableError(f"duplicate bootstrap contrast {contrast}")
         reports[contrast] = {"source": _record(path)}
@@ -215,7 +218,15 @@ def _markdown(payload: dict[str, Any]) -> str:
         test5 = report.get("test5", {}).get("gain", math.nan)
         strict = report.get("strict2031", {}).get("gain", math.nan)
         lines.append(f"| {name} | {_fmt(test5)} | {_fmt(strict)} | {_fmt(report.get('holm_adjusted_p', math.nan))} |")
-    lines.extend(["", "Test5 is the confirmatory Ref endpoint; val3 and Ref8 aggregates are descriptive. strict1607 is a nested subset derived from the strict2031 forward.", ""])
+    lines.extend([
+        "",
+        "D2, D2m, and D3m are excluded from the manuscript-facing ablation "
+        "table because the rule-swap D2 source is not the pre-VLM parent of D3.",
+        "",
+        "Test5 is the confirmatory Ref endpoint; val3 and Ref8 aggregates are "
+        "descriptive. strict1607 is a nested subset derived from the strict2031 forward.",
+        "",
+    ])
     return "\n".join(lines)
 
 
@@ -238,7 +249,7 @@ def main() -> None:
     admission["A5"] = _ref_metrics(anchor / "formal/ref_val3_admission_u100/summary.json", VAL3)
     confidence_data = {
         row: _tn_metrics(mechanism / row / ("d3_calibration/summary.json" if row.startswith("C") else "calibration/summary.json"))
-        for row in ("C1", "C2", "C4", "D1", "D2", "D2m", "D3m")
+        for row in ("C1", "C2", "C4", "D1")
     }
     confidence_data["C3"] = _tn_metrics(anchor / "formal/calibration_u25_u50_u100/summary.json", run_contains="_u50_")
     ownership = {}
@@ -252,6 +263,14 @@ def main() -> None:
     manifest = Path(args.confirmatory_manifest)
     payload = {
         "schema": SCHEMA,
+        "paper_exclusions": {
+            "rows": list(PAPER_EXCLUDED_ROWS),
+            "contrasts": list(PAPER_EXCLUDED_CONTRASTS),
+            "reason": (
+                "rule-swap D2 is not the direct pre-VLM source population of D3"
+            ),
+            "historical_artifacts_retained": True,
+        },
         "mechanism": {"admission": admission, "confidence_data": confidence_data, "ownership": ownership},
         "confirmatory": {
             "manifest": _record(manifest),

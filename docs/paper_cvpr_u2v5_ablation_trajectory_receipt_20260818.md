@@ -8,9 +8,11 @@ strict2031 interpretation.
 
 ## Formal matrix
 
-- Registry: 14 trainable rows × seeds 17/42/73 = 42 trajectories.
+- Historical registry: 14 trainable rows × seeds 17/42/73 = 42 trajectories.
+- Manuscript-visible registry: 11 rows × seeds 17/42/73 = 33 trajectories;
+  D2/D2m/D3m are archived and excluded.
 - Admission: A1/A2/A3/A4, U100, physical B56.
-- Confidence/data: C1/C2/C4 and D1/D2/D2m/D3m, U50, physical B8.
+- Confidence/data shown in the manuscript: C1/C2/C4 and D1, U50, physical B8.
 - Ownership: O0/O1/O2, 100 admission + 50 confidence updates.
 - Every accepted trajectory has the intended update count, zero non-finite
   steps, zero AMP skips and a passed frozen-ownership postflight.
@@ -19,7 +21,7 @@ strict2031 interpretation.
   introduced.
 - Failed attempts remain under
   `outputs/u2v5_cvpr_ablation_20260817/failed_attempts/` and are not silently
-  replaced: A4 configuration, C1 objective contract, D1 scope, D2m binding,
+  replaced: A4 configuration, C1 objective contract, D1 scope, archived D2m binding,
   O0 seed73 OOM and O2 seed42 AMP-skip attempts.
 
 ## Ownership audit
@@ -63,8 +65,7 @@ Calibration FPR95 (mean over three seeds):
 | O2 isolated, interleaved | 0.533758 |
 | O3 isolated, phased | 0.536518 |
 
-Matched calibration strongly favors D3m over D2m (0.344589 vs 0.443723), but
-this is a selection-surface observation, not a strict held-out claim.
+The historical D2/D2m/D3m mechanism outputs are not manuscript evidence.
 
 ## Preregistration
 
@@ -74,7 +75,9 @@ this is a selection-surface observation, not a strict held-out claim.
   `6eaa844c87b4a116dfaf13dc2c9fa1cbced030f2b9438197a8579f5c410916a4`
 - Git commit: `d8afbcf2f0b4dc7b07212efe1cb8981aabac4a37`
 - Bound trajectories: 42.
-- Bound contrasts: A5−A1, C3−C2, O2−O0, O3−O2 and D3m−D2m.
+- Historically bound contrasts: A5−A1, C3−C2, O2−O0, O3−O2 and D3m−D2m.
+- Manuscript-visible contrasts exclude D3m−D2m; the preregistration is retained
+  unchanged as an audit record.
 - Test5 and strict2031 outputs did not exist when this receipt was written.
 - strict1607 is registered as an exact identity subset of strict2031 and is
   never forwarded separately in this block.

@@ -103,9 +103,9 @@ Reusable clean inputs include:
 - admission positives and category-complete boxes in
   `data/ablations/stageb_refexp_three_train_category_complete_20260720/receipt.json`
   (120,624/120,191/80,512 RefCOCO/+/g rows);
-- D1/D2/D3 source audit in
+- D1/D3 source fields in
   `data/ablations/stageb_tn_table_b_equal_exposure_20260717/audit.json`;
-  all three source blocks are image-disjoint from the strict union;
+  both retained source blocks are image-disjoint from the strict union;
 - D3 train/calibration with 14,196/1,570 rows;
 - synchronized category interventions in
   `data/ablations/stageb_table_a_category_intervention_20260717/audit.json`
@@ -228,18 +228,14 @@ Keep the C3 architecture/objective fixed.
 |---|---|---|---|
 | D0 | none | positive-only | no-TN control |
 | D1 | unverified edited negatives | edit text only | weak-data control |
-| D2 | traceable counterfactual edits | traceable edit | broad equal-exposure row |
 | D3 | clean proposal-covered pairs | proposal-covered | main data |
-| D2m | matched traceable parents | traceable edit | causal matched block |
-| D3m | same matched parents | proposal-covered | causal matched block |
 
-D1-D3 use identical TN exposure and total updates. D0 is a separate no-TN
-control. D2m/D3m use the existing 7,074-row matched audit as their own block
-and must not be pooled with the broad rows. Report identical-TN and changed-TN
-strata separately. No row may upgrade proposal-covered labels to image-global.
-The broad rows require new paired-only U2-v5 confidence manifests; the old
-Table-B mixture of three positive sources plus TN mass is not the final
-confidence phase and cannot be reused as a config.
+D1 is retained only as a weak-data stress control; D3 is the main verified
+training source. D0 is a separate no-TN control. D2, D2m, and D3m are excluded
+from every manuscript-facing table because the fixed rule-swap D2 source is not
+the direct pre-VLM population of D3. Their checkpoints and receipts remain
+archived for provenance only. No retained row may upgrade proposal-covered
+labels to image-global without a new audit.
 
 ### Block P: text-route semantics, zero training
 
@@ -386,7 +382,6 @@ reduction. The primary planned contrasts are:
 3. A5-A1: training-only auxiliary residual;
 4. O2-O0: isolated versus shared parameters;
 5. O3-O2: sequential versus interleaved isolated optimization;
-6. D3m-D2m: verification scope on matched parents.
 
 Apply Holm-Bonferroni within each admission, confidence/data, and ownership
 contrast family rather than across exploratory taxonomy rows. The nested
@@ -437,13 +432,13 @@ Main paper, in priority order:
 3. O0/O2/O3 ownership table plus gradient-conflict figure on val/calibration;
 4. compact C0/C2/C3 confidence table if space permits.
 
-The D table enters the main paper only if the matched D3m-D2m contrast supports
-the verification-scope claim. Otherwise D and full C remain supplementary.
-Legacy U2 and C100 appear only in a visually separated diagnostic panel.
+D1 may appear only as a weak-data diagnostic; D3 is the main-data row, not a
+causal visual-filter ablation. Legacy U2 and C100 appear only in a visually
+separated diagnostic panel.
 
 Supplement:
 
-- full A0-A5, C0-C5 and D0-D3/D2m-D3m tables;
+- full A0-A5 and C0-C5 tables, plus D0/D1/D3 data provenance;
 - P and S causal routes;
 - gap/milestone/queue/candidate-count sensitivity;
 - edit-category and Ref-expression-type breakdowns;
@@ -473,12 +468,14 @@ unnecessary intermediate architecture.
 - A2/A3/A4: 9 trajectories;
 - C1/C4: 6 trajectories;
 - O1 shared-trunk intermediate: 3 trajectories;
-- D0 reuses C0 identity; D1/D2 add 6 broad-panel trajectories, while D3 is
-  the existing main row;
-- D2m/D3m: 6 new trajectories;
+- D0 reuses C0 identity; D1 adds 3 weak-control trajectories, while D3 is the
+  existing main row;
 - all zero-training prompt/support/sensitivity diagnostics.
 
-The complete design therefore adds 42 formal training trajectories. Each
+The manuscript-visible design therefore adds 33 formal training trajectories.
+The historical execution contains 42 because D2/D2m/D3m were run before their
+source-lineage mismatch was identified; those 9 trajectories are archived and
+excluded. Each
 confidence/data trajectory may save U25/U50/U100 for sensitivity, but every
 formal comparison consumes the fixed U50. Training is short; evaluation is the
 dominant cost, which is why factorized parity and val/calibration mechanism

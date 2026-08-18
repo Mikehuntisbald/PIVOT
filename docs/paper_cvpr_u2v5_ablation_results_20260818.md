@@ -14,8 +14,9 @@ supports two proposed mechanism claims and narrows the third:
    proven better than already-isolated interleaving. O3 passes Ref
    non-inferiority against O2, but its strict improvement is not significant.
 
-Positive trust and matched verification scope are useful calibration-design
-diagnostics, but neither receives a standalone strict held-out causal claim.
+Positive trust does not receive a standalone strict held-out causal claim.
+D2/D2m/D3m are excluded from the manuscript because D2 is not D3's direct
+pre-VLM source population.
 
 ## Confirmatory endpoints
 
@@ -50,7 +51,6 @@ every replicate.
 | O2−O0 | strict2031 | +0.028065 | [0.009268, 0.046384] | 0.001000 | passes |
 | O3−O2 | Test5 | −0.000592 | [−0.000954, −0.000216] | NI p=0.000200 at margin 0.005 | NI passes |
 | O3−O2 | strict2031 | +0.002790 | [−0.003178, 0.010905] | 0.135973 | superiority does not pass |
-| D3m−D2m | strict2031 | −0.000985 | [−0.007429, 0.006826] | 0.543091 | does not pass |
 
 The ownership-schedule IUT therefore does not pass. Family-wise Holm correction
 is applied within admission, confidence/data and ownership. For O2−O0, Test5
@@ -99,11 +99,9 @@ C2 is not worse than C3 on strict2031, so the paper must not claim that the
 positive-trust term independently improves FPR95. C1 shows that current-batch
 negatives are insufficient, while C4 gives no paired-margin benefit.
 
-D3m strongly improves its matched calibration surface over D2m (0.344589 vs
-0.443723), but the benefit does not transfer significantly to the full strict
-universe. This is targeted calibration behavior, not a general held-out causal
-claim. Broad D1/D2/D3 numbers use different universes and must not be compared
-causally.
+D1 is retained only as a synthetic/unverified weak-data stress control. D3 is
+the real SAM3+VLM verified main-data source. The historical rule-swap D2 and
+the approximate D2m/D3m parent match are not shown or interpreted.
 
 ## Cumulative routes and error attribution
 
@@ -132,19 +130,19 @@ wider admission gate.
   `6eaa844c87b4a116dfaf13dc2c9fa1cbced030f2b9438197a8579f5c410916a4`
 - Confirmatory results manifest SHA256:
   `ffb99ad3d77a0ec02b2e8cf5710a577b18a2f05f4fc354d2cd2f9093da90bce7`
-- Corrected paper table v2 SHA256:
-  `9db98af1f0fff1c91372a81af43b12627974105863302b42abe59b4675d9bb0f`
-- Final receipt v2 SHA256:
-  `98173c28258a25c450530f6929c0a719228c52e401851d37307a33a4d01e8c3d`
+- Manuscript-facing paper table v3 SHA256:
+  `b5ca62d73075feb7760c79eac8d1d86fd3b4b487a2092424df7ceff2fc2be14f`
+- Final receipt v3 SHA256:
+  `329bf8eae4f2505d73ac5164d3f89a592a7ec8af38a9c69044828a215278ffc8`
 - Complete zero-training M/P/S/G/H-core supplement v3 SHA256:
   `a4a6d43fd705bbabaf578595fed46a8af632676e1c41cd0a92981bb009a43b1c`
 - P/S per-record receipt SHA256:
   `c459bd3323fff5b263bb2210d7c6af20e64491b18be8a54d642e25c6ea59560c`
 
 All paths are rooted at `outputs/u2v5_cvpr_ablation_20260817/`. Weight files
-remain outside Git. `paper_tables.json` and `final_receipt.json` are superseded
-by `_v2` because the first renderer incorrectly included Test5 superiority in
-the O2−O0 family p-value. No bootstrap draw or model result changed.
+remain outside Git. Earlier paper-table/final-receipt versions are superseded
+by `_v3`: v2 fixed the O2−O0 family p-value, while v3 additionally excludes
+D2/D2m/D3m from the manuscript view. No bootstrap draw or model result changed.
 
 C100 and legacy U2 remain gray diagnostic references and are excluded from all
 formal hypotheses.
