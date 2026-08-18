@@ -1,5 +1,8 @@
 # ARROW Admission-input protocol
 
+> **Status:** complete. Results and sealed hashes are reported in
+> `paper_cvpr_arrow_admission_input_results_20260818.md`.
+
 ARROW stands for **Admission, Ranking, and Rejection with Ownership-Separated
 Weights for Reliable Visual Grounding**. This block changes only the Admission
 input while retaining the sealed U2-v5 implementation lineage.

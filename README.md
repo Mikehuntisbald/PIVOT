@@ -16,6 +16,9 @@ checkpoints and receipts retain their original PIVOT/U2-v5 field names,
 `pivot.*` schemas, absolute paths, and hashes as a compatibility lineage; they
 must not be rewritten.
 
+Current controlled results are summarized in
+[`docs/paper_cvpr_arrow_admission_input_results_20260818.md`](docs/paper_cvpr_arrow_admission_input_results_20260818.md).
+
 ARROW is implemented on top of the third-party Grounding DINO training code
 below. The original implementation and paper remain credited to their authors:
 **[Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object

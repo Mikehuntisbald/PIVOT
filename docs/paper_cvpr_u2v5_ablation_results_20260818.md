@@ -1,5 +1,8 @@
 # ARROW CVPR ablation results (U2-v5 lineage, 2026-08-18)
 
+> The public ARROW Admission-input A/B/C follow-up is reported in
+> `paper_cvpr_arrow_admission_input_results_20260818.md`.
+
 ## Paper-level conclusion
 
 The clean U2-v5 anchor remains the paper main model. The completed block
