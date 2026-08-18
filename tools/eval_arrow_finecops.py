@@ -41,6 +41,7 @@ from util.slconfig import SLConfig
 
 
 DEFAULT_PREREG = REPO_ROOT / "outputs/arrow_finecops_20260819/preregistration.json"
+DEFAULT_AMENDMENT = REPO_ROOT / "outputs/arrow_finecops_20260819/preregistration_amendment.json"
 
 
 def _verify_artifact(expected: Mapping[str, Any], *, label: str) -> Path:
@@ -108,7 +109,37 @@ def _gt_iou(
     truth = box_ops.box_cxcywh_to_xyxy(
         target_boxes[:1].to(prediction.device).detach().float()
     ).clamp(0.0, 1.0)
-    return float(box_ops.box_iou(prediction, truth)[0, 0].item())
+    iou_output = box_ops.box_iou(prediction, truth)
+    iou = iou_output[0] if isinstance(iou_output, tuple) else iou_output
+    return float(iou[0, 0].item())
+
+
+def _validate_runtime_source(
+    preregistration_path: Path, prereg: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    expected = next(
+        row
+        for row in prereg["sources"]
+        if str(row["path"]).endswith("/tools/eval_arrow_finecops.py")
+    )
+    observed = file_record(Path(__file__).resolve())
+    if all(observed[key] == expected[key] for key in ("sha256", "size_bytes")):
+        return None
+    if not DEFAULT_AMENDMENT.is_file():
+        raise ValueError("FineCops evaluator changed after preregistration without amendment")
+    amendment = load_json(DEFAULT_AMENDMENT)
+    if amendment.get("schema") != "arrow.finecops.preregistration_amendment/v1":
+        raise ValueError("FineCops preregistration amendment schema drifted")
+    base = amendment.get("base_preregistration") or {}
+    base_observed = file_record(preregistration_path)
+    if any(base_observed[key] != base.get(key) for key in ("sha256", "size_bytes")):
+        raise ValueError("FineCops amendment does not bind the base preregistration")
+    current = amendment.get("current_evaluator") or {}
+    if any(observed[key] != current.get(key) for key in ("sha256", "size_bytes")):
+        raise ValueError("FineCops evaluator differs from its amendment")
+    if amendment.get("change_scope") != "box_iou_tuple_api_compatibility_only":
+        raise ValueError("FineCops amendment change scope is not allowlisted")
+    return file_record(DEFAULT_AMENDMENT)
 
 
 def _pixel_box(box_cxcywh: torch.Tensor, target: Mapping[str, Any]) -> list[float]:
@@ -187,6 +218,7 @@ def run(
     ):
         raise ValueError("FineCops preregistration is not locked")
     _verify_artifact(file_record(preregistration_path), label="preregistration")
+    amendment_record = _validate_runtime_source(preregistration_path, prereg)
     _, dataset = _dataset_manifest(prereg)
     manifest_record = dataset["manifests"]["a_eval" if route == "A" else "bc_full"]
     manifest_path = _verify_artifact(manifest_record, label=f"route {route} manifest")
@@ -352,6 +384,7 @@ def run(
         "num_workers": int(execution["num_workers"]),
         "amp": bool(execution["amp"]),
         "finecops_threshold_fitted": False,
+        "preregistration_amendment": amendment_record,
     }
     write_json_atomic(output_dir / "run_receipt.json", summary)
     return summary

@@ -187,6 +187,15 @@ def test_masked_confidence_max_ignores_invalid_queries() -> None:
     assert _masked_max(score, mask).tolist() == [2.0]
 
 
+def test_gt_iou_accepts_repository_tuple_api() -> None:
+    torch = pytest.importorskip("torch")
+    from tools.eval_arrow_finecops import _gt_iou
+
+    prediction = torch.tensor([[0.5, 0.5, 0.4, 0.4]])
+    target = {"boxes": torch.tensor([[0.5, 0.5, 0.4, 0.4]])}
+    assert _gt_iou(prediction, target, 0) == pytest.approx(1.0, abs=1e-5)
+
+
 def test_b_route_uses_active_tuple_category_without_changing_caption() -> None:
     pytest.importorskip("torch")
     from tools.eval_arrow_finecops import _apply_route_admission_inputs
