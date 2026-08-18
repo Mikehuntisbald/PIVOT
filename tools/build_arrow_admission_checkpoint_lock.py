@@ -57,13 +57,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preregistration", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--supersedes")
     args = parser.parse_args()
     prereg_path = Path(args.preregistration).resolve(strict=True)
     prereg = json.loads(prereg_path.read_text(encoding="utf-8"))
     if prereg.get("schema") != "arrow.stageb.admission_input_preregistration/v1":
         raise ArrowLockError("invalid ARROW design preregistration")
-    if _git() != prereg.get("git"):
-        raise ArrowLockError("code commit differs from design preregistration")
+    current_git = _git()
+    previous_lock_record = None
+    if current_git != prereg.get("git"):
+        if not args.supersedes:
+            raise ArrowLockError("code commit differs from design preregistration")
+        previous_path = Path(args.supersedes).resolve(strict=True)
+        previous = json.loads(previous_path.read_text(encoding="utf-8"))
+        if previous.get("schema") != SCHEMA:
+            raise ArrowLockError("superseded checkpoint lock schema drifted")
+        previous_lock_record = _record(previous_path)
     if EVALUATIONS.exists():
         raise ArrowLockError("evaluation root already exists before checkpoint lock")
     checkpoints, postflights = {}, {}
@@ -88,12 +97,20 @@ def main() -> None:
         )
     payload = {
         "schema": SCHEMA, "status": "locked_before_model_evaluation",
-        "git": _git(), "preregistration": _record(prereg_path),
+        "git": current_git, "design_git": prereg.get("git"),
+        "preregistration": _record(prereg_path),
         "training_checkpoints": checkpoints, "postflights": postflights,
         "sealed_A_admission": sealed_a, "sealed_D3_confidence": clean_confidence,
         "new_training_trajectory_count": 6,
         "strict_forward_forbidden": True,
     }
+    if previous_lock_record is not None:
+        payload["supersedes"] = previous_lock_record
+        payload["evaluation_amendment"] = {
+            "reason": "confidence-only forward bypasses Admission and merged checkpoint preserves clean-confidence provenance",
+            "training_checkpoints_unchanged": True,
+            "test5_or_fresh_panel_viewed": False,
+        }
     _write(Path(args.output), payload)
     print(json.dumps({"status": "locked", "receipt": _record(Path(args.output))}, indent=2))
 

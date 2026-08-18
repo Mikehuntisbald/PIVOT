@@ -77,6 +77,16 @@ def merge(admission_path: Path, confidence_path: Path) -> dict[str, Any]:
         result["model"], frozen
     )
     result["arrow_admission_input"] = arrow
+    clean_confidence = copy.deepcopy(source_contract)
+    clean_confidence["admission_checkpoint"] = admission_record
+    clean_confidence["frozen_keys"] = sorted(set(result["model"]) - set(keys))
+    clean_confidence["frozen_key_count"] = len(clean_confidence["frozen_keys"])
+    clean_confidence["frozen_tensor_sha256"] = stage_b_u0_tensor_state_sha256(
+        result["model"], clean_confidence["frozen_keys"]
+    )
+    clean_confidence["c100_confidence_imported"] = False
+    result["u2v5_clean_confidence"] = clean_confidence
+    result["optimizer_updates"] = int(confidence.get("optimizer_updates", 0))
     result["arrow_confidence_overlay"] = {
         "schema": SCHEMA,
         "admission_source": admission_record,

@@ -85,7 +85,7 @@ def _ref_command(lock: dict, row: str, profile: str, splits: tuple[str, ...]) ->
 def _calibration_command(lock: dict, row: str) -> list[str]:
     return [
         str(PYTHON), "tools/eval_text_groundingdino_refcoco_tn.py",
-        "--config", "config/ablations/cfg_stageb_u2v5_clean_confidence_d3_u100.py",
+        "--config", ROWS[row],
         "--ckpts", *_checkpoints(lock, row, merged=True),
         "--output_dir", str(EVALUATIONS / row / "d3_calibration"),
         "--data_root", "/media/haoyi/T9/data", "--device", "cuda:0",

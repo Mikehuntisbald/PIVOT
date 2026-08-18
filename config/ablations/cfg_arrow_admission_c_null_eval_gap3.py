@@ -1,6 +1,11 @@
 """Gap3 evaluation for AR_C_NULL."""
 
-from config.ablations.cfg_stageb_u2v5_clean_admission_eval_gap3 import *  # noqa: F401,F403
+from config.ablations.cfg_stageb_u2v5_clean_confidence_d3_u100 import *  # noqa: F401,F403
+
+stage_b_u0_category_preserving_patch_gate = True
+stage_b_u0_category_gate_max_gap = 3.0
+stage_b_u2v2_category_gate_max_gap = 3.0
+stage_b_gdino_ref_top1_guard = False
 
 stage_b_arrow_admission_input_ablation = True
 stage_b_arrow_admission_row_id = "AR_C_NULL"

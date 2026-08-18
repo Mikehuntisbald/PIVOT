@@ -1221,12 +1221,16 @@ class GroundingDINO(nn.Module):
             if self.stage_b_arrow_admission_input_ablation
             else "support_patch"
         )
+        arrow_admission_bypassed = bool(
+            self.stage_b_arrow_admission_input_ablation
+            and u2v2_confidence_only
+        )
         if arrow_source not in {
             "support_patch", "canonical_text", "learned_null"
         }:
             raise RuntimeError(f"unknown ARROW Admission source {arrow_source!r}")
         patch_global = patch_global_in if arrow_source == "support_patch" else None
-        if arrow_source == "canonical_text":
+        if arrow_source == "canonical_text" and not arrow_admission_bypassed:
             arrow_captions = kw.get("stage_b_arrow_admission_captions")
             if (
                 not isinstance(arrow_captions, (list, tuple))
@@ -1240,7 +1244,7 @@ class GroundingDINO(nn.Module):
                 list(arrow_captions), hs[-1].device
             )
             patch_global = self._project_stage_b_arrow_source(canonical_source)
-        elif arrow_source == "learned_null":
+        elif arrow_source == "learned_null" and not arrow_admission_bypassed:
             if kw.get("stage_b_arrow_admission_captions") is not None:
                 raise RuntimeError(
                     "learned_null Admission forbids canonical caption input"
@@ -1259,6 +1263,7 @@ class GroundingDINO(nn.Module):
 
         if (
             self.stage_b_arrow_admission_input_ablation
+            and not arrow_admission_bypassed
             and patch_global is None
         ):
             raise RuntimeError(
@@ -1398,7 +1403,10 @@ class GroundingDINO(nn.Module):
             "pred_logits_patch_residual": residual_score_patch,
             "pred_boxes": outputs_coord_list[-1],
         }
-        if self.stage_b_arrow_admission_input_ablation:
+        if (
+            self.stage_b_arrow_admission_input_ablation
+            and not arrow_admission_bypassed
+        ):
             out["stage_b_arrow_admission_raw_score"] = score_patch
             if bool(kw.get("stage_b_arrow_panel_diagnostics", False)):
                 out["stage_b_arrow_query_projection"] = query_proj
