@@ -1,0 +1,235 @@
+{
+  "checkpoints": {
+    "A": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed17_u50/checkpoint_iter.pth",
+        "sha256": "b8045f97d3fa4d21e95b49e6c4f50d12651775862d3a60ca479d51242665cf25",
+        "size_bytes": 694409337
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed42_u50/checkpoint_iter.pth",
+        "sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+        "size_bytes": 694409209
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed73_u50/checkpoint_iter.pth",
+        "sha256": "90c05708e792248acffae27ca435e33ef86dea2e88518ed9fe501e72f064aef2",
+        "size_bytes": 694409145
+      }
+    },
+    "B": {
+      "17": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed17.receipt.json",
+          "sha256": "c47063dc3c2399558190a45712071863214acc8921aba45e168eb3a605bc74df",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed17.pth",
+        "sha256": "d04c2097ceb30060d78d4ceedff26d722587cc8a4bf380b8584d5682d75340a0",
+        "size_bytes": 693721382
+      },
+      "42": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed42.receipt.json",
+          "sha256": "b13584b6af8ca3f226c2f3056c0b2c6991cf504e33948283ff8235734933d16f",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed42.pth",
+        "sha256": "1eca2d3e3dc21e557dc8eba0b9506620469a717edb025009e039ea5a566a9b1b",
+        "size_bytes": 693721254
+      },
+      "73": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed73.receipt.json",
+          "sha256": "ef4b548141b21c0ff1c15d808a11feb786451c843cebc46d9bbcb1726c5e923c",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed73.pth",
+        "sha256": "b384159c7f50521c0b5ce49c584cc354f4685426a7d720196d116fb701cf053c",
+        "size_bytes": 693721190
+      }
+    },
+    "C": {
+      "17": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed17.receipt.json",
+          "sha256": "0b5c4a31205ffec77791c5ec05131e8eef0bcfce27e9918c006f837c57f42179",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed17.pth",
+        "sha256": "bccc6f4cfa2d168a1479eecdcc9c946d6ea7867fc8f9b642e3dd99288030b6d7",
+        "size_bytes": 693721382
+      },
+      "42": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed42.receipt.json",
+          "sha256": "0a23d02dc20f06a84f0eaf0a542f7297b66bca5fd5efe52acf98af9d14e400e8",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed42.pth",
+        "sha256": "114cd37259273b8f1294730608edf6d0aa36a7f3a4d35c0b91fb8da9fab35e1a",
+        "size_bytes": 693721254
+      },
+      "73": {
+        "overlay_receipt": {
+          "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed73.receipt.json",
+          "sha256": "07c56cbcbdad7a1cbe9595e971e7e1627bf3498cbe21df996d8d6dcb7fc0de5f",
+          "size_bytes": 2673
+        },
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/eval_checkpoints/AR_C_NULL/seed73.pth",
+        "sha256": "732029593fdccacc0abe247ae5661b5e09c8ad619b589f8471239c972d0fd876",
+        "size_bytes": 693721190
+      }
+    }
+  },
+  "claim_boundary": "gRefCOCO annotation/task-zero-shot cross-benchmark transfer on previously exposed COCO imagery",
+  "config": {
+    "path": "/media/haoyi/T9/pivot/config/ablations/cfg_arrow_grefcoco_confidence_only.py",
+    "sha256": "f20ca0ba6e95fe32ceb3ccf2818a2f28ee4e6471d625d00efc341df28c490fc1",
+    "size_bytes": 321
+  },
+  "dataset": {
+    "path": "/media/haoyi/T9/data/gRefCOCO/v1/manifests/dataset_manifest.json",
+    "sha256": "b8ae1ca5000677c007c609fd4c8a0e586f7a41658fa02bbd42ffb73b9df92a6a",
+    "size_bytes": 1930
+  },
+  "execution": {
+    "amp": true,
+    "batch_size": 16,
+    "device": "cuda:0",
+    "loader_seed": 20260820,
+    "num_workers": 4,
+    "results_root": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/evaluations_v2",
+    "seeds": [
+      17,
+      42,
+      73
+    ]
+  },
+  "finecops_preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/preregistration.json",
+    "sha256": "8f91c586bc39660601173ab42477fc94e76972154dbe2ee53f20ac091ae3d7cd",
+    "size_bytes": 11309
+  },
+  "formal_checkpoint_route": "A_confidence_only_because_ABC_confidence12_is_seed_matched",
+  "git": {
+    "head": "61fbfef37d8769475371b362235ca96307740595",
+    "status_at_lock": "?? config/ablations/cfg_arrow_grefcoco_confidence_only.py\n?? tests/test_arrow_grefcoco.py\n?? tools/aggregate_arrow_grefcoco.py\n?? tools/arrow_grefcoco_common.py\n?? tools/build_arrow_grefcoco_final_receipt.py\n?? tools/build_arrow_grefcoco_preregistration.py\n?? tools/eval_arrow_grefcoco.py\n?? tools/preflight_arrow_grefcoco.py\n?? tools/prepare_arrow_grefcoco.py\n?? tools/run_arrow_grefcoco_evaluations.py"
+  },
+  "overlap_audit": {
+    "path": "/media/haoyi/T9/data/gRefCOCO/v1/manifests/overlap_audit.json",
+    "sha256": "1b69209ab5feca1bbb07812393ffe770d876741e6718281b2d0daf1e655af36c",
+    "size_bytes": 3920
+  },
+  "planned_contrast": {
+    "candidate": "D3",
+    "gates": [
+      "auroc_gain_ci_low_gt_0",
+      "fpr95_gain_ci_low_gt_0"
+    ],
+    "reference": "B58",
+    "required_surfaces": [
+      "d3_disjoint",
+      "full"
+    ]
+  },
+  "preflight": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/preflight.json",
+    "sha256": "10abae876cc67e312bdbc081ba2f06482e35e24af4695279215fdad2766c1230",
+    "size_bytes": 8628
+  },
+  "prohibitions": [
+    "model_training",
+    "optimizer_creation",
+    "grefcoco_train_forward",
+    "checkpoint_selection",
+    "gap_tuning",
+    "threshold_tuning",
+    "admission_on_no_target",
+    "b58_fixed_threshold_invention",
+    "result_dependent_protocol_change"
+  ],
+  "release_manifest": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_release_20260818/release_manifest.json",
+    "sha256": "ebe587bee63ed4288f464d1a4872184735a2d0ba0b3ce8cba121973cf1bc49a7",
+    "size_bytes": 2438
+  },
+  "schema": "arrow.grefcoco.preregistration/v1",
+  "sources": [
+    {
+      "path": "/media/haoyi/T9/pivot/tools/arrow_grefcoco_common.py",
+      "sha256": "42195249f1c962eb6d3ae1f18834d2ede220d149766d9b32699c63093e09466e",
+      "size_bytes": 4117
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/prepare_arrow_grefcoco.py",
+      "sha256": "a7efeeeff3fff8be13415f1248d111a0913e07331baf1b0674e0584191c4ddde",
+      "size_bytes": 16727
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/build_arrow_grefcoco_preregistration.py",
+      "sha256": "e1a75c7c869b15b9ce19a0fb3150f538fae5c3aa222add4ef12604bee87d6fbd",
+      "size_bytes": 6483
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/preflight_arrow_grefcoco.py",
+      "sha256": "f146ee1f4a1c72e18659cae2a20b00beef3d0b2976f2203841c1a81236e806f6",
+      "size_bytes": 6491
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/eval_arrow_grefcoco.py",
+      "sha256": "e22f5327f86842121ab4e7944db2af80e700afc6fe4f565acf647b0098ed5d83",
+      "size_bytes": 12816
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/run_arrow_grefcoco_evaluations.py",
+      "sha256": "78dad131f49544fa247c41ee41fd848a1d85bc1c74bb473aaf01a53ebb0bfa68",
+      "size_bytes": 3173
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_arrow_grefcoco.py",
+      "sha256": "4b4fe6e2b6c54fe727ce6ccf7ea9768f0fd30144905e2bdac04adcc69d923562",
+      "size_bytes": 15253
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/build_arrow_grefcoco_final_receipt.py",
+      "sha256": "50957202d0a654ee14b7adbbe8431fb09200fd6f9a1077874c0830f9eb2440ca",
+      "size_bytes": 1914
+    }
+  ],
+  "statistics": {
+    "bootstrap": "paired_stratified_image_cluster",
+    "fixed_threshold_never_reestimated": true,
+    "iterations": 5000,
+    "pcg64_seed": 20260820,
+    "recompute_domain_q05_each_replicate": true,
+    "strata": [
+      "testA",
+      "testB"
+    ]
+  },
+  "status": "locked_before_any_grefcoco_model_forward",
+  "surfaces": {
+    "co_required_robustness": "full",
+    "primary": "d3_disjoint",
+    "sensitivity": "d3_finecops_disjoint",
+    "val": "no_target_fixed_threshold_only"
+  },
+  "thresholds": {
+    "17": {
+      "comparison": ">=",
+      "raw_threshold": 0.2301006317138672,
+      "source": "sealed_D3_U50_calibration"
+    },
+    "42": {
+      "comparison": ">=",
+      "raw_threshold": 0.31912317872047424,
+      "source": "sealed_D3_U50_calibration"
+    },
+    "73": {
+      "comparison": ">=",
+      "raw_threshold": 0.753686785697937,
+      "source": "sealed_D3_U50_calibration"
+    }
+  }
+}

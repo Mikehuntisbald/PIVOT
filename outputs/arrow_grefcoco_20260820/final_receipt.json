@@ -1,0 +1,50 @@
+{
+  "claim_boundary": "gRefCOCO annotation/task-zero-shot cross-benchmark transfer on previously exposed COCO imagery",
+  "decision": {
+    "claim": "parameter-isolated confidence consistently improves cross-benchmark rejection ordering, while absolute operating-point calibration remains domain dependent",
+    "operating_point_shift": true,
+    "ordering_gate_passed": true
+  },
+  "failed_v1_preserved": true,
+  "packaging_amendment": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/preregistration_amendment_v2_final_packaging.json",
+    "sha256": "408106b58e9ddd36692cd1eeba428343930f9892edb594727f06fbc2d5539895",
+    "size_bytes": 1174
+  },
+  "paper_table": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/paper_table.md",
+    "sha256": "86a0aab843ccd6e7fc71a42efeb75cddc7a0edca3bcf693cf77241e57e7856c7",
+    "size_bytes": 1063
+  },
+  "preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/preregistration_v2.json",
+    "sha256": "8ae753ecda9af524fbaa1391e3fd6722d1e6bd0798768a1c77c00aeec932296a",
+    "size_bytes": 9541
+  },
+  "records_committed": false,
+  "results": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/results.json",
+    "sha256": "3b4841e0c87adb911b219f7bc7588b740e2b9ed346ec9630f4995ffa7ce4bde7",
+    "size_bytes": 25062
+  },
+  "runs": {
+    "17": {
+      "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/evaluations_v2/seed17/run_receipt.json",
+      "sha256": "4c01e2ed2b45c2c70c5c3c3978ed6bbaffd1a9387bd1d7483ccccefe60b45bf9",
+      "size_bytes": 856
+    },
+    "42": {
+      "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/evaluations_v2/seed42/run_receipt.json",
+      "sha256": "7333d442e404c5538cace37054c2ae95da6a31ca8c9bae080dd64b608155ec92",
+      "size_bytes": 856
+    },
+    "73": {
+      "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/evaluations_v2/seed73/run_receipt.json",
+      "sha256": "ca8fc6864f2b4f48cc404e0ca1e21e24cc34c1aa075a7aceff188ff7f5c9696a",
+      "size_bytes": 856
+    }
+  },
+  "schema": "arrow.grefcoco.final_receipt/v1",
+  "status": "sealed_v2",
+  "weights_committed": false
+}

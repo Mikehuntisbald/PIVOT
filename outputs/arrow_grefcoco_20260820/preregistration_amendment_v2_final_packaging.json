@@ -1,0 +1,26 @@
+{
+  "schema": "arrow.grefcoco.preregistration_amendment/v1",
+  "status": "sealed_after_metrics_without_model_or_statistic_change",
+  "change_scope": "final_receipt_v2_path_resolution_only",
+  "base_preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/preregistration_v2.json",
+    "sha256": "8ae753ecda9af524fbaa1391e3fd6722d1e6bd0798768a1c77c00aeec932296a",
+    "size_bytes": 9541
+  },
+  "superseded_final_builder": {
+    "path": "/media/haoyi/T9/pivot/tools/build_arrow_grefcoco_final_receipt.py",
+    "sha256": "50957202d0a654ee14b7adbbe8431fb09200fd6f9a1077874c0830f9eb2440ca",
+    "size_bytes": 1914
+  },
+  "current_final_builder": {
+    "path": "/media/haoyi/T9/pivot/tools/build_arrow_grefcoco_final_receipt_v2.py",
+    "sha256": "8a7f7fa6f1a7f80ba8bfe71aeba9f365d0cf0e243155ebccd3b21d2ed6252eb3",
+    "size_bytes": 3216
+  },
+  "reason": "the v1 final builder assumed canonical filenames and could not bind preserved v1 failure artifacts alongside v2 preregistration/evaluations",
+  "model_forward_changed": false,
+  "records_changed": false,
+  "metrics_changed": false,
+  "bootstrap_changed": false,
+  "claim_gate_changed": false
+}

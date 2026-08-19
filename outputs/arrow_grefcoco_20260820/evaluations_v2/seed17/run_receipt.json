@@ -1,0 +1,25 @@
+{
+  "admission_bypassed": true,
+  "checkpoint": {
+    "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed17_u50/checkpoint_iter.pth",
+    "sha256": "b8045f97d3fa4d21e95b49e6c4f50d12651775862d3a60ca479d51242665cf25",
+    "size_bytes": 694409337
+  },
+  "checkpoint_contract": {},
+  "elapsed_seconds": 759.5491096973419,
+  "max_cuda_memory_bytes": 10814341632,
+  "model_training": false,
+  "optimizer_created": false,
+  "records": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/evaluations_v2/seed17/records.jsonl",
+    "rows": 29589,
+    "sha256": "917a54a03959f11fb6d61f91479512a5ad17e31c4a75f70b5481c6d7c30e506a",
+    "size_bytes": 15648412
+  },
+  "rows": 29589,
+  "schema": "arrow.grefcoco.run_receipt/v1",
+  "seed": 17,
+  "status": "complete",
+  "test_rows": 20684,
+  "val_rows": 8905
+}

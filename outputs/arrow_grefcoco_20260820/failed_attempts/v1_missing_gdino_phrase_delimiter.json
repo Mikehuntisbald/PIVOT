@@ -1,0 +1,24 @@
+{
+  "schema": "arrow.grefcoco.failed_attempt/v1",
+  "status": "failed_before_first_model_record",
+  "preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/preregistration.json",
+    "sha256": "ee055c14a1f95acc4180f9a837d9bb4f5b7924deb108015a62b001bdd85a3216",
+    "size_bytes": 9538
+  },
+  "launch": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/evaluations/seed17/launch.json",
+    "sha256": "cea35e50a641c6d9602256082c4c674e2d0d686e908b9e2a8d1458185bb6334c",
+    "size_bytes": 573
+  },
+  "log": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_grefcoco_20260820/evaluations/seed17/run.log",
+    "sha256": "0ae2f2a5b554f569661a153b05510bd07cffce02526e4869de4b957e23057551",
+    "size_bytes": 3804
+  },
+  "emitted_record_rows": 0,
+  "cause": "raw gRefCOCO expression lacked the terminal GroundingDINO phrase delimiter",
+  "allowed_fix": "append only a terminal space-dot delimiter before tokenization",
+  "model_or_metric_change": false,
+  "resolution": "new preregistration_v2 and evaluations_v2; v1 artifacts remain immutable"
+}

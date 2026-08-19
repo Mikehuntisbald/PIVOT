@@ -1,0 +1,14 @@
+{
+  "dataset": {
+    "path": "/media/haoyi/T9/data/gRefCOCO/v1/manifests/dataset_manifest.json",
+    "sha256": "b8ae1ca5000677c007c609fd4c8a0e586f7a41658fa02bbd42ffb73b9df92a6a",
+    "size_bytes": 1930
+  },
+  "overlap": {
+    "path": "/media/haoyi/T9/data/gRefCOCO/v1/manifests/overlap_audit.json",
+    "sha256": "1b69209ab5feca1bbb07812393ffe770d876741e6718281b2d0daf1e655af36c",
+    "size_bytes": 3920
+  },
+  "schema": "arrow.grefcoco.dataset_receipt/v1",
+  "status": "complete"
+}
