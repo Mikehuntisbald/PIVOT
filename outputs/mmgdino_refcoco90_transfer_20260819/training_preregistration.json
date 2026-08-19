@@ -1,0 +1,88 @@
+{
+  "schema": "external.mmgdino_t_refcoco5e.training_preregistration/v1",
+  "status": "locked_before_formal_training",
+  "locked_at": "2026-08-19T21:28:54+08:00",
+  "purpose": "reproduce a roughly 90 Acc@0.5 query-based fine-tuned baseline before testing responsibility isolation",
+  "baseline": {
+    "display_name": "MM-GDINO-T RefCOCO 5e",
+    "published_accuracy_at_1": {
+      "val": 89.5,
+      "testA": 91.4,
+      "testB": 86.6
+    },
+    "query_contract": "last decoder layer, 900 queries x 256 dimensions",
+    "official_repository": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/mmdetection",
+      "commit": "cfd5d3a985b0249de009b67d04f37263e11cdf3d",
+      "worktree_clean": true
+    }
+  },
+  "setup_manifest": {
+    "path": "/media/haoyi/T9/external/mmgdino_l_baseline/refcoco5e_setup_manifest.json",
+    "sha256": "f001ad990f42bd5555278a33a6c357e308e9f34c4a9811b797e26205a989e6a2"
+  },
+  "inputs": {
+    "initial_checkpoint": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/weights/grounding_dino_swin-t_pretrain_obj365_goldg_grit9m_v3det_20231204_095047-b448804b.pth",
+      "size_bytes": 1093815743,
+      "sha256": "b448804bb1af6fa688887f0f2454625edbeeae4e868bc95620e3e6413581051a"
+    },
+    "swin_initialization": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/weights/swin_tiny_patch4_window7_224.pth",
+      "size_bytes": 114342173,
+      "sha256": "9f71c168d837d1b99dd1dc29e14990a7a9e8bdc5f673d46b04fe36fe15590ad3"
+    },
+    "bert_revision": "86b5e0934494bd15c9632b12f734a8a67f723594",
+    "train_annotation_sha256": "e76557b81c298226a2470575697496fe500358f16f5c11f70a00b8a48b4cdeb4",
+    "val_annotation_sha256": "f1e0da6c8bbab725a385b6002e62b80609304fabc3882fcba4def1eb930182c1",
+    "testA_annotation_sha256": "6adda34ddc5a2231192daaad1f96dcb45d57e62dc332d05fa059e189e505bb41",
+    "testB_annotation_sha256": "2f2ac2c98cc561bf5c4dbac375708b1e93698786bd0ce51da2531b7a1c99c17c",
+    "coco2014_image_root": "/media/haoyi/T9/data/COCO/coco2014/train2014/"
+  },
+  "configs": {
+    "formal_train": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_formal_b4a8_seed20260819.py",
+      "sha256": "8f22719d7815563006de550e5f4f0173576bedfa8293922aa80c92e7524f2b82"
+    },
+    "heldout_test_once": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_testab_once.py",
+      "sha256": "42a2d20019861cb8d7b62230b4579b27df581eaeb2c44e0f5349a057a5c87ff0"
+    }
+  },
+  "training_contract": {
+    "seed": 20260819,
+    "precision": "fp32",
+    "physical_batch": 4,
+    "gradient_accumulation": 8,
+    "effective_global_batch": 32,
+    "epochs": 5,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0002,
+    "weight_decay": 0.0001,
+    "clip_norm": 0.1,
+    "lr_milestone_epoch": 3,
+    "random_flip_probability": 0.0,
+    "checkpoint_selection": "fixed epoch 5; no best-checkpoint selection",
+    "training_visible_evaluation": "RefCOCO val only at epoch 5",
+    "heldout_policy": "testA and testB exactly once after epoch-5 checkpoint path and SHA are sealed"
+  },
+  "preflight": {
+    "u1_b4a8_status": "passed",
+    "u1_optimizer_updates": 1,
+    "u1_oom_count": 0,
+    "b8a4_status": "passed_not_selected_due_lower_measured_throughput",
+    "b8a4_peak_gpu_used_mib": 19790,
+    "b8a4_minimum_gpu_free_mib": 12319
+  },
+  "execution": {
+    "formal_work_dir": "/home/haoyi/mmgdino_refcoco90_work/formal_b4a8",
+    "formal_work_dir_absent_at_lock": true,
+    "launch_command": "cd /media/haoyi/T9/external/mmgdino_l_baseline/mmdetection && CUDA_VISIBLE_DEVICES=0 TRANSFORMERS_OFFLINE=1 HF_HUB_OFFLINE=1 TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 /home/haoyi/miniconda/envs/mmgdino_l_cfd5d3a/bin/python tools/train.py /media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_formal_b4a8_seed20260819.py"
+  },
+  "prohibitions": [
+    "do not inspect testA or testB before the fixed epoch-5 checkpoint is sealed",
+    "do not change the checkpoint, seed, epoch count, learning rate, batch contract, or score route based on validation outcomes",
+    "do not call the result virgin held-out evidence; this is a prospectively frozen replication on previously used RefCOCO surfaces",
+    "do not start responsibility-isolation training until the frozen baseline checkpoint and candidate-cache contract are separately sealed"
+  ]
+}

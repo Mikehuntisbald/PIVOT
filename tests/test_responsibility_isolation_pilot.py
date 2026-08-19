@@ -127,8 +127,8 @@ class CachedCandidateShardContractTest(unittest.TestCase):
                 CACHE_TASK_RANK,
                 CACHE_TASK_CONFIDENCE_PAIR,
                 CACHE_TASK_RANK,
-                CACHE_TASK_CONFIDENCE_PAIR,
                 CACHE_TASK_RANK,
+                CACHE_TASK_CONFIDENCE_PAIR,
             ],
         )
         self.assertEqual(
@@ -137,6 +137,19 @@ class CachedCandidateShardContractTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(PilotContractError, "seed"):
             build_interleaved_exposure_schedule(self.shard, seed=1, updates=5)
+
+        formal = build_interleaved_exposure_schedule(
+            self.shard, seed=17, updates=150
+        )
+        self.assertEqual(
+            sum(row["task"] == CACHE_TASK_RANK for row in formal), 100
+        )
+        self.assertEqual(
+            sum(
+                row["task"] == CACHE_TASK_CONFIDENCE_PAIR for row in formal
+            ),
+            50,
+        )
 
 
 class PilotLossContractTest(unittest.TestCase):

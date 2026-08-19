@@ -49,7 +49,9 @@ from tools.responsibility_isolation_cache import (
 
 PILOT_CHECKPOINT_SCHEMA = "responsibility_isolation.pilot_checkpoint/v1"
 PILOT_RECEIPT_SCHEMA = "responsibility_isolation.pilot_receipt/v1"
-PILOT_SCHEDULE_SCHEMA = "responsibility_isolation.interleaved_schedule/v1"
+PILOT_SCHEDULE_SCHEMA = (
+    "responsibility_isolation.interleaved_rank2_confidence1_schedule/v1"
+)
 PILOT_SEEDS = (17, 42, 73)
 RANK_LOSS_CONTRACT = (
     "iou50_topk_hard_negative_margin_listwise_plus_teacher_preserve/v1"
@@ -223,14 +225,19 @@ def _shard_indices(shard: Mapping[str, Any]) -> tuple[dict, dict]:
 def build_interleaved_exposure_schedule(
     shard: Mapping[str, Any], *, seed: int, updates: int
 ) -> tuple[dict[str, Any], ...]:
-    """Build an ownership-independent rank/confidence alternating schedule."""
+    """Build an ownership-independent 2-rank:1-confidence schedule.
+
+    Every three optimizer updates are ``rank, confidence, rank``.  Thus the
+    formal U150 pilot has exactly R100+C50 exposures while every prefix remains
+    deterministic and shared/isolated arms see identical task/sample order.
+    """
     if seed not in PILOT_SEEDS:
         raise PilotContractError(f"seed must be one of {PILOT_SEEDS}")
     if isinstance(updates, bool) or not isinstance(updates, int) or updates <= 0:
         raise PilotContractError("updates must be a positive integer")
     rank_rows, pairs = _shard_indices(shard)
-    rank_count = (updates + 1) // 2
-    confidence_count = updates // 2
+    confidence_count = (updates + 1) // 3
+    rank_count = updates - confidence_count
     rank_stream = _ordered_epoch_stream(
         rank_rows, seed=seed, salt="rank", count=rank_count
     )
@@ -241,7 +248,7 @@ def build_interleaved_exposure_schedule(
     rank_cursor = 0
     confidence_cursor = 0
     for update_index in range(1, updates + 1):
-        if update_index % 2 == 1:
+        if (update_index - 1) % 3 != 1:
             sample_id = rank_stream[rank_cursor]
             rank_cursor += 1
             result.append(
