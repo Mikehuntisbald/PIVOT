@@ -118,7 +118,7 @@ def main() -> None:
         (0.25, 0.16),
         0.20,
         0.16,
-        "auxiliary residual\ntraining only",
+        "auxiliary residual\nnot deployed",
         face="#F1E8F5",
         edge=COLORS["purple"],
         linewidth=1.0,
@@ -170,7 +170,7 @@ def main() -> None:
             "component": "Auxiliary residual",
             "owner": "Admission training",
             "deployment_role": "none",
-            "gradient_contract": "training-only carrier",
+            "gradient_contract": "supervision-only; runtime output ignored",
         }
     )
     write_csv(

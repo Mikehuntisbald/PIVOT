@@ -9,7 +9,8 @@
     Frozen candidates $\rightarrow$ Admission set $\rightarrow$ complete-text
     Ranking; detached base statistics $\rightarrow$ isolated Rejection.}}}
   \caption{\method assigns each deployed decision surface an exclusive owner.
-  Solid lines are deployed; the dashed Admission residual is training-only.
+  Solid lines are deployed; the dashed Admission residual carries supervision
+  but is ignored by the deployed decision.
   Stop-gradient prevents Rejection from rewriting candidate geometry or the
   localization route.  \arrowv and \arrowt differ only in the category cue.}
   \label{fig:method}
@@ -55,17 +56,15 @@ is transformed by the same trainable Admission surface.  All three routes use
 the same 268,167 trainable parameters and the same candidate mask, gate, and
 losses.
 
-\paragraph{Training-only auxiliary carrier.}
-During training only, a small MLP predicts
+\paragraph{Supervision-only auxiliary carrier.}
+A small MLP predicts
 $\delta_i^A$ from $[\tilde a_i,\tilde r_i,\tilde a_i\tilde r_i]$ and forms
 $r_i^{\rm aux}=r_i+\delta_i^A$.  Its objective combines category-complete
 instance margins, repair/preserve margins on $r^{\rm aux}$, preservation of
-the expression-bound target, and residual regularization; exact definitions
-and constants are in the supplement.  Neither $\delta^A$ nor
-$r^{\rm aux}$ enters Eq.~\eqref{eq:admission} or deployed Ranking.
-Auxiliary-only training leaves every deployed tensor bitwise equal to the
-initializer, whereas joint training improves held-out Test5.  It is therefore
-a \emph{gradient carrier}, not a deployed decision variable.
+the expression-bound target, and residual regularization (Supplement).
+Neither $\delta^A$ nor $r^{\rm aux}$ enters Eq.~\eqref{eq:admission} or deployed
+Ranking: it is a \emph{gradient carrier}, not a decision variable.  The runtime
+computes it for compatibility, but the gate and rank route ignore its output.
 
 \subsection{Complete-expression Ranking}
 Within the eligible set, the frozen positive-only ranker uses the complete

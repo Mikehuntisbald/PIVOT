@@ -4,7 +4,8 @@
 The frozen candidate generator first produces boxes, query features, and base
 statistics from the image and complete expression.  The complete-expression
 ranker is trained on positives and sealed before the final two phases.
-Admission then updates only its category-eligibility owner and a training-only
+Admission then updates only its category-eligibility owner and a
+supervision-only
 auxiliary carrier.  Rejection subsequently updates only its sample-level
 owner from detached base statistics.  The auxiliary carrier never enters a
 deployed score.
@@ -41,14 +42,14 @@ source projection $P$ and query projection $W_q$, while $\alpha$ is frozen.
 For valid mask $\mathcal M$, the deployed standardization is
 \begin{equation}
  \begin{aligned}
- \mu&={1\over n}\sum_{i\in\mathcal M}a_i,\\
+ \mu&=\frac{1}{n}\sum_{i\in\mathcal M}a_i,\\
  \sigma_a&=\sqrt{\max\!\left(
- {1\over n}\sum_{i\in\mathcal M}(a_i-\mu)^2,10^{-6}\right)},\\
+ \frac{1}{n}\sum_{i\in\mathcal M}(a_i-\mu)^2,10^{-6}\right)},\\
  \tilde a_i&=\operatorname{clip}((a_i-\mu)/\sigma_a,-5,5).
  \end{aligned}
  \label{eq:supp-admission-standardize}
 \end{equation}
-The training-only carrier is a LayerNorm--MLP $3\!\to\!64\!\to\!64\!\to\!1$
+The auxiliary carrier is a LayerNorm--MLP $3\!\to\!64\!\to\!64\!\to\!1$
 with GELUs, applied to
 $[\tilde a_i,\tilde r_i,\tilde a_i\tilde r_i]$; it forms
 $r_i^{\rm aux}=r_i+\delta_i^A$.  Here $r_i$ is detached and $\tilde r_i$ uses
@@ -63,7 +64,7 @@ with both sets available, the raw-score category margin is
  p_k&=T_A\!\left[\log\!\sum_{i\in\mathcal P_k}e^{a_i/T_A}
        -\log|\mathcal P_k|\right],\\
  \ell_k&=T_A\operatorname{softplus}
-       \left({m_A-p_k+\max_{i\in\mathcal N}a_i\over T_A}\right).
+       \left(\frac{m_A-p_k+\max_{i\in\mathcal N}a_i}{T_A}\right).
  \end{aligned}
  \label{eq:supp-category-margin}
 \end{equation}
@@ -72,8 +73,10 @@ $r^{\rm aux}$ with positives defined by maximum IoU to any same-category
 instance; the preserve term alone for the expression-bound primary instance;
 the mean of Eq.~\eqref{eq:supp-category-margin}; and
 $10^{-3}Q^{-1}\sum_i(\delta_i^A)^2$.  All three non-regularization weights are
-one, and $(T_A,m_A)=(0.1,0.1)$.  At inference, the carrier is discarded and
-the eligible set is computed solely from $\tilde a$ with margin three.
+one, and $(T_A,m_A)=(0.1,0.1)$.  For ABI compatibility the current inference
+runtime still serializes and computes the carrier, but its output is ignored:
+the eligible set is computed solely from $\tilde a$ with margin three, and
+eligible queries retain the frozen ranker's order.
 
 \paragraph{Rejection.}
 The rejector independently detaches $h_i,s_i$ and maps
@@ -82,7 +85,7 @@ $w_i\propto\exp(s_i/0.01)$ over valid candidates, it concatenates
 $\sum_iw_if_i$ with
 \begin{equation*}
  \begin{aligned}
- [\max s,\ &\operatorname{mean}(\operatorname{top3}s),
+ \relax [\max s,\ &\operatorname{mean}(\operatorname{top3}s),
    \operatorname{mean}s,\\
   &\operatorname{std}s,\ s_{(1)}-s_{(2)},
    -\textstyle\sum_iw_i\log w_i/\log|\mathcal M|].
@@ -102,9 +105,9 @@ all frozen queries have been exhaustively annotated.
 The main rejection objective is
 \begin{align}
  \hat\tau&=\tau_Q+\overline c^+-\sg(\overline c^+),\\
- \mathcal L_-&={1\over B}\sum_j0.1\,
- \operatorname{softplus}\!\left({c_j^- -\hat\tau\over0.1}\right),\\
- \mathcal L_+&={1\over B}\sum_j[\tau_Q-0.02-c_j^+]_+,\\
+ \mathcal L_-&=\frac{1}{B}\sum_j0.1\,
+ \operatorname{softplus}\!\left(\frac{c_j^- -\hat\tau}{0.1}\right),\\
+ \mathcal L_+&=\frac{1}{B}\sum_j[\tau_Q-0.02-c_j^+]_+,\\
  \mathcal L_C&=\mathcal L_-+\mathcal L_+ .
  \label{eq:supp-rejection-loss}
 \end{align}

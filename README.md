@@ -48,10 +48,11 @@ and [gRefCOCO transfer report](docs/arrow_grefcoco_rejection_transfer_20260820.m
 
 The learned null route is an ablation, not the recommended public interface.
 
-## Quick sealed evaluation
+## Experiment-host checkpoint replay
 
-The following runs the seed-42 ARROW-V checkpoint on RefCOCO validation. Set
-`DATA_ROOT` to the evaluation data root used by the repository.
+The following replays the seed-42 ARROW-V checkpoint on RefCOCO validation on
+the sealed experiment host. Set `DATA_ROOT` to that host's evaluation data
+root.
 
 ```bash
 export DATA_ROOT=/path/to/data
@@ -67,6 +68,13 @@ Use `cfg_arrow_admission_b_text_eval_gap3.py` with the sealed ARROW-T overlay
 for the text-cue interface. Evaluation loaders fail closed on missing support
 or canonical inputs rather than silently changing routes.
 
+The checkpoint, datasets, and per-example records are intentionally not stored
+in Git, and this commit does not yet provide a public weight archive. Thus the
+command above is an experiment-host provenance replay, not a clean-checkout
+demo. A future public artifact must distribute the bytes named by the manifest
+and verify their SHA-256 values before advertising this command as externally
+reproducible.
+
 ## Reproduce the manuscript and external evaluations
 
 The paper build consumes only committed registries, tables, and plot sources;
@@ -77,6 +85,7 @@ python -m pip install -r paper/requirements.txt
 make -C paper all
 make -C paper verify-sources   # experiment host: verify sealed evidence hashes
 
+# Experiment host only: inspect already sealed external-evaluation queues.
 python tools/run_arrow_finecops_evaluations.py status
 python tools/run_arrow_grefcoco_evaluations.py status
 ```
@@ -103,6 +112,10 @@ manifest binds their absolute release paths and hashes; current paper sources
 bind the later v3 tables without rewriting the immutable historical manifest.
 Legacy checkpoint fields, `pivot.*` schemas, and absolute paths remain a
 byte-compatible pre-ARROW implementation lineage.
+
+The manifest is an integrity/provenance contract, not a download index. Public
+distribution of the bound model and record bytes remains a separate release
+step.
 
 ## Citation
 

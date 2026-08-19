@@ -56,7 +56,7 @@ The three capacity-matched cues are close on Test5 but diverge under direct
 intervention (Tab.~\ref{tab:admission}, Fig.~\ref{fig:mechanism}).  \arrown
 retains 73.83\% Test5 accuracy yet has zero bidirectional category-switch
 success.  Canonical text reaches \ArrowTextSwitch\%, and visual support reaches
-\ArrowVisualSwitch\%.  The preregistered visual-over-text and text-over-null
+\ArrowVisualSwitch\%.  The fresh panel's preregistered visual-over-text and text-over-null
 confidence intervals both exclude zero.  Matched FineCops results repeat the
 ordering on positive P@1 and both negative types.  The supported conclusion is
 that visual examples provide category evidence beyond the name, not that
@@ -64,15 +64,14 @@ support pixels are required for every correct localization.
 
 \input{tables/table4_external}
 
-\subsection{Rejection ordering transfers; the operating point does not}
+\subsection{External ordering improves; the operating point does not}
 Table~\ref{tab:external} reports both external surfaces.  On complete
 FineCops, the text-cue \arrowt route trails the published
 MM-GDINO-T positive P@1 but has numerically higher negative-expression and
 negative-image Recall@1.  Because \arrowt receives the structured target noun,
 this published row is a reference rather than an input-matched contrast.  We
-claim transfer against our same-forward frozen controls, not FineCops SOTA.
-\arrowv's support-conditioned result is kept on its matched covered surface and
-is never substituted into a full-test row.
+report a descriptive same-forward point estimate, not FineCops SOTA or a
+confirmatory contrast.  \arrowv stays on its matched covered surface.
 
 On gRefCOCO Full, AUROC rises from 0.6895 to 0.7175 and FPR95 falls from 0.7410
 to 0.7083.  On Rejector-supervision-disjoint, AUROC rises from 0.6869 to 0.7150
@@ -88,16 +87,13 @@ localization domain.
   }{\fbox{\parbox[c][1.05in][c]{0.96\columnwidth}{\centering
     Internal, FineCops, and gRefCOCO rejection ordering versus fixed-threshold
     positive TPR, shown on separate aligned axes.}}}
-  \caption{Relative rejection discrimination improves across three negative
-  constructions.  The internally sealed threshold reaches its intended source
-  operating point but yields only \ArrowFineCopsFixedTPR\% TPR on FineCops and
-  \ArrowGrefFixedTPR\% on gRefCOCO.  Thresholds are never fit externally.}
+  \caption{FineCops improves descriptively and gRefCOCO with paired intervals.
+  The sealed threshold reaches its source operating point but only
+  \ArrowFineCopsFixedTPR\%/\ArrowGrefFixedTPR\% TPR externally; it is never
+  refit.}
   \label{fig:external}
 \end{figure}
 
 Figure~\ref{fig:external} shows that the fixed source threshold under-accepts
-external positives.  Improved
-AUROC and dataset-normalized FPR95 are compatible with this shift: \method
-learns a more transferable positive-versus-negative ordering, while score
-offset, scale, and tails remain domain-dependent.  Cross-domain operating-point
-calibration is a separate, unresolved problem.
+external positives.  The descriptive FineCops and paired gRefCOCO gains support
+ordering transfer, while score scale and tails remain domain-dependent.

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -17,6 +18,7 @@ PAPER = ROOT / "paper"
 REGISTRY_PATH = PAPER / "data" / "paper_numbers.json"
 FIGURE_DIR = PAPER / "figures"
 SOURCE_DIR = PAPER / "data" / "plot_sources"
+FIGURE_TIMESTAMP = datetime(2026, 8, 19, tzinfo=timezone.utc)
 
 # Okabe--Ito palette: distinguishable under the common red/green deficiencies.
 COLORS = {
@@ -49,6 +51,7 @@ def configure_style() -> None:
             "pdf.fonttype": 42,
             "ps.fonttype": 42,
             "svg.fonttype": "none",
+            "svg.hashsalt": "arrow-paper-figures-v1",
             "axes.linewidth": 0.7,
             "lines.linewidth": 1.2,
             "savefig.bbox": "tight",
@@ -104,7 +107,17 @@ def save_vector_pair(
     target_dir.mkdir(parents=True, exist_ok=True)
     pdf = target_dir / f"{stem}.pdf"
     svg = target_dir / f"{stem}.svg"
-    metadata = {"Creator": f"paper/scripts/{stem}.py", "Subject": "ARROW paper figure"}
-    fig.savefig(pdf, metadata=metadata)
-    fig.savefig(svg, metadata={"Creator": metadata["Creator"]})
+    creator = f"paper/scripts/{stem}.py"
+    pdf_metadata = {
+        "Creator": creator,
+        "Subject": "ARROW paper figure",
+        "CreationDate": FIGURE_TIMESTAMP,
+        "ModDate": FIGURE_TIMESTAMP,
+    }
+    svg_metadata = {
+        "Creator": creator,
+        "Date": FIGURE_TIMESTAMP.date().isoformat(),
+    }
+    fig.savefig(pdf, metadata=pdf_metadata)
+    fig.savefig(svg, metadata=svg_metadata)
     return pdf, svg

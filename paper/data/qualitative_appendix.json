@@ -1785,8 +1785,8 @@
     "qualitative_appendix_selector": {
       "path": "/media/haoyi/T9/pivot/paper/scripts/select_qualitative_appendix.py",
       "role": "deterministic_selection_code",
-      "sha256": "8d43274d6880c0388102e87a64e4eeb441ab930ec0fe4c8be1078841d3f1009b",
-      "size_bytes": 54256
+      "sha256": "b584fb76bbb3d8ce01c7d52877c20b79f218fc63aec7ea926ae3c5103dbb974f",
+      "size_bytes": 54402
     },
     "qualitative_number_registry": {
       "path": "/media/haoyi/T9/pivot/paper/data/paper_numbers.json",

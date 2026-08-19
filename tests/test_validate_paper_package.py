@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 from pathlib import Path
@@ -12,6 +13,19 @@ assert SPEC is not None and SPEC.loader is not None
 validator = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = validator
 SPEC.loader.exec_module(validator)
+
+FIGURE_COMMON_PATH = ROOT / "paper/scripts/figure_common.py"
+FIGURE_SPEC = importlib.util.spec_from_file_location(
+    "arrow_paper_figure_common", FIGURE_COMMON_PATH
+)
+assert FIGURE_SPEC is not None and FIGURE_SPEC.loader is not None
+figure_common = importlib.util.module_from_spec(FIGURE_SPEC)
+sys.modules[FIGURE_SPEC.name] = figure_common
+FIGURE_SPEC.loader.exec_module(figure_common)
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_strip_comments_preserves_escaped_percent() -> None:
@@ -63,6 +77,16 @@ def test_log_gate_rejects_undefined_and_overfull(tmp_path: Path) -> None:
     assert any("2.750pt" in error for error in report.errors)
 
 
+def test_times_body_font_gate_rejects_latin_modern_fallback() -> None:
+    assert validator.has_times_compatible_regular(
+        ["ABCDEF+NimbusRomNo9L-Regu", "ABCDEF+NimbusRomNo9L-Medi"]
+    )
+    assert validator.has_times_compatible_regular(["TimesNewRomanPSMT"])
+    assert not validator.has_times_compatible_regular(
+        ["ABCDEF+LMRoman10-Regular", "ABCDEF+NimbusRomNo9L-Medi"]
+    )
+
+
 def test_public_name_gate_does_not_need_to_scan_registry(tmp_path: Path) -> None:
     manuscript = tmp_path / "main.tex"
     manuscript.write_text("The U2-v5 route exposes b58_iou.\n", encoding="utf-8")
@@ -96,6 +120,28 @@ def test_public_name_gate_allows_only_marked_appendix_mapping(tmp_path: Path) ->
     )
     report = validator.Report()
     validator.check_public_names([mapping], tmp_path, report)
+    assert any("forbidden public name B58" in error for error in report.errors)
+
+
+def test_public_name_gate_preserves_qualitative_machine_ids(tmp_path: Path) -> None:
+    path = tmp_path / validator.QUALITATIVE_APPENDIX_CSV
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        "label,predicate_id,source_artifact_ids\n"
+        "Frozen base,b58_rank_failure,qual_d3_record\n",
+        encoding="utf-8",
+    )
+    report = validator.Report()
+    validator.check_public_names([path], tmp_path, report)
+    assert report.errors == []
+
+    path.write_text(
+        "label,predicate_id,source_artifact_ids\n"
+        "B58,b58_rank_failure,qual_d3_record\n",
+        encoding="utf-8",
+    )
+    report = validator.Report()
+    validator.check_public_names([path], tmp_path, report)
     assert any("forbidden public name B58" in error for error in report.errors)
 
 
@@ -214,3 +260,23 @@ def test_tracked_arrow_release_manifest_matches_source_registry() -> None:
         report.facts["arrow_release_manifest_sha256"]
         == "ebe587bee63ed4288f464d1a4872184735a2d0ba0b3ce8cba121973cf1bc49a7"
     )
+
+
+def test_qualitative_appendix_csv_artifacts_match_receipt() -> None:
+    report = validator.Report()
+    validator.check_qualitative_appendix_artifact_links(ROOT / "paper", report)
+    assert report.errors == []
+
+
+def test_vector_figure_helper_is_byte_deterministic(tmp_path: Path) -> None:
+    hashes: list[tuple[str, str]] = []
+    for name in ("first", "second"):
+        figure_common.configure_style()
+        figure, axis = figure_common.plt.subplots(figsize=(2.0, 1.0))
+        axis.plot([0.0, 1.0], [1.0, 0.0])
+        pdf, svg = figure_common.save_vector_pair(
+            figure, "fixture", directory=tmp_path / name
+        )
+        figure_common.plt.close(figure)
+        hashes.append((_sha256(pdf), _sha256(svg)))
+    assert hashes[0] == hashes[1]

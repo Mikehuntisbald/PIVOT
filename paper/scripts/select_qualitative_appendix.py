@@ -1324,14 +1324,15 @@ def write_outputs(
                     "sample_id": example["sample_id"],
                     "image_path": image["path"],
                     "image_sha256": image["sha256"],
-                    "predicate_id": paper_facing(example["predicate_id"]),
+                    # Machine/provenance identifiers must remain byte-for-byte
+                    # aligned with the JSON receipt.  Only display prose and
+                    # metric route labels are translated below.
+                    "predicate_id": example["predicate_id"],
                     "predicate": paper_facing(example["predicate"]),
                     "candidate_count": example["candidate_count"],
                     "selection_order": paper_facing(example["selection_order"]),
                     "seeds": ";".join(str(seed) for seed in example["seeds"]),
-                    "source_artifact_ids": ";".join(
-                        paper_facing(example["source_artifact_ids"])
-                    ),
+                    "source_artifact_ids": ";".join(example["source_artifact_ids"]),
                     "kind": example.get("kind", ""),
                     "expression": example.get("expression", ""),
                     "metrics_json": json.dumps(

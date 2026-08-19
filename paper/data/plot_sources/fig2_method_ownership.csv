@@ -3,4 +3,4 @@ a,Geometry,φ  frozen,candidate universe,frozen
 a,Admission,θA  only,category eligibility,exclusive
 a,Ranking,θR  only,within-set ordering,exclusive
 a,Rejection,θC  only,sample acceptance,exclusive
-a,Auxiliary residual,Admission training,none,training-only carrier
+a,Auxiliary residual,Admission training,none,supervision-only; runtime output ignored

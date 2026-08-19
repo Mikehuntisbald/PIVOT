@@ -14,8 +14,12 @@ available, then rerun every validation gate.
 ## Prerequisites
 
 - Python 3.11 or newer;
-- either TeX Live (`latexmk`, `pdflatex`, and `bibtex`) or Tectonic 0.17+;
+- TeX Live (`latexmk`, `pdflatex`, and `bibtex`) for the final CVPR build;
 - the Python packages pinned by `requirements.txt`.
+
+Tectonic may be used for a quick source preview, but its XeTeX compatibility
+path can substitute Latin Modern for the CVPR kit's Times body font. Such a
+PDF intentionally fails the package validator and is not submission-ready.
 
 For a fresh checkout:
 
@@ -29,6 +33,16 @@ make -C paper all
 The generated review PDFs are `paper/main.pdf` and
 `paper/supplement/supplement.pdf`. They and LaTeX intermediates are ignored by
 Git; source figures and provenance CSVs remain tracked.
+
+## Anonymous review packaging
+
+The generated main and supplement PDFs are anonymous. Do **not** upload this
+repository, its Git history, or the host-bound provenance JSON files as an
+anonymous-review code supplement: immutable audit records intentionally retain
+experiment-host paths, and the repository history is not anonymized. If code
+is supplied during double-blind review, first create a separate history-free,
+identity-scrubbed snapshot and audit that snapshot independently. The tracked
+provenance remains appropriate for post-review artifact release.
 
 ## Build targets
 

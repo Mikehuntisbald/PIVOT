@@ -55,10 +55,19 @@ def main() -> None:
     rows_spec = (
         ("AUROC gain", "auroc_gain", 2.88),
         ("FPR95 gain", "fpr95_reduction", 1.90),
-        ("Fixed $\\tau$ $\\to$ 95% TPR", "fixed_tpr", 0.92),
+        ("Fixed $\\tau$ transfer\n(target 95% TPR)", "fixed_tpr", 0.92),
     )
     for row_index, (row_label, metric, y) in enumerate(rows_spec):
-        ax.text(0.03, y, row_label, ha="left", va="center", weight="bold", fontsize=6.7)
+        ax.text(
+            0.03,
+            y,
+            row_label,
+            ha="left",
+            va="center",
+            weight="bold",
+            fontsize=6.7,
+            linespacing=0.9,
+        )
         for x, (surface, _, color) in zip(column_x, SURFACES):
             key = f"cross_benchmark.{surface}.{metric}"
             point = 100 * float(number(registry, key)["value"])

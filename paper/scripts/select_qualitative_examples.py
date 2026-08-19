@@ -9,6 +9,7 @@ script never changes checkpoints, routing, margins, or thresholds.
 from __future__ import annotations
 
 import csv
+from datetime import datetime, timezone
 import hashlib
 import json
 import textwrap
@@ -19,12 +20,15 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from PIL import Image
 
+from figure_common import load_registry, value
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PAPER = ROOT / "paper"
 MANIFEST = Path("/media/haoyi/T9/data/FineCops-Ref/v1/manifests/finecops_test_all.jsonl")
 RECORDS = ROOT / "outputs/arrow_finecops_20260819/evaluations/A/seed42/records.jsonl"
-SEALED_TAU = 0.31912317872047424
+SEALED_TAU = value(load_registry(), "cross_benchmark.sealed_source_tau.seed42")
+FIGURE_TIMESTAMP = datetime(2026, 8, 19, tzinfo=timezone.utc)
 
 
 def sha256(path: Path) -> str:
@@ -144,7 +148,14 @@ def box(ax, xyxy: list[float], color: str, label: str, linewidth: float = 2.0) -
 
 
 def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str, dict[str, Any]]) -> None:
-    plt.rcParams.update({"font.size": 8, "font.family": "DejaVu Sans", "pdf.fonttype": 42})
+    plt.rcParams.update(
+        {
+            "font.size": 8,
+            "font.family": "DejaVu Sans",
+            "pdf.fonttype": 42,
+            "svg.hashsalt": "arrow-paper-fig1-v1",
+        }
+    )
     colors = {"base": "#D55E00", "arrow": "#0072B2", "gt": "#009E73"}
     figure, axes = plt.subplots(1, 4, figsize=(7.05, 2.65), constrained_layout=True)
     labels = "abcd"
@@ -185,8 +196,24 @@ def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str
 
     out = PAPER / "figures" / "fig1_teaser"
     out.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(out.with_suffix(".pdf"), bbox_inches="tight")
-    figure.savefig(out.with_suffix(".svg"), bbox_inches="tight")
+    figure.savefig(
+        out.with_suffix(".pdf"),
+        bbox_inches="tight",
+        metadata={
+            "Creator": "paper/scripts/select_qualitative_examples.py",
+            "Subject": "ARROW sealed qualitative examples",
+            "CreationDate": FIGURE_TIMESTAMP,
+            "ModDate": FIGURE_TIMESTAMP,
+        },
+    )
+    figure.savefig(
+        out.with_suffix(".svg"),
+        bbox_inches="tight",
+        metadata={
+            "Creator": "paper/scripts/select_qualitative_examples.py",
+            "Date": FIGURE_TIMESTAMP.date().isoformat(),
+        },
+    )
     plt.close(figure)
 
 

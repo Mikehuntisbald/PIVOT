@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-08-19T18:35:05.913376</dc:date>
+    <dc:date>2026-08-19</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -260,7 +260,7 @@ z
    </g>
    <g id="text_9">
     <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(95.955902 160.492208)">auxiliary residual</text>
-    <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(104.432074 168.776591)">training only</text>
+    <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(103.437738 168.776591)">not deployed</text>
    </g>
    <g id="text_10">
     <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #009e73" x="167.156761" y="124.212988" transform="rotate(-0 167.156761 124.212988)">detach</text>
@@ -377,7 +377,7 @@ z
    <g id="line2d_1">
     <path d="M 374.724121 176.694508 
 L 500.232361 176.694508 
-" clip-path="url(#p9c38170f0a)" style="fill: none; stroke: #e5e5e5; stroke-width: 0.8; stroke-linecap: square"/>
+" clip-path="url(#p5b406a9139)" style="fill: none; stroke: #e5e5e5; stroke-width: 0.8; stroke-linecap: square"/>
    </g>
    <g id="text_12">
     <text style="font-weight: 700; font-size: 7.5px; font-family: 'DejaVu Sans'; text-anchor: start" x="369.267241" y="7.138828" transform="rotate(-0 369.267241 7.138828)">b  Exclusive owners</text>
@@ -421,7 +421,7 @@ L 500.232361 176.694508
   </g>
  </g>
  <defs>
-  <clipPath id="p9c38170f0a">
+  <clipPath id="p5b406a9139">
    <rect x="369.267241" y="9.157348" width="136.422" height="201.852"/>
   </clipPath>
  </defs>

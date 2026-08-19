@@ -114,6 +114,17 @@ FORBIDDEN_PUBLIC_NAMES = {
 APPROVED_LEGACY_MAP = Path("supplement/sections/a_scope_and_provenance.tex")
 LEGACY_MAP_BEGIN = "% ARROW_APPROVED_LEGACY_MAP_BEGIN"
 LEGACY_MAP_END = "% ARROW_APPROVED_LEGACY_MAP_END"
+QUALITATIVE_APPENDIX_CSV = Path("data/plot_sources/qualitative_appendix.csv")
+QUALITATIVE_PUBLIC_FIELDS = (
+    "label",
+    "surface",
+    "predicate",
+    "selection_order",
+    "kind",
+    "expression",
+    "metrics_json",
+    "display_note",
+)
 
 INPUT_RE = re.compile(r"\\(?:input|include)\s*\{([^}]+)\}")
 GRAPHICS_RE = re.compile(
@@ -607,8 +618,20 @@ def public_text_files(paper_root: Path, tex_graphs: Sequence[Path]) -> list[Path
 
 def check_public_names(paths: Iterable[Path], paper_root: Path, report: Report) -> None:
     for path in paths:
-        text = path.read_text(encoding="utf-8", errors="replace")
         relative = path.relative_to(paper_root)
+        if relative == QUALITATIVE_APPENDIX_CSV:
+            with path.open("r", encoding="utf-8", newline="") as handle:
+                for row_number, row in enumerate(csv.DictReader(handle), start=2):
+                    line = " ".join(row.get(field, "") for field in QUALITATIVE_PUBLIC_FIELDS)
+                    for name, pattern in FORBIDDEN_PUBLIC_NAMES.items():
+                        if pattern.search(line):
+                            report.error(
+                                f"{relative}:{row_number}: forbidden public name {name}"
+                            )
+            # Machine IDs and source-artifact keys intentionally retain their
+            # sealed names and are audited separately against the JSON receipt.
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
         if relative == APPROVED_LEGACY_MAP:
             begin_count = text.count(LEGACY_MAP_BEGIN)
             end_count = text.count(LEGACY_MAP_END)
@@ -626,6 +649,67 @@ def check_public_names(paths: Iterable[Path], paper_root: Path, report: Report) 
                     report.error(
                         f"{relative}:{line_number}: forbidden public name {name}"
                     )
+
+
+def check_qualitative_appendix_artifact_links(
+    paper_root: Path, report: Report
+) -> None:
+    """Require every CSV provenance ID to resolve to the sealed JSON receipt."""
+
+    receipt_path = paper_root / "data/qualitative_appendix.json"
+    csv_path = paper_root / QUALITATIVE_APPENDIX_CSV
+    if not receipt_path.is_file() or not csv_path.is_file():
+        return
+    receipt = load_object(receipt_path, report)
+    if receipt is None:
+        return
+    artifacts = receipt.get("source_artifacts")
+    selection = receipt.get("selection")
+    if not isinstance(artifacts, dict) or not isinstance(selection, list):
+        report.error("qualitative appendix receipt lacks artifacts/selection")
+        return
+    selected_by_order: dict[str, dict[str, object]] = {}
+    for item in selection:
+        if not isinstance(item, dict):
+            report.error("qualitative appendix selection contains a non-object")
+            continue
+        order = str(item.get("order"))
+        if order in selected_by_order:
+            report.error(f"qualitative appendix duplicate selection order {order}")
+        selected_by_order[order] = item
+
+    seen_orders: set[str] = set()
+    with csv_path.open("r", encoding="utf-8", newline="") as handle:
+        for row_number, row in enumerate(csv.DictReader(handle), start=2):
+            order = row.get("order", "")
+            if order in seen_orders:
+                report.error(f"{QUALITATIVE_APPENDIX_CSV}:{row_number}: duplicate order")
+            seen_orders.add(order)
+            selected = selected_by_order.get(order)
+            if selected is None:
+                report.error(
+                    f"{QUALITATIVE_APPENDIX_CSV}:{row_number}: order absent from receipt"
+                )
+                continue
+            for field in ("sample_id", "predicate_id"):
+                if row.get(field) != str(selected.get(field, "")):
+                    report.error(
+                        f"{QUALITATIVE_APPENDIX_CSV}:{row_number}: {field} differs from receipt"
+                    )
+            artifact_ids = [
+                token for token in row.get("source_artifact_ids", "").split(";") if token
+            ]
+            if artifact_ids != selected.get("source_artifact_ids"):
+                report.error(
+                    f"{QUALITATIVE_APPENDIX_CSV}:{row_number}: artifact ID list differs from receipt"
+                )
+            for artifact_id in artifact_ids:
+                if artifact_id not in artifacts:
+                    report.error(
+                        f"{QUALITATIVE_APPENDIX_CSV}:{row_number}: unknown artifact ID {artifact_id}"
+                    )
+    if seen_orders != set(selected_by_order):
+        report.error("qualitative appendix CSV/receipt selection orders are incomplete")
 
 
 def check_cvpr_review_contract(paper_root: Path, report: Report) -> None:
@@ -851,6 +935,37 @@ def reference_start_page(aux_path: Path) -> int | None:
     return None
 
 
+def direct_pdf_font_names(reader: object) -> set[str]:
+    """Return fonts attached directly to PDF pages, excluding form internals."""
+
+    result: set[str] = set()
+    for page in reader.pages:  # type: ignore[attr-defined]
+        resources = page.get("/Resources") or {}
+        fonts = resources.get("/Font") or {}
+        for value in fonts.values():
+            try:
+                font = value.get_object()
+            except AttributeError:
+                font = value
+            base_font = font.get("/BaseFont") if hasattr(font, "get") else None
+            if base_font:
+                result.add(str(base_font).lstrip("/"))
+    return result
+
+
+def has_times_compatible_regular(font_names: Sequence[str]) -> bool:
+    """Recognize regular Times-compatible fonts used by supported CVPR builds."""
+
+    allowed = {
+        "NimbusRomNo9L-Regu",
+        "NimbusRoman-Regular",
+        "TeXGyreTermes-Regular",
+        "Times-Roman",
+        "TimesNewRomanPSMT",
+    }
+    return any(name.split("+", 1)[-1] in allowed for name in font_names)
+
+
 def check_pdfs(
     main_pdf: Path,
     supplement_pdf: Path,
@@ -873,6 +988,15 @@ def check_pdfs(
     except Exception as error:
         report.error(f"cannot parse compiled PDF: {error}")
         return
+    for label, reader in (("main", main_reader), ("supplement", supplement_reader)):
+        font_names = sorted(direct_pdf_font_names(reader))
+        report.facts[f"{label}_direct_pdf_fonts"] = font_names
+        if not has_times_compatible_regular(font_names):
+            report.error(
+                f"{label}: no embedded regular Times-compatible body font; "
+                "compile the CVPR package with pdfLaTeX/latexmk rather than a "
+                "font-fallback preview engine"
+            )
     total_pages = len(main_reader.pages)
     start_page = None
     heading_extracted = False
@@ -935,6 +1059,7 @@ def build_report(args: argparse.Namespace) -> Report:
     check_vendored_cvpr_template(paper_root, report)
     check_registry_and_csvs(paper_root, report)
     check_public_release_manifest(paper_root, report)
+    check_qualitative_appendix_artifact_links(paper_root, report)
     check_table_numeric_literals(paper_root, report)
     check_plot_registry_bindings(paper_root, report)
     check_clean_clone_generators(paper_root, report)
