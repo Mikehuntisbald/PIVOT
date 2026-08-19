@@ -2361,77 +2361,125 @@
       "unit": "fraction",
       "value": 0.6088
     },
-    "finecops.official_mm_gdino_t.negative_image_auroc_type_macro": {
+    "finecops.original_ogc.matched_mean.negative_image_auroc_type_macro": {
       "direction": "higher_is_better",
-      "key": "finecops.official_mm_gdino_t.negative_image_auroc_type_macro",
-      "notes": "MM-GDINO-T zero-shot reference reported by FineCops-Ref",
-      "source_json_path": null,
-      "source_path": "docs/paper_cvpr_arrow_finecops_results_20260819.md",
-      "source_sha256": "2885c4d132faada762845141012c274dd244f64ec33a869838071e626bd19599",
-      "status": "published_reference",
-      "surface": "FineCops full test (published reference)",
+      "key": "finecops.original_ogc.matched_mean.negative_image_auroc_type_macro",
+      "notes": "full-expression mean-token scorer sensitivity; unweighted official type-by-level macro",
+      "source_json_path": "auroc",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_mean/receipt.json",
+      "source_sha256": "69fa64ca97379d29806c1ca2c86eb3959e4683a0e90e94d8b0a45ff0dbf566bc",
+      "status": "post_hoc_corrective_official_exact",
+      "surface": "FineCops full test (official historical level-1-positive scope)",
       "unit": "fraction",
-      "value": 0.5652
+      "value": 0.5355888888888889
     },
-    "finecops.official_mm_gdino_t.negative_image_recall1": {
+    "finecops.original_ogc.matched_mean.negative_image_recall1": {
       "direction": "higher_is_better",
-      "key": "finecops.official_mm_gdino_t.negative_image_recall1",
-      "notes": "MM-GDINO-T zero-shot reference reported by FineCops-Ref",
-      "source_json_path": null,
-      "source_path": "docs/paper_cvpr_arrow_finecops_results_20260819.md",
-      "source_sha256": "2885c4d132faada762845141012c274dd244f64ec33a869838071e626bd19599",
-      "status": "published_reference",
-      "surface": "FineCops full test (published reference)",
+      "key": "finecops.original_ogc.matched_mean.negative_image_recall1",
+      "notes": "full-expression mean-token scorer sensitivity; audited strict-tie micro recall",
+      "source_json_path": "metrics.expression_mean.rejection.image.recall1_strict_tie_fail",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+      "source_sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+      "status": "post_hoc_corrective_input_matched_baseline",
+      "surface": "FineCops full test",
       "unit": "fraction",
-      "value": 0.4314
+      "value": 0.3984953567650171
     },
-    "finecops.official_mm_gdino_t.negative_text_auroc_type_macro": {
+    "finecops.original_ogc.matched_mean.negative_text_auroc_type_macro": {
       "direction": "higher_is_better",
-      "key": "finecops.official_mm_gdino_t.negative_text_auroc_type_macro",
-      "notes": "MM-GDINO-T zero-shot reference reported by FineCops-Ref",
-      "source_json_path": null,
-      "source_path": "docs/paper_cvpr_arrow_finecops_results_20260819.md",
-      "source_sha256": "2885c4d132faada762845141012c274dd244f64ec33a869838071e626bd19599",
-      "status": "published_reference",
-      "surface": "FineCops full test (published reference)",
+      "key": "finecops.original_ogc.matched_mean.negative_text_auroc_type_macro",
+      "notes": "full-expression mean-token scorer sensitivity; unweighted official type-by-level macro",
+      "source_json_path": "auroc",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_mean/receipt.json",
+      "source_sha256": "69fa64ca97379d29806c1ca2c86eb3959e4683a0e90e94d8b0a45ff0dbf566bc",
+      "status": "post_hoc_corrective_official_exact",
+      "surface": "FineCops full test (official historical level-1-positive scope)",
       "unit": "fraction",
-      "value": 0.5398
+      "value": 0.48433000000000004
     },
-    "finecops.official_mm_gdino_t.negative_text_recall1": {
+    "finecops.original_ogc.matched_mean.negative_text_recall1": {
       "direction": "higher_is_better",
-      "key": "finecops.official_mm_gdino_t.negative_text_recall1",
-      "notes": "MM-GDINO-T zero-shot reference reported by FineCops-Ref",
-      "source_json_path": null,
-      "source_path": "docs/paper_cvpr_arrow_finecops_results_20260819.md",
-      "source_sha256": "2885c4d132faada762845141012c274dd244f64ec33a869838071e626bd19599",
-      "status": "published_reference",
-      "surface": "FineCops full test (published reference)",
+      "key": "finecops.original_ogc.matched_mean.negative_text_recall1",
+      "notes": "full-expression mean-token scorer sensitivity; audited strict-tie micro recall",
+      "source_json_path": "metrics.expression_mean.rejection.text.recall1_strict_tie_fail",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+      "source_sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+      "status": "post_hoc_corrective_input_matched_baseline",
+      "surface": "FineCops full test",
       "unit": "fraction",
-      "value": 0.3869
+      "value": 0.2995720399429387
     },
-    "finecops.official_mm_gdino_t.positive_p1_macro": {
+    "finecops.original_ogc.matched_mean.positive_p1_macro": {
       "direction": "higher_is_better",
-      "key": "finecops.official_mm_gdino_t.positive_p1_macro",
-      "notes": "MM-GDINO-T zero-shot reference reported by FineCops-Ref",
-      "source_json_path": null,
-      "source_path": "docs/paper_cvpr_arrow_finecops_results_20260819.md",
-      "source_sha256": "2885c4d132faada762845141012c274dd244f64ec33a869838071e626bd19599",
-      "status": "published_reference",
-      "surface": "FineCops full test (published reference)",
+      "key": "finecops.original_ogc.matched_mean.positive_p1_macro",
+      "notes": "full-expression mean-token scorer sensitivity",
+      "source_json_path": "metrics.expression_mean.precision1_macro",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+      "source_sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+      "status": "post_hoc_corrective_input_matched_baseline",
+      "surface": "FineCops full test",
       "unit": "fraction",
-      "value": 0.4845
+      "value": 0.40340621903212065
     },
-    "finecops.official_mm_gdino_t.rejection_auroc_type_macro": {
+    "finecops.original_ogc.native_max.negative_image_auroc_type_macro": {
       "direction": "higher_is_better",
-      "key": "finecops.official_mm_gdino_t.rejection_auroc_type_macro",
-      "notes": "unweighted mean of published negative-text and negative-image AUROC type macros",
-      "source_json_path": null,
-      "source_path": "docs/paper_cvpr_arrow_finecops_results_20260819.md",
-      "source_sha256": "2885c4d132faada762845141012c274dd244f64ec33a869838071e626bd19599",
-      "status": "published_reference_derived",
-      "surface": "FineCops full test (published type macro)",
+      "key": "finecops.original_ogc.native_max.negative_image_auroc_type_macro",
+      "notes": "upstream-native max-token scorer; unweighted official type-by-level macro",
+      "source_json_path": "auroc",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_max/receipt.json",
+      "source_sha256": "4b908ecdc2854f44f33555491a3800ca8d512f33007c88b3f6b589344e87351d",
+      "status": "post_hoc_corrective_official_exact",
+      "surface": "FineCops full test (official historical level-1-positive scope)",
       "unit": "fraction",
-      "value": 0.5525
+      "value": 0.5392444444444444
+    },
+    "finecops.original_ogc.native_max.negative_image_recall1": {
+      "direction": "higher_is_better",
+      "key": "finecops.original_ogc.native_max.negative_image_recall1",
+      "notes": "upstream-native max-token scorer; audited strict-tie micro recall",
+      "source_json_path": "metrics.expression_max.rejection.image.recall1_strict_tie_fail",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+      "source_sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+      "status": "post_hoc_corrective_input_matched_baseline",
+      "surface": "FineCops full test",
+      "unit": "fraction",
+      "value": 0.4197719525096979
+    },
+    "finecops.original_ogc.native_max.negative_text_auroc_type_macro": {
+      "direction": "higher_is_better",
+      "key": "finecops.original_ogc.native_max.negative_text_auroc_type_macro",
+      "notes": "upstream-native max-token scorer; unweighted official type-by-level macro",
+      "source_json_path": "auroc",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_max/receipt.json",
+      "source_sha256": "4b908ecdc2854f44f33555491a3800ca8d512f33007c88b3f6b589344e87351d",
+      "status": "post_hoc_corrective_official_exact",
+      "surface": "FineCops full test (official historical level-1-positive scope)",
+      "unit": "fraction",
+      "value": 0.5423199999999999
+    },
+    "finecops.original_ogc.native_max.negative_text_recall1": {
+      "direction": "higher_is_better",
+      "key": "finecops.original_ogc.native_max.negative_text_recall1",
+      "notes": "upstream-native max-token scorer; audited strict-tie micro recall",
+      "source_json_path": "metrics.expression_max.rejection.text.recall1_strict_tie_fail",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+      "source_sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+      "status": "post_hoc_corrective_input_matched_baseline",
+      "surface": "FineCops full test",
+      "unit": "fraction",
+      "value": 0.4199103321785205
+    },
+    "finecops.original_ogc.native_max.positive_p1_macro": {
+      "direction": "higher_is_better",
+      "key": "finecops.original_ogc.native_max.positive_p1_macro",
+      "notes": "upstream-native max-token scorer",
+      "source_json_path": "metrics.expression_max.precision1_macro",
+      "source_path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+      "source_sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+      "status": "post_hoc_corrective_input_matched_baseline",
+      "surface": "FineCops full test",
+      "unit": "fraction",
+      "value": 0.44820849033710836
     },
     "finecops.ranker_rejector.negative_image_recall1": {
       "by_seed": {

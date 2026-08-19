@@ -1,0 +1,87 @@
+{
+  "checkpoint": {
+    "parameter_numel": 174839994,
+    "path": "/media/haoyi/T9/pivot/weights/groundingdino_swint_ogc.pth",
+    "release": "IDEA-Research GroundingDINO Swin-T OGC",
+    "sha256": "3b3ca2563c77c69f651d7bd133e97139c186df06231157a64c507099c52bc799",
+    "size_bytes": 693997677,
+    "tensor_count": 940
+  },
+  "claim_boundary": "FineCops-specific annotation/task zero-shot; original OGC weights; no FineCops training, model selection, score selection, or threshold fitting",
+  "config": {
+    "path": "/media/haoyi/T9/pivot/config/ablations/cfg_arrow_original_gdino_swint_ogc.py",
+    "sha256": "10c6afb6cd877d30cd5bf35b641699ab4da99b9882c31d827f18938d1eba54ce",
+    "size_bytes": 1159
+  },
+  "dataset": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/dataset_manifest.json",
+    "sha256": "8711fb409f2c7bdcb741cc04f0d307642d66f2f781602560c0dd0fb0e3d6e8c5",
+    "size_bytes": 5858
+  },
+  "evidence_status": "post_hoc_corrective_input_matched_baseline",
+  "execution": {
+    "amp": true,
+    "batch_size": 16,
+    "flip": false,
+    "loader_seed": 20260821,
+    "num_workers": 4,
+    "resize_max": 1333,
+    "resize_short": 800,
+    "results_root": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/evaluation"
+  },
+  "git": {
+    "commit": "1978d6f0264cc01f39e0f05a0b8757cc80d7c6a2",
+    "diff_sha256": "dd1dd1fd5a35f8af78cf968a26271cf4f6f2eef8227ce87b1c22dad740bfa4d1",
+    "status_porcelain": "A  config/ablations/cfg_arrow_original_gdino_swint_ogc.py\nA  tests/test_arrow_original_gdino.py\nA  tools/aggregate_arrow_original_gdino_finecops.py\nA  tools/arrow_original_gdino_common.py\nA  tools/build_arrow_original_gdino_preregistration.py\nA  tools/eval_arrow_original_gdino_finecops.py\nA  tools/run_arrow_original_gdino_finecops_official.py"
+  },
+  "manifest": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/finecops_test_bc_full.jsonl",
+    "rows": 27926,
+    "sha256": "cf076f3d3685dd170955b83348eb07438d20e6f11510a72213bd476d800e0c0b",
+    "size_bytes": 48804717
+  },
+  "primary_score": "expression_mean",
+  "prohibitions": {
+    "finecops_checkpoint_selection": true,
+    "finecops_threshold_fitting": true,
+    "optimizer": true,
+    "post_result_score_selection": true,
+    "support_or_canonical_input": true,
+    "training": true
+  },
+  "schema": "arrow.original_gdino_ogc.finecops_preregistration/v1",
+  "score_contract": {
+    "expression_max": "maximum sigmoid token probability over the same mask; upstream-native sensitivity only",
+    "expression_mean": "mean sigmoid token probability over the model-generated full-expression phrase mask; input/scorer matched to ARROW Base",
+    "selected_after_results": false
+  },
+  "sensitivity_score": "expression_max",
+  "sources": [
+    {
+      "path": "/media/haoyi/T9/pivot/tools/arrow_original_gdino_common.py",
+      "sha256": "ae17bc888f064ec6250db63e71f01cb8cce1988f26abbb280d5851c19dc0912b",
+      "size_bytes": 1929
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/eval_arrow_original_gdino_finecops.py",
+      "sha256": "4d5cd282c50c5f17513c8405cf5be6f3997295c9f6c653585730f65a0f398026",
+      "size_bytes": 14933
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_arrow_original_gdino_finecops.py",
+      "sha256": "c2d82d848fa3991547193c18aeb904efaeac514023faad6a988e45ca1cfc146d",
+      "size_bytes": 4618
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/run_arrow_original_gdino_finecops_official.py",
+      "sha256": "4e812f47f0835d2267ee81d184e758ead1b75b15fb3fc9076e202010af042dc7",
+      "size_bytes": 4869
+    },
+    {
+      "path": "/media/haoyi/T9/pivot/tools/build_arrow_original_gdino_preregistration.py",
+      "sha256": "0426c630e0310622cdaea6597268c8fa8fdf3a92bc0b7f55328066190d6aef8e",
+      "size_bytes": 6327
+    }
+  ],
+  "status": "locked_before_original_ogc_forward"
+}

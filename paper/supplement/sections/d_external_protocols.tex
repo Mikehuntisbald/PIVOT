@@ -36,6 +36,35 @@ relative to that data correction, not a second virgin holdout.  Only the
 official-byte results enter the paper tables, and the failed/replay ledger is
 retained in the release provenance.
 
+The original-checkpoint comparison is a local replay of the unmodified
+GroundingDINO-T Swin-T OGC weight, rather than the published MM-GDINO-T number.
+The checkpoint and both score reductions were locked before its FineCops
+forward.  We use the upstream-native maximum expression-token probability in
+the main table and retain the full-expression mean-token reduction as a
+scorer sensitivity:
+
+\begin{center}
+\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{lccccc}
+\toprule
+OGC score & P@1 & T R@1 & I R@1 & T AUC & I AUC \\
+\midrule
+Native max & \OriginalOgcNativeP & \OriginalOgcNativeTextR &
+\OriginalOgcNativeImageR & \OriginalOgcNativeTextAuc &
+\OriginalOgcNativeImageAuc \\
+Expression mean & \OriginalOgcMeanP & \OriginalOgcMeanTextR &
+\OriginalOgcMeanImageR & \OriginalOgcMeanTextAuc &
+\OriginalOgcMeanImageAuc \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The scorer sensitivity is material, so we do not relabel the existing
+data-finetuned base route as ``original GroundingDINO.''  The data-finetuned
+base and OGC are distinct checkpoints and remain separate rows/provenance
+objects.
+
 \paragraph{gRefCOCO.}
 This experiment is a rejection-only binary slice: single-target expressions
 are positives, no-target expressions are negatives, and all multi-target

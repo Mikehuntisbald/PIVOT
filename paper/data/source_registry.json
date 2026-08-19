@@ -262,6 +262,39 @@
       "sha256": "5fef908c32f03d9db930183116e08a1ca6c68645681ab1849cc21e99ad837955",
       "size_bytes": 13743
     },
+    "original_ogc_finecops_results": {
+      "claims_owned": [
+        "original GroundingDINO-T OGC FineCops local replay"
+      ],
+      "git_commit": null,
+      "git_tracked": false,
+      "kind": "post_hoc_corrective_baseline_result",
+      "path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+      "sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+      "size_bytes": 12779
+    },
+    "original_ogc_official_max": {
+      "claims_owned": [
+        "original OGC native max-token FineCops metrics"
+      ],
+      "git_commit": null,
+      "git_tracked": false,
+      "kind": "pinned_official_evaluator_receipt",
+      "path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_max/receipt.json",
+      "sha256": "4b908ecdc2854f44f33555491a3800ca8d512f33007c88b3f6b589344e87351d",
+      "size_bytes": 9561
+    },
+    "original_ogc_official_mean": {
+      "claims_owned": [
+        "original OGC expression-mean scorer sensitivity"
+      ],
+      "git_commit": null,
+      "git_tracked": false,
+      "kind": "pinned_official_evaluator_receipt",
+      "path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_mean/receipt.json",
+      "sha256": "69fa64ca97379d29806c1ca2c86eb3959e4683a0e90e94d8b0a45ff0dbf566bc",
+      "size_bytes": 9564
+    },
     "ps_supplement": {
       "claims_owned": [
         "query/rank text interventions",

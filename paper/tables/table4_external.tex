@@ -13,7 +13,7 @@ Route & P@1$\uparrow$ & T R@1$\uparrow$ & I R@1$\uparrow$ & T AUC$\uparrow$ & I 
 Base & 43.11 & 42.66 & 43.98 & 58.87 & 59.55 \\
 Ranker+rej. & 43.02 & 43.85 & 44.76 & 60.88 & 60.69 \\
 ARROW-T & 43.15 & 43.68 & 44.51 & 60.88 & 60.69 \\
-MM-GDINO-T & 48.45 & 38.69 & 43.14 & 53.98 & 56.52 \\
+Original GDINO-T & 44.82 & 41.99 & 41.98 & 54.23 & 53.92 \\
 \bottomrule
 \end{tabular}
 \\[5pt]
@@ -30,5 +30,5 @@ Rej.-sup.-disj. & Base & 68.69 & 71.92 & 74.97 & -- \\
 \bottomrule
 \end{tabular}
 \\[-1pt]
-\parbox{0.98\columnwidth}{\scriptsize T/I denote negative text/image. ARROW-T receives FineCops' structured target noun, so MM-GDINO-T is a numerical, not input-matched, reference. Table AUC uses the pinned official evaluator's historical level-1-positive scope for every row. Fig.~\ref{fig:external} separately labels the audited all-positive FineCops gain as a point estimate. Fixed TPR uses the sealed source threshold. Multi-target gRefCOCO is excluded.}
+\parbox{0.98\columnwidth}{\scriptsize T/I denote negative text/image. Original GDINO-T is our local replay of the unmodified Swin-T OGC checkpoint with its native max-token score; the preregistered expression-mean sensitivity is reported in the supplement. Table AUC uses the pinned official evaluator's historical level-1-positive scope for every row. Fig.~\ref{fig:external} separately labels the audited all-positive FineCops gain as a point estimate. Fixed TPR uses the sealed source threshold. Multi-target gRefCOCO is excluded.}
 \end{table}

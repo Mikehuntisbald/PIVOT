@@ -1,0 +1,56 @@
+{
+  "checkpoint": {
+    "path": "/media/haoyi/T9/pivot/weights/groundingdino_swint_ogc.pth",
+    "sha256": "3b3ca2563c77c69f651d7bd133e97139c186df06231157a64c507099c52bc799",
+    "size_bytes": 693997677
+  },
+  "checkpoint_summary": {},
+  "config": {
+    "path": "/media/haoyi/T9/pivot/config/ablations/cfg_arrow_original_gdino_swint_ogc.py",
+    "sha256": "10c6afb6cd877d30cd5bf35b641699ab4da99b9882c31d827f18938d1eba54ce",
+    "size_bytes": 1159
+  },
+  "count": 27926,
+  "invariants": {
+    "canonical_not_passed_to_model": true,
+    "full_expression_only": true,
+    "no_threshold_fitting": true,
+    "no_training": true,
+    "primary_score_predeclared": "expression_mean",
+    "sensitivity_score_predeclared": "expression_max",
+    "support_not_passed_to_model": true
+  },
+  "ownership": {
+    "checkpoint_tensors": 940,
+    "loaded_tensor_parity": "bitwise_equal",
+    "parameter_numel": 174839994,
+    "runtime_tensors": 938,
+    "unused_legacy_tensors": [
+      "bert.embeddings.position_ids",
+      "label_enc.weight"
+    ]
+  },
+  "preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/preregistration.json",
+    "sha256": "46276815363fe895350c22b18601ae9b33881954a7b7a12b56f70e9fbe95336c",
+    "size_bytes": 3857
+  },
+  "records": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/evaluation/records.jsonl",
+    "rows": 27926,
+    "sha256": "e4c335e659629f523e7de476d0dd52b99eb42a1ac19f0af37182d74bd4b59668",
+    "size_bytes": 22412378
+  },
+  "runtime": {
+    "amp": true,
+    "batch_size": 16,
+    "device": "cuda:0",
+    "elapsed_seconds": 1095.5351374149323,
+    "grad_enabled": false,
+    "max_memory_allocated_bytes": 11414679040,
+    "num_workers": 4,
+    "optimizer_created": false
+  },
+  "schema": "arrow.original_gdino_ogc.finecops_run_receipt/v1",
+  "status": "complete"
+}

@@ -1,0 +1,375 @@
+{
+  "checkpoint": {
+    "path": "/media/haoyi/T9/pivot/weights/groundingdino_swint_ogc.pth",
+    "sha256": "3b3ca2563c77c69f651d7bd133e97139c186df06231157a64c507099c52bc799",
+    "size_bytes": 693997677
+  },
+  "evidence_status": "post_hoc_corrective_input_matched_baseline",
+  "finecops_threshold_fitted": false,
+  "metrics": {
+    "expression_max": {
+      "positive_count": 9605,
+      "precision1_by_level": {
+        "1": 0.7101221640488656,
+        "2": 0.3181551116333725,
+        "3": 0.31634819532908703
+      },
+      "precision1_macro": 0.44820849033710836,
+      "precision1_micro": 0.5519000520562207,
+      "rejection": {
+        "image": {
+          "audited_all_positive": {
+            "actual_tpr": 0.9500260281103592,
+            "aupr": 0.5249708644365905,
+            "auroc": 0.48700218523533334,
+            "fpr95": 0.9367579640296226,
+            "negative_count": 8507,
+            "positive_count": 9605,
+            "threshold_at_95tpr": 0.3565586805343628
+          },
+          "negative_count": 8507,
+          "official_exact_scope": {
+            "actual_tpr": 0.9500872600349041,
+            "aupr": 0.45147965644156623,
+            "auroc": 0.5482547069849674,
+            "fpr95": 0.9266486422945809,
+            "negative_count": 8507,
+            "positive_count": 5730,
+            "threshold_at_95tpr": 0.36296918988227844
+          },
+          "paired_one_to_one": {
+            "actual_tpr": 0.9502762430939227,
+            "aupr": 0.5518116934024384,
+            "auroc": 0.5567860854437924,
+            "fpr95": 0.9146585165158105,
+            "negative_count": 8507,
+            "positive_count": 8507,
+            "threshold_at_95tpr": 0.3714786171913147
+          },
+          "recall1_by_type_level": {
+            "attribute|L1": {
+              "count": 1267,
+              "recall1": 0.39384372533543804
+            },
+            "attribute|L2": {
+              "count": 577,
+              "recall1": 0.317157712305026
+            },
+            "flip|L1": {
+              "count": 1086,
+              "recall1": 0.3278084714548803
+            },
+            "flip|L2": {
+              "count": 469,
+              "recall1": 0.3582089552238806
+            },
+            "object|L1": {
+              "count": 2612,
+              "recall1": 0.5440275650842267
+            },
+            "object|L2": {
+              "count": 1559,
+              "recall1": 0.36690186016677356
+            },
+            "order|L1": {
+              "count": 307,
+              "recall1": 0.40390879478827363
+            },
+            "swap_attr|L1": {
+              "count": 487,
+              "recall1": 0.42505133470225875
+            },
+            "swap_attr|L2": {
+              "count": 143,
+              "recall1": 0.2867132867132867
+            }
+          },
+          "recall1_strict_tie_fail": 0.4197719525096979
+        },
+        "text": {
+          "audited_all_positive": {
+            "actual_tpr": 0.9500260281103592,
+            "aupr": 0.4990310105155108,
+            "auroc": 0.49713900835604713,
+            "fpr95": 0.9251069900142653,
+            "negative_count": 9814,
+            "positive_count": 9605,
+            "threshold_at_95tpr": 0.3565586805343628
+          },
+          "negative_count": 9814,
+          "official_exact_scope": {
+            "actual_tpr": 0.9500872600349041,
+            "aupr": 0.4286685919322519,
+            "auroc": 0.5577552511620149,
+            "fpr95": 0.9158345221112696,
+            "negative_count": 9814,
+            "positive_count": 5730,
+            "threshold_at_95tpr": 0.36296918988227844
+          },
+          "paired_one_to_one": {
+            "actual_tpr": 0.9501732219278581,
+            "aupr": 0.560392175584682,
+            "auroc": 0.5663746801159816,
+            "fpr95": 0.9005502343590789,
+            "negative_count": 9814,
+            "positive_count": 9814,
+            "threshold_at_95tpr": 0.3721628785133362
+          },
+          "recall1_by_type_level": {
+            "attribute|L1": {
+              "count": 1171,
+              "recall1": 0.45345858240819814
+            },
+            "attribute|L2": {
+              "count": 554,
+              "recall1": 0.2851985559566787
+            },
+            "object|L1": {
+              "count": 2488,
+              "recall1": 0.5735530546623794
+            },
+            "object|L2": {
+              "count": 1463,
+              "recall1": 0.32057416267942584
+            },
+            "order|L1": {
+              "count": 1556,
+              "recall1": 0.4203084832904884
+            },
+            "order|L2": {
+              "count": 166,
+              "recall1": 0.27710843373493976
+            },
+            "relation|L1": {
+              "count": 1349,
+              "recall1": 0.33580429948109713
+            },
+            "relation|L2": {
+              "count": 542,
+              "recall1": 0.3376383763837638
+            },
+            "swap_attr|L1": {
+              "count": 403,
+              "recall1": 0.3945409429280397
+            },
+            "swap_attr|L2": {
+              "count": 122,
+              "recall1": 0.3360655737704918
+            }
+          },
+          "recall1_strict_tie_fail": 0.4199103321785205
+        }
+      }
+    },
+    "expression_mean": {
+      "positive_count": 9605,
+      "precision1_by_level": {
+        "1": 0.6736474694589878,
+        "2": 0.2796709753231492,
+        "3": 0.25690021231422505
+      },
+      "precision1_macro": 0.40340621903212065,
+      "precision1_micro": 0.5135866736074961,
+      "rejection": {
+        "image": {
+          "audited_all_positive": {
+            "actual_tpr": 0.9500260281103592,
+            "aupr": 0.5412823656010688,
+            "auroc": 0.49588055205417075,
+            "fpr95": 0.9751968966733279,
+            "negative_count": 8507,
+            "positive_count": 9605,
+            "threshold_at_95tpr": 0.07264401018619537
+          },
+          "negative_count": 8507,
+          "official_exact_scope": {
+            "actual_tpr": 0.9500872600349041,
+            "aupr": 0.4513259323805966,
+            "auroc": 0.5505376744457033,
+            "fpr95": 0.9380510168096862,
+            "negative_count": 8507,
+            "positive_count": 5730,
+            "threshold_at_95tpr": 0.0867767333984375
+          },
+          "paired_one_to_one": {
+            "actual_tpr": 0.9501586928411896,
+            "aupr": 0.5346978992171367,
+            "auroc": 0.5388725710628034,
+            "fpr95": 0.9509815446103209,
+            "negative_count": 8507,
+            "positive_count": 8507,
+            "threshold_at_95tpr": 0.08286889642477036
+          },
+          "recall1_by_type_level": {
+            "attribute|L1": {
+              "count": 1267,
+              "recall1": 0.43962115232833465
+            },
+            "attribute|L2": {
+              "count": 577,
+              "recall1": 0.2564991334488735
+            },
+            "flip|L1": {
+              "count": 1086,
+              "recall1": 0.27532228360957645
+            },
+            "flip|L2": {
+              "count": 469,
+              "recall1": 0.2857142857142857
+            },
+            "object|L1": {
+              "count": 2612,
+              "recall1": 0.5470903522205207
+            },
+            "object|L2": {
+              "count": 1559,
+              "recall1": 0.32135984605516354
+            },
+            "order|L1": {
+              "count": 307,
+              "recall1": 0.3289902280130293
+            },
+            "swap_attr|L1": {
+              "count": 487,
+              "recall1": 0.4024640657084189
+            },
+            "swap_attr|L2": {
+              "count": 143,
+              "recall1": 0.17482517482517482
+            }
+          },
+          "recall1_strict_tie_fail": 0.3984953567650171
+        },
+        "text": {
+          "audited_all_positive": {
+            "actual_tpr": 0.9500260281103592,
+            "aupr": 0.4780235702706252,
+            "auroc": 0.4559589679862199,
+            "fpr95": 0.9833910739759527,
+            "negative_count": 9814,
+            "positive_count": 9605,
+            "threshold_at_95tpr": 0.07264401018619537
+          },
+          "negative_count": 9814,
+          "official_exact_scope": {
+            "actual_tpr": 0.9500872600349041,
+            "aupr": 0.38707055108154587,
+            "auroc": 0.5087647965953827,
+            "fpr95": 0.9547585082535154,
+            "negative_count": 9814,
+            "positive_count": 5730,
+            "threshold_at_95tpr": 0.0867767333984375
+          },
+          "paired_one_to_one": {
+            "actual_tpr": 0.9501732219278581,
+            "aupr": 0.5001218417349029,
+            "auroc": 0.49714314328847936,
+            "fpr95": 0.9562869370287345,
+            "negative_count": 9814,
+            "positive_count": 9814,
+            "threshold_at_95tpr": 0.08625387400388718
+          },
+          "recall1_by_type_level": {
+            "attribute|L1": {
+              "count": 1171,
+              "recall1": 0.34244235695986336
+            },
+            "attribute|L2": {
+              "count": 554,
+              "recall1": 0.18411552346570398
+            },
+            "object|L1": {
+              "count": 2488,
+              "recall1": 0.4284565916398714
+            },
+            "object|L2": {
+              "count": 1463,
+              "recall1": 0.23308270676691728
+            },
+            "order|L1": {
+              "count": 1556,
+              "recall1": 0.2686375321336761
+            },
+            "order|L2": {
+              "count": 166,
+              "recall1": 0.1566265060240964
+            },
+            "relation|L1": {
+              "count": 1349,
+              "recall1": 0.26464047442550037
+            },
+            "relation|L2": {
+              "count": 542,
+              "recall1": 0.1937269372693727
+            },
+            "swap_attr|L1": {
+              "count": 403,
+              "recall1": 0.26054590570719605
+            },
+            "swap_attr|L2": {
+              "count": 122,
+              "recall1": 0.1557377049180328
+            }
+          },
+          "recall1_strict_tie_fail": 0.2995720399429387
+        }
+      }
+    }
+  },
+  "official_exact": {
+    "annotation": {
+      "path": "/media/haoyi/T9/data/FineCops-Ref/v1/raw/benchmark/test_expression_all_coco_format.json",
+      "sha256": "ed0fa31efd9352914a4538acbc56cfadac14f71a2e3a625008f11e0428c2ddf9",
+      "size_bytes": 21099434
+    },
+    "receipts": {
+      "expression_max": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_max/receipt.json",
+        "sha256": "4b908ecdc2854f44f33555491a3800ca8d512f33007c88b3f6b589344e87351d",
+        "size_bytes": 9561
+      },
+      "expression_mean": {
+        "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_mean/receipt.json",
+        "sha256": "69fa64ca97379d29806c1ca2c86eb3959e4683a0e90e94d8b0a45ff0dbf566bc",
+        "size_bytes": 9564
+      }
+    },
+    "repo_commit": "31d2c8615e65ccef6a4ff516925ef5ae465ec747",
+    "source": {
+      "path": "/media/haoyi/T9/data/FineCops-Ref/v1/official_repo/evaluation/eval_metric_mmdet.py",
+      "sha256": "7956c4c00bcce00d124a958d2f2b7f69777f9fe38b9327f044c30998d1461778",
+      "size_bytes": 16306
+    },
+    "status": "complete_external_pinned_evaluator"
+  },
+  "official_exact_status": "complete_external_pinned_evaluator",
+  "official_prediction_artifacts": {
+    "expression_max": {
+      "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/official_predictions/original_ogc_expression_max.jsonl",
+      "rows": 27926,
+      "sha256": "70b850994386cbd89d8ec93cfc66af944dd334ecf50844f90f270d61f5f30631",
+      "size_bytes": 3758999
+    },
+    "expression_mean": {
+      "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/official_predictions/original_ogc_expression_mean.jsonl",
+      "rows": 27926,
+      "sha256": "8ac76643cb817ea0e2e7a8d23ef7d99983f8fbec398cd625c0523bfbed01a79d",
+      "size_bytes": 3774704
+    }
+  },
+  "preregistration": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/preregistration.json",
+    "sha256": "46276815363fe895350c22b18601ae9b33881954a7b7a12b56f70e9fbe95336c",
+    "size_bytes": 3857
+  },
+  "primary_score": "expression_mean",
+  "run_receipt": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_original_gdino_ogc_finecops_20260819/evaluation/run_receipt.json",
+    "sha256": "490a605cde3c515c57103ad2a4d180158f36822234ce64249c6a53157a38d3ec",
+    "size_bytes": 1881
+  },
+  "schema": "arrow.original_gdino_ogc.finecops_results/v1",
+  "sensitivity_score": "expression_max",
+  "status": "complete",
+  "training_performed": false
+}

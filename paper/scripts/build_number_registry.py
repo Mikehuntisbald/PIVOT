@@ -112,6 +112,24 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
         "expected_sha256": "22e714a987ab88de749fd793e43c3d1194f161890d181c83bfe32b8b07b5ba11",
         "owns": ["FineCops official-byte metrics", "matched contrasts", "fixed-threshold transfer"],
     },
+    "original_ogc_finecops_results": {
+        "path": "outputs/arrow_original_gdino_ogc_finecops_20260819/results.json",
+        "kind": "post_hoc_corrective_baseline_result",
+        "expected_sha256": "1efdf6a3d921141b0b918bbaeb06ff07b9a94933cac85fb9a2895730ef3e6d89",
+        "owns": ["original GroundingDINO-T OGC FineCops local replay"],
+    },
+    "original_ogc_official_mean": {
+        "path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_mean/receipt.json",
+        "kind": "pinned_official_evaluator_receipt",
+        "expected_sha256": "69fa64ca97379d29806c1ca2c86eb3959e4683a0e90e94d8b0a45ff0dbf566bc",
+        "owns": ["original OGC expression-mean scorer sensitivity"],
+    },
+    "original_ogc_official_max": {
+        "path": "outputs/arrow_original_gdino_ogc_finecops_20260819/official_exact/expression_max/receipt.json",
+        "kind": "pinned_official_evaluator_receipt",
+        "expected_sha256": "4b908ecdc2854f44f33555491a3800ca8d512f33007c88b3f6b589344e87351d",
+        "owns": ["original OGC native max-token FineCops metrics"],
+    },
     "gref_results": {
         "path": "outputs/arrow_grefcoco_20260820/results.json",
         "kind": "sealed_result",
@@ -612,42 +630,60 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
                 "notes": note,
             }
 
-    # Official FineCops reference values are external literature numbers, not
-    # ARROW record replay.  They are bound to the committed official-comparison
-    # result narrative until the BibTeX/closest-work source package is sealed.
-    for metric, value in (
-        ("positive_p1_macro", 0.4845),
-        ("negative_text_recall1", 0.3869),
-        ("negative_image_recall1", 0.4314),
-        ("negative_text_auroc_type_macro", 0.5398),
-        ("negative_image_auroc_type_macro", 0.5652),
+    # Input-matched local replay of the original Swin-T OGC checkpoint.  The
+    # native max-token route is the public baseline; expression-mean was
+    # preregistered before evaluation and is retained as a scorer sensitivity.
+    for route, result_route, receipt_source, note in (
+        (
+            "native_max",
+            "expression_max",
+            "original_ogc_official_max",
+            "upstream-native max-token scorer",
+        ),
+        (
+            "matched_mean",
+            "expression_mean",
+            "original_ogc_official_mean",
+            "full-expression mean-token scorer sensitivity",
+        ),
     ):
-        source_meta = registry["sources"]["finecops_results_doc"]
-        b.numbers[f"finecops.official_mm_gdino_t.{metric}"] = {
-            "key": f"finecops.official_mm_gdino_t.{metric}",
-            "value": value,
-            "unit": "fraction",
-            "surface": "FineCops full test (published reference)",
-            "direction": "higher_is_better",
-            "source_path": source_meta["path"],
-            "source_sha256": source_meta["sha256"],
-            "source_json_path": None,
-            "status": "published_reference",
-            "notes": "MM-GDINO-T zero-shot reference reported by FineCops-Ref",
-        }
+        b.add(
+            f"finecops.original_ogc.{route}.positive_p1_macro",
+            "original_ogc_finecops_results",
+            f"metrics.{result_route}.precision1_macro",
+            unit="fraction",
+            surface="FineCops full test",
+            status="post_hoc_corrective_input_matched_baseline",
+            direction="higher_is_better",
+            notes=note,
+        )
+        for negative_type in ("text", "image"):
+            b.add(
+                f"finecops.original_ogc.{route}.negative_{negative_type}_recall1",
+                "original_ogc_finecops_results",
+                f"metrics.{result_route}.rejection.{negative_type}.recall1_strict_tie_fail",
+                unit="fraction",
+                surface="FineCops full test",
+                status="post_hoc_corrective_input_matched_baseline",
+                direction="higher_is_better",
+                notes=f"{note}; audited strict-tie micro recall",
+            )
+            b.add(
+                f"finecops.original_ogc.{route}.negative_{negative_type}_auroc_type_macro",
+                receipt_source,
+                "auroc",
+                unit="fraction",
+                surface="FineCops full test (official historical level-1-positive scope)",
+                status="post_hoc_corrective_official_exact",
+                direction="higher_is_better",
+                notes=f"{note}; unweighted official type-by-level macro",
+                transform=lambda rows, negative_type=negative_type: statistics.fmean(
+                    float(row["AUROC"]) / 100.0
+                    for row in rows
+                    if row["cate"] == negative_type
+                ),
+            )
     official_source = registry["sources"]["finecops_results_doc"]
-    b.numbers["finecops.official_mm_gdino_t.rejection_auroc_type_macro"] = {
-        "key": "finecops.official_mm_gdino_t.rejection_auroc_type_macro",
-        "value": statistics.fmean((0.5398, 0.5652)),
-        "unit": "fraction",
-        "surface": "FineCops full test (published type macro)",
-        "direction": "higher_is_better",
-        "source_path": official_source["path"],
-        "source_sha256": official_source["sha256"],
-        "source_json_path": None,
-        "status": "published_reference_derived",
-        "notes": "unweighted mean of published negative-text and negative-image AUROC type macros",
-    }
     # Byte-exact ARROW replay through the pinned official evaluator. Keep these
     # distinct from the audited all-positive diagnostics below: the official
     # evaluator's historical overall rejection path uses level-1 positives.
