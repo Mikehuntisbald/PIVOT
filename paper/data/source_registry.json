@@ -131,8 +131,8 @@
         "cross-benchmark rejection ordering summary",
         "sealed-threshold positive TPR transfer"
       ],
-      "git_commit": null,
-      "git_tracked": false,
+      "git_commit": "e0c3df1618fe5ed194b0df17bad664a58f99a8c9",
+      "git_tracked": true,
       "kind": "zero_training_derived_receipt",
       "path": "paper/data/confidence_anatomy.json",
       "sha256": "5f348cd992b9cd4dcbacb0539d7990bef7cf2a80819de2a4d67bdb868543cc08",
@@ -144,8 +144,8 @@
         "batch-one latency and throughput",
         "peak allocated and reserved GPU memory"
       ],
-      "git_commit": null,
-      "git_tracked": false,
+      "git_commit": "e0c3df1618fe5ed194b0df17bad664a58f99a8c9",
+      "git_tracked": true,
       "kind": "zero_training_measurement",
       "path": "paper/data/efficiency_receipt.json",
       "sha256": "0cd0ea5acde4827a0bf21ad554d28258800ca9595c094264d6bfcdf8b8809498",
@@ -193,8 +193,8 @@
         "relative-gap validation sensitivity",
         "eligible-set size sensitivity"
       ],
-      "git_commit": null,
-      "git_tracked": false,
+      "git_commit": "e0c3df1618fe5ed194b0df17bad664a58f99a8c9",
+      "git_tracked": true,
       "kind": "zero_training_derived_receipt",
       "path": "paper/data/gap_sensitivity.json",
       "sha256": "83bc3cebd3c74be515c1fc54de6b7cc69e331a497d16319be2528d689f7bd507",
