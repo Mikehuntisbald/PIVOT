@@ -1,0 +1,36 @@
+\section{Problem Formulation and Diagnosis}
+\label{sec:problem}
+
+\subsection{Selective single-target grounding}
+Given image $I$, complete referring expression $e$, and optional category cue
+$u$, the model predicts either one box or abstention:
+\begin{equation}
+  \hat y = \pi(I,e,u) \in \mathcal{B}\cup\{\varnothing\}.
+\end{equation}
+A frozen grounding model produces $N$ candidate queries,
+\begin{equation}
+  \mathcal{Q}=G_{\phi}(I,e)
+  =\{(q_i,b_i,s_i^0)\}_{i=1}^{N},\qquad \phi\ \text{frozen}.
+\end{equation}
+The deployed policy must determine (i) which candidates are eligible, (ii)
+which eligible candidate best satisfies $e$, and (iii) whether the result is
+sufficiently supported to emit.
+
+\subsection{Why a single score is ill-posed}
+A ranking objective is relative: for a compatible candidate $i^+$, it asks
+$r_{i^+}>r_j$ for competing candidates $j$.  It need not be small on a
+no-target input, because a maximum exists for every nonempty candidate set.
+A rejection objective is sample-level: $c(I,e)$ should separate images with a
+valid referent from no-target or invalid pairs.  Admission changes the domain
+on which Ranking is meaningful.  A shared trainable score can therefore
+receive updates with incompatible direction and scale.
+
+\subsection{Candidate-availability diagnosis}
+We partition localization outcomes into four mutually exclusive cases: no
+IoU$\geq0.5$ candidate exists; a valid candidate exists but Admission removes
+the final valid candidate; a valid admitted candidate exists but Ranking picks
+another candidate; or localization is correct but Rejection falls below the
+operating threshold.  On our validation surface, the first class is empty,
+the second accounts for only 0.31--0.38\%, and 27.23--27.39\% remain ranking
+errors.  This is a diagnosis of the frozen representation and evaluation
+surface, not a universal claim that grounding geometry is always solved.

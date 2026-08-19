@@ -1,0 +1,10 @@
+surface,metric,registry_key,value,ci95_low,ci95_high,inference
+Internal,auroc_gain,cross_benchmark.internal.auroc_gain,0.02259027418683468,,,internal anchor; FPR95 contrast has paired image-cluster bootstrap
+Internal,fpr95_reduction,cross_benchmark.internal.fpr95_reduction,0.04185130477597249,0.02457115062117572,0.061988604649165745,internal anchor; FPR95 contrast has paired image-cluster bootstrap
+Internal,fixed_tpr,cross_benchmark.internal.fixed_tpr,0.9573280814048909,,,internal anchor; FPR95 contrast has paired image-cluster bootstrap
+FineCops,auroc_gain,cross_benchmark.finecops.auroc_gain,0.018866365921079042,,,point estimate only; no D3-vs-base rejection bootstrap receipt exists
+FineCops,fpr95_reduction,cross_benchmark.finecops.fpr95_reduction,0.014817652136805637,,,point estimate only; no D3-vs-base rejection bootstrap receipt exists
+FineCops,fixed_tpr,cross_benchmark.finecops.fixed_tpr,0.8004511539128926,,,point estimate only; no D3-vs-base rejection bootstrap receipt exists
+gRefCOCO,auroc_gain,cross_benchmark.grefcoco.auroc_gain,0.02796468903415872,0.0247341890986944,0.031238054430853368,paired stratified image-cluster bootstrap is available for ordering gains
+gRefCOCO,fpr95_reduction,cross_benchmark.grefcoco.fpr95_reduction,0.032781493257318384,0.021509947467246136,0.0499679039487784,paired stratified image-cluster bootstrap is available for ordering gains
+gRefCOCO,fixed_tpr,cross_benchmark.grefcoco.fixed_tpr,0.9010349102020814,0.8891761108195593,0.9126758543109161,paired stratified image-cluster bootstrap is available for ordering gains

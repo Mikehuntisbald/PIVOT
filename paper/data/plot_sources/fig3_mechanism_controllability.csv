@@ -1,0 +1,15 @@
+panel,series,label,registry_key,value,ci95_low,ci95_high
+a,gradient_cosine,seed17,ownership.o0.seed17.cosine_mean,-0.19003918489825694,,
+a,sign_conflict_fraction,seed17,ownership.o0.seed17.sign_conflict_mean,0.5338820819113705,,
+a,gradient_cosine,seed42,ownership.o0.seed42.cosine_mean,-0.2523165283537892,,
+a,sign_conflict_fraction,seed42,ownership.o0.seed42.sign_conflict_mean,0.5562605678632453,,
+a,gradient_cosine,seed73,ownership.o0.seed73.cosine_mean,-0.2809534918727438,,
+a,sign_conflict_fraction,seed73,ownership.o0.seed73.sign_conflict_mean,0.5567158440480361,,
+b,ownership_contrast,Test5 localization gain,ownership.o2_minus_o0.test5_gain,-2.1526903247526263e-05,-0.0007164831317187444,0.0006644799327535822
+b,ownership_contrast,Strict-TN2031 FPR95 reduction,ownership.o2_minus_o0.strict_fpr95_reduction,0.028064992614475592,0.009268446220020116,0.04638423271717615
+c,test5,ARROW-V,admission_input.arrow_v.test5,0.7423983122907855,,
+c,category_switch,ARROW-V,admission_input.arrow_v.switch_success,0.482421875,,
+c,test5,ARROW-T,admission_input.arrow_t.test5,0.7411928057089346,,
+c,category_switch,ARROW-T,admission_input.arrow_t.switch_success,0.3229166666666667,,
+c,test5,ARROW-N,admission_input.arrow_n.test5,0.7383082006737919,,
+c,category_switch,ARROW-N,admission_input.arrow_n.switch_success,0.0,,

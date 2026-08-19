@@ -1,0 +1,175 @@
+{
+  "claim_boundary": "domain-derived FPR95 is diagnostic and recomputes domain q05; it is not a deployment threshold",
+  "inputs": {
+    "0": {
+      "path": "outputs/paper_cvpr_v1/baseline_b58_strict2031_seed42_v3_contract/per_example_records/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch_checkpoint0001__tn_global.records.jsonl",
+      "sha256": "978b69a0773701bde796110a638f432324497d350002852a8b905e4019566a7c",
+      "size_bytes": 3503334
+    },
+    "1": {
+      "path": "outputs/u2v5_leakage_clean_anchor_20260817/final_once/strict2031_u50/per_example_records/confidence_seed17_u50_checkpoint_iter__tn_global.records.jsonl",
+      "sha256": "b2b0b8775dc47a8404864918c904add0d6f18ffddaa93b617306b7655e30384e",
+      "size_bytes": 5168528
+    },
+    "10": {
+      "path": "outputs/arrow_finecops_20260819/evaluations/B/seed73/records.jsonl",
+      "sha256": "911098cb435647fd7dc947cd9cdc98bb206c0d1f6dfff1c3055f5866859c5c6f",
+      "size_bytes": 32427580
+    },
+    "11": {
+      "path": "outputs/arrow_grefcoco_20260820/results.json",
+      "sha256": "3b4841e0c87adb911b219f7bc7588b740e2b9ed346ec9630f4995ffa7ce4bde7",
+      "size_bytes": 25062
+    },
+    "12": {
+      "path": "outputs/arrow_grefcoco_20260820/evaluations_v2/seed17/records.jsonl",
+      "sha256": "917a54a03959f11fb6d61f91479512a5ad17e31c4a75f70b5481c6d7c30e506a",
+      "size_bytes": 15648412
+    },
+    "13": {
+      "path": "outputs/arrow_grefcoco_20260820/evaluations_v2/seed42/records.jsonl",
+      "sha256": "48b1b805997be162e7e9536b0c2f4e5cf2376abaa5e6a7cfa6e50795b8b2c3dd",
+      "size_bytes": 15644854
+    },
+    "14": {
+      "path": "outputs/arrow_grefcoco_20260820/evaluations_v2/seed73/records.jsonl",
+      "sha256": "29c1dced52969d8c6d0cda045cdbb91c0e37dde14e03bba8e6ad5b9b2847d4e1",
+      "size_bytes": 15636721
+    },
+    "2": {
+      "path": "outputs/u2v5_leakage_clean_anchor_20260817/final_once/strict2031_u50/per_example_records/confidence_seed42_u50_checkpoint_iter__tn_global.records.jsonl",
+      "sha256": "ccb19938c50eed94cc2afdbb1708bb47b7bb771821da7f6cc0b372238aa3b2d5",
+      "size_bytes": 5168103
+    },
+    "3": {
+      "path": "outputs/u2v5_leakage_clean_anchor_20260817/final_once/strict2031_u50/per_example_records/confidence_seed73_u50_checkpoint_iter__tn_global.records.jsonl",
+      "sha256": "fb59ab481f44fabb7dda17e0ca51c6b31a979fcac8a623fe44fcba8c337879b9",
+      "size_bytes": 5167495
+    },
+    "4": {
+      "path": "outputs/u2v5_leakage_clean_anchor_20260817/formal/calibration_u25_u50_u100/confidence_seed17_u50_checkpoint_iter__tn_val.json",
+      "sha256": "cb3f2b9827be39f2be4331e10fae6e3bb046e933fe85ba6dd401c19866e78e51",
+      "size_bytes": 92005
+    },
+    "5": {
+      "path": "outputs/u2v5_leakage_clean_anchor_20260817/formal/calibration_u25_u50_u100/confidence_seed42_u50_checkpoint_iter__tn_val.json",
+      "sha256": "8e96575cec53b502f789b187efdc79e3b60a3e5f1f162a1bdde2e1ffc659a877",
+      "size_bytes": 91933
+    },
+    "6": {
+      "path": "outputs/u2v5_leakage_clean_anchor_20260817/formal/calibration_u25_u50_u100/confidence_seed73_u50_checkpoint_iter__tn_val.json",
+      "sha256": "78de7ea6ca750389869027560d2fc973b7164b4c2ec0db5fecccbf304d00531f",
+      "size_bytes": 91376
+    },
+    "7": {
+      "path": "outputs/arrow_finecops_20260819/results.json",
+      "sha256": "22e714a987ab88de749fd793e43c3d1194f161890d181c83bfe32b8b07b5ba11",
+      "size_bytes": 101231
+    },
+    "8": {
+      "path": "outputs/arrow_finecops_20260819/evaluations/B/seed17/records.jsonl",
+      "sha256": "53b4e02e7cab6fef92aedb4949f6dc172d1caa461c20f15c3c8b5dfa0ad71bf0",
+      "size_bytes": 32453416
+    },
+    "9": {
+      "path": "outputs/arrow_finecops_20260819/evaluations/B/seed42/records.jsonl",
+      "sha256": "907f436d599e8827178043f21d56de0482ee763032178114c363d33f56f1029c",
+      "size_bytes": 32446254
+    }
+  },
+  "schema": "arrow.paper.confidence_anatomy/v1",
+  "shared_conclusion": "rejection ordering improves on all three surfaces; the sealed 95%-TPR source operating point does not transfer to either external benchmark",
+  "status": "zero_training_derived_from_sealed_records",
+  "surfaces": {
+    "finecops": {
+      "auroc_gain": 0.018866365921079042,
+      "fixed_target_tpr": 0.95,
+      "fixed_threshold_contract": "sealed D3 threshold; no FineCops fitting",
+      "fpr95_reduction": 0.014817652136805637,
+      "frozen_base": {
+        "auroc_type_macro": 0.5726056107020864,
+        "fpr95_type_macro": 0.872741520553124
+      },
+      "inference": "point estimates only; no D3-vs-base rejection bootstrap receipt exists",
+      "isolated_rejector": {
+        "auroc_type_macro": 0.5914719766231654,
+        "fixed_threshold_positive_tpr": 0.8004511539128926,
+        "fpr95_type_macro": 0.8579238684163184
+      },
+      "surface": "FineCops audited all-positive type macro"
+    },
+    "grefcoco": {
+      "auroc_gain": 0.02796468903415872,
+      "fixed_target_tpr": 0.95,
+      "fixed_threshold_contract": "sealed D3 threshold; no gRefCOCO fitting",
+      "fpr95_reduction": 0.032781493257318384,
+      "frozen_base": {
+        "auroc": 0.6894908756625101,
+        "fpr95": 0.7410371669773052
+      },
+      "isolated_rejector": {
+        "auroc": 0.7174555646966688,
+        "fixed_threshold_positive_tpr": 0.9010349102020814,
+        "fpr95": 0.7082556737199868
+      },
+      "surface": "gRefCOCO restricted Full single/no-target"
+    },
+    "internal": {
+      "auroc_gain": 0.02259027418683468,
+      "fixed_target_tpr": 0.95,
+      "fixed_threshold_contract": "each seed threshold is copied from sealed 1,570-row D3 calibration",
+      "fpr95_reduction": 0.04185130477597249,
+      "frozen_base": {
+        "actual_tpr": 0.9502708025603152,
+        "auroc": 0.8251602863639196,
+        "fpr95": 0.5120630231413097,
+        "negative_count": 2031,
+        "positive_count": 2031,
+        "q05_threshold": 0.3055937588214874
+      },
+      "isolated_rejector_by_seed": {
+        "17": {
+          "actual_tpr": 0.9502708025603152,
+          "auroc": 0.845871754908713,
+          "fixed_threshold_negative_fpr": 0.4854751354012802,
+          "fixed_threshold_positive_tpr": 0.9611029049729197,
+          "fpr95": 0.4711964549483013,
+          "negative_count": 2031,
+          "positive_count": 2031,
+          "q05_threshold": 0.2646086812019348,
+          "sealed_d3_threshold": 0.2301006317138672
+        },
+        "42": {
+          "actual_tpr": 0.9502708025603152,
+          "auroc": 0.8498882777315955,
+          "fixed_threshold_negative_fpr": 0.4756277695716396,
+          "fixed_threshold_positive_tpr": 0.9547021171836534,
+          "fpr95": 0.4707040866568193,
+          "negative_count": 2031,
+          "positive_count": 2031,
+          "q05_threshold": 0.33280181884765625,
+          "sealed_d3_threshold": 0.31912317872047424
+        },
+        "73": {
+          "actual_tpr": 0.9502708025603152,
+          "auroc": 0.8474916490119543,
+          "fixed_threshold_negative_fpr": 0.48399803052683404,
+          "fixed_threshold_positive_tpr": 0.9561792220580995,
+          "fpr95": 0.4687346134908912,
+          "negative_count": 2031,
+          "positive_count": 2031,
+          "q05_threshold": 0.7871026992797852,
+          "sealed_d3_threshold": 0.753686785697937
+        }
+      },
+      "isolated_rejector_mean": {
+        "actual_tpr": 0.9502708025603152,
+        "auroc": 0.8477505605507543,
+        "fixed_threshold_negative_fpr": 0.48170031183325124,
+        "fixed_threshold_positive_tpr": 0.9573280814048909,
+        "fpr95": 0.4702117183653372
+      },
+      "surface": "Strict-TN2031"
+    }
+  }
+}

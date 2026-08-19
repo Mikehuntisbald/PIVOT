@@ -1,0 +1,27 @@
+\section{Metrics and paired inference}
+\label{sup:statistics}
+
+Localization uses expression-level Acc@0.5 or the benchmark-defined P@1.
+Rejection uses AUROC, positive-class AUPR, and FPR95.  Confirmatory uncertainty
+is computed with paired cluster bootstrap: an image draw carries all of its
+expressions and is applied jointly to the baseline, candidate, and all three
+training seeds.  Fine-grained counterfactual data use their sealed parent
+image as the cluster.  Per-seed metrics are recomputed first and then averaged
+with equal seed weight.
+
+FPR95 and fixed-threshold transfer answer different questions.  In every
+bootstrap replicate, FPR95 recomputes each model's threshold from that
+replicate's positive fifth percentile.  In contrast, fixed-threshold metrics
+always reuse the seed-specific threshold sealed on the internal calibration
+surface; it is never recomputed or fit on an external benchmark.  Planned
+contrast families use Holm correction.  Three-seed summaries report each
+seed, the arithmetic mean, and sample standard deviation rather than a
+three-sample parametric significance test.
+
+All reported cluster intervals use 5,000 PCG64 replicates.  The frozen
+internal/Test5 and ownership contrasts use RNG seed 20260719; the fresh
+Admission panel uses 20260818; FineCops-Ref uses 20260819; and gRefCOCO uses
+20260820.  Admission, rejection/data, and ownership hypotheses are corrected
+within their preregistered families by Holm's step-down procedure; secondary
+mechanism and subgroup intervals are descriptive and never used for model
+selection.

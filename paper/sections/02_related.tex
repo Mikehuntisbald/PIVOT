@@ -1,0 +1,47 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Text and visual prompts.}
+Open-vocabulary grounding and detection models such as Grounding
+DINO~\cite{liu2025groundingdino} use language to define detection concepts.
+T-Rex2~\cite{jiang2024trex2} aligns text and visual prompts, while PET-DINO
+adds visual cues and parallel prompt routes to Grounding
+DINO~\cite{fu2026petdino}.  DINO-X broadens the available prompt types, and
+Visual In-Context Prompting introduces the DINOv visual-prompt
+model~\cite{ren2024dinox,li2024dinov}.  \method does not claim novelty in
+accepting both modalities.  Its question is decision-level responsibility: a
+category cue controls Admission, while the complete referring expression owns
+within-set Ranking.  The fresh category-switch intervention tests whether each
+route actually follows its assigned cue.
+
+\paragraph{Referring expressions and no-target grounding.}
+RefCOCO and RefCOCO+~\cite{yu2016modelingcontext} and
+RefCOCOg~\cite{mao2016generation} support the classical exactly-one-target
+setting.  gRefCOCO was introduced with the generalized segmentation task
+GRES~\cite{liu2023gres}; the subsequent GREC formulation applies it to
+zero-, one-, and multiple-target comprehension~\cite{he2023grec}, and the
+peer-reviewed GREx account unifies the benchmark lineage across segmentation,
+comprehension, and generation~\cite{ding2026grex}.  RECANTFormer directly
+predicts varying-size target sets with an encoder-only Transformer and
+Hungarian matching~\cite{hemanthage2024recantformer}; HieA2G instead estimates
+target cardinality with an adaptive counter~\cite{wang2025hiea2g}.  Related
+instance-aware methods align phrases to instances or jointly predict boxes and
+masks~\cite{nguyen2024instalign,dai2026instancevg}, while RC-GRPO balances
+localization and refusal in an MLLM policy~\cite{yang2026rcgrpo}.
+FineCops-Ref~\cite{liu2024finecops} probes fine-grained positive grounding and
+counterfactual negative expressions/images.  We do not claim the first
+no-target head or full variable-cardinality grounding.  Instead, we isolate a
+narrower question in a specialist detector: which parameters may own each
+deployed decision?  Our gRefCOCO experiment is explicitly restricted to
+single-target versus no-target expressions.
+
+\paragraph{Multi-task interference and parameter isolation.}
+Gradient methods such as GradNorm~\cite{chen2018gradnorm},
+PCGrad~\cite{yu2020pcgrad}, and CAGrad~\cite{liu2021cagrad} rebalance or
+modify gradients on shared parameters.  Adapters and LoRA allocate lightweight
+task-specific capacity~\cite{houlsby2019adapters,hu2022lora}.  \method is not a
+general gradient-surgery rule.  The deployment policy defines ownership: a
+loss may update only the owner of the surface that executes that duty.  This
+produces structural zero cross-duty gradients rather than a numerical
+correction to a shared gradient.  Freezing the candidate representation also
+preserves geometry shown empirically to be sufficient for the analyzed data.

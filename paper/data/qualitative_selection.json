@@ -1,0 +1,73 @@
+{
+  "checkpoint_seed": 42,
+  "claim_boundary": "examples explain mechanisms and include a failure; they are not a metric",
+  "schema": "arrow.paper.qualitative_selection/v1",
+  "sealed_source_threshold": 0.31912317872047424,
+  "selection": [
+    {
+      "arrow_iou": 0.9762216806411743,
+      "arrow_raw_confidence": 0.2329610288143158,
+      "eligible_queries": 89,
+      "expression": "There is a mirror to the right of the shelf and the white, porcelain toilet.",
+      "frozen_base_iou": 0.0,
+      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2353354.jpg",
+      "image_sha256": "37150a51c4591496b64492fd9c8eb8796189a9f6ede5095ab8db014d546842c2",
+      "kind": "positive",
+      "panel": "Ranking rescue",
+      "ranker_iou": 0.9762216806411743,
+      "rule": "base_wrong_ranker_correct_admission_preserves",
+      "sample_id": "finecops:test:4854"
+    },
+    {
+      "arrow_iou": 0.8916022777557373,
+      "arrow_raw_confidence": 1.0632309913635254,
+      "eligible_queries": 3,
+      "expression": "Accompanied by the white and fancy umbrella, the walking woman is seen carrying a paper and adorned with a beaded and long necklace.",
+      "frozen_base_iou": 0.2384835034608841,
+      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2406693.jpg",
+      "image_sha256": "3d4b3aae5d53b3d666f2b3bad8f4700577edc81c8a6e5d289c60f39c2f276042",
+      "kind": "positive",
+      "panel": "Admission rescue",
+      "ranker_iou": 0.2384835034608841,
+      "rule": "ranker_wrong_admission_correct_min_eligible",
+      "sample_id": "finecops:test:3706"
+    },
+    {
+      "arrow_iou": 0.983802855014801,
+      "arrow_raw_confidence": -0.2953898012638092,
+      "eligible_queries": 39,
+      "expression": "Bear donning a brown coat.",
+      "frozen_base_iou": 0.983802855014801,
+      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2348673.jpg",
+      "image_sha256": "e10a2432dec597b7b8cfd69111541cb15c257199ff0138c2f9abf1a31e5043d5",
+      "kind": "text",
+      "panel": "Rejection transfer",
+      "ranker_iou": 0.983802855014801,
+      "rule": "sealed_source_tau_rejects_external_negative",
+      "sample_id": "finecops:test:30097"
+    },
+    {
+      "arrow_iou": 0.0,
+      "arrow_raw_confidence": 0.3574296534061432,
+      "eligible_queries": 26,
+      "expression": "Positioned to the right of the small, square picture are the scissors.",
+      "frozen_base_iou": 0.9712418913841248,
+      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2378658.jpg",
+      "image_sha256": "29b1dd253f2ccec3a8e40a13fe9b94a012f89d5cc411f5e1f820dc9b14885c68",
+      "kind": "positive",
+      "panel": "Honest failure",
+      "ranker_iou": 0.0,
+      "rule": "base_correct_admission_wrong_max_iou_drop",
+      "sample_id": "finecops:test:13415"
+    }
+  ],
+  "source_manifest": {
+    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/finecops_test_all.jsonl",
+    "sha256": "cadd7be4cf4120eeb71dee82bf042283cdd6c7cdefa206a68d320900b4c7f4ff"
+  },
+  "source_records": {
+    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/evaluations/A/seed42/records.jsonl",
+    "sha256": "a6792ac184d35a144a3c8dc3ef2eff15f09f7a940766dfad326501640fdb5902"
+  },
+  "status": "post_hoc_zero_training_visualization"
+}

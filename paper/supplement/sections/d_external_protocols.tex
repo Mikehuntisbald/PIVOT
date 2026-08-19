@@ -1,0 +1,61 @@
+\section{External evaluation scope}
+\label{sup:external}
+
+\paragraph{FineCops-Ref.}
+The external evaluation uses the complete official test annotations and
+byte-verified imagery.  No training or validation example from FineCops-Ref is
+used, and no checkpoint, Admission margin, taxonomy alias, or rejection
+threshold is chosen from its outcomes.  The visual-support route is reported
+only on its preregistered exact-support matched surface; unsupported negatives
+are never counted as successful rejection.  The full-test text route uses the
+benchmark's structured target noun as an explicit canonical cue and is not
+input-matched to expression-only published detectors.  Because historical source images may have
+been exposed, this is an annotation/task-zero-shot evaluation rather than a
+global image-disjointness claim.
+
+The overlap audit makes that boundary quantitative: among 4,313 FineCops
+source images, 2,107 have a COCO crosswalk, 2,007 occur in the frozen Stage-A
+COCO training surface, and historical support-bank crops trace to 1,641 test
+images.  Runtime visual supports exclude every FineCops GQA source ID and its
+COCO crosswalk.  Exact taxonomy matching covers 9,182 of 9,605 positives
+(95.60\%); no benchmark-specific alias is added.  Thus the protocol prevents
+runtime support reuse but does not erase frozen historical exposure.
+
+Official-exact replay uses the external evaluator pinned at commit
+\texttt{31d2c8615e65ccef6a4ff516925ef5ae465ec747}; its unlicensed code is not
+vendored.  Its historical overall rejection AUROC uses only the 5,730
+level-1 positives, so those values are labeled \emph{official-exact} rather
+than silently treated as an all-positive metric.  The separately labeled
+audited analysis uses all 9,605 positives with a strict tie-fail rule.  Both
+views are retained, and numbers from the two scopes are never mixed in one
+contrast.
+
+\paragraph{gRefCOCO.}
+This experiment is a rejection-only binary slice: single-target expressions
+are positives, no-target expressions are negatives, and all multi-target
+expressions are excluded.  It must not be read as full generalized
+referring-expression comprehension.  The
+\emph{Rejector-supervision-disjoint} sensitivity surface removes images used
+to train or calibrate the rejection owner.  It does not remove prior
+candidate-generator exposure, so it is not globally image-disjoint.  The
+forward bypasses Admission because no-target records have no legitimate
+category cue.
+
+The Full restricted slice contains 1,500 images, 11,563 single-target
+positives, and 9,121 no-target negatives.  Exactly 14,579 multi-target
+expressions are excluded.  The Rejector-supervision-disjoint surface removes
+the union of 182 images used in rejection-owner training and 30 images used in
+its sealed calibration set, leaving 1,288 images, 9,924 positives, and 7,796
+negatives.  It does not exclude the earlier candidate-generator or ranking
+exposures: every evaluated image appeared in Stage-A and 942 appeared in
+ranker training.
+
+The bootstrap is paired and stratified by TestA/TestB image.  A sampled image
+carries all of its single- and no-target expressions; expressions are never
+resampled as IID observations.  Every FPR95 replicate recomputes each
+model/seed's threshold from that replicate's resampled positive q05 before
+scoring its resampled negatives.  This diagnostic threshold is distinct from
+the fixed deployment threshold: the latter is copied strictly from each
+seed's sealed 1,570-row internal calibration surface and is never recomputed
+on gRefCOCO or inside bootstrap.  No gRefCOCO outcome changes a checkpoint,
+Admission margin, evaluation subset, or threshold.

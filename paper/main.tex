@@ -1,0 +1,60 @@
+% ARROW manuscript, provisionally using the official CVPR 2026 author kit.
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[review]{cvpr}
+\input{preamble}
+
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+
+\def\paperID{*****}
+\def\confName{CVPR}
+\def\confYear{2027}
+
+\title{ARROW: Responsibility-Isolated Admission, Ranking, and Rejection\\for Selective Visual Grounding}
+\author{Anonymous CVPR submission}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Modern grounding models often generate a geometrically valid candidate even
+when their deployed top-1 decision is wrong.  Reliable deployment nevertheless
+requires three different decisions: which candidates are category-eligible,
+which admitted candidate best matches the complete expression, and whether any
+result should be emitted.  We show that coupling these duties through a shared
+score or trainable feature owner can be harmful.  On our validation analysis, a
+frozen Grounding DINO representation contains an IoU$\geq0.5$ candidate for
+every expression, while more than 27\% of examples remain mis-ranked within
+the admitted set.  In a shared-scalar Admission/Rejection control, the two
+training gradients have negative mean alignment in every seed; separate outputs
+that retain a shared trainable feature owner do not improve calibration FPR95.
+We introduce \method,
+which factorizes selective grounding into \emph{Admission}, \emph{Ranking}, and
+\emph{Rejection} over frozen candidates and gives every deployed surface an
+exclusive parameter owner.  \method improves Test5 Acc@0.5 by
+\ArrowTestGain\ points and reduces Strict-TN2031 FPR95 by
+\ArrowStrictGain\ points.  A controlled ownership intervention preserves
+localization while reducing FPR95 by \ArrowOwnershipStrictGain\ points.  A
+fresh category-switch test separates null, category-text, and visual-support
+Admission (\ArrowNullSwitch\%, \ArrowTextSwitch\%, and
+\ArrowVisualSwitch\%).  Rejection ordering transfers to FineCops-Ref and
+gRefCOCO no-target cases, but source-domain operating thresholds do not,
+separating transferable discrimination from domain-dependent calibration.
+\end{abstract}
+
+\input{sections/01_intro}
+\input{sections/02_related}
+\input{sections/03_problem}
+\input{sections/04_method}
+\input{sections/05_experiments}
+\input{sections/06_results}
+\FloatBarrier
+\input{sections/07_limitations}
+\input{sections/08_conclusion}
+
+\phantomsection\label{paper:references-start}
+{\small
+\bibliographystyle{ieeenat_fullname}
+\bibliography{references}
+}
+\end{document}

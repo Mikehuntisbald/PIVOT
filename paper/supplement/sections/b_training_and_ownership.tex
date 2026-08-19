@@ -1,0 +1,143 @@
+\section{Training phases and ownership audits}
+\label{sup:ownership}
+
+The frozen candidate generator first produces boxes, query features, and base
+statistics from the image and complete expression.  The complete-expression
+ranker is trained on positives and sealed before the final two phases.
+Admission then updates only its category-eligibility owner and a training-only
+auxiliary carrier.  Rejection subsequently updates only its sample-level
+owner from detached base statistics.  The auxiliary carrier never enters a
+deployed score.
+
+\subsection{Exact decision surfaces and objectives}
+\label{sup:objectives}
+
+\paragraph{Base score and Ranking.}
+Let $h_i$ be final decoder query $i$, let $\mathcal T_e$ be the scored tokens
+of the complete expression, and let $\ell_{it}$ be the frozen token logit.  The
+base score used by both learned score owners is
+\begin{equation}
+ s_i=|\mathcal T_e|^{-1}\sum_{t\in\mathcal T_e}\sigma(\ell_{it}).
+ \label{eq:supp-base-score}
+\end{equation}
+Ranking detaches $h_i$ and $s_i$, applies LayerNorm to $h_i$, concatenates
+$s_i$, and uses two 128-D GELU layers plus a linear output to predict
+$\delta_i^R$; hence $r_i=s_i+\delta_i^R$.  Training uses positive images only.
+For labels $y_i=\mathbb 1[\operatorname{IoU}(b_i,b^\star)\geq0.5]$, define
+$G(x,y)=\max_{y_i=1}x_i-\max_{y_i=0}x_i$.  A row contributes only if both
+labels occur.  If the frozen top-1 is wrong, its loss is
+$T_R\operatorname{softplus}((m_R-G(r,y))/T_R)$; otherwise it is
+$[[G(s,y)-\epsilon_R]_+-G(r,y)]_+$.  The two row classes are averaged
+separately, then summed with
+$\lambda_R Q^{-1}\sum_i(\delta_i^R)^2$.  We use
+$(T_R,m_R,\epsilon_R,\lambda_R)=(0.1,0.05,0.02,10^{-3})$.
+
+\paragraph{Admission.}
+The raw score is
+$a_i=\alpha\cos(W_qh_i,P(u))$.  The frozen cue encoder is a patch backbone for
+\arrowv, phrase-token mean pooling from the language encoder for \arrowt, and
+a fixed dense Rademacher sentinel for \arrown; all feed the same trainable
+source projection $P$ and query projection $W_q$, while $\alpha$ is frozen.
+For valid mask $\mathcal M$, the deployed standardization is
+\begin{equation}
+ \begin{aligned}
+ \mu&={1\over n}\sum_{i\in\mathcal M}a_i,\\
+ \sigma_a&=\sqrt{\max\!\left(
+ {1\over n}\sum_{i\in\mathcal M}(a_i-\mu)^2,10^{-6}\right)},\\
+ \tilde a_i&=\operatorname{clip}((a_i-\mu)/\sigma_a,-5,5).
+ \end{aligned}
+ \label{eq:supp-admission-standardize}
+\end{equation}
+The training-only carrier is a LayerNorm--MLP $3\!\to\!64\!\to\!64\!\to\!1$
+with GELUs, applied to
+$[\tilde a_i,\tilde r_i,\tilde a_i\tilde r_i]$; it forms
+$r_i^{\rm aux}=r_i+\delta_i^A$.  Here $r_i$ is detached and $\tilde r_i$ uses
+the same standardization as Eq.~\eqref{eq:supp-admission-standardize}.
+
+Every same-category instance $k$ supplies
+$\mathcal P_k=\{i:\operatorname{IoU}(b_i,b_k)\geq0.5\}$, while
+$\mathcal N=\{i:\max_k\operatorname{IoU}(b_i,b_k)<0.3\}$.  For instances
+with both sets available, the raw-score category margin is
+\begin{equation}
+ \begin{aligned}
+ p_k&=T_A\!\left[\log\!\sum_{i\in\mathcal P_k}e^{a_i/T_A}
+       -\log|\mathcal P_k|\right],\\
+ \ell_k&=T_A\operatorname{softplus}
+       \left({m_A-p_k+\max_{i\in\mathcal N}a_i\over T_A}\right).
+ \end{aligned}
+ \label{eq:supp-category-margin}
+\end{equation}
+The complete Admission objective adds: the repair/preserve loss above on
+$r^{\rm aux}$ with positives defined by maximum IoU to any same-category
+instance; the preserve term alone for the expression-bound primary instance;
+the mean of Eq.~\eqref{eq:supp-category-margin}; and
+$10^{-3}Q^{-1}\sum_i(\delta_i^A)^2$.  All three non-regularization weights are
+one, and $(T_A,m_A)=(0.1,0.1)$.  At inference, the carrier is discarded and
+the eligible set is computed solely from $\tilde a$ with margin three.
+
+\paragraph{Rejection.}
+The rejector independently detaches $h_i,s_i$ and maps
+$[\operatorname{LN}(h_i),s_i]$ through two 128-D GELU layers to $f_i$.  With
+$w_i\propto\exp(s_i/0.01)$ over valid candidates, it concatenates
+$\sum_iw_if_i$ with
+\begin{equation*}
+ \begin{aligned}
+ [\max s,\ &\operatorname{mean}(\operatorname{top3}s),
+   \operatorname{mean}s,\\
+  &\operatorname{std}s,\ s_{(1)}-s_{(2)},
+   -\textstyle\sum_iw_i\log w_i/\log|\mathcal M|].
+ \end{aligned}
+\end{equation*}
+A $134\!\to\!128\!\to\!128\!\to\!1$ MLP with GELUs returns one offset $g$
+shared by every query.  Thus per-query confidence is $s_i+g$ and the exact
+deployed sample score is $c=\max_{i\in\mathcal M}(s_i+g)$.  Neither Admission
+scores nor Ranking scores enter this computation.
+
+For paired positive/negative scores $c_j^+,c_j^-$, let $\tau_Q$ be the
+detached exact 5th-percentile order statistic of recent positive scores.  The
+current distributed batch supplies it until the positive queue reaches 256;
+thereafter it uses only the most recent 512 scores from successful updates.
+Negative labels come from proposal-covered verification and do not claim that
+all frozen queries have been exhaustively annotated.
+The main rejection objective is
+\begin{align}
+ \hat\tau&=\tau_Q+\overline c^+-\sg(\overline c^+),\\
+ \mathcal L_-&={1\over B}\sum_j0.1\,
+ \operatorname{softplus}\!\left({c_j^- -\hat\tau\over0.1}\right),\\
+ \mathcal L_+&={1\over B}\sum_j[\tau_Q-0.02-c_j^+]_+,\\
+ \mathcal L_C&=\mathcal L_-+\mathcal L_+ .
+ \label{eq:supp-rejection-loss}
+\end{align}
+The first term keeps every current negative in the loss; negative queue values
+do not enter its mean.  The paired-separation term has coefficient zero in the
+main model.  The history threshold and queue contents are detached, while the
+deployed scores remain live.  Finally, the deployment threshold is selected
+on the separate sealed 1,570-row internal calibration set; it is not the
+training-queue threshold.
+
+Ownership is checked both structurally and numerically.  Optimizer parameter
+identities must equal the phase allowlist; every other tensor is hashed before
+and after training; and autograd probes require no path from an Admission loss
+to Ranking or Rejection owners, or from a Rejection loss to Admission or
+Ranking owners.  Resume receipts additionally bind update counts, optimizer
+state, automatic-mixed-precision skips, non-finite events, and frozen hashes.
+
+The critical control separates output count from feature ownership.  One row
+uses a shared deployed scalar, a second attaches separate outputs to a shared
+trainable feature owner, and a third uses disjoint trainable owners.  An
+additional phased schedule is retained as a scheduling diagnostic.  The
+supported conclusion concerns exclusive ownership; the evidence does not
+establish an independent benefit from phasing once ownership is isolated.
+
+\input{supplement/tables/supp_training_controls}
+
+Admission trajectories use 100 updates, physical batch 56, seeds 17/42/73,
+learning rate $3\times10^{-4}$, weight decay $10^{-4}$, gradient clipping at
+0.1, and an initial AMP scale of 8192.  Rejection trajectories use 50 updates
+and physical batch 8 from the seed-matched frozen Admission parent.  Update
+counts are fixed across rows rather than selected separately.  The
+current-batch, queue, trust, paired-margin, and unverified-negative rows in
+Tab.~\ref{tab:supp-training} are calibration mechanisms; only preregistered
+held-out contrasts support paper claims.  In particular, positive trust has no
+standalone held-out causal gain, and the unverified-negative row is not treated
+as a clean data-scope intervention.

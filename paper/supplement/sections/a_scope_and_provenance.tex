@@ -1,0 +1,60 @@
+\section{Scope and evidence hierarchy}
+\label{sup:scope}
+
+This supplement accompanies the single-target selective-grounding study in
+the main paper.  The deployed policy emits one box or abstains; it does not
+claim variable-cardinality multi-target grounding.  All manuscript numbers
+are materialized from the committed semantic-number registry.  Each registry
+entry records its evaluation surface, evidence status, source artifact,
+source hash, and, where applicable, confidence interval and seed values.
+
+The evidence hierarchy distinguishes validation-only mechanism analysis,
+preregistered held-out contrasts, prospectively frozen post-release analyses,
+and external transfer.  A result from one surface is never silently promoted
+to another.  In particular, validation splits are not part of the Test5
+localization endpoint, and the nested strict-negative subset is not treated as
+an independent replication.
+
+All checkpoint, margin, queue, and operating-threshold decisions were sealed
+before their corresponding held-out or external forward pass.  Failed runs
+and preregistration amendments remain in the artifact lineage rather than
+being overwritten by the final summaries.
+
+\paragraph{Legacy-to-paper naming.}
+The immutable pre-ARROW schema namespace and internal lineage IDs remain
+bound in the release manifest; the paper-facing method is ARROW.  A5 denotes the learned Admission owner, C3 the
+clean isolated Rejection objective, D3 its proposal-covered training source,
+and O3 the complete exclusive-owner phased system.  O0/O1/O2 denote,
+respectively, a shared scalar, separate outputs with a shared trainable
+feature, and exclusive owners with interleaved exposure.  The implementation
+provider IDs \texttt{AR\_A\_PATCH}, \texttt{AR\_B\_TEXT}, and
+\texttt{AR\_C\_NULL} are reported as ARROW-V, ARROW-T, and ARROW-N.  Historical
+checkpoint bytes, absolute paths, and schema strings are not renamed.
+
+% ARROW_APPROVED_LEGACY_MAP_BEGIN
+\begin{table}[t]
+\centering
+\caption{Reproduction-only mapping from paper terms to immutable repository
+identifiers.  These identifiers are not alternative public method names.}
+\label{tab:supp-legacy-map}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}ll@{}}\toprule
+Paper term & Repository identifier\\\midrule
+Frozen base & \texttt{B58} \\
+Complete-expression ranker & \texttt{R100} \\
+Verified rejector & \texttt{D3 U50 / confidence12} \\
+\arrowv & \texttt{U2-v5 A / A5+C3} \\
+Admission margin $\gamma=3$ & \texttt{Gap3} \\
+Pre-ARROW lineage & \texttt{PIVOT / pivot.stageb} \\
+\bottomrule\end{tabular}
+\end{table}
+% ARROW_APPROVED_LEGACY_MAP_END
+
+\paragraph{Hash provenance.}
+The release manifest binds the three main checkpoints, legacy ABI, and clean
+lineage.  The preregistration, manuscript-facing table receipt, final receipt,
+zero-training receipt, and every external result object are independently
+SHA-256 bound in \texttt{paper/data/source\_registry.json}.  Generated table
+CSVs then map every displayed scalar to a semantic registry key, source path,
+source hash, JSON path, surface, and evidence status.

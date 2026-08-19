@@ -1,0 +1,405 @@
+{
+  "rows": [
+    {
+      "acc50": 0.6495394140742978,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.5966402067565073,
+          "eligible_recall50": 0.7120177219863393,
+          "mean_eligible_queries": 1.6269152667528153,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.7508169934640523,
+          "eligible_recall50": 0.8243464052287581,
+          "mean_eligible_queries": 1.6382761437908497,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.6567205800334635,
+          "eligible_recall50": 0.7288529466443577,
+          "mean_eligible_queries": 1.551682468860383,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 0.7396179401993356,
+      "gap": 0.0,
+      "label": "0",
+      "mean_eligible_queries": 1.5984596798550288,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_0__refcoco_val.records.jsonl",
+          "sha256": "f77399015619390bbfc979a99b77b9547f6bf381add2c4e6c0f029741a4f8ec9",
+          "size_bytes": 11115831,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_0__refcocog_val.records.jsonl",
+          "sha256": "088e719495af7ab1c84c7390b778c3013995176e702af543ec7d1085cb0ce1ca",
+          "size_bytes": 5049408,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_0__refcocop_val.records.jsonl",
+          "sha256": "4deefe98b3d3588f70331a254cd19cb150142558b30ffcabd8da81ee53976255",
+          "size_bytes": 11082635,
+          "split": "refcocop_val"
+        }
+      ]
+    },
+    {
+      "acc50": 0.6932573240712776,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.6365146760199373,
+          "eligible_recall50": 0.8338563780690419,
+          "mean_eligible_queries": 2.6286690049843084,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.78125,
+          "eligible_recall50": 0.891952614379085,
+          "mean_eligible_queries": 2.3886846405228757,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.7103550845882134,
+          "eligible_recall50": 0.848856664807585,
+          "mean_eligible_queries": 2.4945157092396357,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 0.8506871035940803,
+      "gap": 0.5,
+      "label": "0.5",
+      "mean_eligible_queries": 2.5298248263364544,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_0p5__refcoco_val.records.jsonl",
+          "sha256": "990166ddbce14bd2673a13269c31aa6976f11a0500ba66c9a2acc6c55a9bece7",
+          "size_bytes": 11156368,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_0p5__refcocog_val.records.jsonl",
+          "sha256": "d768fa5dae677fef3679765e9537d665a9ba88278ec766c4029c2e35c60f0878",
+          "size_bytes": 5063199,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_0p5__refcocop_val.records.jsonl",
+          "sha256": "e99bb94cd7dd49a14ccbee6c0c51ae736614303511bf5ad03123bd5253e33bc1",
+          "size_bytes": 11121549,
+          "split": "refcocop_val"
+        }
+      ]
+    },
+    {
+      "acc50": 0.7151540320144971,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.6577441388222264,
+          "eligible_recall50": 0.917574303119808,
+          "mean_eligible_queries": 4.65137529998154,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.7988153594771242,
+          "eligible_recall50": 0.9401552287581699,
+          "mean_eligible_queries": 3.948733660130719,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.734894961888827,
+          "eligible_recall50": 0.9231269752742145,
+          "mean_eligible_queries": 4.414668153931958,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 0.9240033222591362,
+      "gap": 1.0,
+      "label": "1",
+      "mean_eligible_queries": 4.425362428269405,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_1__refcoco_val.records.jsonl",
+          "sha256": "c5d43ad4726c153f32043287cc11c62c13d68f019917f38e8250c1a95e16c322",
+          "size_bytes": 11143178,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_1__refcocog_val.records.jsonl",
+          "sha256": "ac9e5ee3ca89e9347ff0f80a574518162cd7a157ac8a63189e68487acf50bfe2",
+          "size_bytes": 5055196,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_1__refcocop_val.records.jsonl",
+          "sha256": "639f95288b33ab130b9036280c4f96149ff8c069c877b40ad1aeac253f0d4a9b",
+          "size_bytes": 11108596,
+          "split": "refcocop_val"
+        }
+      ]
+    },
+    {
+      "acc50": 0.7256493506493507,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.6683588702233708,
+          "eligible_recall50": 0.9825549196972494,
+          "mean_eligible_queries": 19.067011260845486,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.8080065359477124,
+          "eligible_recall50": 0.9803921568627451,
+          "mean_eligible_queries": 14.583946078431373,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.7458635434095556,
+          "eligible_recall50": 0.9832682654768544,
+          "mean_eligible_queries": 18.43019148540621,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 0.9824448807006947,
+      "gap": 2.0,
+      "label": "2",
+      "mean_eligible_queries": 17.979726668680158,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_2__refcoco_val.records.jsonl",
+          "sha256": "134a6a522fc162845bfa2d6737a8804873d8e82c66da09f735c0bb425a1635be",
+          "size_bytes": 11150768,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_2__refcocog_val.records.jsonl",
+          "sha256": "bb515545c623cde38400c5180e35db004fada531dc4f13503fd456cb479c169c",
+          "size_bytes": 5057570,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_2__refcocop_val.records.jsonl",
+          "sha256": "b91109349300a566120808c8b488de2f7f2a24f6e470cd6dd9d5488bfd992351",
+          "size_bytes": 11116050,
+          "split": "refcocop_val"
+        }
+      ]
+    },
+    {
+      "acc50": 0.7245545152521897,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.6673435480893484,
+          "eligible_recall50": 0.9964925235370131,
+          "mean_eligible_queries": 72.74700018460402,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.8069852941176471,
+          "eligible_recall50": 0.9967320261437909,
+          "mean_eligible_queries": 55.017769607843135,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.7446551403606618,
+          "eligible_recall50": 0.9973972857408441,
+          "mean_eligible_queries": 72.86456590444321,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 0.9969042585321655,
+      "gap": 3.0,
+      "label": "3",
+      "mean_eligible_queries": 69.51770613107823,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_3__refcoco_val.records.jsonl",
+          "sha256": "b6d9f4656c9df9dcd7bb034b79ac1bc1199bb9d39074fe6f8a615ff01810d681",
+          "size_bytes": 11158919,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_3__refcocog_val.records.jsonl",
+          "sha256": "dd91b9d8af006641b7c7bbb7ad0e0c672ca0ca69edc288655bda8a500aa00c58",
+          "size_bytes": 5061342,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_3__refcocop_val.records.jsonl",
+          "sha256": "38cf79d2b2bf71e6f4ef7b90cc1bb1d82d1e4ccd977e8ab77c0b42f534a83c4e",
+          "size_bytes": 11124647,
+          "split": "refcocop_val"
+        }
+      ]
+    },
+    {
+      "acc50": 0.709830866807611,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.6554365885176296,
+          "eligible_recall50": 0.9997230939634484,
+          "mean_eligible_queries": 517.1926342994277,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.8049428104575164,
+          "eligible_recall50": 1.0,
+          "mean_eligible_queries": 488.015114379085,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.7213236661089422,
+          "eligible_recall50": 0.9998140918386317,
+          "mean_eligible_queries": 521.1802379624465,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 0.9998112352763515,
+      "gap": 5.0,
+      "label": "5",
+      "mean_eligible_queries": 513.4190576864995,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_5__refcoco_val.records.jsonl",
+          "sha256": "842e4df6b13bb59137f1de9debd65a331defa467ea00ddced9f420c872c0f8aa",
+          "size_bytes": 11168150,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_5__refcocog_val.records.jsonl",
+          "sha256": "7f244d01450f2ee762ddb50f66733599dcf7a8968bbf874263de1f6226ac79d5",
+          "size_bytes": 5065863,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_5__refcocop_val.records.jsonl",
+          "sha256": "0012e724c453ce025036c3eaa860a22f12141a00cdd666ba7d6f4f8c21b7a647",
+          "size_bytes": 11134166,
+          "split": "refcocop_val"
+        }
+      ]
+    },
+    {
+      "acc50": 0.6951072183630324,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.6448218571164851,
+          "eligible_recall50": 1.0,
+          "mean_eligible_queries": 900.0,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.8047385620915033,
+          "eligible_recall50": 1.0,
+          "mean_eligible_queries": 900.0,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.6958542480014873,
+          "eligible_recall50": 1.0,
+          "mean_eligible_queries": 900.0,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 1.0,
+      "gap": 10.0,
+      "label": "10",
+      "mean_eligible_queries": 900.0,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_10__refcoco_val.records.jsonl",
+          "sha256": "963d898e7aded3ec58786b0825da06248e60011b1745cab59a8f6c9dc14d8a12",
+          "size_bytes": 11190230,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_10__refcocog_val.records.jsonl",
+          "sha256": "83803ea4350a3a1894ef034c0c43f2701b076ea578a96b03d45e666578af7b50",
+          "size_bytes": 5075623,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_10__refcocop_val.records.jsonl",
+          "sha256": "f176cbedf3e1d30c526c73f1937daf815db0cef30ac36695b763af27e4897ccc",
+          "size_bytes": 11156928,
+          "split": "refcocop_val"
+        }
+      ]
+    },
+    {
+      "acc50": 0.6951072183630324,
+      "by_split": {
+        "refcoco_val": {
+          "acc50": 0.6448218571164851,
+          "eligible_recall50": 1.0,
+          "mean_eligible_queries": 900.0,
+          "n": 10834
+        },
+        "refcocog_val": {
+          "acc50": 0.8047385620915033,
+          "eligible_recall50": 1.0,
+          "mean_eligible_queries": 900.0,
+          "n": 4896
+        },
+        "refcocop_val": {
+          "acc50": 0.6958542480014873,
+          "eligible_recall50": 1.0,
+          "mean_eligible_queries": 900.0,
+          "n": 10758
+        }
+      },
+      "checkpoint_sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+      "eligible_recall50": 1.0,
+      "gap": 1000000000.0,
+      "label": "infinity",
+      "mean_eligible_queries": 900.0,
+      "n": 26488,
+      "record_inputs": [
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_1000000000__refcoco_val.records.jsonl",
+          "sha256": "0a7a316782e9852cccd0279ccf3dffa8b7e3daccc0eae151667746901ef613a0",
+          "size_bytes": 11363574,
+          "split": "refcoco_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_1000000000__refcocog_val.records.jsonl",
+          "sha256": "b2f92f0d9e73d78102e434b13aaf6c34fcf9e148d3f53b810294a91bfe955b92",
+          "size_bytes": 5153959,
+          "split": "refcocog_val"
+        },
+        {
+          "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/per_example_records/confidence_seed42_u50_checkpoint_iter__category_gate_gap_1000000000__refcocop_val.records.jsonl",
+          "sha256": "8e4f570eceaa26852e2baf507f8a6ade0974b2348f6cb37463b3cc1c195efd14",
+          "size_bytes": 11329056,
+          "split": "refcocop_val"
+        }
+      ]
+    }
+  ],
+  "schema": "arrow.paper.gap_sensitivity/v1",
+  "selected_gap": 3.0,
+  "selection_surface": "Val3 only",
+  "source_summary": {
+    "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_h/gap_sweep/summary.json",
+    "sha256": "f0c51ada90bc5786d17d4704db5bc20cb7d08b2a866b7bfc3761438d9ec5d8f3",
+    "size_bytes": 48209
+  },
+  "status": "exploratory_validation_only"
+}

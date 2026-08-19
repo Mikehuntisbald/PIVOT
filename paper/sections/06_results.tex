@@ -1,0 +1,103 @@
+\section{Results}
+\label{sec:results}
+
+\input{tables/table1_main}
+
+\subsection{ARROW improves both deployed endpoints}
+\method improves Test5 Acc@0.5 by \ArrowTestGain\ points (95\% paired
+image-cluster CI [\ArrowTestGainLo, \ArrowTestGainHi]) and lowers
+Strict-TN2031 FPR95 by \ArrowStrictGain\ points (CI
+[\ArrowStrictGainLo, \ArrowStrictGainHi]); see Tab.~\ref{tab:main}.
+Rejection cannot explain the localization gain: learned Admission plus Ranking
+and full \arrowv have bitwise-identical localization records by construction.
+
+The cumulative mechanism rows explain complementarity rather than independent
+additivity.  The unrestricted complete-expression ranker is almost identical
+to the base.  A static Admission prior helps modestly, and learned Admission
+creates the main localization gain by constraining the comparison domain.  Yet
+canonicalizing only the ranking expression---with geometry and eligibility
+fixed---drops Acc@0.5 by more than ten points and changes 37.85\% of top-1
+queries.  Admission defines who may compete; the complete expression decides
+which instance wins.
+
+\input{tables/table2_ownership}
+
+\subsection{Ownership, not output count, resolves conflict}
+Table~\ref{tab:ownership} isolates feature ownership from output separation.
+The shared scalar has negative Admission/Rejection gradient cosine in every
+seed ($-0.190$, $-0.252$, $-0.281$), with sign-conflict fractions around
+0.53--0.56.  Merely attaching separate outputs to the same trainable feature
+surface leaves calibration FPR95 essentially unchanged; this separate-head
+control is calibration-only and has no held-out Strict result.  Removing the
+shared autograd path lowers it substantially.  On held-out endpoints, isolated owners
+change Test5 by only $-0.002$ points while reducing Strict-TN2031 FPR95 by
+\ArrowOwnershipStrictGain\ points.  Phased exposure is non-inferior in
+localization but has no significant rejection improvement over already
+isolated interleaving; our claim is structural ownership isolation, not a
+schedule advantage.
+
+\begin{figure*}[t]
+  \centering
+  \IfFileExists{figures/fig3_mechanism_controllability.pdf}{%
+    \includegraphics[width=\textwidth]{figures/fig3_mechanism_controllability.pdf}%
+  }{\fbox{\parbox[c][1.15in][c]{0.96\textwidth}{\centering
+    Gradient conflict, paired ownership effects, and V/T/N category-switch
+    controllability generated from registry CSVs.}}}
+  \caption{Mechanism evidence.  Shared-duty gradients conflict, structural
+  isolation preserves localization while improving rejection, and nearly flat
+  standard accuracy hides large differences in category controllability.}
+  \label{fig:mechanism}
+\end{figure*}
+
+\input{tables/table3_admission}
+
+\subsection{Endpoint accuracy hides Admission responsibility}
+The three capacity-matched cues are close on Test5 but diverge under direct
+intervention (Tab.~\ref{tab:admission}, Fig.~\ref{fig:mechanism}).  \arrown
+retains 73.83\% Test5 accuracy yet has zero bidirectional category-switch
+success.  Canonical text reaches \ArrowTextSwitch\%, and visual support reaches
+\ArrowVisualSwitch\%.  The preregistered visual-over-text and text-over-null
+confidence intervals both exclude zero.  Matched FineCops results repeat the
+ordering on positive P@1 and both negative types.  The supported conclusion is
+that visual examples provide category evidence beyond the name, not that
+support pixels are required for every correct localization.
+
+\input{tables/table4_external}
+
+\subsection{Rejection ordering transfers; the operating point does not}
+Table~\ref{tab:external} reports both external surfaces.  On complete
+FineCops, the text-cue \arrowt route trails the published
+MM-GDINO-T positive P@1 but has numerically higher negative-expression and
+negative-image Recall@1.  Because \arrowt receives the structured target noun,
+this published row is a reference rather than an input-matched contrast.  We
+claim transfer against our same-forward frozen controls, not FineCops SOTA.
+\arrowv's support-conditioned result is kept on its matched covered surface and
+is never substituted into a full-test row.
+
+On gRefCOCO Full, AUROC rises from 0.6895 to 0.7175 and FPR95 falls from 0.7410
+to 0.7083.  On Rejector-supervision-disjoint, AUROC rises from 0.6869 to 0.7150
+and FPR95 falls from 0.7497 to 0.7116; all four paired gain intervals exclude
+zero.  Because Stage-A saw every image, this controls rejector-supervision
+overlap only.  It is evidence about no-target rejection rather than a new
+localization domain.
+
+\begin{figure}[t]
+  \centering
+  \IfFileExists{figures/fig4_external_transfer.pdf}{%
+    \includegraphics[width=\columnwidth]{figures/fig4_external_transfer.pdf}%
+  }{\fbox{\parbox[c][1.05in][c]{0.96\columnwidth}{\centering
+    Internal, FineCops, and gRefCOCO rejection ordering versus fixed-threshold
+    positive TPR, shown on separate aligned axes.}}}
+  \caption{Relative rejection discrimination improves across three negative
+  constructions.  The internally sealed threshold reaches its intended source
+  operating point but yields only \ArrowFineCopsFixedTPR\% TPR on FineCops and
+  \ArrowGrefFixedTPR\% on gRefCOCO.  Thresholds are never fit externally.}
+  \label{fig:external}
+\end{figure}
+
+Figure~\ref{fig:external} shows that the fixed source threshold under-accepts
+external positives.  Improved
+AUROC and dataset-normalized FPR95 are compatible with this shift: \method
+learns a more transferable positive-versus-negative ordering, while score
+offset, scale, and tails remain domain-dependent.  Cross-domain operating-point
+calibration is a separate, unresolved problem.

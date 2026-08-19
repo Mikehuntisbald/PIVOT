@@ -1,0 +1,68 @@
+\section{Additional mechanism analyses}
+\label{sup:analyses}
+
+The accompanying generated tables expand the main-paper evidence along five
+axes: the complete Admission-loss grid; rejection-objective controls; shared
+versus isolated ownership; complete-expression, canonical-text, and generic
+Admission interventions; and sensitivity to the relative Admission margin.
+These are mechanism or calibration analyses unless explicitly marked as a
+preregistered held-out contrast.
+
+\input{supplement/tables/supp_ref_breakdown}
+
+\input{supplement/tables/supp_gap_sensitivity}
+
+Additional prompt-route interventions keep geometry fixed while exchanging
+the text supplied to Admission or Ranking.  Support interventions use a
+deterministically selected same-category exemplar, a same-category shuffle,
+an incorrect category, or a zero input.  Reported diagnostics include
+all-query oracle recall, eligible-set recall, eligible-set size, mask distance,
+and top-1 churn.  These controls distinguish candidate availability,
+category-set construction, within-set ordering, and abstention errors.
+
+\input{supplement/tables/supp_input_interventions}
+
+Qualitative examples follow deterministic predicates recorded beside their
+sample identities.  They include a compatible candidate rescued from an
+incorrect base top-1, a category-switch intervention, an externally rejected
+negative, a fixed-threshold false rejection under domain shift, and honest
+failure cases.  Visual attractiveness is not a selection criterion.
+
+\input{supplement/tables/supp_finecops_subgroups}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{supplement/figures/figS1_confidence_anatomy.pdf}
+  \caption{Confidence anatomy across the internal, FineCops-Ref, and
+  restricted gRefCOCO surfaces.  Each curve samples the empirical score CDF
+  at the committed 1/5/25/50/75/95/99 percentiles; the upper row is the frozen
+  base and the lower row is the isolated rejector at seed 42.  The dotted
+  black line is each domain's positive q05, which defines diagnostic FPR95.
+  The green dash--dot line is the distinct operating threshold $\tau$ sealed
+  on the 1,570-row internal calibration surface.  Its three-seed mean TPR
+  remains near 95\% internally but falls on both external benchmarks.  The
+  FineCops receipt seals negative-text and negative-image distributions, but
+  not object/attribute/relation/swap score distributions; we therefore do not
+  reconstruct unregistered subgroup curves.}
+  \label{fig:sup-confidence-anatomy}
+\end{figure*}
+
+Figure~\ref{fig:sup-confidence-anatomy} separates two notions that a single
+FPR95 number can obscure.  Recomputed domain q05 thresholds expose improved
+positive--negative ordering, whereas the unchanged source $\tau$ exposes the
+operating-point shift.  Thus external ordering gains do not imply that raw
+rejector scores are calibrated probabilities or that one threshold is
+universally portable.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{qualitative/qualitative_appendix_grid.pdf}
+  \caption{Nine deterministic qualitative cases selected from sealed records.
+  The predicates cover base-to-ARROW rescue, learned Admission, visual/text/null
+  category switching, external rejection, fixed-threshold shift, a hard
+  compositional false positive, and two honest failures.  Every predicate must
+  hold for seeds 17/42/73.  Panels sourced from Test5 draw ground truth only
+  because the sealed records contain IoU but not prediction coordinates; no box
+  is reconstructed.}
+  \label{fig:supp-qualitative}
+\end{figure*}

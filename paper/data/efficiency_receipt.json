@@ -1,0 +1,396 @@
+{
+  "environment": {
+    "compute_capability": "12.0",
+    "cuda_runtime": "13.0",
+    "driver": "595.84",
+    "name": "NVIDIA GeForce RTX 5090",
+    "precision": "torch.cuda.amp autocast (fp16 kernels where enabled)",
+    "pytorch": "2.9.1+cu130",
+    "total_memory_bytes": 33667612672
+  },
+  "model_weights_changed": false,
+  "no_training": true,
+  "optimizer_created": false,
+  "parameter_accounting": {
+    "arrow_runtime_total": 173241996,
+    "cumulative_ever_trained_decision_owner_params": 402313,
+    "deployed_decision_owner_params": 397826,
+    "frozen_admission_scale_param": 1,
+    "frozen_base_total": 172839682,
+    "notes": "runtime increase includes one frozen patch-logit-scale scalar; the auxiliary is serialized and currently computed but never owns the deployed gate/rank score",
+    "phase_active": {
+      "admission_surface_plus_training_only_auxiliary": 268167,
+      "complete_expression_ranker": 50177,
+      "isolated_rejector": 83969
+    },
+    "runtime_loaded_increase": 402314,
+    "training_only_auxiliary_params": 4487
+  },
+  "protocol": {
+    "batch_size": 1,
+    "cuda_events": true,
+    "file_io_inside_timing": false,
+    "host_to_device_transfer_inside_timing": true,
+    "manifest": {
+      "path": "paper/data/efficiency_manifest.json",
+      "sha256": "3967d136580867f6ae2229f5f22fb74373c395746062367e9989ef9455364a74",
+      "size_bytes": 5750
+    },
+    "synchronize_each_iteration": true,
+    "timed_iterations": 200,
+    "transformed_tensor_shapes_hw": [
+      [
+        427,
+        1334
+      ],
+      [
+        531,
+        1334
+      ],
+      [
+        749,
+        1332
+      ],
+      [
+        757,
+        1332
+      ],
+      [
+        778,
+        1332
+      ],
+      [
+        800,
+        800
+      ],
+      [
+        800,
+        801
+      ],
+      [
+        800,
+        817
+      ],
+      [
+        800,
+        1011
+      ],
+      [
+        800,
+        1036
+      ],
+      [
+        800,
+        1052
+      ],
+      [
+        800,
+        1055
+      ],
+      [
+        800,
+        1066
+      ],
+      [
+        800,
+        1069
+      ],
+      [
+        800,
+        1077
+      ],
+      [
+        800,
+        1081
+      ],
+      [
+        800,
+        1086
+      ],
+      [
+        800,
+        1142
+      ],
+      [
+        800,
+        1156
+      ],
+      [
+        800,
+        1167
+      ],
+      [
+        800,
+        1179
+      ],
+      [
+        800,
+        1186
+      ],
+      [
+        800,
+        1190
+      ],
+      [
+        800,
+        1194
+      ],
+      [
+        800,
+        1197
+      ],
+      [
+        800,
+        1199
+      ],
+      [
+        800,
+        1200
+      ],
+      [
+        800,
+        1201
+      ],
+      [
+        800,
+        1204
+      ],
+      [
+        800,
+        1208
+      ],
+      [
+        800,
+        1230
+      ],
+      [
+        800,
+        1246
+      ],
+      [
+        800,
+        1273
+      ],
+      [
+        800,
+        1276
+      ],
+      [
+        800,
+        1277
+      ],
+      [
+        800,
+        1290
+      ],
+      [
+        800,
+        1328
+      ],
+      [
+        809,
+        800
+      ],
+      [
+        814,
+        800
+      ],
+      [
+        898,
+        800
+      ],
+      [
+        906,
+        800
+      ],
+      [
+        919,
+        800
+      ],
+      [
+        1010,
+        800
+      ],
+      [
+        1012,
+        800
+      ],
+      [
+        1066,
+        800
+      ],
+      [
+        1197,
+        800
+      ],
+      [
+        1199,
+        800
+      ],
+      [
+        1201,
+        800
+      ],
+      [
+        1204,
+        800
+      ],
+      [
+        1208,
+        800
+      ],
+      [
+        1332,
+        741
+      ]
+    ],
+    "visualization_inside_timing": false,
+    "warmup_iterations": 50
+  },
+  "rank_only_wrapper_preflight": {
+    "bitwise_rank_score_parity": true,
+    "compared_elements": 900,
+    "original_adapter_params": 134146,
+    "rank_only_adapter_params": 50177
+  },
+  "schema": "arrow.paper.efficiency_receipt/v1",
+  "sources": {
+    "checkpoints": {
+      "arrow_t": {
+        "path": "outputs/arrow_admission_input_20260818/eval_checkpoints/AR_B_TEXT/seed42.pth",
+        "sha256": "1eca2d3e3dc21e557dc8eba0b9506620469a717edb025009e039ea5a566a9b1b",
+        "size_bytes": 693721254
+      },
+      "arrow_v": {
+        "path": "outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed42_u50/checkpoint_iter.pth",
+        "sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+        "size_bytes": 694409209
+      },
+      "frozen_base": {
+        "path": "/media/haoyi/T9/gdino/outputs/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch/checkpoint0001.pth",
+        "sha256": "b58e5209dc07dbffb2e5ed3d792e0db70c3306ec2ed24389693b4aeeebab1157",
+        "size_bytes": 1199416771
+      },
+      "rank_initializer": {
+        "path": "outputs/u2v5_leakage_clean_anchor_20260817/initializer/checkpoint_clean_init.pth",
+        "sha256": "ad7b3a563ef84356c6d952167ee6a48f615f8db887eba31bed92a81b0ba756a7",
+        "size_bytes": 809815008
+      }
+    },
+    "configs": {
+      "arrow_a": {
+        "path": "config/ablations/cfg_arrow_finecops_a.py",
+        "sha256": "908a7e671648ac30582cc6efcaa8aea39e41e54c346e804e99528c9650e8ac68",
+        "size_bytes": 260
+      },
+      "arrow_b": {
+        "path": "config/ablations/cfg_arrow_finecops_b.py",
+        "sha256": "8fc38ced07fad60557a666e189f95bafd42b8d5432887698db1be8c22cc81de9",
+        "size_bytes": 260
+      },
+      "base": {
+        "path": "config/ablations/cfg_stageb_from_gdino_ft_with_tn.py",
+        "sha256": "08bfa55af9badf39162e5a9bbf943966fbe30af424681ea5872bfc40918194cb",
+        "size_bytes": 730
+      },
+      "rank": {
+        "path": "config/ablations/cfg_stageb_gdino_score_adapter_rank_three_ref.py",
+        "sha256": "d24a21b08a71a07b9e768b6aea0f7ed291d58a9f42354cfe431f3b73053c1bbe",
+        "size_bytes": 602
+      }
+    },
+    "finecops_preregistration": {
+      "path": "outputs/arrow_finecops_20260819/preregistration.json",
+      "sha256": "8f91c586bc39660601173ab42477fc94e76972154dbe2ee53f20ac091ae3d7cd",
+      "size_bytes": 11309
+    },
+    "script": {
+      "path": "paper/scripts/benchmark_efficiency.py",
+      "sha256": "7422c579db2e714b5c3ccbd5f8d664d71476b84ee957985fd5d4111596a6cf88",
+      "size_bytes": 20543
+    }
+  },
+  "status": "formal_zero_training_measurement",
+  "variants": [
+    {
+      "batch_size": 1,
+      "iqr_ms": 2.196920394897461,
+      "iterations": 200,
+      "mean_ms": 33.629931983947756,
+      "median_ms": 33.5624942779541,
+      "model_parameters_loaded": 172839682,
+      "notes": "complete-expression candidate generator and native base scoring; support target ignored",
+      "p90_ms": 35.510582733154294,
+      "peak_allocated_bytes": 1366061056,
+      "peak_reserved_bytes": 2145386496,
+      "q25_ms": 32.31840705871582,
+      "q75_ms": 34.51532745361328,
+      "route": "Frozen base",
+      "throughput_images_per_second": 29.735415476823448
+    },
+    {
+      "batch_size": 1,
+      "iqr_ms": 1.907334327697754,
+      "iterations": 200,
+      "mean_ms": 33.084539079666136,
+      "median_ms": 33.38369560241699,
+      "model_parameters_loaded": 172889859,
+      "notes": "bitwise-equivalent rank-only wrapper omits the independently owned rejector",
+      "p90_ms": 35.10403747558594,
+      "peak_allocated_bytes": 1367581696,
+      "peak_reserved_bytes": 2145386496,
+      "q25_ms": 32.20176124572754,
+      "q75_ms": 34.10909557342529,
+      "route": "+ complete-expression ranker",
+      "throughput_images_per_second": 30.22559865779128
+    },
+    {
+      "batch_size": 1,
+      "iqr_ms": 4.313006401062012,
+      "iterations": 200,
+      "mean_ms": 43.963591957092284,
+      "median_ms": 43.59817695617676,
+      "model_parameters_loaded": 173241996,
+      "notes": "canonical category phrase encoded inside the timed forward; no support patch read",
+      "p90_ms": 48.614787292480464,
+      "peak_allocated_bytes": 1369616896,
+      "peak_reserved_bytes": 2145386496,
+      "q25_ms": 41.50432109832764,
+      "q75_ms": 45.81732749938965,
+      "route": "ARROW-T",
+      "throughput_images_per_second": 22.7460941084155
+    },
+    {
+      "batch_size": 1,
+      "iqr_ms": 3.825167655944824,
+      "iterations": 200,
+      "mean_ms": 43.880484390258786,
+      "median_ms": 43.823951721191406,
+      "model_parameters_loaded": 173241996,
+      "notes": "frozen support encoder runs inside every timed forward",
+      "p90_ms": 47.841560745239256,
+      "peak_allocated_bytes": 1369616896,
+      "peak_reserved_bytes": 2147483648,
+      "q25_ms": 41.7272310256958,
+      "q75_ms": 45.552398681640625,
+      "route": "ARROW-V, support uncached",
+      "throughput_images_per_second": 22.78917413733004
+    },
+    {
+      "batch_size": 1,
+      "iqr_ms": 2.305936813354492,
+      "iterations": 200,
+      "mean_ms": 34.871831607818606,
+      "median_ms": 34.6963996887207,
+      "model_parameters_loaded": 173241996,
+      "notes": "one frozen 256-D support embedding per sample is GPU-resident before timing",
+      "p90_ms": 37.14927101135254,
+      "peak_allocated_bytes": 1369220608,
+      "peak_reserved_bytes": 2147483648,
+      "q25_ms": 33.425719261169434,
+      "q75_ms": 35.731656074523926,
+      "route": "ARROW-V, support cached",
+      "throughput_images_per_second": 28.67644037876663
+    }
+  ]
+}

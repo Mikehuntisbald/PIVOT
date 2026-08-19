@@ -1,0 +1,119 @@
+\section{ARROW}
+\label{sec:method}
+
+\begin{figure*}[t]
+  \centering
+  \IfFileExists{figures/fig2_method_ownership.pdf}{%
+    \includegraphics[width=\textwidth]{figures/fig2_method_ownership.pdf}%
+  }{\fbox{\parbox[c][1.35in][c]{0.96\textwidth}{\centering
+    Frozen candidates $\rightarrow$ Admission set $\rightarrow$ complete-text
+    Ranking; detached base statistics $\rightarrow$ isolated Rejection.}}}
+  \caption{\method assigns each deployed decision surface an exclusive owner.
+  Solid lines are deployed; the dashed Admission residual is training-only.
+  Stop-gradient prevents Rejection from rewriting candidate geometry or the
+  localization route.  \arrowv and \arrowt differ only in the category cue.}
+  \label{fig:method}
+\end{figure*}
+
+\subsection{Frozen candidates}
+As summarized in Fig.~\ref{fig:method}, \method retains the full-expression
+Grounding DINO candidate generator.  The
+complete expression always enters the text encoder, transformer, decoder, and
+box predictor; neither a canonical noun nor a generic ``object'' prompt
+replaces this geometry path.  This design follows the diagnosis in
+Sec.~\ref{sec:problem}: broad adaptation would mix representation learning
+with deployment-score learning even though compatible geometry is already
+available.  It also keeps boxes and base query statistics identical across
+Admission-input and ownership controls.
+
+\subsection{Category-conditioned Admission}
+Let $h_i$ be a frozen final-decoder query and $u$ the category cue.  The shared
+Admission surface computes
+$\bar u=P_{\theta_A}(u)$ and
+$a_i=\alpha\cos(W_{\theta_A}h_i,\bar u)$, where the logit scale $\alpha$ and
+the cue encoder preceding $P$ are frozen.  Scores are mean--variance
+standardized and clipped within the valid-candidate mask, yielding
+$\tilde a_i$.  The deployed relative-margin gate is
+\begin{equation}
+  \mathcal{E}_{\gamma}
+  =\{i\in\mathcal{M}:\max_{j\in\mathcal{M}}\tilde a_j-\tilde a_i\leq\gamma\},
+  \qquad \gamma=3.
+  \label{eq:admission}
+\end{equation}
+The maximum-score valid query is necessarily eligible.  Nevertheless, the
+implementation has no fallback box: a missing valid candidate, a non-finite
+score, or an empty set fails closed.  Eligible rank scores remain bitwise equal
+to the frozen ranker; ineligible scores are lexicographically demoted below the
+floating-point predecessor of its valid minimum.  Thus the selected query is
+in $\mathcal{E}_{\gamma}$ and within-set order is unchanged.
+
+We instantiate $u$ in three capacity-matched routes.  \arrowv encodes a visual
+support exemplar with a frozen patch backbone.  \arrowt encodes a sealed
+canonical category phrase with the frozen language encoder, without rerunning
+the image decoder.  \arrown uses a fixed dense category-agnostic sentinel that
+is transformed by the same trainable Admission surface.  All three routes use
+the same 268,167 trainable parameters and the same candidate mask, gate, and
+losses.
+
+\paragraph{Training-only auxiliary carrier.}
+During training only, a small MLP predicts
+$\delta_i^A$ from $[\tilde a_i,\tilde r_i,\tilde a_i\tilde r_i]$ and forms
+$r_i^{\rm aux}=r_i+\delta_i^A$.  Its objective combines category-complete
+instance margins, repair/preserve margins on $r^{\rm aux}$, preservation of
+the expression-bound target, and residual regularization; exact definitions
+and constants are in the supplement.  Neither $\delta^A$ nor
+$r^{\rm aux}$ enters Eq.~\eqref{eq:admission} or deployed Ranking.
+Auxiliary-only training leaves every deployed tensor bitwise equal to the
+initializer, whereas joint training improves held-out Test5.  It is therefore
+a \emph{gradient carrier}, not a deployed decision variable.
+
+\subsection{Complete-expression Ranking}
+Within the eligible set, the frozen positive-only ranker uses the complete
+expression:
+\begin{equation}
+  r_i=R_{\theta_R}(q_i,e),\qquad
+  i^*=\argmaxop_{i\in\mathcal{E}_{\gamma}} r_i.
+\end{equation}
+It learns a candidate residual over the frozen full-expression score.  On
+positive images, row-balanced soft-margin terms repair a wrong base top-1 and
+constrain an already-correct positive--negative gap to shrink by at most 0.02,
+with margin 0.05, temperature 0.1, and residual weight $10^{-3}$ (supplement).
+Ranking is then frozen before Admission and Rejection.  Replacing $e$ by the
+canonical noun while holding boxes and eligibility fixed changes 37.85\% of
+top-1 queries and lowers validation Acc@0.5 from 72.46\% to 61.72\%.  Thus
+Admission constructs the comparison domain, while attributes and relations
+remain owned by Ranking.
+
+\subsection{Sample-level Rejection}
+For query $i$, let $s_i$ be the mean of the sigmoid-transformed logits over
+every token of the complete expression.  From detached $[h_i,s_i]$, the
+rejector builds a query feature and pools it with
+$\operatorname{softmax}(s_i/0.01)$.  It concatenates that pool with
+six detached-score statistics: maximum, top-3 mean, mean, standard deviation,
+top-1--top-2 margin, and normalized pooling entropy.  An MLP returns one shared
+image--expression offset $g$, giving the sample score
+$c=\max_i(s_i+g)=\max_i s_i+g$; Admission and Ranking scores are not inputs.
+Deployment emits $b_{i^*}$ when $c\geq\tau$ and abstains otherwise.  We call
+$c$ a non-relative or sample-level rejection score: ``absolute'' means that it
+does not reorder candidate instances, not that it is a universally calibrated
+probability.  Training uses every paired negative against a detached exact
+positive 5th-percentile threshold, a 512-entry recent-positive queue after
+256 entries, and a one-sided positive-score trust term; the paired-margin
+coefficient is zero.  The supplement gives the exact loss.  Deployment
+threshold $\tau$ is fixed on sealed internal calibration before external
+evaluation.
+
+\subsection{Exclusive parameter ownership}
+Let $\Theta_A$, $\Theta_R$, and $\Theta_C$ denote the trainable owners of the
+three duties in their respective phases.  \method enforces
+\begin{equation}
+\Theta_A\cap\Theta_R=\Theta_A\cap\Theta_C
+=\Theta_R\cap\Theta_C=\varnothing,
+\end{equation}
+and, for duties $d\neq d'$, $\nabla_{\Theta_{d'}}\mathcal{L}_d=0$.  The latter
+is an autograd/ownership contract, not an empirical claim that a shared
+gradient happened to be small.  Our controlled comparison separates output
+count from feature ownership: one shared scalar, separate outputs over a
+shared trainable feature, isolated owners with interleaved exposure, and
+isolated owners with phased exposure.  The evidence supports ownership
+isolation; it does not show an independent benefit from phased scheduling.

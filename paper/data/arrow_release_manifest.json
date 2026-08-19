@@ -1,0 +1,59 @@
+{
+  "formal_trajectory_count": 42,
+  "git": {
+    "commit": "7318d0a6d12522ca4972206a1dcfd513cf9e42ac",
+    "status": "clean"
+  },
+  "implementation": {
+    "legacy_artifacts_are_byte_immutable": true,
+    "legacy_public_name": "PIVOT",
+    "legacy_schema_namespace": "pivot.stageb",
+    "lineage": "u2v5",
+    "local_checkout_root": "/media/haoyi/T9/pivot"
+  },
+  "legacy_evidence": {
+    "final_receipt": {
+      "path": "/media/haoyi/T9/pivot/outputs/u2v5_cvpr_ablation_20260817/final_receipt_v2.json",
+      "sha256": "98173c28258a25c450530f6929c0a719228c52e401851d37307a33a4d01e8c3d",
+      "size_bytes": 2075
+    },
+    "main_checkpoints": {
+      "17": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed17_u50/checkpoint_iter.pth",
+        "sha256": "b8045f97d3fa4d21e95b49e6c4f50d12651775862d3a60ca479d51242665cf25",
+        "size_bytes": 694409337
+      },
+      "42": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed42_u50/checkpoint_iter.pth",
+        "sha256": "5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c",
+        "size_bytes": 694409209
+      },
+      "73": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed73_u50/checkpoint_iter.pth",
+        "sha256": "90c05708e792248acffae27ca435e33ef86dea2e88518ed9fe501e72f064aef2",
+        "size_bytes": 694409145
+      }
+    },
+    "paper_tables": {
+      "path": "/media/haoyi/T9/pivot/outputs/u2v5_cvpr_ablation_20260817/paper_tables_v2.json",
+      "sha256": "9db98af1f0fff1c91372a81af43b12627974105863302b42abe59b4675d9bb0f",
+      "size_bytes": 35330
+    },
+    "preregistration": {
+      "path": "/media/haoyi/T9/pivot/outputs/u2v5_cvpr_ablation_20260817/preregistration.json",
+      "sha256": "6eaa844c87b4a116dfaf13dc2c9fa1cbced030f2b9438197a8579f5c410916a4",
+      "size_bytes": 28424
+    },
+    "zero_training_supplement": {
+      "path": "/media/haoyi/T9/pivot/outputs/u2v5_cvpr_ablation_20260817/zero_training_supplement_v3.json",
+      "sha256": "a4a6d43fd705bbabaf578595fed46a8af632676e1c41cd0a92981bb009a43b1c",
+      "size_bytes": 8961
+    }
+  },
+  "method": {
+    "long_name": "Admission, Ranking, and Rejection with Ownership-Separated Weights for Reliable Visual Grounding",
+    "name": "ARROW"
+  },
+  "schema": "arrow.release_manifest/v1",
+  "status": "release_bound"
+}

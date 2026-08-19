@@ -1,0 +1,25 @@
+\section{Limitations}
+\label{sec:limitations}
+
+\textbf{Single-target scope.} \method emits at most one box or abstention and
+does not solve variable-cardinality multi-target GREC.  Our gRefCOCO result is
+explicitly a single/no-target slice.
+
+\textbf{Domain-dependent calibration.} Rejection discrimination transfers,
+but a threshold calibrated internally does not preserve 95\% TPR on FineCops
+or gRefCOCO.  We do not claim a universal confidence scale.
+
+\textbf{Visual-support coverage.} \arrowv relies on a frozen exact-match
+support taxonomy and covers \ArrowFineCopsCoverage\% of FineCops positives.
+\arrowt provides a full-coverage text-cue route; covered and full-test
+universes are not directly compared.
+
+\textbf{Exposure caveats.} FineCops is annotation/task-zero-shot rather than
+fully image-disjoint.  gRefCOCO's Rejector-supervision-disjoint subset excludes
+only rejection train/calibration images; all evaluated images were seen during
+Stage-A, and many positive expressions overlap the sealed RefCOCO test input.
+
+\textbf{Positive-grounding ceiling and verification scope.} \method targets
+selective reliability and does not establish FineCops positive P@1 SOTA.
+Strict negatives are proposal-covered SAM3+VLM verified, not image-global or
+all-query verified.

@@ -1,0 +1,7 @@
+# Paper-generation dependencies only.  The manuscript build does not import
+# the model-training environment or read checkpoints.
+matplotlib==3.10.5
+numpy==2.4.2
+pandas==3.0.3
+Pillow==12.0.0
+pypdf==6.16.1

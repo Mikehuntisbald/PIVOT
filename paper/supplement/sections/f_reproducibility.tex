@@ -1,0 +1,45 @@
+\section{Reproducibility and package validation}
+\label{sup:reproducibility}
+
+The paper directory is intentionally buildable without model weights or the
+host-local experiment tree.  Normal builds consume only committed registries,
+table/plot CSVs, manuscript sources, and figure assets.  A separate explicit
+refresh command is available on the experiment host to verify sealed source
+hashes and regenerate the registries; it is not a dependency of the paper
+build.
+
+The package validator checks the recursive TeX dependency graph, bibliography
+keys, cross-references, forbidden internal-facing names, provenance CSVs,
+required figures, and parseable figure font sizes.  After compilation it also
+rejects undefined citations/references, overfull boxes, missing PDF outputs,
+and a main body exceeding the conference page limit.  The manuscript and
+supplement are compiled independently in review mode, and generated PDFs and
+LaTeX intermediates are excluded from version control.
+
+\paragraph{Measured efficiency.}
+We use a fixed manifest of 200 positive, support-covered FineCops images and
+expressions, batch size one, 50 warm-up iterations, and 200 timed iterations.
+CUDA events are synchronized per iteration; host-to-device transfer is inside
+the timed region, while file I/O and visualization are outside.  On one RTX
+5090 (PyTorch 2.9.1, CUDA 13.0, automatic mixed precision), the measured
+median/mean/p90 latency in milliseconds is: frozen base
+33.56/33.63/35.51; rank-only 33.38/33.08/35.10; \arrowt
+43.60/43.96/48.61; \arrowv with uncached support
+43.82/43.88/47.84; and \arrowv with a GPU-resident 256-D support embedding
+34.70/34.87/37.15.  Peak allocated memory ranges from 1.366 to 1.370~GB;
+peak reserved memory is 2.145--2.147~GB.  Cached support removes repeated
+support-backbone computation but does not change model weights or decisions.
+In the same route order, latency IQRs are 2.20, 1.91, 4.31, 3.83, and
+2.31~ms, while mean throughput is 29.74, 30.23, 22.75, 22.79, and
+28.68 images/s.  Throughput is the batch-one reciprocal of measured mean
+latency, not a separate high-batch benchmark.
+
+The frozen base contains 172,839,682 parameters.  Full runtime loading contains
+173,241,996 parameters, an increase of 402,314.  The disjoint active owners
+contain 50,177 ranking, 268,167 Admission (including the training-only
+auxiliary), and 83,969 rejection parameters, totaling 402,313 parameters ever
+trained across phases.  Of these, 397,826 own a deployed decision; 4,487 belong
+to the serialized training-only auxiliary, and the remaining one added scalar
+is frozen.  The measurement receipt binds the transformed input shapes,
+checkpoint/config/script hashes, environment, all latency samples, and both
+allocated and reserved memory maxima.

@@ -1,0 +1,26 @@
+# LaTeX intermediates and locally rendered manuscripts.  Generated figure PDFs
+# live under figures/ and remain trackable.
+/*.aux
+/*.bbl
+/*.blg
+/*.brf
+/*.fdb_latexmk
+/*.fls
+/*.log
+/*.out
+/*.pdf
+/*.synctex.gz
+/*.toc
+/supplement/*.aux
+/supplement/*.bbl
+/supplement/*.blg
+/supplement/*.brf
+/supplement/*.fdb_latexmk
+/supplement/*.fls
+/supplement/*.log
+/supplement/*.out
+/supplement/*.pdf
+/supplement/*.synctex.gz
+/supplement/*.toc
+/validation_report.json
+/validation_static_report.json

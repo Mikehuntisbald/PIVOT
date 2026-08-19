@@ -1,0 +1,15 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+\method treats selective visual grounding as a deployed decision problem
+rather than a monolithic matching score.  A frozen foundation model supplies
+candidate geometry; Admission constructs a category-eligible set, the complete
+expression ranks within that set, and an independent rejector decides whether
+to emit the winner.  A shared-scalar control exposes a measured gradient
+conflict; exclusive trainable ownership removes the cross-duty autograd path
+that separate output heads alone retain.  The resulting policy
+improves both localization and rejection, reveals distinct controllability for
+generic, textual, and visual category cues, and transfers rejection ordering
+to two external negative distributions.  The remaining fixed-threshold shift
+identifies the next problem clearly: learning a domain-stable operating point,
+not merely a better within-domain ordering.
