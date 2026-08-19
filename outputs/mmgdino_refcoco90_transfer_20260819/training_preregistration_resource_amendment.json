@@ -1,0 +1,120 @@
+{
+  "schema": "external.mmgdino_t_refcoco5e.training_preregistration_resource_amendment/v1",
+  "status": "locked_before_replacement_formal_training",
+  "locked_at": "2026-08-19T22:07:17+08:00",
+  "parent_preregistration": {
+    "path": "outputs/mmgdino_refcoco90_transfer_20260819/training_preregistration.json",
+    "sha256": "05b62c796fcc70e9b34c7cf141c3d3f588ce5133f8145ace37cd5ab7032b23af"
+  },
+  "reason": "explicit user request to raise training memory utilization to roughly 30 GiB",
+  "evidence_boundary": {
+    "selection_inputs": [
+      "GPU memory used/free",
+      "OOM versus completed optimizer updates",
+      "finite loss and gradient norm",
+      "runtime throughput"
+    ],
+    "validation_metrics_viewed": false,
+    "testA_or_testB_viewed": false,
+    "model_or_loss_changed": false
+  },
+  "superseded_attempt": {
+    "config": "/media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_formal_b4a8_seed20260819.py",
+    "work_dir": "/home/haoyi/mmgdino_refcoco90_work/formal_b4a8",
+    "last_logged_position": "epoch 1 micro-iteration 1300 of 30156",
+    "checkpoint_created": false,
+    "termination": "user-requested resource-only replacement",
+    "log": "/home/haoyi/mmgdino_refcoco90_work/formal_b4a8/20260819_213056/20260819_213056.log",
+    "log_sha256": "2778225255d729f2bb58d4d5545c1c07423aa7fd078feb1e39d2006e10dea9dc"
+  },
+  "resource_ladder": [
+    {
+      "policy": "physical B16 x accumulation 2, all published checkpoints",
+      "effective_batch": 32,
+      "result": "single update reached 30307 MiB total used; formal-seed dynamic-resize soak OOM"
+    },
+    {
+      "policy": "physical B15 x accumulation 2",
+      "effective_batch": 30,
+      "result": "OOM; rejected because it also changes the batch contract"
+    },
+    {
+      "policy": "physical B14 x accumulation 2",
+      "effective_batch": 28,
+      "result": "OOM; rejected because it also changes the batch contract"
+    },
+    {
+      "policy": "physical B8 x accumulation 4, Swin activation checkpointing disabled",
+      "effective_batch": 32,
+      "result": "OOM"
+    },
+    {
+      "policy": "physical B8 x accumulation 4, encoder num_cp=3",
+      "effective_batch": 32,
+      "result": "OOM"
+    },
+    {
+      "policy": "physical B8 x accumulation 4, encoder num_cp=4",
+      "effective_batch": 32,
+      "result": "ran 30 micro-iterations but reached an unsafe sub-1-GiB margin; rejected"
+    },
+    {
+      "policy": "physical B8 x accumulation 4, encoder num_cp=5",
+      "effective_batch": 32,
+      "result": "U100 passed; approximately 26567 MiB total used and 5542 MiB free"
+    },
+    {
+      "policy": "physical B8 x accumulation 4, encoder num_cp=4 plus fusion layer 4 checkpointed",
+      "effective_batch": 32,
+      "result": "selected; U100/25 optimizer updates passed with zero OOM/nonfinite, observed 30633 MiB total used and 1476 MiB free"
+    }
+  ],
+  "selected_contract": {
+    "physical_batch": 8,
+    "gradient_accumulation": 4,
+    "effective_global_batch": 32,
+    "precision": "fp32",
+    "epochs": 5,
+    "learning_rate": 0.0002,
+    "weight_decay": 0.0001,
+    "clip_norm": 0.1,
+    "lr_milestone_epoch": 3,
+    "activation_checkpoint_policy": {
+      "encoder_num_cp": 4,
+      "extra_checkpointed_component": "encoder.fusion_layers[4]",
+      "semantic_effect": "resource-only activation save/recompute policy; no parameter, buffer, loss, score route, sample exposure, or optimizer ownership change"
+    }
+  },
+  "bindings": {
+    "formal_config": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_formal_b8a4_partial_fusion4_seed20260819.py",
+      "sha256": "c36ef5e02842cc276e4017396fbaf5c1c37622b19a76cb0691b2dd80fef3fb3a"
+    },
+    "checkpoint_policy_code": {
+      "path": "tools/mmgdino_checkpoint_policy.py",
+      "sha256": "3fe0fb20c1abe03694570eabc9ca4f891e2fb324489958931e0531fa446ed93d"
+    },
+    "selected_soak_config": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_soak_b8a4_partial_fusion4_seed20260819.py",
+      "sha256": "8316747702e1fdf39409437e49c7566fcff8b4ff63aeb567714c806b954fa1e0"
+    },
+    "selected_soak_log": {
+      "path": "/home/haoyi/mmgdino_refcoco90_work/soak_b8a4_partial_fusion4/20260819_220404/20260819_220404.log",
+      "sha256": "cdffb4ce3d2cb04774353d1b5716b838dfdac1b5a437bc809e9b2335efddbf9a"
+    }
+  },
+  "execution": {
+    "formal_work_dir": "/home/haoyi/mmgdino_refcoco90_work/formal_b8a4_partial_fusion4",
+    "formal_work_dir_absent_at_lock": true,
+    "required_environment": {
+      "PYTHONPATH": "/media/haoyi/T9/pivot",
+      "PYTORCH_ALLOC_CONF": "expandable_segments:True"
+    },
+    "heldout_policy": "unchanged: RefCOCO val only at epoch 5, then seal epoch-5 checkpoint SHA before one testA/testB run"
+  },
+  "prohibitions": [
+    "do not reinterpret the resource ladder as a model ablation",
+    "do not change checkpoint, loss, seed, epoch count, learning rate, effective batch, Gap, or score route based on validation/test outcomes",
+    "do not inspect testA or testB before the fixed epoch-5 checkpoint is sealed"
+  ]
+}
