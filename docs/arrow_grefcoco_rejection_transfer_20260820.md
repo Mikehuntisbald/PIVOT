@@ -17,7 +17,7 @@ task. It evaluates only the preregistered binary rejection slice:
 | TestA + TestB scope | Images | Single-target positive | No-target negative | Total included expressions |
 |---|---:|---:|---:|---:|
 | Full restricted slice | 1,500 | 11,563 | 9,121 | 20,684 |
-| D3-disjoint restricted slice | 1,288 | 9,924 | 7,796 | 17,720 |
+| Rejector-supervision-disjoint restricted slice | 1,288 | 9,924 | 7,796 | 17,720 |
 
 All **14,579 multi-target expressions are explicitly excluded**. A
 single-target row is positive and a no-target row is negative. Accordingly,
@@ -48,8 +48,8 @@ The A/B/C preflight verified seed-matched trunk938, rank8, and confidence12 bitw
 | D3 train ∪ calibration | 212 / 1,500 |
 | FineCops source-image crosswalk | 14 / 1,500 |
 
-“D3-disjoint” has a narrow and explicit meaning: remove every gRef TestA/B
-image whose COCO `image_id` appears in either
+“Rejector-supervision-disjoint” has a narrow and explicit meaning: remove
+every gRef TestA/B image whose COCO `image_id` appears in either
 `d3_proposal_covered_train.jsonl` or
 `d3_proposal_covered_calibration.jsonl`. This excludes 212 unique test images:
 182 overlapping D3-training images and 30 overlapping D3-calibration images.
@@ -59,7 +59,7 @@ calibration image sets**.
 
 It is not disjoint from all model development data: Stage-A still overlaps
 1,500/1,500 images, and R100 training overlaps 942/1,500. Therefore the
-correct claim is D3-confidence-image-disjoint sensitivity, not full-model
+correct claim is rejector-supervision-disjoint sensitivity, not full-model
 image-disjoint zero-shot. The Full surface is a co-required robustness gate.
 10,479/11,563 positive expressions overlap the sealed RefCOCO TestA/B input
 multiset, so the new evidence is primarily no-target rejection rather than
@@ -90,17 +90,17 @@ localization.
 |---|---|---:|---:|---:|---:|---:|
 | Full TestAB | B58 | 0.6895 | 0.7201 | 0.7410 | — | — |
 | Full TestAB | D3 mean | 0.7175 | 0.7381 | 0.7083 | 0.9010 | 0.3905 |
-| D3-disjoint | B58 | 0.6869 | 0.7192 | 0.7497 | — | — |
-| D3-disjoint | D3 mean | 0.7150 | 0.7373 | 0.7116 | 0.8972 | 0.3893 |
-| D3+FineCops-disjoint | B58 | 0.6871 | 0.7192 | 0.7488 | — | — |
-| D3+FineCops-disjoint | D3 mean | 0.7151 | 0.7374 | 0.7112 | 0.8964 | 0.3908 |
+| Rejector-supervision-disjoint | B58 | 0.6869 | 0.7192 | 0.7497 | — | — |
+| Rejector-supervision-disjoint | Isolated rejector mean | 0.7150 | 0.7373 | 0.7116 | 0.8972 | 0.3893 |
+| Rejector+FineCops-source-disjoint sensitivity | B58 | 0.6871 | 0.7192 | 0.7488 | — | — |
+| Rejector+FineCops-source-disjoint sensitivity | Isolated rejector mean | 0.7151 | 0.7374 | 0.7112 | 0.8964 | 0.3908 |
 
 Paired bootstrap gates:
 
 - Full AUROC gain CI: `[+0.02473, +0.03124]`; FPR95 gain CI: `[+0.02151, +0.04997]`.
-- D3-disjoint AUROC gain CI: `[+0.02456, +0.03164]`; FPR95 gain CI: `[+0.02290, +0.05274]`.
-- One-sided bootstrap p-value for all four gains: `0.00019996`.
-- D3-disjoint fixed-threshold TPR CI: `[0.88390, 0.90982]`, excluding the source operating point `0.95`.
+- Rejector-supervision-disjoint AUROC gain CI: `[+0.02456, +0.03164]`; FPR95 gain CI: `[+0.02290, +0.05274]`.
+- Each of the four one-sided bootstrap p-values: `0.00019996`.
+- Rejector-supervision-disjoint fixed-threshold TPR CI: `[0.88390, 0.90982]`, excluding the source operating point `0.95`.
 
 Thus D3 improves threshold-free ordering and domain-normalized FPR95 on both required surfaces, while its frozen source threshold under-accepts gRef positives. The val no-target-only N-acc is `0.4621 / 0.4889 / 0.4832` for seeds 17/42/73; it is descriptive and was never used for selection.
 

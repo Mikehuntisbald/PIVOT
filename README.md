@@ -3,45 +3,132 @@
 **Admission, Ranking, and Rejection with Ownership-Separated Weights for
 Reliable Visual Grounding**
 
-ARROW separates three inference duties that otherwise compete for the same
-score parameters:
+ARROW factorizes a grounded detector's single overloaded score into three
+owned decisions: visual or textual category cues **admit** plausible queries,
+the complete referring expression **ranks** them, and an independently trained
+non-relative score **rejects** unsupported expressions. The frozen Grounding DINO
+trunk and role-specific trainable weights prevent localization and rejection
+losses from updating the same score parameters.
 
-- **Admission** determines which detector queries are category-eligible.
-- **Ranking** uses the complete referring expression to order eligible queries.
-- **Rejection** produces an independent absolute confidence for false-positive
-  control.
+<p align="center">
+  <img src="paper/figures/fig2_method_ownership.svg" width="96%" alt="ARROW admission, ranking, and rejection architecture">
+</p>
 
-The public ARROW name covers the paper and release interface. Historical
-checkpoints and receipts retain their original PIVOT/U2-v5 field names,
-`pivot.*` schemas, absolute paths, and hashes as a compatibility lineage; they
-must not be rewritten.
+## Key results
 
-Current controlled results are summarized in
-[`docs/paper_cvpr_arrow_admission_input_results_20260818.md`](docs/paper_cvpr_arrow_admission_input_results_20260818.md).
+All numbers below come from sealed checkpoints and committed receipts; no
+external benchmark was used to choose a checkpoint, Admission margin, or confidence
+threshold.
 
-ARROW is implemented on top of the third-party Grounding DINO training code
-below. The original implementation and paper remain credited to their authors:
-**[Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object
-Detection](https://arxiv.org/abs/2303.05499)**.
+| Evaluation | Frozen base | ARROW | Paired effect |
+| --- | ---: | ---: | ---: |
+| RefCOCO-family Test5 Acc@0.5 | 72.16 | **74.24** | +2.08 points, 95% CI [1.83, 2.35] |
+| Strict-TN2031 FPR95 | 51.21 | **47.02** | 4.19-point reduction, 95% CI [2.46, 6.20] |
+| gRefCOCO single/no-target AUROC | 68.95 | **71.75** | +2.80 points |
+| gRefCOCO domain-derived FPR95 | 74.10 | **70.83** | -3.27 points |
 
-<div align="center">
-  <img src="figs/cute_dino.png" width="35%">
-</div>
+On the fresh category-intervention panel, visual support, canonical text, and a
+category-agnostic null cue obtain 48.24%, 32.29%, and 0.00% bidirectional
+category-switch success. FineCops-Ref and gRefCOCO additionally show that the
+isolated rejector improves cross-benchmark ordering, while the internally
+sealed operating threshold does not preserve 95% TPR (80.05% and 90.10%). See
+the [paper package](paper/README.md),
+[FineCops protocol/results](docs/paper_cvpr_arrow_finecops_results_20260819.md),
+and [gRefCOCO transfer report](docs/arrow_grefcoco_rejection_transfer_20260820.md).
 
-**This repository can also be used to fine-tune Grounding DINO on custom data
-or to start pretraining from scratch.**
+## Two admission interfaces
 
-- [Supported Features](#supported-features)
-- [Setup](#setup)
-- [Dataset](#dataset)
-- [Config](#config)
-- [Training](#training)
-- [Patch Episode Training](#patch-episode-training)
-- [Results and Models](#results-and-models)
-- [Inference](#inference)
-- [Acknowledgments](#acknowledgments)
-- [Citation](#citation)
-- [Contact](#contact)
+- **ARROW-V (visual support):** provide the full referring expression and one
+  category support crop. The crop controls admission only; the frozen
+  complete-expression ranker orders eligible queries.
+- **ARROW-T (canonical text cue):** provide the full expression plus an
+  explicit canonical category phrase. This is support-free, but it is not a
+  raw image/expression-only interface. FineCops experiments use the benchmark's
+  structured target noun as this cue and disclose that input difference.
+
+The learned null route is an ablation, not the recommended public interface.
+
+## Quick sealed evaluation
+
+The following runs the seed-42 ARROW-V checkpoint on RefCOCO validation. Set
+`DATA_ROOT` to the evaluation data root used by the repository.
+
+```bash
+export DATA_ROOT=/path/to/data
+python tools/eval_text_groundingdino_refcoco_tn.py \
+  --config config/ablations/cfg_arrow_admission_a_patch_eval_gap3.py \
+  --ckpts outputs/u2v5_leakage_clean_anchor_20260817/formal/confidence_seed42_u50/checkpoint_iter.pth \
+  --output_dir outputs/arrow_quick_eval_seed42 \
+  --data_root "$DATA_ROOT" --device cuda:0 --batch_size 16 --num_workers 4 \
+  --seed 42 --amp --ref_splits refcoco_val --skip_tn --topk 1
+```
+
+Use `cfg_arrow_admission_b_text_eval_gap3.py` with the sealed ARROW-T overlay
+for the text-cue interface. Evaluation loaders fail closed on missing support
+or canonical inputs rather than silently changing routes.
+
+## Reproduce the manuscript and external evaluations
+
+The paper build consumes only committed registries, tables, and plot sources;
+it does not require model weights or host-local `outputs/`.
+
+```bash
+python -m pip install -r paper/requirements.txt
+make -C paper all
+make -C paper verify-sources   # experiment host: verify sealed evidence hashes
+
+python tools/run_arrow_finecops_evaluations.py status
+python tools/run_arrow_grefcoco_evaluations.py status
+```
+
+The external runners execute only preregistered commands and never train or
+fit a benchmark-specific threshold. Exact setup and one-shot execution rules
+are recorded in the linked protocol documents.
+
+## Release contract
+
+The tracked byte-for-byte release-manifest copy is
+[`paper/data/arrow_release_manifest.json`](paper/data/arrow_release_manifest.json)
+(`arrow.release_manifest/v1`); it preserves the immutable experiment-host
+paths and hashes. The main checkpoints are:
+
+| Seed | SHA-256 |
+| ---: | --- |
+| 17 | `b8045f97d3fa4d21e95b49e6c4f50d12651775862d3a60ca479d51242665cf25` |
+| 42 | `5746aedb1ccf6fbfdb22db66cbefa26ec874513451dabb05886fd5a2c950709c` |
+| 73 | `90c05708e792248acffae27ca435e33ef86dea2e88518ed9fe501e72f064aef2` |
+
+Large checkpoints, images, and per-example records stay outside Git. The
+manifest binds their absolute release paths and hashes; current paper sources
+bind the later v3 tables without rewriting the immutable historical manifest.
+Legacy checkpoint fields, `pivot.*` schemas, and absolute paths remain a
+byte-compatible pre-ARROW implementation lineage.
+
+## Citation
+
+```bibtex
+@inproceedings{arrow2027,
+  title     = {ARROW: Responsibility-Isolated Admission, Ranking, and
+               Rejection for Selective Visual Grounding},
+  author    = {Anonymous},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and
+               Pattern Recognition},
+  year      = {2027}
+}
+```
+
+ARROW builds on the third-party Grounding DINO implementation retained below.
+We credit the original
+[Grounding DINO paper](https://arxiv.org/abs/2303.05499) and upstream projects.
+The older Stage-A/Stage-B setup is preserved for provenance and checkpoint
+compatibility, not as the public ARROW method description.
+
+<details>
+<summary><strong>Historical Grounding DINO / Stage-A/B implementation notes</strong></summary>
+
+> **Pre-ARROW lineage.** The material below documents the inherited training
+> stack. Historical names and commands are intentionally unchanged so sealed
+> artifacts remain reproducible.
 
 # Supported Features
 
@@ -989,3 +1076,5 @@ Provided codes were adapted from:
 - liwei1 at sensetime.com  
 
 Feel free to contact we if you have any suggestions or questions. Bugs found are also welcome. Please create a pull request if you find any bugs or want to contribute code.
+
+</details>
