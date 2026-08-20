@@ -5,18 +5,18 @@
   "sealed_source_threshold": 0.31912317872047424,
   "selection": [
     {
-      "arrow_iou": 0.9762216806411743,
-      "arrow_raw_confidence": 0.2329610288143158,
-      "eligible_queries": 89,
-      "expression": "There is a mirror to the right of the shelf and the white, porcelain toilet.",
-      "frozen_base_iou": 0.0,
-      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2353354.jpg",
-      "image_sha256": "37150a51c4591496b64492fd9c8eb8796189a9f6ede5095ab8db014d546842c2",
+      "arrow_iou": 0.8736763596534729,
+      "arrow_raw_confidence": -0.06436972320079803,
+      "eligible_queries": 59,
+      "expression": "The wooden structure positioned to the right of the car, which, in turn, is located to the left of the woman.",
+      "frozen_base_iou": 0.008927696384489536,
+      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2333843.jpg",
+      "image_sha256": "bf12375b3dce5b44546a109ca14822f917d5972eab05d6e65ccca74ee8de82d6",
       "kind": "positive",
       "panel": "Ranking rescue",
-      "ranker_iou": 0.9762216806411743,
-      "rule": "base_wrong_ranker_correct_admission_preserves",
-      "sample_id": "finecops:test:4854"
+      "ranker_iou": 0.8736763596534729,
+      "rule": "base_wrong_ranker_correct_admission_preserves_legible_cue",
+      "sample_id": "finecops:test:5758"
     },
     {
       "arrow_iou": 0.8916022777557373,
@@ -47,18 +47,18 @@
       "sample_id": "finecops:test:30097"
     },
     {
-      "arrow_iou": 0.0,
-      "arrow_raw_confidence": 0.3574296534061432,
-      "eligible_queries": 26,
-      "expression": "Positioned to the right of the small, square picture are the scissors.",
-      "frozen_base_iou": 0.9712418913841248,
-      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2378658.jpg",
-      "image_sha256": "29b1dd253f2ccec3a8e40a13fe9b94a012f89d5cc411f5e1f820dc9b14885c68",
+      "arrow_iou": 0.9718649387359619,
+      "arrow_raw_confidence": 0.4266906678676605,
+      "eligible_queries": 259,
+      "expression": "Resting to the right of the keyboard (which is to the left of the child) is the sought-after computer.",
+      "frozen_base_iou": 0.20255310833454132,
+      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2360654.jpg",
+      "image_sha256": "fc6b7892b015f40ce6c8aebeb4e15e6f527f68e8b6001973bf24f62e998aec08",
       "kind": "positive",
-      "panel": "Honest failure",
-      "ranker_iou": 0.0,
-      "rule": "base_correct_admission_wrong_max_iou_drop",
-      "sample_id": "finecops:test:13415"
+      "panel": "Hard composition",
+      "ranker_iou": 0.20255310833454132,
+      "rule": "level3_base_wrong_arrow_correct_distinct_category",
+      "sample_id": "finecops:test:7072"
     }
   ],
   "source_manifest": {

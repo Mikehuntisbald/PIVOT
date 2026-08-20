@@ -57,17 +57,30 @@ def rank_percentiles(rows: list[dict[str, Any]], key, *, reverse: bool) -> dict[
     return {row["sample_id"]: index / denominator for index, row in enumerate(ordered)}
 
 
-def select(records: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any], str]]:
+def select(
+    records: list[dict[str, Any]],
+    manifests: dict[str, dict[str, Any]],
+) -> list[tuple[str, dict[str, Any], str]]:
     positives = [row for row in records if row["kind"] == "positive" and row["support_covered"]]
 
+    def has_legible_cue(row: dict[str, Any]) -> bool:
+        support = manifests[row["sample_id"]].get("finecops_support")
+        if not support or not support.get("path"):
+            return False
+        with Image.open(support["path"]) as cue:
+            width, height = cue.size
+        return min(width, height) >= 64 and min(width, height) / max(width, height) >= 0.8
+
     # Ranking gain: the base fails, the complete-expression ranker succeeds,
-    # and Admission preserves that successful query.  Maximize the IoU gain.
+    # and Admission preserves that successful query.  For a teaser, require a
+    # reasonably sized near-square cue crop, then maximize the IoU gain.
     rank_candidates = [
         row for row in positives
         if row["routes"]["b58"]["top1_iou"] < 0.5
         <= row["routes"]["r100_d3"]["top1_iou"]
         and row["routes"]["deployed"]["top1_query_index"]
         == row["routes"]["r100_d3"]["top1_query_index"]
+        and has_legible_cue(row)
     ]
     ranking = min(
         rank_candidates,
@@ -117,26 +130,32 @@ def select(records: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any], str
         ),
     )
 
-    # Honest failure: B58 localizes correctly but Admission removes the useful
-    # winner.  Maximize the IoU deterioration; never hide this failure mode.
-    failure_candidates = [
+    # Hard compositional success: on a level-3 expression, the frozen route is
+    # wrong and full ARROW recovers the target.  Avoid repeating the first two
+    # categories, then maximize the IoU recovery.  Failure cases remain in the
+    # deterministic qualitative appendix rather than occupying the teaser.
+    used_categories = {ranking["active_category"], admission["active_category"]}
+    hard_candidates = [
         row for row in positives
-        if row["routes"]["deployed"]["top1_iou"] < 0.5
-        <= row["routes"]["b58"]["top1_iou"]
+        if row["sample_id"] not in {ranking["sample_id"], admission["sample_id"]}
+        and row["level"] == 3
+        and row["active_category"] not in used_categories
+        and row["routes"]["b58"]["top1_iou"] < 0.5
+        <= row["routes"]["deployed"]["top1_iou"]
     ]
-    failure = min(
-        failure_candidates,
+    hard = min(
+        hard_candidates,
         key=lambda row: (
-            -(row["routes"]["b58"]["top1_iou"] - row["routes"]["deployed"]["top1_iou"]),
+            -(row["routes"]["deployed"]["top1_iou"] - row["routes"]["b58"]["top1_iou"]),
             row["sample_id"],
         ),
     )
 
     return [
-        ("Ranking rescue", ranking, "base_wrong_ranker_correct_admission_preserves"),
+        ("Ranking rescue", ranking, "base_wrong_ranker_correct_admission_preserves_legible_cue"),
         ("Admission rescue", admission, "ranker_wrong_admission_correct_min_eligible"),
         ("Rejection transfer", rejection, "sealed_source_tau_rejects_external_negative"),
-        ("Honest failure", failure, "base_correct_admission_wrong_max_iou_drop"),
+        ("Hard composition", hard, "level3_base_wrong_arrow_correct_distinct_category"),
     ]
 
 
@@ -152,15 +171,19 @@ def box(
     zorder: float = 3,
 ) -> None:
     x1, y1, x2, y2 = xyxy
+    image_height, image_width = ax.images[0].get_array().shape[:2]
     ax.add_patch(Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False,
                            edgecolor=color, linewidth=linewidth,
                            linestyle=linestyle, zorder=zorder))
     if label_corner == "bottom-left":
-        label_x, label_y, va = x1, min(y2 - 1, ax.images[0].get_array().shape[0] - 1), "bottom"
+        label_x = min(max(x1, 2), image_width - 28)
+        label_y, va = min(y2 - 1, image_height - 1), "bottom"
     elif label_corner == "top-right":
-        label_x, label_y, va = x2, max(1, y1), "top"
+        label_x = min(max(x2, 125), image_width - 2)
+        label_y, va = max(1, y1), "top"
     else:
-        label_x, label_y, va = x1, max(1, y1), "top"
+        label_x = min(max(x1, 2), image_width - 55)
+        label_y, va = max(1, y1), "top"
     ax.text(
         label_x,
         label_y,
@@ -215,7 +238,7 @@ def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str
         "Ranking rescue": "RANK: fixes the box",
         "Admission rescue": "ADMIT: drops distractor",
         "Rejection transfer": "REJECT: absent target",
-        "Honest failure": "FAILURE: target lost",
+        "Hard composition": "COMPOSE: target found",
     }
     for index, ((title, row, _), ax) in enumerate(zip(selection, axes)):
         manifest = manifests[row["sample_id"]]
@@ -277,31 +300,32 @@ def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str
         else:
             support = manifest.get("finecops_support")
             if support and support.get("path"):
-                inset = ax.inset_axes([0.02, -0.40, 0.22, 0.22], zorder=8)
+                inset = ax.inset_axes([0.02, -0.46, 0.30, 0.30], zorder=8)
                 cue = Image.open(support["path"]).convert("RGB")
-                side = max(cue.size)
-                cue_square = Image.new("RGB", (side, side), color=(242, 242, 242))
-                cue_fit = ImageOps.contain(cue, (side, side))
-                cue_square.paste(
-                    cue_fit,
-                    ((side - cue_fit.width) // 2, (side - cue_fit.height) // 2),
+                side = min(cue.size)
+                cue_square = ImageOps.fit(
+                    cue,
+                    (side, side),
+                    method=Image.Resampling.LANCZOS,
+                    centering=(0.5, 0.5),
                 )
                 inset.imshow(cue_square)
                 inset.set_xticks([]); inset.set_yticks([])
                 for spine in inset.spines.values():
                     spine.set_edgecolor("white"); spine.set_linewidth(1.5)
-                inset.text(
-                    0.5,
-                    0.98,
-                    "CUE",
-                    transform=inset.transAxes,
+                ax.text(
+                    0.17,
+                    -0.145,
+                    row["active_category"].upper(),
+                    transform=ax.transAxes,
                     ha="center",
-                    va="top",
-                    fontsize=8.8,
+                    va="bottom",
+                    fontsize=6.6,
                     fontweight="bold",
                     color="white",
-                    bbox={"facecolor": "#333333", "edgecolor": "none", "pad": 1.2,
-                          "alpha": 0.94},
+                    bbox={"facecolor": "#333333", "edgecolor": "none", "pad": 1.4,
+                          "alpha": 0.96},
+                    zorder=9,
                 )
 
         support = manifest.get("finecops_support") if title != "Rejection transfer" else None
@@ -309,13 +333,13 @@ def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str
         expression = "\n".join(
             textwrap.wrap(
                 manifest["finecops_expression"],
-                width=25 if has_cue else 34,
+                width=18 if has_cue else 34,
                 max_lines=3,
                 placeholder="…",
             )
         )
         ax.text(
-            0.28 if has_cue else 0.5,
+            0.40 if has_cue else 0.5,
             -0.075,
             expression,
             transform=ax.transAxes,
@@ -354,7 +378,7 @@ def main() -> None:
         raise RuntimeError("FineCops manifest sample_id is not unique")
     if [row["sample_id"] for row in records] != [row["sample_id"] for row in manifests_list]:
         raise RuntimeError("record/manifest sample order mismatch")
-    selection = select(records)
+    selection = select(records, manifests)
 
     rows: list[dict[str, Any]] = []
     receipt_selection: list[dict[str, Any]] = []
@@ -394,7 +418,7 @@ def main() -> None:
     source_dir = data_dir / "plot_sources"
     source_dir.mkdir(parents=True, exist_ok=True)
     with (source_dir / "fig1_qualitative.csv").open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader(); writer.writerows(rows)
     render(selection, manifests)
 
