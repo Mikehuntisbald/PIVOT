@@ -123,7 +123,7 @@ def table1(reg: Registry) -> None:
             kparams(reg.value("efficiency.route.learned_admission.inference_added_params")),
         ),
         (
-            "+ isolated Rejection (ARROW-V)",
+            "+ isolated Rejection (ARROW-U2)",
             pct(reg.value("main.test5.arrow")),
             pct(reg.value("main.strict2031.arrow")),
             pct(reg.value("anatomy.eligible_gt_recall50")),
@@ -158,7 +158,7 @@ Route & Test5 Acc$\uparrow$ & Strict FPR95$\downarrow$ & Elig. recall$\uparrow$ 
 \bottomrule
 \end{{tabular}}
 \vspace{{2pt}}
-\parbox{{0.98\textwidth}}{{\footnotesize Accuracy, FPR95, and recall are percentages; parameter columns report thousands. Runtime-loaded $\Delta$ includes the serialized auxiliary and a frozen scalar; it is not a count of deployed score owners. Learned Admission and full ARROW have bitwise-identical localization records. $^\dagger$Static Admission is a validation-only mechanism route, so no held-out result or exact runtime-loaded count is assigned. ARROW-T reuses the rejector through bitwise confidence parity.}}
+\parbox{{0.98\textwidth}}{{\footnotesize Accuracy, FPR95, and recall are percentages; parameter columns report thousands. Runtime-loaded $\Delta$ includes the serialized auxiliary and a frozen scalar; it is not a count of deployed score owners. Learned Admission and ARROW-U2 have bitwise-identical localization records. $^\dagger$Static Admission is a validation-only mechanism route, so no held-out result or exact runtime-loaded count is assigned. ARROW-T reuses the rejector through bitwise confidence parity.}}
 \end{{table*}}
 """
     write_table("table1_main", body, reg)

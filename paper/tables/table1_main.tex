@@ -13,10 +13,10 @@ Frozen base & 72.16 & 51.21 & -- & -- & 0 & 0 & 0 \\
 + complete-expression ranker & -- & -- & -- & -- & 50.2 & 50.2 & 50.2 \\
 + static Admission$^{\dagger}$ & -- & -- & -- & -- & 0 & 50.2 & -- \\
 + learned Admission & 74.24 & -- & 99.69 & 69.5 & 268.2 & 318.3 & 318.3 \\
-+ isolated Rejection (ARROW-V) & 74.24 & 47.02 & 99.69 & 69.5 & 84.0 & 402.3 & 402.3 \\
++ isolated Rejection (ARROW-U2) & 74.24 & 47.02 & 99.69 & 69.5 & 84.0 & 402.3 & 402.3 \\
 ARROW-T & 74.12 & 47.02 & -- & -- & 84.0 & 402.3 & 402.3 \\
 \bottomrule
 \end{tabular}
 \vspace{2pt}
-\parbox{0.98\textwidth}{\footnotesize Accuracy, FPR95, and recall are percentages; parameter columns report thousands. Runtime-loaded $\Delta$ includes the serialized auxiliary and a frozen scalar; it is not a count of deployed score owners. Learned Admission and full ARROW have bitwise-identical localization records. $^\dagger$Static Admission is a validation-only mechanism route, so no held-out result or exact runtime-loaded count is assigned. ARROW-T reuses the rejector through bitwise confidence parity.}
+\parbox{0.98\textwidth}{\footnotesize Accuracy, FPR95, and recall are percentages; parameter columns report thousands. Runtime-loaded $\Delta$ includes the serialized auxiliary and a frozen scalar; it is not a count of deployed score owners. Learned Admission and ARROW-U2 have bitwise-identical localization records. $^\dagger$Static Admission is a validation-only mechanism route, so no held-out result or exact runtime-loaded count is assigned. ARROW-T reuses the rejector through bitwise confidence parity.}
 \end{table*}
