@@ -9,7 +9,19 @@ from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 from figure_common import COLORS, configure_style, save_vector_pair, write_csv
 
 
-def box(ax, xy, width, height, text, *, face, edge, linewidth=1.0, style="round,pad=0.012"):
+def box(
+    ax,
+    xy,
+    width,
+    height,
+    text,
+    *,
+    face,
+    edge,
+    linewidth=1.0,
+    style="round,pad=0.012",
+    fontsize=None,
+):
     patch = FancyBboxPatch(
         xy,
         width,
@@ -31,6 +43,7 @@ def box(ax, xy, width, height, text, *, face, edge, linewidth=1.0, style="round,
         transform=ax.transAxes,
         color=COLORS["black"],
         linespacing=1.18,
+        fontsize=fontsize,
     )
     return patch
 
@@ -64,13 +77,14 @@ def main() -> None:
     box(graph, (0.01, 0.67), 0.15, 0.18, "image I\nexpression e", face="#F7F7F7", edge=COLORS["gray"])
     box(
         graph,
-        (0.23, 0.62),
-        0.22,
+        (0.20, 0.61),
+        0.27,
         0.28,
-        "Frozen candidate generator\nGφ(I, e)\nqueries + boxes",
+        "Frozen candidate\ngenerator  Gφ(I, e)\nqueries qᵢ + boxes bᵢ",
         face="#E8E8E8",
         edge=COLORS["gray"],
         linewidth=1.2,
+        fontsize=7.1,
     )
     box(graph, (0.01, 0.27), 0.15, 0.18, "category cue u\nvisual / text / null", face="#F7F7F7", edge=COLORS["gray"])
     box(
@@ -124,12 +138,12 @@ def main() -> None:
         linewidth=1.0,
     )
 
-    arrow(graph, (0.16, 0.76), (0.23, 0.76))
-    arrow(graph, (0.45, 0.76), (0.52, 0.76))
+    arrow(graph, (0.16, 0.76), (0.20, 0.76))
+    arrow(graph, (0.47, 0.76), (0.52, 0.76))
     arrow(graph, (0.16, 0.36), (0.52, 0.70), color=COLORS["blue"], bend=-0.10)
     arrow(graph, (0.70, 0.76), (0.77, 0.76), color=COLORS["blue"])
     arrow(graph, (0.16, 0.71), (0.77, 0.69), color=COLORS["orange"], bend=0.12)
-    arrow(graph, (0.45, 0.66), (0.55, 0.30), color=COLORS["green"], bend=0.18)
+    arrow(graph, (0.47, 0.66), (0.55, 0.30), color=COLORS["green"], bend=0.18)
     graph.text(0.46, 0.43, "detach", color=COLORS["green"], transform=graph.transAxes, ha="center")
     arrow(graph, (0.86, 0.65), (0.86, 0.37), color=COLORS["orange"])
     arrow(graph, (0.75, 0.29), (0.80, 0.29), color=COLORS["green"])

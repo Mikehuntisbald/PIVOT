@@ -43,15 +43,15 @@ z
 " style="fill: #f7f7f7; stroke: #777777; stroke-linejoin: miter"/>
    </g>
    <g id="patch_3">
-    <path d="M 85.458001 88.283332 
-L 163.604641 88.283332 
-Q 167.867185 88.283332 167.867185 85.861108 
-L 167.867185 29.342548 
-Q 167.867185 26.920324 163.604641 26.920324 
-L 85.458001 26.920324 
-Q 81.195457 26.920324 81.195457 29.342548 
-L 81.195457 85.861108 
-Q 81.195457 88.283332 85.458001 88.283332 
+    <path d="M 74.801641 90.301852 
+L 170.708881 90.301852 
+Q 174.971425 90.301852 174.971425 87.879628 
+L 174.971425 31.361068 
+Q 174.971425 28.938844 170.708881 28.938844 
+L 74.801641 28.938844 
+Q 70.539097 28.938844 70.539097 31.361068 
+L 70.539097 87.879628 
+Q 70.539097 90.301852 74.801641 90.301852 
 z
 " style="fill: #e8e8e8; stroke: #777777; stroke-width: 1.2; stroke-linejoin: miter"/>
    </g>
@@ -134,22 +134,22 @@ z
 " style="fill: #f1e8f5; stroke: #cc79a7; stroke-linejoin: miter"/>
    </g>
    <g id="patch_10">
-    <path d="M 62.593396 57.601828 
-Q 73.025093 57.601828 82.226952 57.601828 
+    <path d="M 62.594697 57.601828 
+Q 67.698308 57.601828 71.572082 57.601828 
 " style="fill: none; stroke: #222222; stroke-width: 1.1; stroke-linecap: round"/>
-    <path d="M 79.026952 56.001828 
-L 82.226952 57.601828 
-L 79.026952 59.201828 
+    <path d="M 68.372082 56.001828 
+L 71.572082 57.601828 
+L 68.372082 59.201828 
 z
 " style="fill: #222222; stroke: #222222; stroke-width: 1.1; stroke-linecap: round"/>
    </g>
    <g id="patch_11">
-    <path d="M 165.604876 57.601828 
-Q 176.036573 57.601828 185.238432 57.601828 
+    <path d="M 172.707816 57.601828 
+Q 179.590076 57.601828 185.242499 57.601828 
 " style="fill: none; stroke: #222222; stroke-width: 1.1; stroke-linecap: round"/>
-    <path d="M 182.038432 56.001828 
-L 185.238432 57.601828 
-L 182.038432 59.201828 
+    <path d="M 182.042499 56.001828 
+L 185.242499 57.601828 
+L 182.042499 59.201828 
 z
 " style="fill: #222222; stroke: #222222; stroke-width: 1.1; stroke-linecap: round"/>
    </g>
@@ -184,12 +184,12 @@ z
 " style="fill: #e69f00; stroke: #e69f00; stroke-width: 1.1; stroke-linecap: round"/>
    </g>
    <g id="patch_15">
-    <path d="M 163.837445 79.775071 
-Q 168.881749 120.222997 196.831096 148.179621 
+    <path d="M 170.778821 79.787176 
+Q 172.455044 118.992224 197.02335 147.995851 
 " style="fill: none; stroke: #009e73; stroke-width: 1.1; stroke-linecap: round"/>
-    <path d="M 195.700167 144.785362 
-L 196.831096 148.179621 
-L 193.437131 147.047809 
+    <path d="M 196.175884 144.519963 
+L 197.02335 147.995851 
+L 193.734159 146.588291 
 z
 " style="fill: #009e73; stroke: #009e73; stroke-width: 1.1; stroke-linecap: round"/>
    </g>
@@ -231,9 +231,9 @@ z
     <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(10.22648 63.813551)">expression e</text>
    </g>
    <g id="text_3">
-    <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(72.725657 51.386977)">Frozen candidate generator</text>
-    <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(110.428391 59.671359)">Gφ(I, e)</text>
-    <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(94.175071 67.955742)">queries + boxes</text>
+    <text style="font-size: 7.1px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(92.371144 53.736955)">Frozen candidate</text>
+    <text style="font-size: 7.1px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(89.617675 61.579504)">generator  Gφ(I, e)</text>
+    <text style="font-size: 7.1px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(85.985027 69.422053)">queries qᵢ + boxes bᵢ</text>
    </g>
    <g id="text_4">
     <text style="font-size: 7.5px; font-family: 'DejaVu Sans'; fill: #222222" transform="translate(5.872378 136.269968)">category cue u</text>

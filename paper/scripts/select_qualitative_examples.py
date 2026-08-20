@@ -17,8 +17,9 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-from PIL import Image
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch, Rectangle
+from PIL import Image, ImageOps
 
 from figure_common import load_registry, value
 
@@ -139,12 +140,40 @@ def select(records: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any], str
     ]
 
 
-def box(ax, xyxy: list[float], color: str, label: str, linewidth: float = 2.0) -> None:
+def box(
+    ax,
+    xyxy: list[float],
+    color: str,
+    label: str,
+    linewidth: float = 2.0,
+    *,
+    linestyle: str = "-",
+    label_corner: str = "top-left",
+    zorder: float = 3,
+) -> None:
     x1, y1, x2, y2 = xyxy
     ax.add_patch(Rectangle((x1, y1), x2 - x1, y2 - y1, fill=False,
-                           edgecolor=color, linewidth=linewidth))
-    ax.text(x1, max(1, y1), label, color="white", fontsize=7, va="top", ha="left",
-            bbox={"facecolor": color, "edgecolor": "none", "pad": 1.4, "alpha": 0.9})
+                           edgecolor=color, linewidth=linewidth,
+                           linestyle=linestyle, zorder=zorder))
+    if label_corner == "bottom-left":
+        label_x, label_y, va = x1, min(y2 - 1, ax.images[0].get_array().shape[0] - 1), "bottom"
+    elif label_corner == "top-right":
+        label_x, label_y, va = x2, max(1, y1), "top"
+    else:
+        label_x, label_y, va = x1, max(1, y1), "top"
+    ax.text(
+        label_x,
+        label_y,
+        label,
+        color="white",
+        fontsize=6.7,
+        weight="bold",
+        va=va,
+        ha="right" if label_corner == "top-right" else "left",
+        zorder=zorder + 0.2,
+        bbox={"facecolor": color, "edgecolor": "white", "linewidth": 0.35,
+              "pad": 1.25, "alpha": 0.94},
+    )
 
 
 def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str, dict[str, Any]]) -> None:
@@ -157,48 +186,148 @@ def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str
         }
     )
     colors = {"base": "#D55E00", "arrow": "#0072B2", "gt": "#009E73"}
-    figure, axes = plt.subplots(1, 4, figsize=(7.05, 2.65), constrained_layout=True)
+    # Match the CVPR figure* text width exactly.  Avoid bbox_inches='tight':
+    # it lets long labels enlarge the source canvas and silently shrink every
+    # font at LaTeX inclusion time.
+    figure, axes = plt.subplots(1, 4, figsize=(6.875, 2.92))
+    # The lower band is a separate input/caption area.  Cue crops never sit on
+    # the detection image, avoiding the false impression that they are scene
+    # proposals or ground-truth crops.
+    figure.subplots_adjust(left=0.012, right=0.995, bottom=0.28, top=0.82, wspace=0.11)
+    legend_handles = [
+        Line2D([0], [0], color=colors["base"], lw=2.0, label="Frozen model prediction"),
+        Line2D([0], [0], color=colors["arrow"], lw=2.2, label="ARROW decision"),
+        Line2D([0], [0], color=colors["gt"], lw=2.4, ls="--", label="Ground truth"),
+        Patch(facecolor="#333333", edgecolor="white", label="Visual category cue"),
+    ]
+    figure.legend(
+        handles=legend_handles,
+        loc="upper center",
+        ncol=4,
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.995),
+        fontsize=6.8,
+        handlelength=2.2,
+        columnspacing=1.25,
+    )
     labels = "abcd"
+    display_titles = {
+        "Ranking rescue": "RANK: fixes the box",
+        "Admission rescue": "ADMIT: drops distractor",
+        "Rejection transfer": "REJECT: absent target",
+        "Honest failure": "FAILURE: target lost",
+    }
     for index, ((title, row, _), ax) in enumerate(zip(selection, axes)):
         manifest = manifests[row["sample_id"]]
         image = Image.open(manifest["filename"]).convert("RGB")
         ax.imshow(image)
         ax.set_axis_off()
-        ax.set_title(f"({labels[index]}) {title}", fontsize=8.3, fontweight="bold", pad=3)
+        ax.set_title(
+            f"({labels[index]}) {display_titles[title]}",
+            fontsize=7.5,
+            fontweight="bold",
+            pad=3,
+            color="#111111",
+        )
 
+        # Draw predictions first.  Ground truth is a dashed top layer so a
+        # coincident ARROW box cannot hide the reference boundary.
+        box(
+            ax,
+            row["routes"]["b58"]["top1_box_xyxy"],
+            colors["base"],
+            "Frozen",
+            1.6,
+            label_corner="top-right",
+            zorder=3,
+        )
+        if title != "Rejection transfer":
+            box(
+                ax,
+                row["routes"]["deployed"]["top1_box_xyxy"],
+                colors["arrow"],
+                "ARROW",
+                1.8,
+                label_corner="top-left",
+                zorder=4,
+            )
         if row["kind"] == "positive":
             x, y, w, h = manifest["finecops_bbox_xywh"]
-            box(ax, [x, y, x + w, y + h], colors["gt"], "GT", 1.8)
-        box(ax, row["routes"]["b58"]["top1_box_xyxy"], colors["base"], "Base", 1.5)
+            box(
+                ax,
+                [x, y, x + w, y + h],
+                colors["gt"],
+                "GT",
+                2.5,
+                linestyle="--",
+                label_corner="bottom-left",
+                zorder=6,
+            )
 
         if title == "Rejection transfer":
             ax.text(
-                0.02, 0.03,
-                rf"ARROW abstains: $c={row['routes']['deployed']['raw_confidence']:.2f}$; source $\tau={SEALED_TAU:.2f}$",
-                transform=ax.transAxes, color="white", fontsize=7, ha="left", va="bottom",
-                bbox={"facecolor": colors["arrow"], "edgecolor": "none", "alpha": 0.92, "pad": 2.0},
+                0.50, 0.03,
+                "ARROW ABSTAINS\n"
+                rf"$c={row['routes']['deployed']['raw_confidence']:.2f}<$ sealed $\tau={SEALED_TAU:.2f}$",
+                transform=ax.transAxes, color="white", fontsize=6.7, ha="center", va="bottom",
+                weight="bold", zorder=7,
+                bbox={"facecolor": colors["arrow"], "edgecolor": "white",
+                      "linewidth": 0.5, "alpha": 0.96, "pad": 2.0},
             )
         else:
-            box(ax, row["routes"]["deployed"]["top1_box_xyxy"], colors["arrow"], "ARROW", 1.5)
             support = manifest.get("finecops_support")
             if support and support.get("path"):
-                inset = ax.inset_axes([0.72, 0.02, 0.26, 0.26])
-                inset.imshow(Image.open(support["path"]).convert("RGB"))
+                inset = ax.inset_axes([0.02, -0.40, 0.22, 0.22], zorder=8)
+                cue = Image.open(support["path"]).convert("RGB")
+                side = max(cue.size)
+                cue_square = Image.new("RGB", (side, side), color=(242, 242, 242))
+                cue_fit = ImageOps.contain(cue, (side, side))
+                cue_square.paste(
+                    cue_fit,
+                    ((side - cue_fit.width) // 2, (side - cue_fit.height) // 2),
+                )
+                inset.imshow(cue_square)
                 inset.set_xticks([]); inset.set_yticks([])
                 for spine in inset.spines.values():
-                    spine.set_edgecolor("white"); spine.set_linewidth(1.3)
-                inset.set_title("support", fontsize=6.4, color="white", pad=1,
-                                backgroundcolor="#333333")
+                    spine.set_edgecolor("white"); spine.set_linewidth(1.5)
+                inset.text(
+                    0.5,
+                    0.98,
+                    "CUE",
+                    transform=inset.transAxes,
+                    ha="center",
+                    va="top",
+                    fontsize=8.8,
+                    fontweight="bold",
+                    color="white",
+                    bbox={"facecolor": "#333333", "edgecolor": "none", "pad": 1.2,
+                          "alpha": 0.94},
+                )
 
-        expression = "\n".join(textwrap.wrap(manifest["finecops_expression"], width=34, max_lines=3,
-                                              placeholder="…"))
-        ax.text(0.5, -0.035, expression, transform=ax.transAxes, ha="center", va="top", fontsize=6.6)
+        support = manifest.get("finecops_support") if title != "Rejection transfer" else None
+        has_cue = bool(support and support.get("path"))
+        expression = "\n".join(
+            textwrap.wrap(
+                manifest["finecops_expression"],
+                width=25 if has_cue else 34,
+                max_lines=3,
+                placeholder="…",
+            )
+        )
+        ax.text(
+            0.28 if has_cue else 0.5,
+            -0.075,
+            expression,
+            transform=ax.transAxes,
+            ha="left" if has_cue else "center",
+            va="top",
+            fontsize=6.6,
+        )
 
     out = PAPER / "figures" / "fig1_teaser"
     out.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(
         out.with_suffix(".pdf"),
-        bbox_inches="tight",
         metadata={
             "Creator": "paper/scripts/select_qualitative_examples.py",
             "Subject": "ARROW sealed qualitative examples",
@@ -208,7 +337,6 @@ def render(selection: list[tuple[str, dict[str, Any], str]], manifests: dict[str
     )
     figure.savefig(
         out.with_suffix(".svg"),
-        bbox_inches="tight",
         metadata={
             "Creator": "paper/scripts/select_qualitative_examples.py",
             "Date": FIGURE_TIMESTAMP.date().isoformat(),
