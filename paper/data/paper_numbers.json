@@ -1051,6 +1051,18 @@
       "unit": "fraction",
       "value": 0.47283768258657477
     },
+    "b58_capacity.isolated.strict2031_fpr95_sd": {
+      "direction": "descriptive",
+      "key": "b58_capacity.isolated.strict2031_fpr95_sd",
+      "notes": "",
+      "source_json_path": "strict2031.points.per_seed",
+      "source_path": "paper/data/b58_capacity_control_results.json",
+      "source_sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+      "status": "prospectively_frozen_post_release_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.0027117531005840167
+    },
     "b58_capacity.isolated.test5": {
       "direction": "higher_is_better",
       "key": "b58_capacity.isolated.test5",
@@ -1062,6 +1074,18 @@
       "surface": "Test5 micro",
       "unit": "fraction",
       "value": 0.7431087000979474
+    },
+    "b58_capacity.isolated.test5_sd": {
+      "direction": "descriptive",
+      "key": "b58_capacity.isolated.test5_sd",
+      "notes": "",
+      "source_json_path": "ref_test5.points.per_seed",
+      "source_path": "paper/data/b58_capacity_control_results.json",
+      "source_sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+      "status": "prospectively_frozen_post_release_capacity_control",
+      "surface": "Test5 micro",
+      "unit": "fraction",
+      "value": 0.00032664903409848124
     },
     "b58_capacity.isolated_minus_shared_wide.strict2031_fpr95_gain": {
       "ci95": {
@@ -1449,6 +1473,18 @@
       "unit": "fraction",
       "value": 0.47973083866732313
     },
+    "b58_capacity.shared_wide.strict2031_fpr95_sd": {
+      "direction": "descriptive",
+      "key": "b58_capacity.shared_wide.strict2031_fpr95_sd",
+      "notes": "",
+      "source_json_path": "strict2031.points.per_seed",
+      "source_path": "paper/data/b58_capacity_control_results.json",
+      "source_sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+      "status": "prospectively_frozen_post_release_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.0019898827593930867
+    },
     "b58_capacity.shared_wide.test5": {
       "direction": "higher_is_better",
       "key": "b58_capacity.shared_wide.test5",
@@ -1460,6 +1496,18 @@
       "surface": "Test5 micro",
       "unit": "fraction",
       "value": 0.6900018297867762
+    },
+    "b58_capacity.shared_wide.test5_sd": {
+      "direction": "descriptive",
+      "key": "b58_capacity.shared_wide.test5_sd",
+      "notes": "",
+      "source_json_path": "ref_test5.points.per_seed",
+      "source_path": "paper/data/b58_capacity_control_results.json",
+      "source_sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+      "status": "prospectively_frozen_post_release_capacity_control",
+      "surface": "Test5 micro",
+      "unit": "fraction",
+      "value": 0.007201062862293607
     },
     "cross_benchmark.finecops.auroc_gain": {
       "direction": "higher_is_better_gain",
@@ -3094,6 +3142,66 @@
       "surface": "FineCops full test",
       "unit": "fraction",
       "value": 0.44820849033710836
+    },
+    "finecops.published_mmgdino.negative_image_auroc_type_macro": {
+      "direction": "higher_is_better",
+      "key": "finecops.published_mmgdino.negative_image_auroc_type_macro",
+      "notes": "MM-Grounding-DINO-T row reported by the FineCops-Ref paper",
+      "source_json_path": "finecops_ref.mm_grounding_dino_t.negative_image_auroc_type_macro",
+      "source_path": "paper/data/published_reference_metrics.json",
+      "source_sha256": "c9f9ad61a18e5476ba604029788190a3ac1aa42b53a72fe565b4cfe64d63b773",
+      "status": "published_reference_not_local_forward",
+      "surface": "FineCops published benchmark table",
+      "unit": "fraction",
+      "value": 0.5652
+    },
+    "finecops.published_mmgdino.negative_image_recall1": {
+      "direction": "higher_is_better",
+      "key": "finecops.published_mmgdino.negative_image_recall1",
+      "notes": "MM-Grounding-DINO-T row reported by the FineCops-Ref paper",
+      "source_json_path": "finecops_ref.mm_grounding_dino_t.negative_image_recall1",
+      "source_path": "paper/data/published_reference_metrics.json",
+      "source_sha256": "c9f9ad61a18e5476ba604029788190a3ac1aa42b53a72fe565b4cfe64d63b773",
+      "status": "published_reference_not_local_forward",
+      "surface": "FineCops published benchmark table",
+      "unit": "fraction",
+      "value": 0.4314
+    },
+    "finecops.published_mmgdino.negative_text_auroc_type_macro": {
+      "direction": "higher_is_better",
+      "key": "finecops.published_mmgdino.negative_text_auroc_type_macro",
+      "notes": "MM-Grounding-DINO-T row reported by the FineCops-Ref paper",
+      "source_json_path": "finecops_ref.mm_grounding_dino_t.negative_text_auroc_type_macro",
+      "source_path": "paper/data/published_reference_metrics.json",
+      "source_sha256": "c9f9ad61a18e5476ba604029788190a3ac1aa42b53a72fe565b4cfe64d63b773",
+      "status": "published_reference_not_local_forward",
+      "surface": "FineCops published benchmark table",
+      "unit": "fraction",
+      "value": 0.5398
+    },
+    "finecops.published_mmgdino.negative_text_recall1": {
+      "direction": "higher_is_better",
+      "key": "finecops.published_mmgdino.negative_text_recall1",
+      "notes": "MM-Grounding-DINO-T row reported by the FineCops-Ref paper",
+      "source_json_path": "finecops_ref.mm_grounding_dino_t.negative_text_recall1",
+      "source_path": "paper/data/published_reference_metrics.json",
+      "source_sha256": "c9f9ad61a18e5476ba604029788190a3ac1aa42b53a72fe565b4cfe64d63b773",
+      "status": "published_reference_not_local_forward",
+      "surface": "FineCops published benchmark table",
+      "unit": "fraction",
+      "value": 0.3869
+    },
+    "finecops.published_mmgdino.positive_p1_macro": {
+      "direction": "higher_is_better",
+      "key": "finecops.published_mmgdino.positive_p1_macro",
+      "notes": "MM-Grounding-DINO-T row reported by the FineCops-Ref paper",
+      "source_json_path": "finecops_ref.mm_grounding_dino_t.positive_p1_macro",
+      "source_path": "paper/data/published_reference_metrics.json",
+      "source_sha256": "c9f9ad61a18e5476ba604029788190a3ac1aa42b53a72fe565b4cfe64d63b773",
+      "status": "published_reference_not_local_forward",
+      "surface": "FineCops published benchmark table",
+      "unit": "fraction",
+      "value": 0.4845
     },
     "finecops.ranker_rejector.negative_image_recall1": {
       "by_seed": {

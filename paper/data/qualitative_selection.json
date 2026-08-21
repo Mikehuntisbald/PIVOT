@@ -1,73 +1,39 @@
 {
   "checkpoint_seed": 42,
-  "claim_boundary": "examples explain mechanisms and include a failure; they are not a metric",
-  "schema": "arrow.paper.qualitative_selection/v1",
+  "claim_boundary": "illustrative decision diagnosis; no metric or model selection",
+  "schema": "arrow.paper.qualitative_selection/v2",
   "sealed_source_threshold": 0.31912317872047424,
   "selection": [
     {
-      "arrow_iou": 0.8736763596534729,
-      "arrow_raw_confidence": -0.06436972320079803,
-      "eligible_queries": 59,
-      "expression": "The wooden structure positioned to the right of the car, which, in turn, is located to the left of the woman.",
-      "frozen_base_iou": 0.008927696384489536,
       "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2333843.jpg",
       "image_sha256": "bf12375b3dce5b44546a109ca14822f917d5972eab05d6e65ccca74ee8de82d6",
-      "kind": "positive",
-      "panel": "Ranking rescue",
-      "ranker_iou": 0.8736763596534729,
-      "rule": "base_wrong_ranker_correct_admission_preserves_legible_cue",
+      "panel": "Ranking",
+      "rule": "sealed native-wrong complete-expression-rank-correct example",
       "sample_id": "finecops:test:5758"
     },
     {
-      "arrow_iou": 0.8916022777557373,
-      "arrow_raw_confidence": 1.0632309913635254,
-      "eligible_queries": 3,
-      "expression": "Accompanied by the white and fancy umbrella, the walking woman is seen carrying a paper and adorned with a beaded and long necklace.",
-      "frozen_base_iou": 0.2384835034608841,
-      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2406693.jpg",
-      "image_sha256": "3d4b3aae5d53b3d666f2b3bad8f4700577edc81c8a6e5d289c60f39c2f276042",
-      "kind": "positive",
-      "panel": "Admission rescue",
-      "ranker_iou": 0.2384835034608841,
-      "rule": "ranker_wrong_admission_correct_min_eligible",
-      "sample_id": "finecops:test:3706"
+      "dog_support_sha256": "73dd64addf8b09dd9873cc9d439d47eec6af207d0fd130cc464e12ff6aacb9fb",
+      "image_path": "/media/haoyi/T9/data/COCO/coco2017/val2017/000000512836.jpg",
+      "image_sha256": "f9f4c714e1a2eee17e4bd93710c16b5ee3e47f8e6e9baa1d4fd6eff2c8bfb13c",
+      "jacket_support_sha256": "dd4f1b5b4cdb84eaf840d5601328cc06e8d7ae99ce74c48121dfd1de45b0804d",
+      "panel": "Admission",
+      "rule": "visual bidirectional success, category-text failure, legible external cues",
+      "sample_id": "cat-int:9bc2eb6e5d9a36a81c511e26"
     },
     {
-      "arrow_iou": 0.983802855014801,
-      "arrow_raw_confidence": -0.2953898012638092,
-      "eligible_queries": 39,
-      "expression": "Bear donning a brown coat.",
-      "frozen_base_iou": 0.983802855014801,
       "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2348673.jpg",
       "image_sha256": "e10a2432dec597b7b8cfd69111541cb15c257199ff0138c2f9abf1a31e5043d5",
-      "kind": "text",
-      "panel": "Rejection transfer",
-      "ranker_iou": 0.983802855014801,
-      "rule": "sealed_source_tau_rejects_external_negative",
+      "panel": "Abstention",
+      "rule": "sealed source threshold suppresses a negative-expression winner",
       "sample_id": "finecops:test:30097"
-    },
-    {
-      "arrow_iou": 0.9718649387359619,
-      "arrow_raw_confidence": 0.4266906678676605,
-      "eligible_queries": 259,
-      "expression": "Resting to the right of the keyboard (which is to the left of the child) is the sought-after computer.",
-      "frozen_base_iou": 0.20255310833454132,
-      "image_path": "/media/haoyi/T9/data/FineCops-Ref/v1/images/gqa/2360654.jpg",
-      "image_sha256": "fc6b7892b015f40ce6c8aebeb4e15e6f527f68e8b6001973bf24f62e998aec08",
-      "kind": "positive",
-      "panel": "Hard composition",
-      "ranker_iou": 0.20255310833454132,
-      "rule": "level3_base_wrong_arrow_correct_distinct_category",
-      "sample_id": "finecops:test:7072"
     }
   ],
-  "source_manifest": {
-    "path": "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/finecops_test_all.jsonl",
-    "sha256": "cadd7be4cf4120eeb71dee82bf042283cdd6c7cdefa206a68d320900b4c7f4ff"
-  },
-  "source_records": {
-    "path": "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/evaluations/A/seed42/records.jsonl",
-    "sha256": "a6792ac184d35a144a3c8dc3ef2eff15f09f7a940766dfad326501640fdb5902"
+  "source_files": {
+    "/media/haoyi/T9/data/FineCops-Ref/v1/manifests/finecops_test_all.jsonl": "cadd7be4cf4120eeb71dee82bf042283cdd6c7cdefa206a68d320900b4c7f4ff",
+    "/media/haoyi/T9/pivot/data/ablations/stageb_table_a_category_intervention_20260717/category_intervention_pairs.jsonl": "a624b97b416d6df8031d18d2f0b1b34222f02cb0d828928d6fa2f4c97b0a34c7",
+    "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/evaluations/AR_A_PATCH/fresh_panel/seed42.records.jsonl": "d583072fdc602f1100a94b19cc827ee9646497a14798b1259aaae305aca1f3e4",
+    "/media/haoyi/T9/pivot/outputs/arrow_admission_input_20260818/evaluations/AR_B_TEXT/fresh_panel/seed42.records.jsonl": "b1563ef3a9ea50e18ec545688d0a26713c2f285483b979d3619d5b4c1c8a1d50",
+    "/media/haoyi/T9/pivot/outputs/arrow_finecops_20260819/evaluations/A/seed42/records.jsonl": "a6792ac184d35a144a3c8dc3ef2eff15f09f7a940766dfad326501640fdb5902"
   },
   "status": "post_hoc_zero_training_visualization"
 }

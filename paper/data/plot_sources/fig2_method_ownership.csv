@@ -1,6 +1,8 @@
 panel,component,owner,deployment_role,gradient_contract
-a,Geometry,φ  frozen,candidate universe,frozen
-a,Admission,θA  only,category eligibility,exclusive
-a,Ranking,θR  only,within-set ordering,exclusive
-a,Rejection,θC  only,sample acceptance,exclusive
+a,Geometry,φ frozen,candidate universe,frozen
+a,Admission,θA,category eligibility,factorized decision; allocation tested empirically
+a,Ranking,θR,within-set ordering,factorized decision; allocation tested empirically
+a,Abstention,θC,sample acceptance,factorized decision; allocation tested empirically
 a,Auxiliary residual,Admission training,none,supervision-only; runtime output ignored
+b,ARROW-U2 frozen base,isolated Ranking and Abstention,same factorized outputs,selected after recurrent negative probes
+b,strong MM-GDINO e5,Shared-Wide competitive,same factorized outputs,near-orthogonal measured gradients

@@ -106,8 +106,8 @@
         "Test5 and Strict-TN2031 paired image-cluster bootstrap",
         "capacity, optimizer, frozen-hash, and gradient audits"
       ],
-      "git_commit": null,
-      "git_tracked": false,
+      "git_commit": "d14325825f6f9837b9c6a1fb3f452a8072f4f2d0",
+      "git_tracked": true,
       "kind": "prospectively_frozen_post_release_capacity_control",
       "path": "paper/data/b58_capacity_control_results.json",
       "sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
@@ -345,6 +345,17 @@
       "path": "outputs/u2v5_cvpr_ablation_20260817/zero_training_ps/summary.json",
       "sha256": "c459bd3323fff5b263bb2210d7c6af20e64491b18be8a54d642e25c6ea59560c",
       "size_bytes": 14043
+    },
+    "published_reference_metrics": {
+      "claims_owned": [
+        "published FineCops MM-Grounding-DINO-T reference row"
+      ],
+      "git_commit": "63559e7b6c16c22c74943a34996839cfaee01ff1",
+      "git_tracked": true,
+      "kind": "published_numeric_reference",
+      "path": "paper/data/published_reference_metrics.json",
+      "sha256": "c9f9ad61a18e5476ba604029788190a3ac1aa42b53a72fe565b4cfe64d63b773",
+      "size_bytes": 467
     },
     "zero_training": {
       "claims_owned": [
