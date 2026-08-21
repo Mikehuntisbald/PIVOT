@@ -603,6 +603,18 @@ def run_formal_training(
     resume_from: str | Path | None = None,
 ) -> dict[str, Any]:
     """Run one fixed U150 arm/seed trajectory and return its final receipt."""
+    if config.device == "cuda":
+        workspace = os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+        if workspace is None:
+            # Must be set before the first owner GEMM.  CUDA availability
+            # checks do not create a cuBLAS handle, so setting it here remains
+            # early enough while keeping the CLI self-contained.
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+        elif workspace not in (":4096:8", ":16:8"):
+            raise FormalOwnershipError(
+                "deterministic CUDA requires CUBLAS_WORKSPACE_CONFIG=:4096:8 "
+                "or :16:8"
+            )
     config = config.validate()
     cache_path = Path(cache_path).resolve(strict=True)
     schedule_path = Path(schedule_path).resolve(strict=True)
@@ -850,6 +862,11 @@ def run_formal_training(
             "torch_version": torch.__version__,
             "device": str(device),
             "deterministic_algorithms": True,
+            "cublas_workspace_config": (
+                os.environ.get("CUBLAS_WORKSPACE_CONFIG")
+                if device.type == "cuda"
+                else None
+            ),
         },
     }
     _atomic_json(receipt, receipt_path)

@@ -1,0 +1,32 @@
+{
+  "schema": "arrow.mmgdino_e5_ownership.runtime_amendment/v1",
+  "status": "locked_before_first_optimizer_update",
+  "locked_at": "2026-08-21T11:36:01+08:00",
+  "parent_preregistration": {
+    "path": "paper/data/mmgdino_e5_ownership_preregistration.json",
+    "sha256": "7c8c7e69d1c279f6a7033d0e5e5b20d87f6555c154a0338e44c6defbb004c016"
+  },
+  "failure": {
+    "arm": "shared_128",
+    "seed": 17,
+    "failed_before_update": 1,
+    "optimizer_steps": 0,
+    "checkpoint_written": false,
+    "metric_viewed": false,
+    "reason": "PyTorch deterministic CUDA rejected the first cuBLAS GEMM because CUBLAS_WORKSPACE_CONFIG was unset.",
+    "preserved_path": "outputs/mmgdino_e5_ownership_transfer_20260821/failed_attempts/shared_128_seed17_missing_cublas_before_u1"
+  },
+  "change": {
+    "scope": "runtime_only",
+    "old_trainer_sha256": "1af542c0213a484648a41a0150ceeccdde6a61b1ae4e5f3bff17719da53c3435",
+    "new_trainer_sha256": "fb51d883b8186604ef8a22b594087d2d5e91c8fc2c2b6e60aa10b7efde259653",
+    "behavior": "Set CUBLAS_WORKSPACE_CONFIG=:4096:8 before the first CUDA owner GEMM when it is absent; reject any non-approved value.",
+    "model_changed": false,
+    "data_changed": false,
+    "schedule_changed": false,
+    "loss_changed": false,
+    "optimizer_changed": false,
+    "seed_changed": false
+  },
+  "restart": "Restart all nine formal trajectories from their identical zero-initialized owner state."
+}
