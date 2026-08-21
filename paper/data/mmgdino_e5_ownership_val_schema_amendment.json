@@ -1,0 +1,30 @@
+{
+  "schema": "arrow.mmgdino_e5_ownership.val_schema_amendment/v1",
+  "locked_at": "2026-08-21T12:29:05+08:00",
+  "status": "locked_before_refcoco_val_rerun",
+  "parent_git_commit": "92710fbe986211dbf616eae37e52d993e1fb92e1",
+  "scope": "RefCOCO val mechanism-only cache and evaluation",
+  "failure": {
+    "result_rows_written": 0,
+    "reason": "The generic training-cache validator required every rank row to contain both an IoU>=0.5 candidate and a hard negative. The frozen e5 Val candidate universe does not satisfy that optimization precondition for every expression.",
+    "failed_output_absent": true
+  },
+  "change": {
+    "training_contract": "unchanged: rank training rows still require both a positive and a hard negative",
+    "evaluation_contract": "rank evaluation rows require ground truth but may lack an IoU>=0.5 candidate; those rows count as oracle and top-1 failures",
+    "model_weights": "unchanged",
+    "route_scores": "unchanged",
+    "primary_test_and_strict_outputs": "unchanged and not rerun",
+    "checkpoint_or_threshold_selection": "none"
+  },
+  "code_after_amendment": {
+    "tools/responsibility_isolation_cache.py": "f45e41c4702a400c819b4117c21a9e7b4ef4563f7d12ed7968524373b4fed0b0",
+    "tools/extract_mmgdino_e5_eval_cache.py": "205b601413a84a3777d046b796e8bc7e5378cd0945f870449971113b0553fadd",
+    "tools/eval_mmgdino_e5_ownership_cache.py": "ee19c726cf1869459a0dd21f9f77d8d0c3672a5bba97e57daafde5678ad98bea"
+  },
+  "prohibitions": [
+    "Do not use RefCOCO val to select a route or milestone.",
+    "Do not reinterpret missing-oracle rows as dropped examples.",
+    "Do not rerun or replace the already completed TestA/TestB or Strict-TN2031 outputs."
+  ]
+}

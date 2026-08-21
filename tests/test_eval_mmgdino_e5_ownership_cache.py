@@ -22,6 +22,8 @@ from tools.responsibility_isolation_cache import (
     CACHE_SOURCE_SCHEMA,
     CACHE_TASK_CONFIDENCE_PAIR,
     CACHE_TASK_RANK,
+    CachedCandidateContractError,
+    validate_cached_candidate_row,
 )
 from tools.train_mmgdino_e5_ownership import CHECKPOINT_SCHEMA
 
@@ -113,6 +115,30 @@ class OwnershipCacheEvalTests(unittest.TestCase):
             )
             self.assertEqual(native["metrics"], learned["metrics"])
             self.assertEqual(native["metrics"]["p1_iou50"], 1.0)
+
+    def test_eval_counts_missing_oracle_as_failure_without_weakening_training(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            row = self._base("rank:no-oracle", "11", CACHE_TASK_RANK)
+            row["gt_boxes"] = torch.tensor([[0.45, 0.45, 0.05, 0.05]])
+            with self.assertRaisesRegex(
+                CachedCandidateContractError, "IoU>=0.5 positives"
+            ):
+                validate_cached_candidate_row(row)
+            validate_cached_candidate_row(
+                row, require_trainable_rank_pair=False
+            )
+            cache = root / "ref-no-oracle.pt"
+            self._save_eval_cache(cache, CACHE_TASK_RANK, (row,))
+            summary = evaluate_cache(
+                cache_path=cache,
+                route="native",
+                surface="ref",
+                output_dir=root / "native-no-oracle",
+                device="cpu",
+            )
+            self.assertEqual(summary["metrics"]["oracle_iou50"], 0.0)
+            self.assertEqual(summary["metrics"]["p1_iou50"], 0.0)
 
     def test_native_tn_metrics_use_sample_max(self):
         with tempfile.TemporaryDirectory() as temporary:

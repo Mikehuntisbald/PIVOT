@@ -249,7 +249,12 @@ def extract_eval_cache(
             cache_rows.append(cache_row)
     finally:
         runtime.close()
-    cache_rows = tuple(validate_cached_candidate_row(row) for row in cache_rows)
+    cache_rows = tuple(
+        validate_cached_candidate_row(
+            row, require_trainable_rank_pair=(mode != "ref")
+        )
+        for row in cache_rows
+    )
     expected_task = CACHE_TASK_RANK if mode == "ref" else CACHE_TASK_CONFIDENCE_PAIR
     if {row["task"] for row in cache_rows} != {expected_task}:
         raise MMGroundingDinoExtractionError("evaluation cache task drifted")

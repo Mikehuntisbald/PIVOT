@@ -1,0 +1,26 @@
+{
+  "schema": "arrow.mmgdino_e5_ownership.val_runtime_amendment/v1",
+  "locked_at": "2026-08-21T12:30:52+08:00",
+  "status": "locked_before_refcoco_val_runtime_retry",
+  "parent": "paper/data/mmgdino_e5_ownership_val_schema_amendment.json",
+  "failure": {
+    "stage": "checkpoint CPU deserialization before model forward",
+    "result_rows_written": 0,
+    "outputs_absent": true,
+    "reason": "PyTorch 2.6 defaulted torch.load to weights_only=True; the trusted local MMEngine checkpoint contains HistoryBuffer metadata."
+  },
+  "retry": {
+    "environment": {
+      "TRANSFORMERS_OFFLINE": "1",
+      "HF_HUB_OFFLINE": "1",
+      "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD": "1"
+    },
+    "checkpoint": "unchanged",
+    "model_and_evaluation_code": "unchanged from the val schema amendment",
+    "scientific_protocol": "unchanged"
+  },
+  "prohibitions": [
+    "Do not change any checkpoint, route, metric, or threshold.",
+    "Do not treat this pre-forward runtime failure as an evaluated attempt."
+  ]
+}

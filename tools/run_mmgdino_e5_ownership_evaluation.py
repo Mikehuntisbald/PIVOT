@@ -22,6 +22,7 @@ from tools.train_mmgdino_e5_ownership import FORMAL_SEEDS
 EXPERIMENT_ROOT = ROOT / "outputs/mmgdino_e5_ownership_transfer_20260821"
 PREREG = ROOT / "paper/data/mmgdino_e5_ownership_evaluation_preregistration.json"
 STRICT_PATH_AMENDMENT = ROOT / "paper/data/mmgdino_e5_ownership_strict_path_amendment.json"
+VAL_SCHEMA_AMENDMENT = ROOT / "paper/data/mmgdino_e5_ownership_val_schema_amendment.json"
 PRIMARY_REF_SURFACES = ("refcoco_testA", "refcoco_testB")
 REF_SURFACES = ("refcoco_val",) + PRIMARY_REF_SURFACES
 
@@ -43,7 +44,7 @@ def _cache(surface: str) -> Path:
     return EXPERIMENT_ROOT / f"evaluation_caches/{surface}.pt"
 
 
-def _validate_prereg() -> dict[str, Any]:
+def _validate_prereg(*, allow_val_amendment: bool = False) -> dict[str, Any]:
     value = json.loads(PREREG.read_text(encoding="utf-8"))
     if value.get("status") != "locked_after_u150_and_before_eval_cache_extraction":
         raise EvaluationRunError("evaluation preregistration status drifted")
@@ -55,21 +56,39 @@ def _validate_prereg() -> dict[str, Any]:
     ):
         actual = file_sha256(ROOT / relative)
         if value["code"][name]["sha256"] != actual:
-            if name != "eval_cache_extractor":
-                raise EvaluationRunError(f"preregistered code SHA drifted: {name}")
-            amendment = json.loads(
-                STRICT_PATH_AMENDMENT.read_text(encoding="utf-8")
-            )
-            if (
-                amendment.get("status")
-                != "locked_before_strict2031_model_forward"
-                or amendment.get("change", {}).get(
-                    "new_eval_cache_extractor_sha256"
+            covered = False
+            if name == "eval_cache_extractor":
+                amendment = json.loads(
+                    STRICT_PATH_AMENDMENT.read_text(encoding="utf-8")
                 )
-                != actual
+                covered = (
+                    amendment.get("status")
+                    == "locked_before_strict2031_model_forward"
+                    and amendment.get("change", {}).get(
+                        "new_eval_cache_extractor_sha256"
+                    )
+                    == actual
+                )
+            if allow_val_amendment and name in (
+                "eval_cache_extractor", "cache_evaluator"
             ):
+                amendment = json.loads(
+                    VAL_SCHEMA_AMENDMENT.read_text(encoding="utf-8")
+                )
+                expected_key = (
+                    "tools/extract_mmgdino_e5_eval_cache.py"
+                    if name == "eval_cache_extractor"
+                    else "tools/eval_mmgdino_e5_ownership_cache.py"
+                )
+                covered = covered or (
+                    amendment.get("status")
+                    == "locked_before_refcoco_val_rerun"
+                    and amendment.get("code_after_amendment", {}).get(expected_key)
+                    == actual
+                )
+            if not covered:
                 raise EvaluationRunError(
-                    "evaluation extractor drift is not covered by strict-path amendment"
+                    f"preregistered code SHA drift is not covered: {name}"
                 )
     for route in OWNERSHIP_MODES:
         for seed in FORMAL_SEEDS:
@@ -93,7 +112,7 @@ def _is_complete(path: Path) -> bool:
 
 
 def status() -> dict[str, Any]:
-    _validate_prereg()
+    _validate_prereg(allow_val_amendment=True)
     rows = []
     for surface in (*REF_SURFACES, "d3_calibration", "strict2031"):
         route_values = ("native",) if surface == "d3_calibration" else ROUTES
@@ -147,7 +166,7 @@ def _run_one(
 
 
 def run(*, device: str, include_val: bool = False) -> dict[str, Any]:
-    _validate_prereg()
+    _validate_prereg(allow_val_amendment=include_val)
     ref_surfaces = REF_SURFACES if include_val else PRIMARY_REF_SURFACES
     for surface in (*ref_surfaces, "d3_calibration", "strict2031"):
         if not _cache(surface).is_file():

@@ -61,7 +61,15 @@ def load_eval_cache(path: Path) -> dict[str, Any]:
         raise OwnershipEvalError("evaluation cache envelope drifted")
     if payload["schema"] != EVAL_CACHE_SCHEMA:
         raise OwnershipEvalError("evaluation cache schema drifted")
-    rows = tuple(validate_cached_candidate_row(row) for row in payload["rows"])
+    rows = tuple(
+        validate_cached_candidate_row(
+            row,
+            require_trainable_rank_pair=(
+                payload["task"] != CACHE_TASK_RANK
+            ),
+        )
+        for row in payload["rows"]
+    )
     if not rows or {row["task"] for row in rows} != {payload["task"]}:
         raise OwnershipEvalError("evaluation cache task rows drifted")
     return {**payload, "rows": rows}

@@ -1,0 +1,24 @@
+{
+  "schema": "arrow.mmgdino_e5_ownership.val_runner_amendment/v1",
+  "locked_at": "2026-08-21T12:42:56+08:00",
+  "status": "locked_before_refcoco_val_route_evaluation",
+  "parents": [
+    "paper/data/mmgdino_e5_ownership_val_schema_amendment.json",
+    "paper/data/mmgdino_e5_ownership_val_runtime_amendment.json"
+  ],
+  "failure": {
+    "stage": "runner preregistration validation before cache load",
+    "result_rows_written": 0,
+    "reason": "The runner recognized the earlier strict-path extractor amendment but did not yet recognize the separately sealed Val-only extractor/evaluator hashes."
+  },
+  "change": {
+    "runner_sha256": "261b8d821af589b40bb54b4ddbacb4762706c5ec869a22503c38549764f38706",
+    "behavior": "Status and --include-val accept only the exact extractor and evaluator hashes already bound by the Val schema amendment. A non-Val run remains bound to the original/strict-path code set.",
+    "model_checkpoint_scores_metrics_or_thresholds_changed": false,
+    "primary_outputs_rerun": false
+  },
+  "prohibitions": [
+    "Do not use the Val amendment to rerun or replace TestA/TestB or Strict-TN2031 records.",
+    "Do not accept unbound code hashes."
+  ]
+}

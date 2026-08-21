@@ -173,8 +173,16 @@ def normalized_cxcywh_iou(boxes: Tensor, gt_boxes: Tensor) -> Tensor:
     return intersection_area / union.clamp(min=torch.finfo(union.dtype).eps)
 
 
-def validate_cached_candidate_row(row: Mapping[str, Any]) -> dict[str, Any]:
-    """Validate one row and return it unchanged as a plain dictionary."""
+def validate_cached_candidate_row(
+    row: Mapping[str, Any], *, require_trainable_rank_pair: bool = True
+) -> dict[str, Any]:
+    """Validate one row and return it unchanged as a plain dictionary.
+
+    Training keeps ``require_trainable_rank_pair=True`` so every row supplies
+    both an IoU-positive and a hard negative.  Frozen evaluation may disable
+    only that optimization precondition; it still requires ground truth and
+    reports missing-oracle rows as ordinary localization failures.
+    """
     if not isinstance(row, Mapping):
         raise CachedCandidateContractError("cache row must be a mapping")
     task = row.get("task")
@@ -250,7 +258,9 @@ def validate_cached_candidate_row(row: Mapping[str, Any]) -> dict[str, Any]:
         best_iou = normalized_cxcywh_iou(boxes, gt_boxes).amax(dim=1)
         positives = mask & (best_iou >= 0.5)
         negatives = mask & (~positives)
-        if not bool(positives.any().item()) or not bool(negatives.any().item()):
+        if require_trainable_rank_pair and (
+            not bool(positives.any().item()) or not bool(negatives.any().item())
+        ):
             raise CachedCandidateContractError(
                 "rank row must contain eligible IoU>=0.5 positives and hard negatives"
             )
