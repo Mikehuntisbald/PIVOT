@@ -708,6 +708,18 @@ def _load_model_with_checkpoint_contract(
             row_id=str(getattr(cfg, "stage_b_arrow_admission_row_id")),
             source=str(getattr(cfg, "stage_b_arrow_admission_source")),
         )
+    elif bool(getattr(cfg, "stage_b_b58_capacity_control_eval", False)):
+        from tools.stageb_b58_capacity_control_contract import (
+            validate_b58_capacity_runtime_payload,
+        )
+
+        checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
+        validate_b58_capacity_runtime_payload(
+            model,
+            checkpoint_payload,
+            row_id=str(getattr(cfg, "stage_b_u2v5_ablation_row_id")),
+            checkpoint_label=f"B58 capacity-control checkpoint {checkpoint}",
+        )
     elif bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False)):
         from tools.stageb_u2v5_ablation_contract import (
             validate_ownership_runtime_payload,
@@ -758,6 +770,7 @@ def _load_model_with_checkpoint_contract(
         and not arrow_eval
         and not bool(getattr(cfg, "stage_b_u2v5_ablation_eval", False))
         and not bool(getattr(cfg, "stage_b_u2v5_ownership_eval", False))
+        and not bool(getattr(cfg, "stage_b_b58_capacity_control_eval", False))
     ):
         checkpoint_payload = load_checkpoint(Path(checkpoint).resolve(strict=True))
         if bool(getattr(cfg, "stage_b_u2v4_legacy_admission_replay", False)):

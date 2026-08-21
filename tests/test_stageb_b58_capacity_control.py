@@ -3,6 +3,11 @@ import unittest
 import torch
 
 from models.GroundingDINO.stage_b_gdino_score_adapter import StageBGDINOScoreAdapter
+from models.GroundingDINO.stage_b_u0_patch_rank import stage_b_u0_tensor_state_sha256
+from tools.stageb_b58_capacity_control_contract import (
+    CapacityControlContractError,
+    validate_b58_capacity_runtime_payload,
+)
 from tools.train_stageb_u2v5_ownership import (
     _TaskSpecificOptimizer,
     _load_capacity_initializer,
@@ -83,6 +88,96 @@ class B58CapacityControlTests(unittest.TestCase):
         self.assertEqual(state["schema"], "arrow.stageb.task_specific_adamw/v1")
         self.assertTrue(all(group["weight_decay"] == 0.0 for group in admission.param_groups))
         self.assertTrue(all(group["weight_decay"] == 0.0 for group in confidence.param_groups))
+
+    def _capacity_payload(self, model, row_id="B58_SHARED_WIDE"):
+        state = model.state_dict()
+        frozen = sorted(state)
+        expected = {
+            "B58_SHARED_WIDE": {
+                "config": "config/ablations/cfg_stageb_b58_capacity_shared_wide.py",
+                "ownership": "shared_wide_two_heads",
+                "capacity": {
+                    "trainable_parameters": 352138,
+                    "score_owner_parameters": 83971,
+                    "score_macs_per_query_and_output": 83007,
+                    "representation_dim": 163,
+                    "gate_hidden_dim": 62,
+                },
+            },
+            "B58_ISOLATED_REPLAY": {
+                "config": "config/ablations/cfg_stageb_b58_capacity_isolated_replay.py",
+                "ownership": "isolated_heads",
+                "capacity": {
+                    "trainable_parameters": 352136,
+                    "score_owner_parameters": 83969,
+                    "score_macs_per_query_and_output": 82944,
+                    "representation_dim": 128,
+                    "gate_hidden_dim": 128,
+                },
+            },
+        }[row_id]
+        gradient = (
+            {"diagnostic_pairs": 1}
+            if row_id == "B58_SHARED_WIDE"
+            else {"structural_isolation_checks": 150, "structural_cross_gradients": 0}
+        )
+        return {
+            "model": state,
+            "u2v5_ownership": {
+                "schema": "arrow.stageb.b58_capacity_control_checkpoint/v1",
+                "row": {
+                    "schema": "arrow.stageb.b58_capacity_control_row/v1",
+                    "row_id": row_id,
+                    "config": expected["config"],
+                    "ownership": expected["ownership"],
+                    "updates": 150,
+                    "batch_size": 56,
+                    "parent": "clean_initializer",
+                },
+                "frozen_keys": frozen,
+                "trainable_keys": [],
+                "frozen_tensor_sha256": stage_b_u0_tensor_state_sha256(state, frozen),
+                "c100_confidence_imported": False,
+                "exposure": {"admission": 100, "confidence": 50},
+                "runtime_audit": {
+                    "successful_optimizer_steps": 150,
+                    "task_successful_steps": {"admission": 100, "confidence": 50},
+                    "amp_skipped_optimizer_steps": 0,
+                    "nonfinite_gradient_boundaries": 0,
+                },
+                "optimizer_ownership": {
+                    "task_specific_states": True,
+                    "weight_decay": 0.0,
+                },
+                "parameter_accounting": {
+                    "capacity_control": expected["capacity"],
+                    "trainable": expected["capacity"]["trainable_parameters"],
+                },
+                "gradient_audit": gradient,
+            },
+        }
+
+    def test_capacity_runtime_contract_accepts_locked_wide_payload(self):
+        model = _AdapterModel(163, 62, "shared_wide_two_heads")
+        contract = validate_b58_capacity_runtime_payload(
+            model,
+            self._capacity_payload(model),
+            row_id="B58_SHARED_WIDE",
+            checkpoint_label="fixture",
+        )
+        self.assertEqual(contract["row"]["row_id"], "B58_SHARED_WIDE")
+
+    def test_capacity_runtime_contract_rejects_weight_decay(self):
+        model = _AdapterModel(163, 62, "shared_wide_two_heads")
+        payload = self._capacity_payload(model)
+        payload["u2v5_ownership"]["optimizer_ownership"]["weight_decay"] = 1e-4
+        with self.assertRaises(CapacityControlContractError):
+            validate_b58_capacity_runtime_payload(
+                model,
+                payload,
+                row_id="B58_SHARED_WIDE",
+                checkpoint_label="fixture",
+            )
 
 
 if __name__ == "__main__":
