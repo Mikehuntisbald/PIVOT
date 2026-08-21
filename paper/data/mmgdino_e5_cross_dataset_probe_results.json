@@ -1,0 +1,652 @@
+{
+  "aggregate": {
+    "shared_128": {
+      "refcoco": {
+        "confidence_gradient_l2": {
+          "mean": 0.02056455423977847,
+          "sample_sd": 0.01105066256078511,
+          "values": [
+            0.03255550772882998,
+            0.018347955483477563,
+            0.010790199507027864
+          ]
+        },
+        "cosine": {
+          "mean": 0.0714461423534279,
+          "sample_sd": 0.05773005702887856,
+          "values": [
+            0.1100112390704453,
+            0.09925190964713693,
+            0.005075278342701495
+          ]
+        },
+        "native_oracle_positive_negative_gap": {
+          "mean": 0.627300833662351,
+          "sample_sd": 0.022703766801818744,
+          "values": [
+            0.6215225160121918,
+            0.6523354053497314,
+            0.6080445796251297
+          ]
+        },
+        "native_p1": {
+          "mean": 0.89453125,
+          "sample_sd": 0.0067658234670659265,
+          "values": [
+            0.890625,
+            0.90234375,
+            0.890625
+          ]
+        },
+        "native_top1_runnerup_margin": {
+          "mean": 0.6898513485987982,
+          "sample_sd": 0.0029617321305939995,
+          "values": [
+            0.6901658028364182,
+            0.686744935810566,
+            0.6926433071494102
+          ]
+        },
+        "rank_fix_loss": {
+          "mean": 0.4379916029671828,
+          "sample_sd": 0.076249318417831,
+          "values": [
+            0.4725239835679531,
+            0.35058559104800224,
+            0.49086523428559303
+          ]
+        },
+        "rank_gradient_l2": {
+          "mean": 0.0372171465617915,
+          "sample_sd": 0.005186270815017683,
+          "values": [
+            0.032881457125768065,
+            0.03580745682120323,
+            0.0429625257384032
+          ]
+        },
+        "rank_loss": {
+          "mean": 0.4380400348454714,
+          "sample_sd": 0.07626226393789223,
+          "values": [
+            0.4726400151848793,
+            0.3506111353635788,
+            0.49086895398795605
+          ]
+        },
+        "rank_preserve_loss": {
+          "mean": 4.8399188244729885e-05,
+          "sample_sd": 5.956763758825744e-05,
+          "values": [
+            0.00011601589221754693,
+            2.5512807496852474e-05,
+            3.668865019790246e-06
+          ]
+        },
+        "rows_per_seed": 256,
+        "sign_conflict_fraction": {
+          "mean": 0.4857034596304099,
+          "sample_sd": 0.016074801367287967,
+          "values": [
+            0.47283216938376427,
+            0.4805569350719452,
+            0.5037212744355202
+          ]
+        }
+      },
+      "refcocog": {
+        "confidence_gradient_l2": {
+          "mean": 0.02056455423977847,
+          "sample_sd": 0.01105066256078511,
+          "values": [
+            0.03255550772882998,
+            0.018347955483477563,
+            0.010790199507027864
+          ]
+        },
+        "cosine": {
+          "mean": 0.07923918696178589,
+          "sample_sd": 0.07252004801301964,
+          "values": [
+            0.07562387600773945,
+            0.1534992717206478,
+            0.008594413156970404
+          ]
+        },
+        "native_oracle_positive_negative_gap": {
+          "mean": 0.5215045760075251,
+          "sample_sd": 0.023795410335366203,
+          "values": [
+            0.5297413766384125,
+            0.4946851208806038,
+            0.5400872305035591
+          ]
+        },
+        "native_p1": {
+          "mean": 0.8268229166666666,
+          "sample_sd": 0.027713276892959327,
+          "values": [
+            0.83203125,
+            0.796875,
+            0.8515625
+          ]
+        },
+        "native_top1_runnerup_margin": {
+          "mean": 0.6500010093053182,
+          "sample_sd": 0.004263960140138819,
+          "values": [
+            0.652270220220089,
+            0.6450823098421097,
+            0.652650497853756
+          ]
+        },
+        "rank_fix_loss": {
+          "mean": 0.4924711162845294,
+          "sample_sd": 0.026259078867406378,
+          "values": [
+            0.48486554622650146,
+            0.4708543084561825,
+            0.5216934941709042
+          ]
+        },
+        "rank_gradient_l2": {
+          "mean": 0.040229761584972344,
+          "sample_sd": 0.005176973367418305,
+          "values": [
+            0.03636778495274484,
+            0.038209179881960154,
+            0.04611231992021203
+          ]
+        },
+        "rank_loss": {
+          "mean": 0.4925304340819518,
+          "sample_sd": 0.026214686815446073,
+          "values": [
+            0.4849700331687927,
+            0.47092678025364876,
+            0.5216944888234138
+          ]
+        },
+        "rank_preserve_loss": {
+          "mean": 5.92893960439748e-05,
+          "sample_sd": 5.299975227770699e-05,
+          "values": [
+            0.0001044756709234207,
+            7.244012749652029e-05,
+            9.523897119834146e-07
+          ]
+        },
+        "rows_per_seed": 256,
+        "sign_conflict_fraction": {
+          "mean": 0.4851431871453921,
+          "sample_sd": 0.016913153904949574,
+          "values": [
+            0.4832167848944664,
+            0.46927571669220924,
+            0.5029370598495007
+          ]
+        }
+      },
+      "refcocoplus": {
+        "confidence_gradient_l2": {
+          "mean": 0.02056455423977847,
+          "sample_sd": 0.01105066256078511,
+          "values": [
+            0.03255550772882998,
+            0.018347955483477563,
+            0.010790199507027864
+          ]
+        },
+        "cosine": {
+          "mean": 0.0738820935851739,
+          "sample_sd": 0.06632350320635405,
+          "values": [
+            0.07518866541795433,
+            0.13954265788197517,
+            0.00691495745559223
+          ]
+        },
+        "native_oracle_positive_negative_gap": {
+          "mean": 0.394901351382335,
+          "sample_sd": 0.0538721862963609,
+          "values": [
+            0.450502160936594,
+            0.3429426159709692,
+            0.39125927723944187
+          ]
+        },
+        "native_p1": {
+          "mean": 0.7447916666666666,
+          "sample_sd": 0.037535248191144725,
+          "values": [
+            0.78515625,
+            0.7109375,
+            0.73828125
+          ]
+        },
+        "native_top1_runnerup_margin": {
+          "mean": 0.5551443385581175,
+          "sample_sd": 0.020812563954353217,
+          "values": [
+            0.5774800442159176,
+            0.5362953394651413,
+            0.5516576319932938
+          ]
+        },
+        "rank_fix_loss": {
+          "mean": 0.4132661620775859,
+          "sample_sd": 0.02299881216522884,
+          "values": [
+            0.4007602147758007,
+            0.4398082047700882,
+            0.39923006668686867
+          ]
+        },
+        "rank_gradient_l2": {
+          "mean": 0.034380575797210135,
+          "sample_sd": 0.007575471660843799,
+          "values": [
+            0.02618636400438845,
+            0.04112889664247632,
+            0.03582646674476564
+          ]
+        },
+        "rank_loss": {
+          "mean": 0.4133186787366867,
+          "sample_sd": 0.022990115725902212,
+          "values": [
+            0.40087202191352844,
+            0.43984855711460114,
+            0.39923545718193054
+          ]
+        },
+        "rank_preserve_loss": {
+          "mean": 5.249324107681197e-05,
+          "sample_sd": 5.424384562424604e-05,
+          "values": [
+            0.00011178463410033146,
+            4.0334477489523124e-05,
+            5.360611640581325e-06
+          ]
+        },
+        "rows_per_seed": 256,
+        "sign_conflict_fraction": {
+          "mean": 0.48510072628657025,
+          "sample_sd": 0.017243497988293298,
+          "values": [
+            0.4776773154735565,
+            0.472812183201313,
+            0.5048126801848412
+          ]
+        }
+      }
+    },
+    "shared_wide": {
+      "refcoco": {
+        "confidence_gradient_l2": {
+          "mean": 0.05014446626106898,
+          "sample_sd": 0.0015714946383825646,
+          "values": [
+            0.04851823998615146,
+            0.05165481427684426,
+            0.05026034452021122
+          ]
+        },
+        "cosine": {
+          "mean": 0.02602508753382911,
+          "sample_sd": 0.04199598301975292,
+          "values": [
+            0.008653394179418683,
+            0.07391974434722215,
+            -0.004497875925153494
+          ]
+        },
+        "native_oracle_positive_negative_gap": {
+          "mean": 0.627300833662351,
+          "sample_sd": 0.022703766801818744,
+          "values": [
+            0.6215225160121918,
+            0.6523354053497314,
+            0.6080445796251297
+          ]
+        },
+        "native_p1": {
+          "mean": 0.89453125,
+          "sample_sd": 0.0067658234670659265,
+          "values": [
+            0.890625,
+            0.90234375,
+            0.890625
+          ]
+        },
+        "native_top1_runnerup_margin": {
+          "mean": 0.6898513485987982,
+          "sample_sd": 0.0029617321305939995,
+          "values": [
+            0.6901658028364182,
+            0.686744935810566,
+            0.6926433071494102
+          ]
+        },
+        "rank_fix_loss": {
+          "mean": 0.4374924960235755,
+          "sample_sd": 0.07658532551351753,
+          "values": [
+            0.4717303104698658,
+            0.3497609756886959,
+            0.4909862019121647
+          ]
+        },
+        "rank_gradient_l2": {
+          "mean": 0.03839213284663856,
+          "sample_sd": 0.0027311758352630664,
+          "values": [
+            0.04056825605221093,
+            0.03532728413119912,
+            0.03928085835650563
+          ]
+        },
+        "rank_loss": {
+          "mean": 0.4375558675577243,
+          "sample_sd": 0.07661873250112478,
+          "values": [
+            0.4719088673591614,
+            0.34977247193455696,
+            0.4909862633794546
+          ]
+        },
+        "rank_preserve_loss": {
+          "mean": 6.330059445029217e-05,
+          "sample_sd": 9.992546624224626e-05,
+          "values": [
+            0.00017849653704615775,
+            1.140524630471873e-05,
+            0.0
+          ]
+        },
+        "rows_per_seed": 256,
+        "sign_conflict_fraction": {
+          "mean": 0.4915849355359872,
+          "sample_sd": 0.012727859868156863,
+          "values": [
+            0.49005651846528053,
+            0.4796902984380722,
+            0.5050079897046089
+          ]
+        }
+      },
+      "refcocog": {
+        "confidence_gradient_l2": {
+          "mean": 0.05014446626106898,
+          "sample_sd": 0.0015714946383825646,
+          "values": [
+            0.04851823998615146,
+            0.05165481427684426,
+            0.05026034452021122
+          ]
+        },
+        "cosine": {
+          "mean": 0.028196493881599356,
+          "sample_sd": 0.05090233886117793,
+          "values": [
+            0.0035879399511031806,
+            0.08672697993461043,
+            -0.005725438240915537
+          ]
+        },
+        "native_oracle_positive_negative_gap": {
+          "mean": 0.5215045760075251,
+          "sample_sd": 0.023795410335366203,
+          "values": [
+            0.5297413766384125,
+            0.4946851208806038,
+            0.5400872305035591
+          ]
+        },
+        "native_p1": {
+          "mean": 0.8268229166666666,
+          "sample_sd": 0.027713276892959327,
+          "values": [
+            0.83203125,
+            0.796875,
+            0.8515625
+          ]
+        },
+        "native_top1_runnerup_margin": {
+          "mean": 0.6500010093053182,
+          "sample_sd": 0.004263960140138819,
+          "values": [
+            0.652270220220089,
+            0.6450823098421097,
+            0.652650497853756
+          ]
+        },
+        "rank_fix_loss": {
+          "mean": 0.49186354130506516,
+          "sample_sd": 0.027186623611333834,
+          "values": [
+            0.483178548514843,
+            0.47008055821061134,
+            0.5223315171897411
+          ]
+        },
+        "rank_gradient_l2": {
+          "mean": 0.041219046572223306,
+          "sample_sd": 0.002956128856240705,
+          "values": [
+            0.04394233087077737,
+            0.03807513345964253,
+            0.04163967538625002
+          ]
+        },
+        "rank_loss": {
+          "mean": 0.49191197877128917,
+          "sample_sd": 0.027154563544395008,
+          "values": [
+            0.4832867346704006,
+            0.47011762484908104,
+            0.5223315767943859
+          ]
+        },
+        "rank_preserve_loss": {
+          "mean": 4.83624405565782e-05,
+          "sample_sd": 5.49549298898061e-05,
+          "values": [
+            0.00010812244772751001,
+            3.6964873942224585e-05,
+            0.0
+          ]
+        },
+        "rows_per_seed": 256,
+        "sign_conflict_fraction": {
+          "mean": 0.4901607508460681,
+          "sample_sd": 0.015074475121841324,
+          "values": [
+            0.4924517087638378,
+            0.4740719310939312,
+            0.5039586126804352
+          ]
+        }
+      },
+      "refcocoplus": {
+        "confidence_gradient_l2": {
+          "mean": 0.05014446626106898,
+          "sample_sd": 0.0015714946383825646,
+          "values": [
+            0.04851823998615146,
+            0.05165481427684426,
+            0.05026034452021122
+          ]
+        },
+        "cosine": {
+          "mean": 0.023516428074799478,
+          "sample_sd": 0.06462180976458985,
+          "values": [
+            0.0075216543627902865,
+            0.0946335718035698,
+            -0.031605941941961646
+          ]
+        },
+        "native_oracle_positive_negative_gap": {
+          "mean": 0.394901351382335,
+          "sample_sd": 0.0538721862963609,
+          "values": [
+            0.450502160936594,
+            0.3429426159709692,
+            0.39125927723944187
+          ]
+        },
+        "native_p1": {
+          "mean": 0.7447916666666666,
+          "sample_sd": 0.037535248191144725,
+          "values": [
+            0.78515625,
+            0.7109375,
+            0.73828125
+          ]
+        },
+        "native_top1_runnerup_margin": {
+          "mean": 0.5551443385581175,
+          "sample_sd": 0.020812563954353217,
+          "values": [
+            0.5774800442159176,
+            0.5362953394651413,
+            0.5516576319932938
+          ]
+        },
+        "rank_fix_loss": {
+          "mean": 0.41258420422673225,
+          "sample_sd": 0.02297020686297005,
+          "values": [
+            0.39941928908228874,
+            0.4391076788306236,
+            0.3992256447672844
+          ]
+        },
+        "rank_gradient_l2": {
+          "mean": 0.034209663358827434,
+          "sample_sd": 0.003888599575736086,
+          "values": [
+            0.03029023762792349,
+            0.038066685665398836,
+            0.03427206678315997
+          ]
+        },
+        "rank_loss": {
+          "mean": 0.4126560551424821,
+          "sample_sd": 0.022939669537707628,
+          "values": [
+            0.3995988331735134,
+            0.4391436278820038,
+            0.39922570437192917
+          ]
+        },
+        "rank_preserve_loss": {
+          "mean": 7.177872642690393e-05,
+          "sample_sd": 9.498138849366134e-05,
+          "values": [
+            0.00017948260756384116,
+            3.585357171687065e-05,
+            0.0
+          ]
+        },
+        "rows_per_seed": 256,
+        "sign_conflict_fraction": {
+          "mean": 0.4929315783083439,
+          "sample_sd": 0.01771116423272269,
+          "values": [
+            0.4921852983534336,
+            0.4756053499877453,
+            0.5110040865838528
+          ]
+        }
+      }
+    }
+  },
+  "contract": {
+    "confidence_probe": "same first eight formal D3 batches and sealed U150 queue per route/seed",
+    "datasets": [
+      "refcoco",
+      "refcocoplus",
+      "refcocog"
+    ],
+    "native_oracle_gap_definition": "best IoU>=0.5 native score minus best IoU<0.5 native score",
+    "native_top1_margin_definition": "largest minus second-largest valid native query score",
+    "optimizer_created": false,
+    "parameters_updated": 0,
+    "rank_batch_size": 32,
+    "rank_probe_batches": 8,
+    "routes": [
+      "shared_128",
+      "shared_wide"
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ]
+  },
+  "negative_cosine_cell_count": 3,
+  "negative_cosine_cells": [
+    {
+      "cosine": -0.004497875925153494,
+      "dataset": "refcoco",
+      "route": "shared_wide",
+      "seed": 73
+    },
+    {
+      "cosine": -0.031605941941961646,
+      "dataset": "refcocoplus",
+      "route": "shared_wide",
+      "seed": 73
+    },
+    {
+      "cosine": -0.005725438240915537,
+      "dataset": "refcocog",
+      "route": "shared_wide",
+      "seed": 73
+    }
+  ],
+  "paper_claims": {
+    "allowed": "Changing the rank probe among RefCOCO, RefCOCO+, and RefCOCOg changes rank difficulty and gradient magnitude, but does not reveal consistent negative rank/rejection alignment on the strong e5 shared owners.",
+    "prohibited": "The strong e5 shared owner exhibits dataset-independent harmful rank/rejection gradient conflict.",
+    "rank_dataset_induces_consistent_negative_shared_gradient_alignment": false
+  },
+  "provenance": {
+    "candidate_cache_receipts": {
+      "refcoco": {
+        "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_cross_dataset_probe_20260821/caches/refcoco_receipt.json",
+        "sha256": "6e55c36a51d92a51d14b73f2c145421c7146cce681fa0b8dd4d5d813fb4119d9",
+        "size_bytes": 1400
+      },
+      "refcocog": {
+        "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_cross_dataset_probe_20260821/caches/refcocog_receipt.json",
+        "sha256": "01447a2327420f77b8f0dcffa142bbe99a5a4cc6c818a1f027ec68cab6295335",
+        "size_bytes": 1403
+      },
+      "refcocoplus": {
+        "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_cross_dataset_probe_20260821/caches/refcocoplus_receipt.json",
+        "sha256": "cf96311be6d210a9e8256c2181f54e8f3f5490060e7e911e3e94d551fc98a372",
+        "size_bytes": 1412
+      }
+    },
+    "preregistration": {
+      "path": "/media/haoyi/T9/pivot/paper/data/mmgdino_e5_cross_dataset_probe_preregistration.json",
+      "sha256": "604d3c537c73ea2bfa50c9e2dd015fb3a5b61cd7f0970f9d762bd4c4698fd431",
+      "size_bytes": 3937
+    },
+    "probe_result": {
+      "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_cross_dataset_probe_20260821/results.json",
+      "sha256": "0fb76e2af851ce2c837ed967fac77df7d190a4e328aa6b5c7cc2a793077bc449",
+      "size_bytes": 177012
+    },
+    "selection_receipt": {
+      "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_cross_dataset_probe_20260821/selection/selection_receipt.json",
+      "sha256": "c4702cdfad8b376db36c34f263ac0ba382d37102ff1390697ec47b1575f6b70b",
+      "size_bytes": 2798
+    }
+  },
+  "schema": "arrow.mmgdino_e5_cross_dataset_probe.final_receipt/v1",
+  "status": "complete_zero_update_cross_dataset_probe",
+  "total_cosine_cells": 18
+}

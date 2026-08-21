@@ -1,0 +1,88 @@
+{
+  "schema": "arrow.mmgdino_e5_cross_dataset_probe.preregistration/v1",
+  "status": "locked_before_selected_candidate_extraction_or_gradient_probe",
+  "locked_at": "2026-08-21T13:49:14+08:00",
+  "parent_git_commit": "cb19d26dc9e5865aad9d0da42582681c2547d21d",
+  "research_question": "With the same frozen RefCOCO-e5 query representation and the same U150 Shared-128/Shared-Wide checkpoints, how does rank-dataset choice change rank/rejection gradient alignment when the confidence probe is held fixed?",
+  "zero_update_contract": {
+    "routes": ["shared_128", "shared_wide"],
+    "seeds": [17, 42, 73],
+    "rank_datasets": ["refcoco", "refcocoplus", "refcocog"],
+    "rank_surface": "validation mechanism-only",
+    "rank_batches_per_seed": 8,
+    "rank_batch_size": 32,
+    "confidence_probe": "the same first eight formal D3 confidence batches and the sealed U150 queue for each route/seed",
+    "parameters_updated": 0,
+    "optimizer_created": false,
+    "checkpoint_or_threshold_selection": "none"
+  },
+  "selection_receipt": {
+    "path": "outputs/mmgdino_e5_cross_dataset_probe_20260821/selection/selection_receipt.json",
+    "sha256": "c4702cdfad8b376db36c34f263ac0ba382d37102ff1390697ec47b1575f6b70b"
+  },
+  "code": {
+    "manifest_builder": {
+      "path": "tools/build_mmgdino_e5_cross_dataset_probe_manifests.py",
+      "sha256": "48072de45d4731b869ec399310f12767357dfb585c4024fc427d5f022cc495db"
+    },
+    "probe": {
+      "path": "tools/probe_mmgdino_e5_cross_dataset_gradients.py",
+      "sha256": "aa03948e4074d3ad26c2b2e83c2734e60002d460e39f7366b600086175557baa"
+    },
+    "candidate_extractor": {
+      "path": "tools/extract_mmgdino_e5_eval_cache.py",
+      "sha256": "205b601413a84a3777d046b796e8bc7e5378cd0945f870449971113b0553fadd"
+    }
+  },
+  "u150_checkpoints": {
+    "shared_128": {
+      "17": "ba26b11b686423c6948f6a9253e74336333011b187c2188b193a03ac1a794a2a",
+      "42": "576d1e321dc5eb55b2844eebd72b8fe4a2b76f3c9decdf8c3548983351eb4684",
+      "73": "0f79ae6da5245ebecb21b7047ac1bf9d61f13d975e1e5aaca669f25af99aa714"
+    },
+    "shared_wide": {
+      "17": "7787c16bb9110f919e51f6f02ed47e04e0908303819fd4d5886a88d841660bc9",
+      "42": "18539cae206593e7b108f539e9786b26dadb9ff6fac0822dd109e5501734b331",
+      "73": "9edb4b94f99f6448dbf1403442bb6e86cb1395756abd5c2636c52e33614b09be"
+    }
+  },
+  "fixed_confidence_inputs": {
+    "17": {
+      "cache_sha256": "44db3a0636400f9f55f6f36d93e1cb46c348d239b78d922fbf54c9948ef440fa",
+      "schedule_sha256": "fe02d269c51157679d36057598bcd15977308d99e3e1a96a1410a87361140a7f"
+    },
+    "42": {
+      "cache_sha256": "133ba062599452488cebd9706966fec80bddeecf4c93d5b0367c7fb14e3d04c2",
+      "schedule_sha256": "ab891284699f2bc0e95c395594be57eb0bf2345548b518659d3f40ee3030f7cb"
+    },
+    "73": {
+      "cache_sha256": "c6ea91a84c113541ed1c1e4e55e8a20da52dd8ed6c76af03043da6e2accfa88c",
+      "schedule_sha256": "2501af198b5e84169cd87914ac891d3e6ab3a86d90f31dca7d28a6c7df384d62"
+    }
+  },
+  "reported_metrics": {
+    "gradient": [
+      "cosine over shared trunk parameters",
+      "sign-conflict fraction over jointly nonzero elements",
+      "rank gradient L2 norm",
+      "confidence gradient L2 norm"
+    ],
+    "rank_surface": [
+      "native P@1",
+      "rank objective loss",
+      "native top1-runnerup valid-query margin",
+      "best IoU-positive minus best IoU-negative native score"
+    ],
+    "aggregation": "eight batches per seed, with every batch and seed retained"
+  },
+  "output_absence": {
+    "path": "outputs/mmgdino_e5_cross_dataset_probe_20260821/results.json",
+    "absent_at_lock": true
+  },
+  "prohibitions": [
+    "Do not update any parameter or create an optimizer.",
+    "Do not change the confidence probe, U150 queue, checkpoint, batch count, or batch size across rank datasets.",
+    "Do not choose a dataset subset from model outputs.",
+    "Do not use this mechanism-only probe to replace held-out endpoint results."
+  ]
+}
