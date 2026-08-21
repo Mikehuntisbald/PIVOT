@@ -3,7 +3,9 @@
 from config.ablations.cfg_stageb_b58_capacity_isolated_replay import *  # noqa: F401,F403
 
 stage_b_u2v5_ownership = True
-stage_b_u2v5_ownership_eval = False
+# Skip the generic legacy-U2 validator; the joint evaluator immediately
+# applies the stricter capacity-control contract after model construction.
+stage_b_u2v5_ownership_eval = True
 stage_b_b58_capacity_control_eval = True
 stage_b_u0_category_preserving_patch_gate = True
 stage_b_u0_category_gate_max_gap = 3.0
