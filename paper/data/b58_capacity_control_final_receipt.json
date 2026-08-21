@@ -1,0 +1,44 @@
+{
+  "schema": "arrow.stageb.b58_capacity_control.final_receipt/v1",
+  "status": "complete_joint_gate_failed_on_rejection_superiority",
+  "completed_at": "2026-08-21T19:30:00+08:00",
+  "protocol": {
+    "training": "paper/data/b58_capacity_control_preregistration.json",
+    "evaluation": "paper/data/b58_capacity_control_evaluation_preregistration.json",
+    "amendment": "paper/data/b58_capacity_control_evaluation_amendment_v2.json"
+  },
+  "summaries": {
+    "shared_wide_test5": {"path": "outputs/b58_capacity_control_20260821/evaluation_v2/shared_wide/test5/summary.json", "sha256": "ebbde52fb72c54a08188d5b7c7d70df5c8dc052c2a406b9610c6394245f9fccc"},
+    "shared_wide_strict2031": {"path": "outputs/b58_capacity_control_20260821/evaluation_v2/shared_wide/strict2031/summary.json", "sha256": "82cbfe9ab2b5362cd6e10a64877b92bb52a1b9972cd48b6d5aa5b010ea09ca3e"},
+    "isolated_test5": {"path": "outputs/b58_capacity_control_20260821/evaluation_v2/isolated/test5/summary.json", "sha256": "0b31c926f0ae4d6026b418eb1c0f69ebb451f0a88f307ac29655fc3a9be7f686"},
+    "isolated_strict2031": {"path": "outputs/b58_capacity_control_20260821/evaluation_v2/isolated/strict2031/summary.json", "sha256": "9ca4df041c419a6c38fecee2eedfe7eeef1be20b28f14d06b3b8d7aba28d18c3"}
+  },
+  "logs": {
+    "shared_wide_test5": "f1ba55373b1f4a04a7a8db157d2f88e71dd42957892a531806a8f12a1afabc1d",
+    "shared_wide_strict2031": "6926bfc9e678c382f6aff3a114b04440bb3a8caed65380935b8296e1dd9325a2",
+    "isolated_test5": "c5a2987bb41e7d9cc136ba84c113893e5ac609cfe19bf09dbe8133dcaacfebcd",
+    "isolated_strict2031": "b40fe114b3f5918479ed1813163fb6a287d0725f2a760b68310f7766f4ac4b8e"
+  },
+  "aggregation": {
+    "path": "paper/data/b58_capacity_control_results.json",
+    "sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+    "code_sha256": "f30da2e9c009d6ca474f6fbbc6e49b1d5e58f3998647132e38249e8897d7a9dc",
+    "replicates": 5000,
+    "rng": "PCG64",
+    "seed": 20260821,
+    "image_clustered": true,
+    "tn_recomputes_each_arm_seed_positive_q05_per_replicate": true,
+    "deterministic_byte_replay": true
+  },
+  "decision": {
+    "test5_gain_isolated_minus_shared_wide": 0.053106870311171374,
+    "test5_ci95": [0.04875378168714565, 0.05767525779604891],
+    "all_split_noninferiority_passed": true,
+    "strict2031_fpr95_reduction_shared_minus_isolated": 0.006893156080748382,
+    "strict2031_ci95": [-0.0038165899286543782, 0.013373108431234671],
+    "strict2031_one_sided_p": 0.13917216556688664,
+    "strict2031_superiority_passed": false,
+    "joint_gate_passed": false,
+    "claim_boundary": "capacity-matched isolation protects Ranking; this block does not establish significant rejection superiority"
+  }
+}

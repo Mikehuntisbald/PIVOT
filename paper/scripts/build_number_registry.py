@@ -164,6 +164,16 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
             "shared-trunk gradient probes and claim boundary",
         ],
     },
+    "b58_capacity_control_results": {
+        "path": "paper/data/b58_capacity_control_results.json",
+        "kind": "prospectively_frozen_post_release_capacity_control",
+        "expected_sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+        "owns": [
+            "B58 Shared-Wide versus matched Isolated replay",
+            "Test5 and Strict-TN2031 paired image-cluster bootstrap",
+            "capacity, optimizer, frozen-hash, and gradient audits",
+        ],
+    },
     "mmgdino_e5_cross_dataset_probe": {
         "path": "paper/data/mmgdino_e5_cross_dataset_probe_results.json",
         "kind": "zero_update_cross_dataset_gradient_probe",
@@ -480,6 +490,93 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
     for seed, relative in OWNERSHIP_RECEIPTS.items():
         for metric in ("cosine_mean", "negative_cosine_fraction", "sign_conflict_mean"):
             b.add_literal_from_receipt(f"ownership.o0.seed{seed}.{metric}", relative, f"gradient_audit.{metric}", unit="fraction", surface="training trajectory", status="mechanism", notes="shared-score owner diagnostic")
+
+    for arm in ("shared_wide", "isolated"):
+        b.add(
+            f"b58_capacity.{arm}.test5",
+            "b58_capacity_control_results",
+            "ref_test5.points.per_seed",
+            unit="fraction", surface="Test5 micro",
+            status="prospectively_frozen_post_release_capacity_control",
+            direction="higher_is_better",
+            transform=lambda rows, arm=arm: statistics.fmean(
+                float(row["micro"][arm]) for row in rows.values()
+            ),
+        )
+        b.add(
+            f"b58_capacity.{arm}.strict2031_fpr95",
+            "b58_capacity_control_results",
+            "strict2031.points.per_seed",
+            unit="fraction", surface="Strict-TN2031",
+            status="prospectively_frozen_post_release_capacity_control",
+            direction="lower_is_better",
+            transform=lambda rows, arm=arm: statistics.fmean(
+                float(row[arm]["fpr95"]) for row in rows.values()
+            ),
+        )
+        for metric in (
+            "score_owner_parameters", "score_macs_per_query_and_output",
+            "representation_dim", "gate_hidden_dim",
+        ):
+            b.add(
+                f"b58_capacity.{arm}.{metric}",
+                "b58_capacity_control_results",
+                f"training_audit.{arm}.capacity.{metric}",
+                unit="count", surface="architecture audit",
+                status="exact_accounting", direction="descriptive",
+            )
+        for seed in (17, 42, 73):
+            b.add(
+                f"b58_capacity.{arm}.seed{seed}.test5",
+                "b58_capacity_control_results",
+                f"ref_test5.points.per_seed.{seed}.micro.{arm}",
+                unit="fraction", surface=f"Test5 micro seed {seed}",
+                status="prospectively_frozen_post_release_capacity_control",
+                direction="higher_is_better",
+            )
+            for metric, direction in (
+                ("fpr95", "lower_is_better"),
+                ("auroc", "higher_is_better"),
+                ("positive_aupr", "higher_is_better"),
+            ):
+                b.add(
+                    f"b58_capacity.{arm}.seed{seed}.{metric}",
+                    "b58_capacity_control_results",
+                    f"strict2031.points.per_seed.{seed}.{arm}.{metric}",
+                    unit="fraction", surface=f"Strict-TN2031 seed {seed}",
+                    status="prospectively_frozen_post_release_capacity_control",
+                    direction=direction,
+                )
+    for seed in (17, 42, 73):
+        for metric in (
+            "cosine_mean", "cosine_min", "negative_cosine_fraction",
+            "sign_conflict_mean",
+        ):
+            b.add(
+                f"b58_capacity.shared_wide.seed{seed}.{metric}",
+                "b58_capacity_control_results",
+                f"training_audit.shared_wide.per_seed.{seed}.gradient_audit.{metric}",
+                unit="fraction", surface="U150 training trajectory",
+                status="mechanism", direction="descriptive",
+            )
+    b.add(
+        "b58_capacity.isolated_minus_shared_wide.test5_gain",
+        "b58_capacity_control_results",
+        "ref_test5.bootstrap.micro.observed_gain",
+        unit="absolute", surface="Test5 micro",
+        status="post_release_capacity_control_superiority",
+        direction="higher_is_better_gain",
+        ci_path="ref_test5.bootstrap.micro",
+    )
+    b.add(
+        "b58_capacity.isolated_minus_shared_wide.strict2031_fpr95_gain",
+        "b58_capacity_control_results",
+        "strict2031.bootstrap.fpr95_gain_shared_minus_isolated.observed_gain",
+        unit="absolute", surface="Strict-TN2031",
+        status="post_release_capacity_control_not_significant",
+        direction="higher_is_better_reduction",
+        ci_path="strict2031.bootstrap.fpr95_gain_shared_minus_isolated",
+    )
 
     # Capacity-controlled responsibility transfer on a strong, frozen
     # MM-GDINO-T RefCOCO e5 candidate representation.  The trunk is a

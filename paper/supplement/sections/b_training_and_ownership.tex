@@ -132,6 +132,18 @@ additional phased schedule is retained as a scheduling diagnostic.  The
 supported conclusion concerns exclusive ownership; the evidence does not
 establish an independent benefit from phasing once ownership is isolated.
 
+The post-release frozen-base capacity control in
+Tab.~\ref{tab:supp-arrow-capacity} reruns both arms with task-specific Adam
+states and zero weight decay.  Its Shared-Wide score owner has 83,971
+parameters and 83,007 MAC/query, versus 83,969 and 82,944 for Isolated, while
+giving either shared duty a 163-d representation rather than 128-d.  Negative
+gradient cosines occur in all three Shared-Wide trajectories, yet the paired
+Strict FPR95 interval crosses zero.  We therefore retain the result as direct
+evidence that shared optimization can damage Ranking, not as evidence of a
+capacity-controlled rejection advantage.
+
+\input{supplement/tables/supp_arrow_capacity_control}
+
 The strong-trunk transfer adds a capacity control that the original block did
 not provide.  Shared-128 matches each isolated task tower's width but uses
 fewer total parameters.  Shared-Wide instead matches Isolated's total

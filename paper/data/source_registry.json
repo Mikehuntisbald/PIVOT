@@ -100,6 +100,19 @@
       "sha256": "ebe587bee63ed4288f464d1a4872184735a2d0ba0b3ce8cba121973cf1bc49a7",
       "size_bytes": 2438
     },
+    "b58_capacity_control_results": {
+      "claims_owned": [
+        "B58 Shared-Wide versus matched Isolated replay",
+        "Test5 and Strict-TN2031 paired image-cluster bootstrap",
+        "capacity, optimizer, frozen-hash, and gradient audits"
+      ],
+      "git_commit": null,
+      "git_tracked": false,
+      "kind": "prospectively_frozen_post_release_capacity_control",
+      "path": "paper/data/b58_capacity_control_results.json",
+      "sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+      "size_bytes": 21463
+    },
     "blueprint": {
       "claims_owned": [
         "paper framing",

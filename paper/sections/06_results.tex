@@ -36,6 +36,12 @@ localization but has no significant rejection improvement over already
 isolated interleaving; our claim is structural ownership isolation, not a
 schedule advantage.
 
+A matched frozen-base control removes capacity, optimizer-state, and decay
+asymmetries.  Isolation recovers 5.311 Test5 points (CI [4.875, 5.768]), but
+its 0.689-point Strict-TN2031 reduction is not significant (CI [$-0.382$,
+1.337]).  This supports protection of Ranking from shared optimization, not a
+capacity-controlled rejection-superiority claim.
+
 \begin{figure*}[t]
   \centering
   \IfFileExists{figures/fig3_mechanism_controllability.pdf}{%
