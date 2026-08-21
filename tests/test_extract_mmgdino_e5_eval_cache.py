@@ -19,6 +19,7 @@ class MMGDinoE5EvalCacheTests(unittest.TestCase):
                         "sample_id": "strict:123:1",
                         "image_id": 123,
                         "filename": str(image),
+                        "file_name": str(image),
                         "positive_phrase": "yellow shirt",
                         "negative_phrase": "red shirt",
                         "bbox": [10.0, 20.0, 30.0, 40.0],

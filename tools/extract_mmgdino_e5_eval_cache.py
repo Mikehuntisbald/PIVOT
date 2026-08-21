@@ -84,6 +84,20 @@ def parse_tn_eval_requests(
     requests = []
     for index, row in enumerate(rows):
         location = f"tn_eval[{index}]"
+        # Historical strict manifests store both ``filename`` and
+        # ``file_name`` as the same absolute path, whereas calibration stores
+        # ``file_name`` as a basename.  The shared path binder deliberately
+        # rejects traversal in ``file_name``.  Canonicalize only after proving
+        # that both fields name the same file; no fallback or search is used.
+        bound_row = dict(row)
+        file_name = bound_row.get("file_name")
+        filename = bound_row.get("filename")
+        if isinstance(file_name, str) and Path(file_name).name != file_name:
+            if not isinstance(filename, str) or Path(filename).name != Path(file_name).name:
+                raise MMGroundingDinoExtractionError(
+                    f"{location}.filename and file_name basenames disagree"
+                )
+            bound_row["file_name"] = Path(file_name).name
         sample_id = _identifier(row.get("sample_id"), name=f"{location}.sample_id")
         image_id = row.get("image_id")
         if isinstance(image_id, bool) or not isinstance(image_id, int) or image_id < 0:
@@ -95,7 +109,7 @@ def parse_tn_eval_requests(
         positive = _identifier(positive, name=f"{location}.positive_phrase")
         negative = _identifier(negative, name=f"{location}.negative_phrase")
         image_path_value = _bound_image_path(
-            row, location=location, image_root=image_root
+            bound_row, location=location, image_root=image_root
         )
         image_path, width, height, image_sha = _load_image_identity(
             str(image_path_value), image_id=image_id, cache=cache

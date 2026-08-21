@@ -1,0 +1,32 @@
+{
+  "schema": "arrow.mmgdino_e5_ownership.strict_path_amendment/v1",
+  "status": "locked_before_strict2031_model_forward",
+  "locked_at": "2026-08-21T12:03:51+08:00",
+  "parent_evaluation_preregistration": {
+    "path": "paper/data/mmgdino_e5_ownership_evaluation_preregistration.json",
+    "sha256": "f7f0f16416607d704216bc184a5f107c3ff8de223c255ef0ccaa2ddeea950246"
+  },
+  "failure": {
+    "surface": "strict2031",
+    "stage": "manifest parsing before checkpoint load or model forward",
+    "model_forwards": 0,
+    "metric_viewed": false,
+    "reason": "strict2031 stores file_name as an absolute path while the shared path binder requires a basename"
+  },
+  "change": {
+    "old_eval_cache_extractor_sha256": "00491e93b37f1d9759df4e07c97254799a247ef593951c515725f4aad328706c",
+    "new_eval_cache_extractor_sha256": "0b7744e27e14039a9e04cf1c804963fe078a93842a29cdc32d4375f97167fce1",
+    "behavior": "If file_name is absolute, require filename and file_name to have the identical basename, then pass only that basename to the already-bound image root.",
+    "fallback_or_search_added": false,
+    "sample_identity_changed": false,
+    "caption_changed": false,
+    "bbox_changed": false,
+    "model_or_checkpoint_changed": false,
+    "evaluation_metric_changed": false
+  },
+  "existing_caches": {
+    "refcoco_testA": "retained with original extractor SHA",
+    "refcoco_testB": "retained with original extractor SHA",
+    "d3_calibration": "retained with original extractor SHA"
+  }
+}
