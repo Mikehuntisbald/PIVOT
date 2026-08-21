@@ -1,0 +1,31 @@
+{
+  "schema": "arrow.stageb.b58_capacity_control.evaluation_amendment/v2",
+  "status": "locked_after_preflight_failure_and_before_any_model_forward",
+  "locked_at": "2026-08-21T15:13:00+08:00",
+  "supersedes": "paper/data/b58_capacity_control_evaluation_preregistration.json",
+  "git_commit": "d897ec6c1a82d5040a23ddc2910fa92ea3cb2ebd",
+  "failed_attempt": {
+    "surface": "shared_wide Test5",
+    "stage": "checkpoint provenance validation before GPU forward",
+    "error": "generic loader applied the inherited legacy U2-v2 schema before the capacity-control validator",
+    "model_outputs_produced": false,
+    "checkpoint_loaded_for_forward": false,
+    "log_path": "outputs/b58_capacity_control_20260821/logs/eval_shared_wide_test5.log",
+    "log_sha256": "92d9a331b9dcc90bd0af318e3cce163cc1625b01abafed9832112394e6438718",
+    "failed_output_retained": "outputs/b58_capacity_control_20260821/evaluation/shared_wide/test5"
+  },
+  "only_change": {
+    "description": "set the existing ownership-eval loader bypass so the joint evaluator can apply the stricter capacity-control validator",
+    "shared_wide_config_sha256": "71879ae0130d7c3915d3b5bf9d8aa62c72d5ce6bcc9617c7ef76f8df212a6fbf",
+    "isolated_config_sha256": "45ef9bc7c7587d13098286fe28e0f6e9f188341f761eb39b318f6a5d9f39bec6",
+    "cpu_preflight": "full model construction, checkpoint load, and capacity validator passed"
+  },
+  "unchanged": [
+    "all six checkpoint and receipt SHA-256 bindings",
+    "Test5 and Strict2031 data",
+    "Gap3",
+    "metrics, bootstrap, contrast, and decision gate"
+  ],
+  "fresh_result_root": "outputs/b58_capacity_control_20260821/evaluation_v2",
+  "fresh_result_root_absent": true
+}
