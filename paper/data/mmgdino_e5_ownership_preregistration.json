@@ -1,0 +1,201 @@
+{
+  "code": {
+    "extractor": {
+      "path": "/media/haoyi/T9/pivot/tools/extract_mmgdino_responsibility_cache.py",
+      "sha256": "c12b560928bf22f61c7dec509191eb0a2e88b4d5f7678020d24238d8bd42ee31",
+      "size_bytes": 52889
+    },
+    "owners": {
+      "path": "/media/haoyi/T9/pivot/tools/mmgdino_e5_ownership.py",
+      "sha256": "4c68e5cfe426752ff9716186daf37406b795736a1388357d1d7671ed699877cb",
+      "size_bytes": 15566
+    },
+    "preregistration_builder": {
+      "path": "/media/haoyi/T9/pivot/tools/build_mmgdino_e5_ownership_preregistration.py",
+      "sha256": "c3d2f52da889f43fb2410d0eb7091553e094dddd6b09fd9a5958ce72e72e8e07",
+      "size_bytes": 10136
+    },
+    "schedule_builder": {
+      "path": "/media/haoyi/T9/pivot/tools/build_mmgdino_e5_ownership_schedules.py",
+      "sha256": "18a6f703ce65e0d8fec3ca01cb84e51fbfa717365f213467b31f9bc03c5fa459",
+      "size_bytes": 12243
+    },
+    "trainer": {
+      "path": "/media/haoyi/T9/pivot/tools/train_mmgdino_e5_ownership.py",
+      "sha256": "1af542c0213a484648a41a0150ceeccdde6a61b1ae4e5f3bff17719da53c3435",
+      "size_bytes": 35786
+    }
+  },
+  "evaluation_surfaces": {
+    "d3_calibration": {
+      "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/formal/calibration_u25_u50_u100/tn_eval_inputs/tn_screen_calibration.jsonl",
+      "rows": 1570,
+      "sha256": "52b526ff19f7b0a76666904833e38f888439149cc6aa01ec1e9ec45717174ecb",
+      "size_bytes": 4360139
+    },
+    "refcoco_testA": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/data/refcoco5e_coco/mdetr_annotations/finetune_refcoco_testA.json",
+      "sha256": "6adda34ddc5a2231192daaad1f96dcb45d57e62dc332d05fa059e189e505bb41",
+      "size_bytes": 2243749
+    },
+    "refcoco_testB": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/data/refcoco5e_coco/mdetr_annotations/finetune_refcoco_testB.json",
+      "sha256": "2f2ac2c98cc561bf5c4dbac375708b1e93698786bd0ce51da2531b7a1c99c17c",
+      "size_bytes": 2051928
+    },
+    "refcoco_val": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/data/refcoco5e_coco/mdetr_annotations/finetune_refcoco_val.json",
+      "sha256": "f1e0da6c8bbab725a385b6002e62b80609304fabc3882fcba4def1eb930182c1",
+      "size_bytes": 4396609
+    },
+    "strict2031": {
+      "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/final_once/strict2031_u50/tn_eval_inputs/tn_refcocop_val_refcocog_umd_val.jsonl",
+      "rows": 2031,
+      "sha256": "999c6f77f6affcf0f24a9fb17132e59e824bd012d53adf73f9b287dae454702c",
+      "size_bytes": 6431256
+    }
+  },
+  "evidence_status": {
+    "not_old_seed20260819_preregistration": true,
+    "owner_transfer": "prospectively_frozen_after_this_receipt",
+    "prior_test_exposure": "embedded trunk training evaluated RefCOCO val/testA/testB every epoch",
+    "trunk": "retrospective_provided_checkpoint_replay"
+  },
+  "failed_attempt_ledger": [
+    {
+      "path": "/media/haoyi/T9/pivot/outputs/mmgdino_refcoco5e_strong_baseline_20260821/eval_val/20260821_100225/20260821_100225.log",
+      "status": "started_without_final_metric",
+      "used_for_selection": false
+    }
+  ],
+  "formal_output_targets_absent": [
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/shared_128/seed17",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/shared_128/seed42",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/shared_128/seed73",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/shared_wide/seed17",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/shared_wide/seed42",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/shared_wide/seed73",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/isolated_128/seed17",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/isolated_128/seed42",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/formal/isolated_128/seed73"
+  ],
+  "frozen_candidate_generator": {
+    "checkpoint": {
+      "path": "/media/haoyi/T9/pivot/weights/epoch_5.pth",
+      "sha256": "2ec6fbc01ee70e8c18f96e22614053c95f54932fee7fa14b488c404191c05d7b",
+      "size_bytes": 2108275837
+    },
+    "checkpoint_meta": {
+      "epoch": 5,
+      "experiment_name": "grounding_dino_swin-t_finetune_2x16_5e_refcoco_maxgpu_20260820_112246",
+      "iter": 37695,
+      "seed": 922835489
+    },
+    "display_name": "MM-GDINO-T RefCOCO 5e",
+    "eval_config": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_formal_b4a8_seed20260819.py",
+      "sha256": "8f22719d7815563006de550e5f4f0173576bedfa8293922aa80c92e7524f2b82",
+      "size_bytes": 3348
+    },
+    "frozen": true,
+    "mmdetection_commit": "cfd5d3a985b0249de009b67d04f37263e11cdf3d"
+  },
+  "locked_at": "2026-08-21T11:13:16.343751+08:00",
+  "matrix": {
+    "isolated_128": {
+      "confidence_owned_parameter_count": 50179,
+      "confidence_representation_dim": 128,
+      "macs_per_query_both_outputs": 98816,
+      "ownership": "isolated_128",
+      "rank_owned_parameter_count": 50179,
+      "rank_representation_dim": 128,
+      "shared_parameter_count": 0,
+      "trainable_parameters": 100358
+    },
+    "native": {
+      "macs_per_query_both_outputs": 0,
+      "trainable_parameters": 0
+    },
+    "shared_128": {
+      "confidence_owned_parameter_count": 50179,
+      "confidence_representation_dim": 128,
+      "macs_per_query_both_outputs": 49536,
+      "ownership": "shared_128",
+      "rank_owned_parameter_count": 50179,
+      "rank_representation_dim": 128,
+      "shared_parameter_count": 50050,
+      "trainable_parameters": 50308
+    },
+    "shared_wide": {
+      "confidence_owned_parameter_count": 100151,
+      "confidence_representation_dim": 210,
+      "macs_per_query_both_outputs": 99424,
+      "ownership": "shared_wide",
+      "rank_owned_parameter_count": 100151,
+      "rank_representation_dim": 210,
+      "shared_parameter_count": 99940,
+      "trainable_parameters": 100362
+    }
+  },
+  "prohibitions": [
+    "do not change checkpoint, arm width, sample order, update count, loss, optimizer, or weight decay after an owner result",
+    "do not select milestones per arm",
+    "do not call the provided trunk or transfer a virgin held-out experiment",
+    "do not add the e5 checkpoint to FineCops without a separate frozen evaluation"
+  ],
+  "research_questions": [
+    "Does shared ranking/rejection optimization still conflict when frozen query representations are strong?",
+    "Does an isolated confidence owner improve TN rejection without degrading RefCOCO REC?"
+  ],
+  "schedule_receipt": {
+    "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_receipt.json",
+    "sha256": "4608b6c8bc62f426e1f72bf44d13b693448f03f011af79740e0952fceb370346",
+    "size_bytes": 3610
+  },
+  "schema": "arrow.mmgdino_e5_ownership.preregistration/v1",
+  "statistics": {
+    "bootstrap_replicates": 5000,
+    "cluster": "image_id",
+    "fpr95_recomputes_positive_q05_per_replicate": true,
+    "holm_family_size": 3,
+    "planned_contrasts": [
+      "isolated_128-shared_128",
+      "isolated_128-shared_wide",
+      "isolated_128-native"
+    ],
+    "rec_noninferiority_margin": 0.005,
+    "refcoco_primary": "TestA+TestB pooled micro P@1",
+    "strict_primary": "Strict2031 FPR95"
+  },
+  "status": "locked_before_candidate_extraction_and_owner_training",
+  "training": {
+    "arms": [
+      "shared_128",
+      "shared_wide",
+      "isolated_128"
+    ],
+    "clip_norm": 0.1,
+    "confidence_batch_size": 8,
+    "confidence_learning_rate": 0.0001,
+    "milestones_audit_only": [
+      25,
+      50,
+      100,
+      150
+    ],
+    "optimizer": "two task-specific AdamW optimizer states",
+    "precision": "fp32 deterministic",
+    "rank_batch_size": 32,
+    "rank_learning_rate": 3e-05,
+    "schedule": "rank,confidence,rank; R100+C50",
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "selected_update": 150,
+    "trajectories": 9,
+    "updates": 150,
+    "weight_decay": 0.0
+  }
+}

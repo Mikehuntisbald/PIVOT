@@ -939,6 +939,9 @@ def validate_pinned_runtime_assets(
     config_path: str | Path,
     checkpoint_path: str | Path,
     expected_checkpoint_sha256: str,
+    expected_mmdet_commit: str | None = None,
+    expected_config_path: str | Path | None = None,
+    expected_config_sha256: str | None = None,
 ) -> dict[str, str]:
     root = Path(mmdet_root)
     config = Path(config_path)
@@ -954,21 +957,48 @@ def validate_pinned_runtime_assets(
                 f"{name} must be an existing absolute {kind}"
             )
     commit = _git_head(root)
-    if commit != PINNED_MMDET_COMMIT:
+    expected_commit = str(
+        PINNED_MMDET_COMMIT
+        if expected_mmdet_commit is None
+        else expected_mmdet_commit
+    ).strip().lower()
+    if (
+        len(expected_commit) != 40
+        or any(character not in "0123456789abcdef" for character in expected_commit)
+    ):
         raise MMGroundingDinoExtractionError(
-            f"MMDetection commit drift: expected {PINNED_MMDET_COMMIT}, got {commit}"
+            "expected_mmdet_commit must be a lowercase 40-character git SHA"
+        )
+    if commit != expected_commit:
+        raise MMGroundingDinoExtractionError(
+            f"MMDetection commit drift: expected {expected_commit}, got {commit}"
         )
     resolved_config = config.resolve(strict=True)
-    if resolved_config != PINNED_FORMAL_CONFIG_PATH.resolve(strict=True):
+    expected_config = Path(
+        PINNED_FORMAL_CONFIG_PATH
+        if expected_config_path is None
+        else expected_config_path
+    )
+    if (
+        not expected_config.is_absolute()
+        or not expected_config.is_file()
+        or resolved_config != expected_config.resolve(strict=True)
+    ):
         raise MMGroundingDinoExtractionError(
             "formal MM-GDINO config path drift: "
-            f"expected {PINNED_FORMAL_CONFIG_PATH}, got {resolved_config}"
+            f"expected {expected_config}, got {resolved_config}"
         )
     config_sha = file_sha256(config)
-    if config_sha != PINNED_FORMAL_CONFIG_SHA256:
+    expected_config_sha = _require_sha256(
+        PINNED_FORMAL_CONFIG_SHA256
+        if expected_config_sha256 is None
+        else expected_config_sha256,
+        name="expected_config_sha256",
+    )
+    if config_sha != expected_config_sha:
         raise MMGroundingDinoExtractionError(
             "formal MM-GDINO config SHA-256 drift: "
-            f"expected {PINNED_FORMAL_CONFIG_SHA256}, got {config_sha}"
+            f"expected {expected_config_sha}, got {config_sha}"
         )
     expected_checkpoint = _require_sha256(
         expected_checkpoint_sha256, name="expected_checkpoint_sha256"
@@ -1079,6 +1109,8 @@ def extract_cached_candidate_shard(
     shard_id: str,
     checkpoint_sha256: str,
     extractor_sha256: str,
+    model_id: str = PINNED_MODEL_ID,
+    config_sha256: str = PINNED_FORMAL_CONFIG_SHA256,
 ) -> tuple[dict[str, Any], dict[str, int]]:
     _require_identifier(shard_id, name="shard_id")
     checkpoint_sha = _require_sha256(
@@ -1087,6 +1119,8 @@ def extract_cached_candidate_shard(
     extractor_sha = _require_sha256(
         extractor_sha256, name="extractor_code_sha256"
     )
+    model_id = _require_identifier(model_id, name="model_id")
+    config_sha = _require_sha256(config_sha256, name="config_sha256")
     _validate_request_identities(tuple(rank_requests) + tuple(pair_requests))
     if not rank_requests or not pair_requests:
         raise MMGroundingDinoExtractionError(
@@ -1136,9 +1170,9 @@ def extract_cached_candidate_shard(
         "shard_id": shard_id,
         "source": {
             "schema": CACHE_SOURCE_SCHEMA,
-            "model_id": PINNED_MODEL_ID,
+            "model_id": model_id,
             "checkpoint_sha256": checkpoint_sha,
-            "config_sha256": PINNED_FORMAL_CONFIG_SHA256,
+            "config_sha256": config_sha,
             "extractor_code_sha256": extractor_sha,
             "query_feature_name": QUERY_FEATURE_NAME,
         },
@@ -1189,6 +1223,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--checkpoint-sha256", required=True)
+    parser.add_argument("--mmdet-commit", default=PINNED_MMDET_COMMIT)
+    parser.add_argument("--config-sha256", default=PINNED_FORMAL_CONFIG_SHA256)
+    parser.add_argument("--model-id", default=PINNED_MODEL_ID)
     parser.add_argument("--rank-jsonl", type=Path, required=True)
     parser.add_argument("--rank-jsonl-sha256", required=True)
     parser.add_argument("--rank-image-root", type=Path, required=True)
@@ -1221,6 +1258,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         config_path=args.config,
         checkpoint_path=args.checkpoint,
         expected_checkpoint_sha256=args.checkpoint_sha256,
+        expected_mmdet_commit=args.mmdet_commit,
+        expected_config_path=args.config,
+        expected_config_sha256=args.config_sha256,
     )
     rank_source = _read_bound_jsonl(
         args.rank_jsonl,
@@ -1260,8 +1300,10 @@ def main(argv: Sequence[str] | None = None) -> None:
             pair_requests=pair_requests,
             runtime=runtime,
             shard_id=args.shard_id,
-            checkpoint_sha256=asset_binding["checkpoint_sha256"],
-            extractor_sha256=extractor_sha,
+        checkpoint_sha256=asset_binding["checkpoint_sha256"],
+        extractor_sha256=extractor_sha,
+        model_id=args.model_id,
+        config_sha256=asset_binding["config_sha256"],
         )
     finally:
         runtime.close()
