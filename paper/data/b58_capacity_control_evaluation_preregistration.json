@@ -1,0 +1,47 @@
+{
+  "schema": "arrow.stageb.b58_capacity_control.evaluation_preregistration/v1",
+  "status": "locked_after_training_and_before_any_endpoint_evaluation",
+  "locked_at": "2026-08-21T15:08:00+08:00",
+  "git_commit": "1b7650d4efe82970d7fd04ce79d198eaa63dd84f",
+  "evidence_status": "prospectively frozen post-release capacity control on previously observed internal endpoints",
+  "checkpoints": {
+    "shared_wide": {
+      "17": {"sha256": "c240e6f598c5162b2610f7f3313770547319fc3f3decf9f71ad7a499a1c7f0bb", "receipt_sha256": "4c7e64475b80761a1b12b5b3cf2c1b81d7521c84cb9253e193f6046dbc923e48"},
+      "42": {"sha256": "16b2e1b33b35898febb57af9dccc5bdc2605e007425767c17686b021dec1e8a6", "receipt_sha256": "d2501f695058a0cce129cf7b759680b814cd2440497122ff24c5fabaad8f5c90"},
+      "73": {"sha256": "5792ebb18f1ca1ae4e4db5efaafffe4f9aecc0c8ec88bb48c7489b0c2095ebd1", "receipt_sha256": "b7bfddb518721d7d82ca3bfd02529ef8bc051fe9520c5cc0c9d25e442935e4ff"}
+    },
+    "isolated": {
+      "17": {"sha256": "08cb57dcb3410f197913737eaf693dd3dcd96db7d43eb38f8878d94eb6ed403e", "receipt_sha256": "ce72f3f8e07e5faecf2d4b83abbb096ad0e7954eb67089eb5614147630f469c7"},
+      "42": {"sha256": "8161db1cf06a38713edb7e6768c4fd66c5a518c3eb124a2dd07662ddcfd2a7a8", "receipt_sha256": "c3dee4e13893531e54d6a97f7c9fa503fe806573ae403cff5cf7dc68604138a1"},
+      "73": {"sha256": "f8f01f56cd1dcd20218d17f825082023ae57d93a958a941463ee116ed7bdbd3d", "receipt_sha256": "295791acb6f359c211228efc2e92ea466acd813cb848bd2f1276d00d12f3ed09"}
+    }
+  },
+  "evaluation_code": {
+    "tools/eval_text_groundingdino_refcoco_tn.py": "31173821881475902f046720fb2fbcb388e83dd000e6adc7c4c97cced29bf1f5",
+    "tools/stageb_b58_capacity_control_contract.py": "856b0b6400478aea006515cf8ac49c3c495dd50333851265accdd94fccceda38",
+    "config/ablations/cfg_stageb_b58_capacity_shared_wide_eval.py": "aac23454e6059bb7b11bf4d4faf768bbec9e4032dcab366c7e4f97ebb85ad489",
+    "config/ablations/cfg_stageb_b58_capacity_isolated_replay_eval.py": "9b878150412618a40b7884ba7fd9c94a0298401ba78784cfa09964c37464c447"
+  },
+  "endpoints": {
+    "localization": ["refcoco_testA", "refcoco_testB", "refcocop_testA", "refcocop_testB", "refcocog_test"],
+    "rejection": {"manifest": "data/eval_manifests/stageb_vlm_verified_strict_ann_umd_val_20260711/eval_manifest.jsonl", "sha256": "0e47763c01178d63ee22430a6c93d4fc6a210848d43f32aafbb2e6cd7243e918"},
+    "selection": "none",
+    "gap": 3.0
+  },
+  "statistics": {
+    "replicates": 5000,
+    "rng": "PCG64",
+    "seed": 20260821,
+    "cluster": "image_id",
+    "same_draw_across_arms_and_seeds": true,
+    "fpr95_threshold": "recompute each model positive q05 within every replicate",
+    "contrast": "isolated minus shared_wide",
+    "gate": "Test5 noninferiority margin 0.005 AND Strict2031 FPR95 superiority with 95% CI lower bound > 0"
+  },
+  "result_directories_absent": true,
+  "prohibitions": [
+    "No checkpoint, width, optimizer, loss, Gap, or threshold selection after evaluation begins.",
+    "Do not use historical O2 in place of the matched zero-WD dual-state isolated replay.",
+    "Do not claim a capacity-controlled isolation benefit unless the preregistered joint gate passes."
+  ]
+}
