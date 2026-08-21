@@ -22,7 +22,7 @@ which instance wins.
 
 \input{tables/table2_ownership}
 
-\subsection{Ownership, not output count, resolves conflict}
+\subsection{Ownership resolves the ARROW-U2 conflict, but is not universally superior}
 Table~\ref{tab:ownership} isolates feature ownership from output separation.
 The shared scalar has negative Admission/Rejection gradient cosine in every
 seed ($-0.190$, $-0.252$, $-0.281$), with sign-conflict fractions around
@@ -44,10 +44,18 @@ schedule advantage.
     Gradient conflict, paired ownership effects, and V/T/N category-switch
     controllability generated from registry CSVs.}}}
   \caption{Mechanism evidence.  Shared-duty gradients conflict, structural
-  isolation preserves localization while improving rejection, and nearly flat
-  standard accuracy hides large differences in category controllability.}
+isolation preserves localization while improving rejection, and nearly flat
+standard accuracy hides large differences in category controllability.}
   \label{fig:mechanism}
 \end{figure*}
+
+The strong-trunk rows sharpen this boundary.  Isolated passes the planned
+REC-noninferiority/rejection-superiority gate versus Native (88.976 vs.
+88.969 P@1; 84.211 vs. 88.282 FPR95), but not versus capacity-matched
+Shared-Wide (88.979; 83.686).  Shared gradient alignment is also not uniformly
+negative across seeds.  Hence an independent rejector can improve rejection
+without changing REC, but exclusive ownership is not universally necessary or
+superior on strong queries.  Per-seed and optimizer audits are supplementary.
 
 \input{tables/table3_admission}
 

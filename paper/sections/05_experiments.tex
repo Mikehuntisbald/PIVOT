@@ -78,3 +78,14 @@ the preregistered checkpoint-selection rule.  No model, margin, queue, or
 threshold is changed after a held-out or external result.  Exact parameter,
 latency, and memory measurements follow the no-training efficiency protocol in
 the supplementary material.
+
+\paragraph{Strong-trunk ownership transfer.}
+We additionally freeze a locally supplied MM-GDINO-T checkpoint after five
+epochs of RefCOCO fine-tuning and reuse identical frozen queries and boxes.
+The trunk is retrospective (its training evaluated all splits every epoch),
+whereas the Native/Shared-128/Shared-Wide/Isolated owner matrix is
+prospectively frozen.  Every learned arm uses the same fixed updates and seeds,
+separate task-specific Adam states, and zero weight decay.  Shared-Wide matches
+Isolated's parameter/MAC budget while exposing a wider representation.  The
+endpoints are RefCOCO TestA+TestB micro P@1 and Strict-TN2031 FPR95; nothing is
+selected from them.  Exact contracts are in the supplement.

@@ -154,6 +154,16 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
             "peak allocated and reserved GPU memory",
         ],
     },
+    "mmgdino_e5_ownership_results": {
+        "path": "paper/data/mmgdino_e5_ownership_results.json",
+        "kind": "prospectively_frozen_strong_trunk_transfer_result",
+        "expected_sha256": "f0c589d70b134609d8b3219f454db733d70466af689ec63382e230be7d0e4328",
+        "owns": [
+            "capacity-controlled strong-trunk ownership transfer",
+            "MM-GDINO e5 RefCOCO and Strict-TN2031 results",
+            "shared-trunk gradient probes and claim boundary",
+        ],
+    },
     "gref_dataset_manifest": {
         "path": "/media/haoyi/T9/data/gRefCOCO/v1/manifests/dataset_manifest.json",
         "kind": "sealed_dataset_manifest",
@@ -189,7 +199,7 @@ CLAIM_BOUNDARIES = {
     "gref": "previously exposed COCO imagery; Rejector-supervision-disjoint excludes only rejector train/calibration images",
     "verified_negatives": "proposal-covered verified negatives, not image-global or all-query verification",
     "calibration": "relative rejection discrimination transfers; the source operating threshold does not",
-    "ownership": "exclusive parameter ownership is supported; phased scheduling is not independently superior",
+    "ownership": "exclusive ownership benefits ARROW-U2 and is sufficient for strong-trunk route preservation, but it does not beat the capacity-matched Shared-Wide e5 control; phased scheduling is not independently superior",
     "positive_trust": "no standalone held-out causal gain is supported",
     "support": "visual support controls Admission but is not necessary for every correct top-1 prediction",
 }
@@ -460,6 +470,111 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
     for seed, relative in OWNERSHIP_RECEIPTS.items():
         for metric in ("cosine_mean", "negative_cosine_fraction", "sign_conflict_mean"):
             b.add_literal_from_receipt(f"ownership.o0.seed{seed}.{metric}", relative, f"gradient_audit.{metric}", unit="fraction", surface="training trajectory", status="mechanism", notes="shared-score owner diagnostic")
+
+    # Capacity-controlled responsibility transfer on a strong, frozen
+    # MM-GDINO-T RefCOCO e5 candidate representation.  The trunk is a
+    # retrospective replay; the owner matrix was frozen prospectively.
+    strong_routes = ("native", "shared_128", "shared_wide", "isolated_128")
+    for route in strong_routes:
+        for metric, semantic, surface in (
+            ("testA", "testa", "RefCOCO testA"),
+            ("testB", "testb", "RefCOCO testB"),
+            ("testAB_micro", "testab", "RefCOCO testA+testB micro"),
+        ):
+            path = f"secondary.refcoco_localization.{route}.{metric}"
+            b.add(
+                f"strong_ownership.{route}.{semantic}",
+                "mmgdino_e5_ownership_results", f"{path}.mean",
+                unit="fraction", surface=surface,
+                status="prospectively_frozen_transfer",
+                direction="higher_is_better",
+                sd_path=f"{path}.sample_sd",
+                by_seed_path=f"{path}.by_seed" if route != "native" else None,
+            )
+        for metric, direction in (
+            ("fpr95", "lower_is_better"),
+            ("auroc", "higher_is_better"),
+            ("aupr", "higher_is_better"),
+        ):
+            path = f"secondary.strict2031.{route}.{metric}"
+            b.add(
+                f"strong_ownership.{route}.strict_{metric}",
+                "mmgdino_e5_ownership_results", f"{path}.mean",
+                unit="fraction", surface="Strict-TN2031",
+                status="prospectively_frozen_transfer",
+                direction=direction,
+                sd_path=f"{path}.sample_sd",
+                by_seed_path=f"{path}.by_seed" if route != "native" else None,
+            )
+        b.add(
+            f"strong_ownership.{route}.val",
+            "mmgdino_e5_ownership_results",
+            f"secondary.refcoco_val_mechanism_only.{route}.p1.mean",
+            unit="fraction", surface="RefCOCO val",
+            status="mechanism_only", direction="higher_is_better",
+            sd_path=f"secondary.refcoco_val_mechanism_only.{route}.p1.sample_sd",
+            by_seed_path=(
+                f"secondary.refcoco_val_mechanism_only.{route}.p1.by_seed"
+                if route != "native" else None
+            ),
+        )
+        for metric in (
+            "trainable_parameters", "macs_per_query_both_outputs",
+            "rank_representation_dim", "confidence_representation_dim",
+        ):
+            b.add(
+                f"strong_ownership.{route}.{metric}",
+                "mmgdino_e5_ownership_results",
+                f"model_accounting.{route}.{metric}",
+                unit="count", surface="architecture audit",
+                status="exact_accounting", direction="descriptive",
+            )
+    for route in ("shared_128", "shared_wide"):
+        for seed in (17, 42, 73):
+            for metric in ("cosine_mean", "sign_conflict_fraction_mean"):
+                b.add(
+                    f"strong_ownership.{route}.seed{seed}.{metric}",
+                    "mmgdino_e5_ownership_results",
+                    f"gradient_u150.{route}.{seed}.{metric}",
+                    unit="fraction", surface="fixed U150 gradient probes",
+                    status="mechanism", direction="descriptive",
+                )
+                for update in (25, 50, 100, 150):
+                    b.add(
+                        f"strong_ownership.{route}.seed{seed}.u{update}.{metric}",
+                        "mmgdino_e5_ownership_results",
+                        f"gradient_trajectories.{route}.{seed}.{update}.{metric}",
+                        unit="fraction", surface=f"fixed U{update} gradient probes",
+                        status="mechanism", direction="descriptive",
+                    )
+    for reference in ("native", "shared_128", "shared_wide"):
+        name = f"isolated_128-{reference}"
+        for metric, unit in (
+            ("rec_gain", "absolute"), ("fpr95_gain", "absolute"),
+            ("holm_iut_p", "p_value"),
+        ):
+            b.add(
+                f"strong_ownership.contrast.isolated_vs_{reference}.{metric}",
+                "mmgdino_e5_ownership_results",
+                f"primary.contrasts.{name}.{metric}",
+                unit=unit, surface="RefCOCO TestAB + Strict-TN2031",
+                status="planned_capacity_controlled_contrast",
+                direction="higher_is_better" if metric.endswith("gain") else "descriptive",
+                ci_path=(
+                    f"primary.contrasts.{name}.rec_ci95" if metric == "rec_gain"
+                    else f"primary.contrasts.{name}.fpr95_ci95"
+                    if metric == "fpr95_gain" else None
+                ),
+            )
+    for split in ("refcoco_val", "refcoco_testA", "refcoco_testB"):
+        b.add(
+            f"strong_ownership.official.{split}",
+            "mmgdino_e5_ownership_results",
+            f"strong_trunk.official_mmdetection_model_zoo_reference_p1.{split}",
+            unit="fraction", surface=f"standard {split}",
+            status="published_model_zoo_reference",
+            direction="higher_is_better",
+        )
 
     # Zero-training prompt and support interventions (seed 42 mechanism
     # surface).  They preserve sealed weights and change only the named input.

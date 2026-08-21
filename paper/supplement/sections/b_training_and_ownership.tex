@@ -132,6 +132,17 @@ additional phased schedule is retained as a scheduling diagnostic.  The
 supported conclusion concerns exclusive ownership; the evidence does not
 establish an independent benefit from phasing once ownership is isolated.
 
+The strong-trunk transfer adds a capacity control that the original block did
+not provide.  Shared-128 matches each isolated task tower's width but uses
+fewer total parameters.  Shared-Wide instead matches Isolated's total
+parameters and MACs while giving either task a wider representation.  All
+three learned arms use two task-specific AdamW states and zero weight decay;
+the Shared optimizers intentionally maintain independent moments for the same
+trunk tensors.  This removes both total capacity and repeated weight decay as
+alternative explanations.  The resulting Shared-Wide point estimate is better
+than Isolated on Strict-TN2031, so the transfer supports safe route separation
+but not universal optimization superiority.
+
 \input{supplement/tables/supp_training_controls}
 
 Admission trajectories use 100 updates, physical batch 56, seeds 17/42/73,

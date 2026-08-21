@@ -34,8 +34,10 @@ which factorizes selective grounding into \emph{Admission}, \emph{Ranking}, and
 exclusive parameter owner.  \method improves Test5 Acc@0.5 by
 \ArrowTestGain\ points and reduces Strict-TN2031 FPR95 by
 \ArrowStrictGain\ points.  A controlled ownership intervention preserves
-localization while reducing FPR95 by \ArrowOwnershipStrictGain\ points.  A
-fresh category-switch test separates null, category-text, and visual-support
+localization while reducing FPR95 by \ArrowOwnershipStrictGain\ points.  On a
+strong RefCOCO-tuned trunk, an isolated rejector again improves rejection
+without changing REC, but does not beat a capacity-matched wide shared owner.
+A fresh category-switch test separates null, category-text, and visual-support
 Admission (\ArrowNullSwitch\%, \ArrowTextSwitch\%, and
 \ArrowVisualSwitch\%).  FineCops-Ref gives a descriptive ordering gain and
 paired gRefCOCO confirms transfer, while fixed source thresholds fail on both.

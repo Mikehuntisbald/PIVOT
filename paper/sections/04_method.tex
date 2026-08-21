@@ -114,5 +114,7 @@ is an autograd/ownership contract, not an empirical claim that a shared
 gradient happened to be small.  Our controlled comparison separates output
 count from feature ownership: one shared scalar, separate outputs over a
 shared trainable feature, isolated owners with interleaved exposure, and
-isolated owners with phased exposure.  The evidence supports ownership
-isolation; it does not show an independent benefit from phased scheduling.
+isolated owners with phased exposure.  In ARROW-U2, the evidence supports
+ownership isolation; it does not show an independent benefit from phased
+scheduling.  Section~\ref{sec:results} separately tests whether this advantage
+survives a capacity-matched transfer to a stronger query representation.
