@@ -11,6 +11,7 @@ import os
 import random
 import sys
 import traceback
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterable, Mapping
@@ -38,6 +39,39 @@ from util.slconfig import SLConfig
 
 
 SCHEMA = "pivot.stageb.u2v5_ownership_checkpoint/v1"
+CAPACITY_SCHEMA = "arrow.stageb.b58_capacity_control_checkpoint/v1"
+
+
+@dataclass(frozen=True)
+class _CapacityRow:
+    row_id: str
+    config: str
+    ownership: str
+
+    def payload(self) -> dict[str, Any]:
+        return {
+            "schema": "arrow.stageb.b58_capacity_control_row/v1",
+            "row_id": self.row_id,
+            "config": self.config,
+            "ownership": self.ownership,
+            "updates": 150,
+            "batch_size": 56,
+            "parent": "clean_initializer",
+        }
+
+
+CAPACITY_ROWS = {
+    "B58_SHARED_WIDE": _CapacityRow(
+        "B58_SHARED_WIDE",
+        "config/ablations/cfg_stageb_b58_capacity_shared_wide.py",
+        "shared_wide_two_heads",
+    ),
+    "B58_ISOLATED_REPLAY": _CapacityRow(
+        "B58_ISOLATED_REPLAY",
+        "config/ablations/cfg_stageb_b58_capacity_isolated_replay.py",
+        "isolated_heads",
+    ),
+}
 
 
 class OwnershipError(RuntimeError):
@@ -245,9 +279,9 @@ def _set_trainable(model, row_id: str) -> list[str]:
     confidence_gate_names = [name for name in gate_names if ".confidence_gate." in name]
     if row_id == "O0":
         keys += rank_names
-    elif row_id == "O1":
+    elif row_id in {"O1", "B58_SHARED_WIDE"}:
         keys += rank_names + confidence_gate_names
-    elif row_id == "O2":
+    elif row_id in {"O2", "B58_ISOLATED_REPLAY"}:
         keys += gate_names
     else:
         raise OwnershipError(f"unsupported ownership row {row_id}")
@@ -256,6 +290,189 @@ def _set_trainable(model, row_id: str) -> list[str]:
     for name in keys:
         named[name].requires_grad_(True)
     return sorted(keys)
+
+
+class _TaskSpecificOptimizer:
+    """Expose one optimizer interface while retaining two Adam state sets."""
+
+    def __init__(self, admission: torch.optim.Optimizer, confidence: torch.optim.Optimizer) -> None:
+        self.optimizers = {"admission": admission, "confidence": confidence}
+        self.active_task = "admission"
+        self.param_groups = admission.param_groups
+
+    def set_task(self, task: str) -> None:
+        if task not in self.optimizers:
+            raise OwnershipError(f"unknown optimizer task {task!r}")
+        self.active_task = task
+        self.param_groups = self.optimizers[task].param_groups
+
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        for optimizer in self.optimizers.values():
+            optimizer.zero_grad(set_to_none=set_to_none)
+
+    def step(self, *args, **kwargs):
+        return self.optimizers[self.active_task].step(*args, **kwargs)
+
+    def state_dict(self) -> dict[str, Any]:
+        return {
+            "schema": "arrow.stageb.task_specific_adamw/v1",
+            "active_task": self.active_task,
+            "admission": self.optimizers["admission"].state_dict(),
+            "confidence": self.optimizers["confidence"].state_dict(),
+        }
+
+
+def _task_specific_optimizer(model, trainable_keys: list[str], row_id: str):
+    named = dict(model.named_parameters())
+    surface = list(SURFACE_PARAMETER_KEYS) + list(AUXILIARY_RESIDUAL_KEYS)
+    adapter = model.stage_b_gdino_score_adapter
+    rank_names = [
+        name for name, parameter in named.items()
+        if any(parameter is item for item in adapter.rank_parameters())
+    ]
+    rank_output = {
+        name for name in rank_names if ".rank_output." in name
+    }
+    shared_trunk = [name for name in rank_names if name not in rank_output]
+    gate_names = [
+        name for name, parameter in named.items()
+        if any(parameter is item for item in adapter.gate_parameters())
+    ]
+    confidence_gate = [name for name in gate_names if ".confidence_gate." in name]
+    if row_id == "B58_SHARED_WIDE":
+        admission_names = surface + rank_names
+        confidence_names = shared_trunk + confidence_gate
+        admission_groups = [
+            {"params": [named[name] for name in surface], "lr": 3e-4, "u2v5_owner": "admission"},
+            {"params": [named[name] for name in rank_names], "lr": 3e-5, "u2v5_owner": "shared_rank"},
+        ]
+        confidence_groups = [
+            {"params": [named[name] for name in shared_trunk], "lr": 3e-4, "u2v5_owner": "shared_confidence"},
+            {"params": [named[name] for name in confidence_gate], "lr": 3e-4, "u2v5_owner": "confidence_output"},
+        ]
+    elif row_id == "B58_ISOLATED_REPLAY":
+        admission_names = surface
+        confidence_names = gate_names
+        admission_groups = [
+            {"params": [named[name] for name in surface], "lr": 3e-4, "u2v5_owner": "admission"},
+        ]
+        confidence_groups = [
+            {"params": [named[name] for name in gate_names], "lr": 3e-4, "u2v5_owner": "confidence"},
+        ]
+    else:
+        raise OwnershipError(f"task-specific optimizer does not support {row_id}")
+    if set(admission_names) | set(confidence_names) != set(trainable_keys):
+        raise OwnershipError("dual optimizer ownership does not cover trainable keys")
+    admission_ids = {id(named[name]) for name in admission_names}
+    confidence_ids = {id(named[name]) for name in confidence_names}
+    shared_ids = admission_ids & confidence_ids
+    if row_id == "B58_SHARED_WIDE" and shared_ids != {
+        id(named[name]) for name in shared_trunk
+    }:
+        raise OwnershipError("Shared-Wide overlap differs from its shared trunk")
+    if row_id == "B58_ISOLATED_REPLAY" and shared_ids:
+        raise OwnershipError("isolated replay unexpectedly shares parameters")
+    admission = torch.optim.AdamW(
+        admission_groups, lr=3e-4, weight_decay=0.0, foreach=False
+    )
+    confidence = torch.optim.AdamW(
+        confidence_groups, lr=3e-4, weight_decay=0.0, foreach=False
+    )
+    return _TaskSpecificOptimizer(admission, confidence), {
+        "admission_keys": sorted(admission_names),
+        "confidence_keys": sorted(confidence_names),
+        "shared_keys": sorted(
+            name for name in set(admission_names) & set(confidence_names)
+        ),
+        "weight_decay": 0.0,
+        "task_specific_states": True,
+    }
+
+
+def _load_capacity_initializer(model, payload: Mapping[str, Any], row_id: str):
+    source = payload["model"]
+    if row_id == "B58_ISOLATED_REPLAY":
+        model.load_state_dict(source, strict=True)
+        return {name: value.detach().cpu().clone() for name, value in source.items()}, {
+            "mode": "strict_clean_initializer"
+        }
+    if row_id != "B58_SHARED_WIDE":
+        model.load_state_dict(source, strict=True)
+        return {name: value.detach().cpu().clone() for name, value in source.items()}, {
+            "mode": "strict_legacy_initializer"
+        }
+    target = model.state_dict()
+    mismatched = []
+    for name, value in source.items():
+        if name not in target:
+            raise OwnershipError(f"initializer has unexpected tensor {name}")
+        if tuple(value.shape) == tuple(target[name].shape):
+            target[name] = value.detach().clone()
+        elif name.startswith("stage_b_gdino_score_adapter."):
+            mismatched.append(name)
+        else:
+            raise OwnershipError(f"non-adapter initializer shape drift: {name}")
+
+    def transplant(name: str) -> None:
+        destination = target[name]
+        value = source[name]
+        destination.zero_()
+        slices = tuple(slice(0, size) for size in value.shape)
+        destination[slices] = value
+
+    for name in (
+        "stage_b_gdino_score_adapter.rank_trunk.0.weight",
+        "stage_b_gdino_score_adapter.rank_trunk.0.bias",
+        "stage_b_gdino_score_adapter.rank_trunk.2.weight",
+        "stage_b_gdino_score_adapter.rank_trunk.2.bias",
+        "stage_b_gdino_score_adapter.rank_output.weight",
+    ):
+        transplant(name)
+    # The final confidence layer is zero-initialized by the constructor;
+    # intermediate wide tensors never affect the initial deployed score.
+    model.load_state_dict(target, strict=True)
+    with torch.no_grad():
+        generator = torch.Generator().manual_seed(20260821)
+        query = torch.randn(2, 7, 256, generator=generator)
+        base = torch.randn(2, 7, generator=generator)
+        mask = torch.ones(2, 7, dtype=torch.bool)
+        output = model.stage_b_gdino_score_adapter(query, base, mask)
+        norm = torch.nn.functional.layer_norm(
+            query,
+            (256,),
+            source["stage_b_gdino_score_adapter.rank_norm.weight"],
+            source["stage_b_gdino_score_adapter.rank_norm.bias"],
+        )
+        old = torch.cat((norm, base.unsqueeze(-1)), dim=-1)
+        old = torch.nn.functional.gelu(torch.nn.functional.linear(
+            old,
+            source["stage_b_gdino_score_adapter.rank_trunk.0.weight"],
+            source["stage_b_gdino_score_adapter.rank_trunk.0.bias"],
+        ))
+        old = torch.nn.functional.gelu(torch.nn.functional.linear(
+            old,
+            source["stage_b_gdino_score_adapter.rank_trunk.2.weight"],
+            source["stage_b_gdino_score_adapter.rank_trunk.2.bias"],
+        ))
+        old = torch.nn.functional.linear(
+            old,
+            source["stage_b_gdino_score_adapter.rank_output.weight"],
+            source["stage_b_gdino_score_adapter.rank_output.bias"],
+        ).squeeze(-1)
+        if not torch.equal(output["rank_residual"], old):
+            if not torch.allclose(output["rank_residual"], old, atol=1e-6, rtol=0.0):
+                raise OwnershipError("Shared-Wide initializer did not preserve R100")
+        if not torch.equal(output["confidence_score"], base):
+            raise OwnershipError("Shared-Wide confidence route is not initially identity")
+    return {
+        name: value.detach().cpu().clone()
+        for name, value in model.state_dict().items()
+    }, {
+        "mode": "zero_padded_R100_transplant",
+        "mismatched_adapter_tensors": sorted(mismatched),
+        "rank_residual_max_abs_error": float((output["rank_residual"] - old).abs().max()),
+        "confidence_identity_bitwise": True,
+    }
 
 
 def _optimizer(model, trainable_keys: list[str], args):
@@ -287,17 +504,25 @@ def _sanitize_args(args) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--row-id", required=True, choices=["O0", "O1", "O2"])
+    parser.add_argument(
+        "--row-id", required=True,
+        choices=["O0", "O1", "O2", *CAPACITY_ROWS],
+    )
     parser.add_argument("--seed", required=True, type=int, choices=[17, 42, 73])
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--initializer", required=True)
     cli = parser.parse_args()
-    row = get_row(cli.row_id)
+    row = CAPACITY_ROWS.get(cli.row_id) or get_row(cli.row_id)
     output = Path(cli.output_dir).resolve()
     if output.exists():
         raise OwnershipError(f"ownership output must be fresh: {output}")
     output.mkdir(parents=True)
     args = _load_args(row, cli.seed, output)
+    capacity_control = cli.row_id in CAPACITY_ROWS
+    if capacity_control:
+        args.weight_decay = 0.0
+        args.stage_b_u2v5_capacity_control = True
+        args.gradient_accumulation_steps = 1
     admission_updates = int(os.environ.get("PIVOT_OWNERSHIP_ADMISSION_UPDATES", "100"))
     confidence_updates = int(os.environ.get("PIVOT_OWNERSHIP_CONFIDENCE_UPDATES", "50"))
     device = torch.device("cuda:0")
@@ -307,13 +532,79 @@ def main() -> None:
     model, admission_criterion, _ = build_model_main(args)
     initializer = Path(cli.initializer).resolve(strict=True)
     payload = torch.load(initializer, map_location="cpu", weights_only=False)
-    model.load_state_dict(payload["model"], strict=True)
+    initializer_model_state, initializer_audit = _load_capacity_initializer(
+        model, payload, cli.row_id
+    )
     model.to(device)
     confidence_criterion = _confidence_criterion(args).to(device)
     criterion = _OwnershipCriterion(admission_criterion.to(device), confidence_criterion).to(device)
     trainable_keys = _set_trainable(model, row.row_id)
-    optimizer = _optimizer(model, trainable_keys, args)
-    ownership_amp_init_scale = 4096.0 if row.row_id == "O2" else 8192.0
+    capacity_accounting = None
+    if capacity_control:
+        adapter = model.stage_b_gdino_score_adapter
+        adapter_dim = int(adapter.adapter_dim)
+        gate_dim = int(adapter.confidence_gate[0].out_features)
+        if cli.row_id == "B58_SHARED_WIDE":
+            score_macs = (
+                257 * adapter_dim
+                + adapter_dim * adapter_dim
+                + adapter_dim
+                + (adapter_dim + adapter.score_feature_dim) * gate_dim
+                + gate_dim * gate_dim
+                + gate_dim
+            )
+            expected = {
+                "trainable_parameters": 352138,
+                "score_owner_parameters": 83971,
+                "score_macs_per_query_and_output": 83007,
+                "representation_dim": 163,
+                "gate_hidden_dim": 62,
+            }
+        else:
+            score_macs = (
+                257 * adapter_dim
+                + adapter_dim * adapter_dim
+                + (adapter_dim + adapter.score_feature_dim) * gate_dim
+                + gate_dim * gate_dim
+                + gate_dim
+            )
+            expected = {
+                "trainable_parameters": 352136,
+                "score_owner_parameters": 83969,
+                "score_macs_per_query_and_output": 82944,
+                "representation_dim": 128,
+                "gate_hidden_dim": 128,
+            }
+        observed = {
+            "trainable_parameters": sum(
+                model.state_dict()[name].numel() for name in trainable_keys
+            ),
+            "score_owner_parameters": sum(
+                model.state_dict()[name].numel()
+                for name in trainable_keys
+                if name.startswith("stage_b_gdino_score_adapter.")
+            ),
+            "score_macs_per_query_and_output": int(score_macs),
+            "representation_dim": adapter_dim,
+            "gate_hidden_dim": gate_dim,
+        }
+        if observed != expected:
+            raise OwnershipError(
+                f"capacity accounting drifted: expected={expected}, observed={observed}"
+            )
+        capacity_accounting = observed
+    optimizer_ownership = None
+    if capacity_control:
+        optimizer, optimizer_ownership = _task_specific_optimizer(
+            model, trainable_keys, cli.row_id
+        )
+    else:
+        optimizer = _optimizer(model, trainable_keys, args)
+    ownership_amp_init_scale = (
+        4096.0
+        if row.row_id in {"O2", "B58_ISOLATED_REPLAY", "B58_SHARED_WIDE"}
+        else 8192.0
+    )
     args.amp_init_scale = ownership_amp_init_scale
     scaler = torch.amp.GradScaler(
         "cuda", enabled=True, init_scale=ownership_amp_init_scale
@@ -326,13 +617,13 @@ def main() -> None:
         admission_updates=admission_updates,
         confidence_updates=confidence_updates,
     )
-    frozen_keys = sorted(set(payload["model"]) - set(trainable_keys))
+    frozen_keys = sorted(set(initializer_model_state) - set(trainable_keys))
 
     def save_checkpoint(**kwargs) -> None:
         runtime = dict(getattr(args, "stage_b_u2v5_ownership_runtime_audit", {}))
         gradient = dict(getattr(args, "stage_b_u2v5_ownership_gradient_audit", {}))
         contract = {
-            "schema": SCHEMA,
+            "schema": CAPACITY_SCHEMA if capacity_control else SCHEMA,
             "row": row.payload(),
             "trainable_keys": trainable_keys,
             "frozen_keys": frozen_keys,
@@ -340,13 +631,29 @@ def main() -> None:
                 model.state_dict(), frozen_keys
             ),
             "initializer_frozen_tensor_sha256": stage_b_u0_tensor_state_sha256(
-                payload["model"], frozen_keys
+                initializer_model_state, frozen_keys
             ),
             "exposure": {"admission": admission_updates, "confidence": confidence_updates},
             "amp_init_scale": ownership_amp_init_scale,
             "runtime_audit": runtime,
             "gradient_audit": gradient,
             "c100_confidence_imported": False,
+            "initializer_audit": initializer_audit,
+            "optimizer_ownership": optimizer_ownership,
+            "parameter_accounting": {
+                "trainable": sum(model.state_dict()[name].numel() for name in trainable_keys),
+                "score_owner": sum(
+                    model.state_dict()[name].numel()
+                    for name in trainable_keys
+                    if name.startswith("stage_b_gdino_score_adapter.")
+                ),
+                "admission_owner": sum(
+                    model.state_dict()[name].numel()
+                    for name in trainable_keys
+                    if not name.startswith("stage_b_gdino_score_adapter.")
+                ),
+                "capacity_control": capacity_accounting,
+            },
         }
         if contract["frozen_tensor_sha256"] != contract["initializer_frozen_tensor_sha256"]:
             raise OwnershipError("ownership training changed a frozen tensor")

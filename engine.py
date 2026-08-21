@@ -1385,7 +1385,7 @@ def _clip_stage_b_u2v5_ownership_grad_norms(
             parameter for parameter in adapter.rank_parameters()
             if parameter.requires_grad
         ]
-    elif ownership == "shared_trunk_two_heads":
+    elif ownership in {"shared_trunk_two_heads", "shared_wide_two_heads"}:
         rank_output_ids = {id(parameter) for parameter in adapter.rank_output.parameters()}
         shared = [
             parameter for parameter in adapter.rank_parameters()
@@ -3838,6 +3838,14 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     "U2-v5 ownership batches must be homogeneous and tagged"
                 )
             ownership_task = next(iter(ownership_tasks))
+            set_optimizer_task = getattr(optimizer, "set_task", None)
+            if callable(set_optimizer_task):
+                set_optimizer_task(ownership_task)
+                # Gradient accumulation is forbidden by the B58 capacity
+                # control.  Clear both task optimizers at the ownership
+                # boundary so shared parameters retain distinct Adam states
+                # without retaining the previous duty's gradients.
+                optimizer.zero_grad()
             gdino_adapter_train_mode = (
                 "rank_only" if ownership_task == "admission" else "confidence_only"
             )

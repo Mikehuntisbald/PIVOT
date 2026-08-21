@@ -958,6 +958,7 @@ class StageBGDINOScoreAdapter(nn.Module):
         self.u2v5_score_ownership = str(u2v5_score_ownership).strip()
         if self.u2v5_score_ownership not in {
             "isolated_heads", "shared_score", "shared_trunk_two_heads",
+            "shared_wide_two_heads",
         }:
             raise ValueError("invalid U2-v5 score ownership")
 
@@ -1112,7 +1113,9 @@ class StageBGDINOScoreAdapter(nn.Module):
             gate = masked_residual.max(dim=1).values
             confidence_score = rank_score
         else:
-            if self.u2v5_score_ownership == "shared_trunk_two_heads":
+            if self.u2v5_score_ownership in {
+                "shared_trunk_two_heads", "shared_wide_two_heads"
+            }:
                 confidence_feature = rank_feature
             else:
                 confidence_input = torch.cat(
