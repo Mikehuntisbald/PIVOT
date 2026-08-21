@@ -1,0 +1,35 @@
+{
+  "schema": "arrow.mmgdino_e5_ownership.order_statistic_amendment/v1",
+  "status": "locked_after_u1_only_and_before_any_confidence_update",
+  "locked_at": "2026-08-21T11:39:37+08:00",
+  "parent_runtime_amendment": {
+    "path": "paper/data/mmgdino_e5_ownership_runtime_amendment.json",
+    "sha256": "4a6c552efe0e96debe5ebb143502fed9e8c1cbf499601a78d438c468cd8a3fe7"
+  },
+  "failure": {
+    "arm": "shared_128",
+    "seed": 17,
+    "completed_rank_updates": 1,
+    "completed_confidence_updates": 0,
+    "checkpoint_written": false,
+    "metric_viewed": false,
+    "reason": "CUDA kthvalue has no deterministic implementation under torch.use_deterministic_algorithms(True).",
+    "preserved_path": "outputs/mmgdino_e5_ownership_transfer_20260821/failed_attempts/shared_128_seed17_kthvalue_after_u1"
+  },
+  "change": {
+    "old_score_adapter_sha256": "f28a0b9b1681955a7a97409ed0307396aada9ba9771a1e38c5bf566aaf2863e5",
+    "new_score_adapter_sha256": "35c5fa4f2d1d96797a26e3aea749fd79aab631c726ec3856daf3e4a6fbfdcaa9",
+    "old_operation": "torch.kthvalue(score, kth).values",
+    "new_operation": "torch.sort(score, stable=True).values[ascending_index]",
+    "mathematical_contract_changed": false,
+    "tie_policy_changed": false,
+    "cpu_value_parity_tested": true,
+    "deterministic_cuda_backward_tested": true,
+    "model_changed": false,
+    "data_changed": false,
+    "schedule_changed": false,
+    "objective_changed": false,
+    "optimizer_changed": false
+  },
+  "restart": "Discard the in-memory U1 state and restart all nine arms from their zero-initialized formal state."
+}

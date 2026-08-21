@@ -25,6 +25,7 @@ from tools.train_mmgdino_e5_ownership import (
 
 PREREG = ROOT / "paper/data/mmgdino_e5_ownership_preregistration.json"
 RUNTIME_AMENDMENT = ROOT / "paper/data/mmgdino_e5_ownership_runtime_amendment.json"
+ORDER_STATISTIC_AMENDMENT = ROOT / "paper/data/mmgdino_e5_ownership_order_statistic_amendment.json"
 OUTPUT_ROOT = ROOT / "outputs/mmgdino_e5_ownership_transfer_20260821"
 
 
@@ -79,6 +80,14 @@ def _preflight() -> dict:
     trainer = ROOT / "tools/train_mmgdino_e5_ownership.py"
     if amendment.get("change", {}).get("new_trainer_sha256") != file_sha256(trainer):
         raise MatrixRunError("runtime-amended trainer SHA drifted")
+    order_amendment = json.loads(
+        ORDER_STATISTIC_AMENDMENT.read_text(encoding="utf-8")
+    )
+    if order_amendment.get("status") != "locked_after_u1_only_and_before_any_confidence_update":
+        raise MatrixRunError("order-statistic amendment status drifted")
+    score_adapter = ROOT / "models/GroundingDINO/stage_b_gdino_score_adapter.py"
+    if order_amendment.get("change", {}).get("new_score_adapter_sha256") != file_sha256(score_adapter):
+        raise MatrixRunError("order-statistic implementation SHA drifted")
     return value
 
 

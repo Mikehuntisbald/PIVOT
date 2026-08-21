@@ -706,6 +706,13 @@ class StageBGDINOScoreLossTest(unittest.TestCase):
         self.assertEqual(float(threshold), 0.0)
         self.assertEqual(float(actual_tpr), 1.0)
 
+    def test_exact_threshold_sort_matches_kthvalue_with_ties(self):
+        score = torch.tensor([0.3, 0.1, 0.2, 0.2, 0.9, 0.4])
+        # ceil(.95 * 6) == 6, so the evaluator selects ascending index zero.
+        expected = torch.kthvalue(score, 1).values
+        actual = exact_tpr_operating_threshold(score, target_tpr=0.95)
+        self.assertTrue(torch.equal(actual, expected))
+
     def test_fpr_score_histories_are_detached_queue_inputs(self):
         positive = torch.tensor([[0.8], [0.6]], requires_grad=True)
         negative = torch.tensor([[0.5], [0.2]], requires_grad=True)

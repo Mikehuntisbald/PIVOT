@@ -465,10 +465,13 @@ def exact_tpr_operating_threshold(
     if not 0.0 < float(target_tpr) <= 1.0:
         raise ValueError("target_tpr must be in (0, 1]")
     accepted = max(1, int(math.ceil(float(target_tpr) * int(score.numel()))))
-    # torch.kthvalue is one-indexed.  This exactly matches the final evaluator's
-    # ascending_index = N - ceil(TPR*N) order statistic.
-    kth = int(score.numel()) - accepted + 1
-    return torch.kthvalue(score, kth).values
+    # This exactly matches the final evaluator's
+    # ascending_index = N - ceil(TPR*N) order statistic. ``torch.kthvalue``
+    # has no deterministic CUDA implementation. Full sorting is deterministic
+    # on the supported CUDA runtime and exactly value-equivalent, including
+    # ties, so use it for formal training and CPU replay alike.
+    ascending_index = int(score.numel()) - accepted
+    return torch.sort(score, stable=True).values[ascending_index]
 
 
 def distributed_gather_1d_with_local_grad(value: Tensor) -> tuple[Tensor, int]:
