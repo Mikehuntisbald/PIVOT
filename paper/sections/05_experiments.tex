@@ -2,90 +2,89 @@
 \label{sec:experiments}
 
 \subsection{Research questions}
-We ask whether factorization improves localization and rejection (RQ1),
-whether separate heads suffice without exclusive ownership (RQ2), what
-information generic/textual/visual Admission carries (RQ3), whether rejection
-ordering transfers across independently constructed negative distributions
-(RQ4), and whether the source operating threshold transfers unchanged (RQ5).
+We ask: (RQ1) does the factorized policy improve held-out localization and
+abstention; (RQ2) when does shared Ranking--Abstention adaptation interfere,
+and can capacity or isolation control it; (RQ3) what information is carried by
+generic, textual, and visual Admission; (RQ4) does sample-level rejection
+ordering transfer across independently constructed negatives; and (RQ5) does a
+source-calibrated operating threshold transfer unchanged?
 
-\subsection{Internal localization and rejection}
-Our primary localization endpoint, \textbf{Test5}, is the micro-averaged
-Acc@0.5 over RefCOCO testA/testB, RefCOCO+ testA/testB, and RefCOCOg UMD test.
-It contains 30,969 expressions from 3,982 images.  Validation splits used for
-checkpoint selection are not included.  Ref8, which includes those validation
-splits, is descriptive only.
+\subsection{Internal localization and abstention}
+The frozen-base-to-ARROW comparison is cumulative: the ARROW heads receive
+additional task-specific supervision.  Topology claims therefore rely on the
+equal-supervision controls below, not on attributing the entire system gain to
+owner allocation.
+
+The primary localization endpoint, \textbf{Test5}, is micro Acc@0.5 over
+RefCOCO testA/testB, RefCOCO+ testA/testB, and RefCOCOg UMD test: 30,969
+expressions from 3,982 images.  Validation splits used for checkpoint selection
+are excluded; Ref8, which includes them, is descriptive only.
 
 \textbf{Strict-TN2031} contains 2,031 positive/edited-negative pairs on 1,045
 images.  Negatives are proposal-covered and verified by a SAM3+VLM pipeline;
-they are neither image-global nor all-query verified.  The rejection owner
+they are neither image-global nor all-query verified.  The Abstention owner
 uses a 14,196-row training surface and a separately sealed 1,570-row
-calibration surface; their image sets are mutually disjoint and both are
-image-disjoint from Strict-TN2031.  FPR95 sets the threshold
-at the positive q05 and measures the negative false-positive rate.  The nested
-1,607-pair surface is derived from the same forward and is not treated as an
-independent replication.
+calibration surface.  Their image sets are mutually disjoint and disjoint from
+Strict-TN2031.  FPR95 recomputes the positive fifth percentile and measures the
+negative false-positive rate.
+
+\subsection{Responsibility-allocation controls}
+\paragraph{Frozen-base control.}
+Shared-Wide has 83,971 score-owner parameters, 83,007 MAC/query, and a shared
+163-d representation; Isolated has 83,969 parameters, 82,944 MAC/query, and two
+independent 128-d owners.  Both use task-specific Adam states, zero weight
+decay, the same U150 schedule, seeds 17/42/73, data order, and update counts.
+We report the scheduled gradient probes, negative-cosine fraction, minimum
+cosine, Test5, and Strict-TN2031.
+
+\paragraph{Strong MM-GDINO control.}
+We freeze a locally supplied MM-GDINO-T checkpoint after five epochs of
+RefCOCO fine-tuning and reuse identical queries and boxes.  The trunk is
+retrospective because its original training evaluated benchmark splits each
+epoch; the Native/Shared-128/Shared-Wide/Isolated owner matrix is prospectively
+frozen.  Shared-Wide matches Isolated's parameter/MAC budget while exposing a
+wider representation.  The endpoints are RefCOCO TestA+TestB micro P@1 and
+Strict-TN2031 FPR95.  A fixed zero-update probe replaces only the Ranking batch
+with RefCOCO+ or RefCOCOg while holding the Abstention probe fixed; it is
+exploratory representation analysis, not a new benchmark claim.
 
 \subsection{Admission interventions}
-The standard Ref evaluation compares \arrowv, \arrowt, and \arrown on identical
-frozen geometry/ranking/rejection routes.  A separate fresh panel contains 512
-LVIS~\cite{gupta2019lvis} image pairs (1,024 active-category arms) and is image-disjoint from
-Admission training, Ref8, and Strict-TN2031.  Its primary metric requires both
-directions of a category intervention to score an IoU$\geq0.5$ query for the
-active category above the counterfactual category; missing either category's
-oracle query counts as failure.
+The standard Ref evaluation compares visual support, category text, and
+learned null on identical frozen geometry, Ranking, and Abstention routes.  A
+fresh panel contains 512 LVIS image pairs (1,024 active-category arms) and is
+image-disjoint from Admission training, Ref8, and Strict-TN2031.  Its primary
+metric requires both directions of a category intervention to rank an
+IoU$\geq0.5$ query for the active category above the counterfactual category;
+missing either category's oracle query counts as failure.
 
 \subsection{External benchmarks}
 \paragraph{FineCops-Ref.}
 We evaluate all 9,605 positives, 9,814 negative expressions, and 8,507 negative
-images using the official byte-exact GQA imagery and pinned evaluator.  No
-FineCops train/validation data, checkpoint choice, Admission margin, support
-alias, or threshold fit is used.  \arrowv has an exact preregistered support
-mapping for 9,182 positives (\ArrowFineCopsCoverage\%); its matched contrasts
-include only pairs for which both arms are supported.  The full-test \arrowt
-route receives the benchmark's structured target noun as its explicit
-canonical cue.  Published detector numbers are therefore a numerical reference,
-not an input-matched controlled comparison.  This is
-FineCops-specific annotation/task zero-shot, not a claim of global image
-disjointness.
+images using byte-exact GQA imagery and the pinned evaluator.  No FineCops
+training/validation data, checkpoint choice, Admission margin, support alias,
+or threshold fit is used.  Visual support has an exact preregistered mapping
+for 9,182 positives (95.60\%); cue contrasts use one identical bilaterally
+covered surface.  Category-text Admission receives the benchmark-provided
+structured target noun and is therefore not input-matched to standard
+full-expression-only methods.  Standard-input comparison uses the native/base
+routes and factorized Ranking+Abstention without an external category cue.
+FineCops is annotation/task-zero-shot, not globally image-disjoint.
 
 \paragraph{gRefCOCO.}
 We evaluate a restricted binary slice: 11,563 single-target expressions are
 positive and 9,121 no-target expressions are negative; all 14,579 multi-target
-expressions are excluded.  This is not full 0-to-$N$ GREC.  All 1,500 images
-were exposed during Stage-A.  The paper-facing
-\emph{Rejector-supervision-disjoint} subset removes the 182 images used for
-rejector training and 30 used for rejector calibration, retaining 1,288
-images, 9,924 positives, and 7,796 no-target negatives.  It is not globally
-image-disjoint.
+expressions are excluded.  The Rejector-supervision-disjoint subset removes
+images used for Abstention training or calibration, retaining 1,288 images,
+9,924 positives, and 7,796 negatives.  Because all 1,500 images were exposed
+during candidate-generator training, this is not globally image-disjoint.
 
-\subsection{Metrics and statistical protocol}
-Localization uses Acc@0.5 or benchmark P@1.  Rejection uses AUROC, positive
+\subsection{Metrics and statistics}
+Localization uses Acc@0.5 or benchmark P@1.  Abstention uses AUROC, positive
 AUPR, and FPR95.  External fixed-threshold results apply each seed's sealed
-source threshold without modification.  We report per-seed values, their mean,
-and sample SD.  Confirmatory intervals use 5,000 paired image-cluster (or
-parent-image-cluster) bootstrap replicates with PCG64.  The same cluster draw
-is applied to both models and all seeds.  Every FPR95 replicate recomputes each
-model's q05 from that replicate's positive clusters; the fixed deployment
-threshold is never recomputed.  Planned families use Holm correction.
-
-\subsection{Implementation and frozen decisions}
-The candidate generator, visual backbone, language encoder, decoder, and
-positive-only complete-expression ranker remain frozen during final Admission
-and Rejection training.  Admission and Rejection are trained in separate
-phases with disjoint optimizer ownership.  All formal routes use three seeds
-(17, 42, 73), fixed update counts, a relative Admission margin $\gamma=3$, and
-the preregistered checkpoint-selection rule.  No model, margin, queue, or
-threshold is changed after a held-out or external result.  Exact parameter,
-latency, and memory measurements follow the no-training efficiency protocol in
-the supplementary material.
-
-\paragraph{Strong-trunk ownership transfer.}
-We additionally freeze a locally supplied MM-GDINO-T checkpoint after five
-epochs of RefCOCO fine-tuning and reuse identical frozen queries and boxes.
-The trunk is retrospective (its training evaluated all splits every epoch),
-whereas the Native/Shared-128/Shared-Wide/Isolated owner matrix is
-prospectively frozen.  Every learned arm uses the same fixed updates and seeds,
-separate task-specific Adam states, and zero weight decay.  Shared-Wide matches
-Isolated's parameter/MAC budget while exposing a wider representation.  The
-endpoints are RefCOCO TestA+TestB micro P@1 and Strict-TN2031 FPR95; nothing is
-selected from them.  Exact contracts are in the supplement.
+source threshold without modification.  We report every seed, mean, and sample
+SD.  Confirmatory intervals use 5,000 paired image-cluster or
+parent-image-cluster bootstrap replicates with the same draw applied to both
+models and all seeds.  Every FPR95 replicate recomputes each model's positive
+q05; the fixed deployment threshold is never recomputed.  Planned families use
+Holm correction.  Full schedules, hashes, queue/optimizer state, bitwise
+ownership checks, and post-release evidence labels are supplementary.

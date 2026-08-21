@@ -17,9 +17,9 @@ available, then rerun every validation gate.
 - TeX Live (`latexmk`, `pdflatex`, and `bibtex`) for the final CVPR build;
 - the Python packages pinned by `requirements.txt`.
 
-Tectonic may be used for a quick source preview, but its XeTeX compatibility
-path can substitute Latin Modern for the CVPR kit's Times body font. Such a
-PDF intentionally fails the package validator and is not submission-ready.
+Tectonic may be used for a source preview when its bundle provides the pinned
+T1 Times-compatible fonts.  Regardless of engine, the PDF is submission-ready
+only if the package validator passes the embedded-font and page-limit gates.
 
 For a fresh checkout:
 

@@ -6,7 +6,7 @@ statistics from the image and complete expression.  The complete-expression
 ranker is trained on positives and sealed before the final two phases.
 Admission then updates only its category-eligibility owner and a
 supervision-only
-auxiliary carrier.  Rejection subsequently updates only its sample-level
+auxiliary carrier.  Abstention subsequently updates only its sample-level
 owner from detached base statistics.  The auxiliary carrier never enters a
 deployed score.
 
@@ -78,7 +78,7 @@ runtime still serializes and computes the carrier, but its output is ignored:
 the eligible set is computed solely from $\tilde a$ with margin three, and
 eligible queries retain the frozen ranker's order.
 
-\paragraph{Rejection.}
+\paragraph{Abstention.}
 The rejector independently detaches $h_i,s_i$ and maps
 $[\operatorname{LN}(h_i),s_i]$ through two 128-D GELU layers to $f_i$.  With
 $w_i\propto\exp(s_i/0.01)$ over valid candidates, it concatenates
@@ -121,16 +121,18 @@ training-queue threshold.
 Ownership is checked both structurally and numerically.  Optimizer parameter
 identities must equal the phase allowlist; every other tensor is hashed before
 and after training; and autograd probes require no path from an Admission loss
-to Ranking or Rejection owners, or from a Rejection loss to Admission or
+to Ranking or Abstention owners, or from an Abstention loss to Admission or
 Ranking owners.  Resume receipts additionally bind update counts, optimizer
 state, automatic-mixed-precision skips, non-finite events, and frozen hashes.
 
 The critical control separates output count from feature ownership.  One row
 uses a shared deployed scalar, a second attaches separate outputs to a shared
 trainable feature owner, and a third uses disjoint trainable owners.  An
-additional phased schedule is retained as a scheduling diagnostic.  The
-supported conclusion concerns exclusive ownership; the evidence does not
-establish an independent benefit from phasing once ownership is isolated.
+additional phased schedule is retained as a scheduling diagnostic.  This
+original block shows that isolation protects the released frozen-base route;
+the capacity-matched and strong-trunk controls below delimit that result rather
+than turning it into a universal topology claim.  The evidence does not
+establish an independent benefit from phasing once ownership is fixed.
 
 The post-release frozen-base capacity control in
 Tab.~\ref{tab:supp-arrow-capacity} reruns both arms with task-specific Adam
@@ -140,7 +142,7 @@ giving either shared duty a 163-d representation rather than 128-d.  Negative
 gradient cosines occur in all three Shared-Wide trajectories, yet the paired
 Strict FPR95 interval crosses zero.  We therefore retain the result as direct
 evidence that shared optimization can damage Ranking, not as evidence of a
-capacity-controlled rejection advantage.
+capacity-controlled Abstention advantage.
 
 \input{supplement/tables/supp_arrow_capacity_control}
 
@@ -159,7 +161,7 @@ but not universal optimization superiority.
 
 Admission trajectories use 100 updates, physical batch 56, seeds 17/42/73,
 learning rate $3\times10^{-4}$, weight decay $10^{-4}$, gradient clipping at
-0.1, and an initial AMP scale of 8192.  Rejection trajectories use 50 updates
+0.1, and an initial AMP scale of 8192.  Abstention trajectories use 50 updates
 and physical batch 8 from the seed-matched frozen Admission parent.  Update
 counts are fixed across rows rather than selected separately.  The
 current-batch, queue, trust, paired-margin, and unverified-negative rows in

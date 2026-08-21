@@ -2,35 +2,53 @@
 \label{sec:problem}
 
 \subsection{Selective single-target grounding}
-Given image $I$, complete referring expression $e$, and optional category cue
-$u$, the model predicts either one box or abstention:
+Given an image $I$, complete referring expression $e$, and optional category
+cue $u$, the deployed policy returns one box or abstention:
 \begin{equation}
-  \hat y = \pi(I,e,u) \in \mathcal{B}\cup\{\varnothing\}.
+  \hat y=\pi(I,e,u)\in\mathcal{B}\cup\{\varnothing\}.
 \end{equation}
 A frozen grounding model produces $N$ candidate queries,
 \begin{equation}
   \mathcal{Q}=G_{\phi}(I,e)
   =\{(q_i,b_i,s_i^0)\}_{i=1}^{N},\qquad \phi\ \text{frozen}.
 \end{equation}
-The deployed policy must determine (i) which candidates are eligible, (ii)
-which eligible candidate best satisfies $e$, and (iii) whether the result is
-sufficiently supported to emit.
+The policy must decide which candidates may compete, which admitted candidate
+best satisfies $e$, and whether the selected result is sufficiently supported
+to emit.
 
-\subsection{Why a single score is ill-posed}
-A ranking objective is relative: for a compatible candidate $i^+$, it asks
-$r_{i^+}>r_j$ for competing candidates $j$.  It need not be small on a
-no-target input, because a maximum exists for every nonempty candidate set.
-A rejection objective is sample-level: $c(I,e)$ should separate images with a
-valid referent from no-target or invalid pairs.  Admission changes the domain
-on which Ranking is meaningful.  A shared trainable score can therefore
-receive updates with incompatible direction and scale.
+\subsection{Three different decision semantics}
+Admission constructs an eligible set $\mathcal{E}\subseteq\{1,\ldots,N\}$.
+Ranking is relative:
+\begin{equation}
+  i^*=\argmaxop_{i\in\mathcal{E}} r_i(I,e).
+\end{equation}
+A maximum exists even on a no-target sample.  Abstention is sample-level:
+\begin{equation}
+  \hat y =
+  \begin{cases}
+    b_{i^*}, & c(I,e)\geq\tau,\\
+    \varnothing, & c(I,e)<\tau.
+  \end{cases}
+\end{equation}
+It should separate samples with a valid referent from invalid pairs without
+changing within-set order.  A shared trainable owner may support both
+objectives, or the updates may interfere.  For a shared owner $\Theta_S$, we
+measure
+\begin{equation}
+  \kappa =
+  \cos\!\left(\nabla_{\Theta_S}\mathcal{L}_{R},
+              \nabla_{\Theta_S}\mathcal{L}_{C}\right)
+\end{equation}
+and test endpoint behavior under capacity-matched sharing and isolation.  The
+sign and consequence of $\kappa$ depend on the representation, owner capacity,
+data, and optimization state; they do not follow from the task names alone.
 
 \subsection{Candidate-availability diagnosis}
-We partition localization outcomes into four mutually exclusive cases: no
-IoU$\geq0.5$ candidate exists; a valid candidate exists but Admission removes
-the final valid candidate; a valid admitted candidate exists but Ranking picks
-another candidate; or localization is correct but Rejection falls below the
-operating threshold.  On our validation surface, the first class is empty,
-the second accounts for only 0.31--0.38\%, and 27.23--27.39\% remain ranking
-errors.  This is a diagnosis of the frozen representation and evaluation
-surface, not a universal claim that grounding geometry is always solved.
+We partition localization outcomes into four cases: no IoU$\geq0.5$ candidate
+exists; Admission removes the last compatible candidate; a valid admitted
+candidate exists but Ranking selects another; or localization is correct but
+Abstention falls below the operating threshold.  On the analyzed frozen-base
+validation surface, the first class is empty, the second accounts for only
+0.31--0.38\%, and 27.23--27.39\% remain Ranking errors.  This diagnoses one
+representation and evaluation surface; it does not claim that candidate
+geometry is universally solved.

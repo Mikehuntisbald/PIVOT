@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render ARROW's inference graph and exclusive-ownership contract."""
+"""Render ARROW's decision factorization and empirical owner allocation."""
 
 from __future__ import annotations
 
@@ -80,13 +80,13 @@ def main() -> None:
         (0.20, 0.61),
         0.27,
         0.28,
-        "Frozen candidate\ngenerator  Gφ(I, e)\nqueries qᵢ + boxes bᵢ",
+        "Frozen candidate generator\nGφ(I, e)\nquery--box pairs  (qᵢ, bᵢ)",
         face="#E8E8E8",
         edge=COLORS["gray"],
         linewidth=1.2,
         fontsize=7.1,
     )
-    box(graph, (0.01, 0.27), 0.15, 0.18, "category cue u\nvisual / text / null", face="#F7F7F7", edge=COLORS["gray"])
+    box(graph, (0.01, 0.27), 0.15, 0.18, "category cue u\nvisual / text / null", face="#F7F7F7", edge=COLORS["gray"], fontsize=6.5)
     box(
         graph,
         (0.52, 0.65),
@@ -112,7 +112,7 @@ def main() -> None:
         (0.55, 0.19),
         0.20,
         0.20,
-        "Rejection owner\nC(detached z)\naccept / abstain",
+        "Abstention owner\nC(detached z)\naccept / abstain",
         face="#DDF3EA",
         edge=COLORS["green"],
         linewidth=1.3,
@@ -148,33 +148,41 @@ def main() -> None:
     arrow(graph, (0.86, 0.65), (0.86, 0.37), color=COLORS["orange"])
     arrow(graph, (0.75, 0.29), (0.80, 0.29), color=COLORS["green"])
     arrow(graph, (0.35, 0.32), (0.58, 0.65), color=COLORS["purple"], dashed=True, bend=0.10)
-    graph.text(0.31, 0.09, "dashed path carries gradients but never deployment scores", color=COLORS["purple"], transform=graph.transAxes, ha="center")
+    graph.text(0.36, 0.09, "auxiliary: gradients only, never deployed", color=COLORS["purple"], transform=graph.transAxes, ha="center")
 
-    owner.text(0.0, 1.01, "b  Exclusive owners", weight="bold", transform=owner.transAxes)
-    owner.text(0.03, 0.91, "decision", weight="bold", transform=owner.transAxes)
-    owner.text(0.52, 0.91, "parameter owner", weight="bold", transform=owner.transAxes)
+    owner.text(0.0, 1.01, "b  Allocate owners by evidence", weight="bold", transform=owner.transAxes)
+    box(
+        owner, (0.02, 0.60), 0.96, 0.27,
+        "ARROW-U2 frozen base\nrecurrent negative probes\n→ isolated Ranking / Abstention",
+        face="#F7EFE3", edge=COLORS["orange"], linewidth=1.3, fontsize=7.0,
+    )
+    box(
+        owner, (0.02, 0.27), 0.96, 0.27,
+        "strong MM-GDINO e5\nnear-orthogonal gradients\n→ Shared-Wide is competitive",
+        face="#E8F2F8", edge=COLORS["blue"], linewidth=1.3, fontsize=7.0,
+    )
+    owner.text(
+        0.50, 0.13, "factorization is fixed",
+        ha="center", va="center", transform=owner.transAxes, weight="bold",
+    )
+    owner.text(
+        0.50, 0.055, "owner topology follows measured interference",
+        ha="center", va="center", transform=owner.transAxes, color=COLORS["gray"],
+    )
+
     rows = [
-        ("Geometry", "φ  frozen", COLORS["gray"], "candidate universe"),
-        ("Admission", "θA  only", COLORS["blue"], "category eligibility"),
-        ("Ranking", "θR  only", COLORS["orange"], "within-set ordering"),
-        ("Rejection", "θC  only", COLORS["green"], "sample acceptance"),
+        ("Geometry", "φ frozen", COLORS["gray"], "candidate universe"),
+        ("Admission", "θA", COLORS["blue"], "category eligibility"),
+        ("Ranking", "θR", COLORS["orange"], "within-set ordering"),
+        ("Abstention", "θC", COLORS["green"], "sample acceptance"),
     ]
-    y = 0.80
-    for label, owner_text, color, _ in rows:
-        box(owner, (0.02, y - 0.055), 0.42, 0.12, label, face="#FFFFFF", edge=color, linewidth=1.2)
-        box(owner, (0.51, y - 0.055), 0.46, 0.12, owner_text, face=color + "1F", edge=color, linewidth=1.2)
-        y -= 0.18
-    owner.plot([0.04, 0.96], [0.17, 0.17], color=COLORS["light_gray"], lw=0.8, transform=owner.transAxes)
-    owner.text(0.50, 0.095, "cross-duty gradient = 0", ha="center", va="center", transform=owner.transAxes, weight="bold")
-    owner.text(0.50, 0.015, "structural isolation, not a small-gradient heuristic", ha="center", va="bottom", transform=owner.transAxes, color=COLORS["gray"])
-
     source_rows = [
         {
             "panel": "a",
             "component": label,
             "owner": owner_text.replace("$", ""),
             "deployment_role": role,
-            "gradient_contract": "exclusive" if label != "Geometry" else "frozen",
+            "gradient_contract": "factorized decision; allocation tested empirically" if label != "Geometry" else "frozen",
         }
         for label, owner_text, _, role in rows
     ]
@@ -187,6 +195,20 @@ def main() -> None:
             "gradient_contract": "supervision-only; runtime output ignored",
         }
     )
+    source_rows.extend([
+        {
+            "panel": "b", "component": "ARROW-U2 frozen base",
+            "owner": "isolated Ranking and Abstention",
+            "deployment_role": "same factorized outputs",
+            "gradient_contract": "selected after recurrent negative probes",
+        },
+        {
+            "panel": "b", "component": "strong MM-GDINO e5",
+            "owner": "Shared-Wide competitive",
+            "deployment_role": "same factorized outputs",
+            "gradient_contract": "near-orthogonal measured gradients",
+        },
+    ])
     write_csv(
         "fig2_method_ownership.csv",
         ["panel", "component", "owner", "deployment_role", "gradient_contract"],

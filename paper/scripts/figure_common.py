@@ -100,6 +100,13 @@ def write_csv(name: str, fieldnames: list[str], rows: Iterable[Mapping[str, Any]
     return path
 
 
+def normalize_svg(path: Path) -> None:
+    """Remove generator-only trailing spaces for clean, reviewable diffs."""
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    path.write_text("\n".join(line.rstrip() for line in lines) + "\n", encoding="utf-8")
+
+
 def save_vector_pair(
     fig: plt.Figure, stem: str, *, directory: Path | None = None
 ) -> tuple[Path, Path]:
@@ -120,4 +127,5 @@ def save_vector_pair(
     }
     fig.savefig(pdf, metadata=pdf_metadata)
     fig.savefig(svg, metadata=svg_metadata)
+    normalize_svg(svg)
     return pdf, svg

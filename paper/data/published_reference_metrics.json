@@ -1,0 +1,14 @@
+{
+  "schema": "arrow.paper.published_reference_metrics/v1",
+  "finecops_ref": {
+    "source": "FineCops-Ref EMNLP 2024 paper, reported MM-Grounding-DINO-T row",
+    "status": "published_reference_not_local_forward",
+    "mm_grounding_dino_t": {
+      "positive_p1_macro": 0.4845,
+      "negative_text_recall1": 0.3869,
+      "negative_image_recall1": 0.4314,
+      "negative_text_auroc_type_macro": 0.5398,
+      "negative_image_auroc_type_macro": 0.5652
+    }
+  }
+}

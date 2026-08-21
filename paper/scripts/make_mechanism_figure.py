@@ -1,122 +1,119 @@
 #!/usr/bin/env python3
-"""Render the gradient-conflict, ownership, and controllability evidence."""
+"""Render the two observed ranking/abstention interference regimes."""
 
 from __future__ import annotations
+
+import statistics
 
 from matplotlib import pyplot as plt
 import numpy as np
 
-from figure_common import COLORS, ci95, configure_style, load_registry, save_vector_pair, value, write_csv
+from figure_common import COLORS, configure_style, load_registry, save_vector_pair, value, write_csv
 
 
 SEEDS = (17, 42, 73)
 
 
+def mean_pct(registry, prefix: str, metric: str) -> float:
+    return 100 * statistics.mean(value(registry, f"{prefix}.seed{seed}.{metric}") for seed in SEEDS)
+
+
 def main() -> None:
     configure_style()
     registry = load_registry()
-    fig, axes = plt.subplots(1, 3, figsize=(7.15, 2.42), gridspec_kw={"width_ratios": [1.05, 1.05, 1.25]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.15, 2.42), gridspec_kw={"width_ratios": [1, 1]})
 
-    # a) Directly observed conflict on the shared-score owner (O0).
+    # a) On the frozen-base representation, mean cosine can hide recurrent
+    # negative events. Show minima and the scheduled negative-event fraction.
     ax = axes[0]
-    x = np.arange(len(SEEDS))
-    cosine_keys = [f"ownership.o0.seed{s}.cosine_mean" for s in SEEDS]
-    conflict_keys = [f"ownership.o0.seed{s}.sign_conflict_mean" for s in SEEDS]
-    cosine = [100 * value(registry, key) for key in cosine_keys]
-    conflict = [100 * value(registry, key) for key in conflict_keys]
-    width = 0.34
-    ax.bar(x - width / 2, cosine, width, color=COLORS["vermillion"], label="gradient cosine")
-    ax.bar(x + width / 2, conflict, width, color=COLORS["purple"], label="sign conflict")
-    ax.axhline(0, color=COLORS["black"], lw=0.7)
-    ax.set_xticks(x, [str(seed) for seed in SEEDS])
-    ax.set_xlabel("training seed")
-    ax.set_ylabel("diagnostic (%)")
-    ax.set_ylim(-34, 82)
-    ax.set_title("a  Shared score conflicts", loc="left", weight="bold")
-    ax.legend(frameon=False, loc="upper center", ncol=2, handlelength=1.0, columnspacing=0.8)
-    ax.spines[["top", "right"]].set_visible(False)
-
-    # b) Isolation changes rejection while preserving localization.
-    ax = axes[1]
-    owner_keys = [
-        "ownership.o2_minus_o0.test5_gain",
-        "ownership.o2_minus_o0.strict_fpr95_reduction",
-    ]
-    labels = ["Test5 localization\ngain", "Strict-TN2031\nFPR95 reduction"]
-    colors = [COLORS["orange"], COLORS["green"]]
-    y = np.arange(2)
-    points = np.asarray([100 * value(registry, key) for key in owner_keys])
-    intervals = [ci95(registry, key) for key in owner_keys]
-    xerr = np.asarray(
-        [
-            [points[i] - 100 * intervals[i][0] for i in range(2)],
-            [100 * intervals[i][1] - points[i] for i in range(2)],
-        ]
+    y = np.arange(len(SEEDS))
+    minima = np.asarray([
+        value(registry, f"b58_capacity.shared_wide.seed{seed}.cosine_min")
+        for seed in SEEDS
+    ])
+    negative = np.asarray([
+        100 * value(registry, f"b58_capacity.shared_wide.seed{seed}.negative_cosine_fraction")
+        for seed in SEEDS
+    ])
+    ax.axvline(0, color=COLORS["black"], lw=0.8)
+    for index, (point, fraction) in enumerate(zip(minima, negative)):
+        ax.hlines(index, point, 0, color=COLORS["vermillion"], lw=2.2)
+        ax.scatter(point, index, s=42, color=COLORS["vermillion"], edgecolor="white", zorder=3)
+        ax.annotate(f"min {point:+.3f}\n{fraction:.1f}% neg.", (point, index),
+                    xytext=(5, -1), textcoords="offset points", ha="left", va="center",
+                    color=COLORS["vermillion"], fontsize=6.8)
+    ax.set_yticks(y, [f"seed {seed}" for seed in SEEDS])
+    ax.set_xlim(-0.78, 0.10)
+    ax.set_ylim(3.45, -0.75)
+    ax.set_xlabel("minimum scheduled gradient cosine")
+    ax.set_title("a  Frozen base: intermittent conflict", loc="left", weight="bold")
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    shared_rec = mean_pct(registry, "b58_capacity.shared_wide", "test5")
+    isolated_rec = mean_pct(registry, "b58_capacity.isolated", "test5")
+    shared_fpr = mean_pct(registry, "b58_capacity.shared_wide", "fpr95")
+    isolated_fpr = mean_pct(registry, "b58_capacity.isolated", "fpr95")
+    ax.text(
+        0.02, 0.02,
+        f"REC  {shared_rec:.2f} → {isolated_rec:.2f} (isolated)\n"
+        f"FPR95  {shared_fpr:.2f} → {isolated_fpr:.2f} (n.s.)",
+        transform=ax.transAxes, ha="left", va="bottom", fontsize=7.0, weight="bold",
+        bbox={"facecolor": "white", "edgecolor": COLORS["light_gray"], "pad": 2.2},
     )
-    for i in range(2):
-        ax.errorbar(points[i], y[i], xerr=xerr[:, i : i + 1], fmt="o", ms=5, color=colors[i], capsize=2.5, zorder=3)
-    ax.axvline(0, color=COLORS["gray"], lw=0.8, ls="--")
-    ax.set_yticks(y, labels)
-    ax.set_xlabel("isolated $-$ shared (percentage points)")
-    ax.set_xlim(-1.0, 5.3)
-    ax.set_title("b  Isolation preserves route", loc="left", weight="bold")
-    ax.invert_yaxis()
+
+    # b) On strong e5, the same U150 probe is close to orthogonal and changes
+    # sign across seeds. Shared-Wide is at least as good at the endpoints.
+    ax = axes[1]
+    cosine = np.asarray([
+        value(registry, f"strong_ownership.shared_wide.seed{seed}.cosine_mean")
+        for seed in SEEDS
+    ])
+    ax.axvline(0, color=COLORS["black"], lw=0.8)
+    for index, point in enumerate(cosine):
+        color = COLORS["vermillion"] if point < 0 else COLORS["blue"]
+        ax.hlines(index, 0, point, color=color, lw=2.2)
+        ax.scatter(point, index, s=42, color=color, edgecolor="white", zorder=3)
+        ax.annotate(f"{point:+.3f}", (point, index),
+                    xytext=(-5 if point < 0 else 5, 0), textcoords="offset points",
+                    ha="right" if point < 0 else "left", va="center", color=color,
+                    fontsize=7.0, weight="bold")
+    ax.set_yticks(y, [f"seed {seed}" for seed in SEEDS])
+    ax.set_xlim(-0.050, 0.055)
+    ax.set_ylim(3.45, -0.75)
+    ax.set_xlabel("U150 mean gradient cosine")
+    ax.set_title("b  Strong e5: effective sharing", loc="left", weight="bold")
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.tick_params(axis="y", length=0)
-    for i, point in enumerate(points):
-        ax.annotate(f"{point:+.2f}", (point, y[i]), xytext=(4, -10), textcoords="offset points", color=colors[i], weight="bold")
+    strong_shared_rec = 100 * value(registry, "strong_ownership.shared_wide.testab")
+    strong_isolated_rec = 100 * value(registry, "strong_ownership.isolated_128.testab")
+    strong_shared_fpr = 100 * value(registry, "strong_ownership.shared_wide.strict_fpr95")
+    strong_isolated_fpr = 100 * value(registry, "strong_ownership.isolated_128.strict_fpr95")
+    ax.text(
+        0.02, 0.02,
+        f"REC  Shared-Wide {strong_shared_rec:.3f} | Isolated {strong_isolated_rec:.3f}\n"
+        f"FPR95  Shared-Wide {strong_shared_fpr:.3f} | Isolated {strong_isolated_fpr:.3f}",
+        transform=ax.transAxes, ha="left", va="bottom", fontsize=7.0, weight="bold",
+        bbox={"facecolor": "white", "edgecolor": COLORS["light_gray"], "pad": 2.2},
+    )
 
-    # c) Capacity-matched Admission inputs expose controllability, not just Acc.
-    ax = axes[2]
-    routes = ("arrow_v", "arrow_t", "arrow_n")
-    names = ("ARROW-V", "ARROW-T", "ARROW-N")
-    route_colors = (COLORS["blue"], COLORS["orange"], COLORS["gray"])
-    test_keys = [f"admission_input.{route}.test5" for route in routes]
-    switch_keys = [f"admission_input.{route}.switch_success" for route in routes]
-    test = np.asarray([100 * value(registry, key) for key in test_keys])
-    switch = np.asarray([100 * value(registry, key) for key in switch_keys])
-    y = np.arange(len(routes))
-    for i, color in enumerate(route_colors):
-        ax.plot([switch[i], test[i]], [y[i], y[i]], color=COLORS["light_gray"], lw=2, zorder=1)
-        ax.scatter(switch[i], y[i], s=28, marker="s", color=color, edgecolor="white", linewidth=0.5, zorder=3)
-        ax.scatter(test[i], y[i], s=30, marker="o", facecolor="white", edgecolor=color, linewidth=1.5, zorder=3)
-    ax.set_yticks(y, names)
-    ax.set_xlim(-3, 81)
-    ax.set_ylim(2.5, -0.7)
-    ax.set_xlabel("success / Acc@0.5 (%)")
-    ax.set_title("c  Accuracy hides control", loc="left", weight="bold")
-    ax.spines[["top", "right", "left"]].set_visible(False)
-    ax.tick_params(axis="y", length=0)
-    ax.scatter([], [], s=28, marker="s", color=COLORS["black"], label="category switch")
-    ax.scatter([], [], s=30, marker="o", facecolor="white", edgecolor=COLORS["black"], label="Test5")
-    ax.legend(frameon=False, loc="upper left", ncol=2, handletextpad=0.4, columnspacing=0.8)
-    for i in range(3):
-        ax.annotate(f"{switch[i]:.1f}", (switch[i], y[i]), xytext=(0, -10), textcoords="offset points", ha="center", color=route_colors[i])
-        ax.annotate(f"{test[i]:.1f}", (test[i], y[i]), xytext=(0, 5), textcoords="offset points", ha="center", color=route_colors[i])
-
-    fig.subplots_adjust(left=0.065, right=0.995, bottom=0.23, top=0.88, wspace=0.58)
+    fig.subplots_adjust(left=0.075, right=0.99, bottom=0.22, top=0.87, wspace=0.34)
 
     rows = []
-    for seed, cosine_key, conflict_key in zip(SEEDS, cosine_keys, conflict_keys):
-        rows.extend(
-            [
-                {"panel": "a", "series": "gradient_cosine", "label": f"seed{seed}", "registry_key": cosine_key, "value": value(registry, cosine_key), "ci95_low": "", "ci95_high": ""},
-                {"panel": "a", "series": "sign_conflict_fraction", "label": f"seed{seed}", "registry_key": conflict_key, "value": value(registry, conflict_key), "ci95_low": "", "ci95_high": ""},
-            ]
-        )
-    for label, key in zip(labels, owner_keys):
-        lo, hi = ci95(registry, key)
-        rows.append({"panel": "b", "series": "ownership_contrast", "label": label.replace("\n", " "), "registry_key": key, "value": value(registry, key), "ci95_low": lo, "ci95_high": hi})
-    for name, test_key, switch_key in zip(names, test_keys, switch_keys):
-        rows.extend(
-            [
-                {"panel": "c", "series": "test5", "label": name, "registry_key": test_key, "value": value(registry, test_key), "ci95_low": "", "ci95_high": ""},
-                {"panel": "c", "series": "category_switch", "label": name, "registry_key": switch_key, "value": value(registry, switch_key), "ci95_low": "", "ci95_high": ""},
-            ]
-        )
+    for seed, minimum, fraction in zip(SEEDS, minima, negative):
+        rows.append({
+            "panel": "frozen_base", "seed": seed,
+            "metric": "minimum_cosine", "value": minimum,
+            "secondary_metric": "negative_probe_fraction", "secondary_value": fraction / 100,
+        })
+    for seed, point in zip(SEEDS, cosine):
+        rows.append({
+            "panel": "strong_e5", "seed": seed,
+            "metric": "u150_mean_cosine", "value": point,
+            "secondary_metric": "", "secondary_value": "",
+        })
     write_csv(
         "fig3_mechanism_controllability.csv",
-        ["panel", "series", "label", "registry_key", "value", "ci95_low", "ci95_high"],
+        ["panel", "seed", "metric", "value", "secondary_metric", "secondary_value"],
         rows,
     )
     save_vector_pair(fig, "fig3_mechanism_controllability")

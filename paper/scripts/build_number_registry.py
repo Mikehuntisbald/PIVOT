@@ -130,6 +130,12 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
         "expected_sha256": "4b908ecdc2854f44f33555491a3800ca8d512f33007c88b3f6b589344e87351d",
         "owns": ["original OGC native max-token FineCops metrics"],
     },
+    "published_reference_metrics": {
+        "path": "paper/data/published_reference_metrics.json",
+        "kind": "published_numeric_reference",
+        "expected_sha256": "c9f9ad61a18e5476ba604029788190a3ac1aa42b53a72fe565b4cfe64d63b773",
+        "owns": ["published FineCops MM-Grounding-DINO-T reference row"],
+    },
     "gref_results": {
         "path": "outputs/arrow_grefcoco_20260820/results.json",
         "kind": "sealed_result",
@@ -511,6 +517,28 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
             status="prospectively_frozen_post_release_capacity_control",
             direction="lower_is_better",
             transform=lambda rows, arm=arm: statistics.fmean(
+                float(row[arm]["fpr95"]) for row in rows.values()
+            ),
+        )
+        b.add(
+            f"b58_capacity.{arm}.test5_sd",
+            "b58_capacity_control_results",
+            "ref_test5.points.per_seed",
+            unit="fraction", surface="Test5 micro",
+            status="prospectively_frozen_post_release_capacity_control",
+            direction="descriptive",
+            transform=lambda rows, arm=arm: statistics.stdev(
+                float(row["micro"][arm]) for row in rows.values()
+            ),
+        )
+        b.add(
+            f"b58_capacity.{arm}.strict2031_fpr95_sd",
+            "b58_capacity_control_results",
+            "strict2031.points.per_seed",
+            unit="fraction", surface="Strict-TN2031",
+            status="prospectively_frozen_post_release_capacity_control",
+            direction="descriptive",
+            transform=lambda rows, arm=arm: statistics.stdev(
                 float(row[arm]["fpr95"]) for row in rows.values()
             ),
         )
@@ -941,6 +969,26 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
                     if row["cate"] == negative_type
                 ),
             )
+
+    # Published reference numbers are context only: they are never mixed with
+    # local paired tests and are explicitly marked as non-local forwards.
+    for metric in (
+        "positive_p1_macro",
+        "negative_text_recall1",
+        "negative_image_recall1",
+        "negative_text_auroc_type_macro",
+        "negative_image_auroc_type_macro",
+    ):
+        b.add(
+            f"finecops.published_mmgdino.{metric}",
+            "published_reference_metrics",
+            f"finecops_ref.mm_grounding_dino_t.{metric}",
+            unit="fraction",
+            surface="FineCops published benchmark table",
+            status="published_reference_not_local_forward",
+            direction="higher_is_better",
+            notes="MM-Grounding-DINO-T row reported by the FineCops-Ref paper",
+        )
     official_source = registry["sources"]["finecops_results_doc"]
     # Byte-exact ARROW replay through the pinned official evaluator. Keep these
     # distinct from the audited all-positive diagnostics below: the official

@@ -3,113 +3,104 @@
 
 \input{tables/table1_main}
 
-\subsection{ARROW improves both deployed endpoints}
-\method improves Test5 Acc@0.5 by \ArrowTestGain\ points (95\% paired
-image-cluster CI [\ArrowTestGainLo, \ArrowTestGainHi]) and lowers
-Strict-TN2031 FPR95 by \ArrowStrictGain\ points (CI
-[\ArrowStrictGainLo, \ArrowStrictGainHi]); see Tab.~\ref{tab:main}.
-Rejection cannot explain the localization gain: learned Admission plus Ranking
-and full \arrowv have bitwise-identical localization records by construction.
+\subsection{Factorization improves both deployed endpoints}
+Relative to the frozen route, ARROW-U2 improves Test5 Acc@0.5 by 2.077 points
+(95\% paired image-cluster CI [1.827, 2.347]) and lowers Strict-TN2031 FPR95
+by 4.185 points (CI [2.457, 6.199]).  This cumulative comparison includes the
+additional supervision used by the factorized heads; it is not an ownership
+causal control.  Abstention cannot explain the localization gain: the
+Admission+Ranking route and full ARROW-U2 have bitwise-identical boxes and
+selected queries.  Admission retains 99.69\% compatible-candidate recall while
+reducing the mean comparison set to 69.5 queries.
 
-The cumulative mechanism rows explain complementarity rather than independent
-additivity.  The unrestricted complete-expression ranker is almost identical
-to the base.  A static Admission prior helps modestly, and learned Admission
-creates the main localization gain by constraining the comparison domain.  Yet
-canonicalizing only the ranking expression---with geometry and eligibility
-fixed---drops Acc@0.5 by more than ten points and changes 37.85\% of top-1
-queries.  Admission defines who may compete; the complete expression decides
-which instance wins.
+The detailed validation ladder is supplementary.  Its key diagnosis is that
+learned Admission constrains the comparison domain, whereas replacing only the
+Ranking expression by a category noun reduces validation Acc@0.5 by more than
+ten points and changes 37.85\% of top-1 queries.  Admission defines who may
+compete; the complete expression determines which admitted instance wins.
 
 \input{tables/table2_ownership}
 
-\subsection{Ownership resolves the ARROW-U2 conflict, but is not universally superior}
-Table~\ref{tab:ownership} isolates feature ownership from output separation.
-The shared scalar has negative Admission/Rejection gradient cosine in every
-seed ($-0.190$, $-0.252$, $-0.281$), with sign-conflict fractions around
-0.53--0.56.  Merely attaching separate outputs to the same trainable feature
-surface leaves calibration FPR95 essentially unchanged; this separate-head
-control is calibration-only and has no held-out Strict result.  Removing the
-shared autograd path lowers it substantially.  On held-out endpoints, isolated owners
-change Test5 by only $-0.002$ points while reducing Strict-TN2031 FPR95 by
-\ArrowOwnershipStrictGain\ points.  Phased exposure is non-inferior in
-localization but has no significant rejection improvement over already
-isolated interleaving; our claim is structural ownership isolation, not a
-schedule advantage.
+\subsection{Responsibility interference is representation-dependent}
+Table~\ref{tab:interference} reports final matched statistics.  On the
+frozen-base representation, Shared-Wide is not continuously antagonistic: its
+mean cosine is positive.  Nevertheless, 15.5--25.0\% of scheduled probes are
+negative in every seed, with minima from $-0.393$ to $-0.685$.  Isolation
+removes all 450 tested cross-gradient paths and raises Test5 from 69.000\% to
+74.311\%, a 5.311-point gain (CI [4.875, 5.768]).  The 0.689-point FPR95
+reduction is not significant (CI [$-0.382$, 1.337], $p=0.139$).  Thus sharing
+can damage Ranking after capacity, compute, optimizer-state, decay, update, and
+data-order matching, but this replay does not establish a rejection advantage.
 
-A matched frozen-base control removes capacity, optimizer-state, and decay
-asymmetries.  Isolation recovers 5.311 Test5 points (CI [4.875, 5.768]), but
-its 0.689-point Strict-TN2031 reduction is not significant (CI [$-0.382$,
-1.337]).  This supports protection of Ranking from shared optimization, not a
-capacity-controlled rejection-superiority claim.
+The strong e5 trunk exhibits a different regime.  All designs remain at
+88.969--88.979\% TestA+TestB P@1.  Shared-Wide has the best FPR95 point
+estimate (83.686\%), followed by Isolated (84.211\%), Shared-128 (85.442\%),
+and Native (88.282\%).  Isolated passes the preregistered gate versus Native
+but not versus either shared learned control after Holm correction.  Shared
+cosines are near zero and not sign-consistent across seeds.  The combined
+evidence rejects both extremes: Ranking and Abstention are not inherently
+antagonistic, yet matching capacity does not prevent destructive sharing on
+every representation.
 
 \begin{figure*}[t]
   \centering
   \IfFileExists{figures/fig3_mechanism_controllability.pdf}{%
     \includegraphics[width=\textwidth]{figures/fig3_mechanism_controllability.pdf}%
   }{\fbox{\parbox[c][1.15in][c]{0.96\textwidth}{\centering
-    Gradient conflict, paired ownership effects, and V/T/N category-switch
-    controllability generated from registry CSVs.}}}
-  \caption{Mechanism evidence.  Shared-duty gradients conflict, structural
-isolation preserves localization while improving rejection, and nearly flat
-standard accuracy hides large differences in category controllability.}
+    Two representation regimes: intermittent conflict versus effective
+    capacity-matched sharing.}}}
+  \caption{Owner allocation depends on the representation.  The frozen-base
+  control shows recurrent negative events and a large localization gap;
+  strong e5 shows near-orthogonal gradients and indistinguishable REC, with
+  Shared-Wide giving the best rejection point estimate.}
   \label{fig:mechanism}
 \end{figure*}
-
-The strong-trunk rows sharpen this boundary.  Isolated passes the planned
-REC-noninferiority/rejection-superiority gate versus Native (88.976 vs.
-88.969 P@1; 84.211 vs. 88.282 FPR95), but not versus capacity-matched
-Shared-Wide (88.979; 83.686).  Shared alignment remains nonuniform across seeds
-and RefCOCO/+/g rank probes.  Hence an independent rejector can improve rejection
-without changing REC, but exclusive ownership is not universally necessary or
-superior on strong queries.  Per-seed and optimizer audits are supplementary.
 
 \input{tables/table3_admission}
 
 \subsection{Endpoint accuracy hides Admission responsibility}
-The three capacity-matched cues are close on Test5 but diverge under direct
-intervention (Tab.~\ref{tab:admission}, Fig.~\ref{fig:mechanism}).  \arrown
-retains 73.83\% Test5 accuracy yet has zero bidirectional category-switch
-success.  Canonical text reaches \ArrowTextSwitch\%, and visual support reaches
-\ArrowVisualSwitch\%.  The fresh panel's preregistered visual-over-text and text-over-null
-confidence intervals both exclude zero.  Matched FineCops results repeat the
-ordering on positive P@1 and both negative types.  The supported conclusion is
-that visual examples provide category evidence beyond the name, not that
-support pixels are required for every correct localization.
+The capacity-matched cue routes are close on Test5 but diverge under direct
+intervention (Tab.~\ref{tab:admission}, Fig.~\ref{fig:external}).  Learned-null
+Admission retains 73.83\% Test5 yet has 0.00\% bidirectional category-switch
+success.  Category text reaches 32.29\%, and visual support reaches 48.24\%.
+Visual-over-text is 15.95 points (CI [10.81, 20.83]); text-over-null is 32.29
+points (CI [28.65, 36.00]); both Holm-adjusted $p=0.0004$.  One exact-support
+FineCops surface repeats the ordering.  Visual examples therefore strengthen
+category control beyond the name, but are not required for every correct
+standard localization.
 
 \input{tables/table4_external}
 
-\subsection{External ordering improves; the operating point does not}
-Table~\ref{tab:external} reports both external surfaces.  On complete
-FineCops, we replace the published MM-GDINO-T row with a local replay of the
-unmodified GroundingDINO-T Swin-T OGC checkpoint.  Its native scorer reaches
-44.82\% positive P@1, while \arrowt reaches 43.15\%; their text/image negative
-Recall@1 values are 41.99/41.98\% and 43.68/44.51\%, respectively.  The OGC
-replay was added as a post-hoc corrective, input-matched baseline and is not a
-new confirmatory contrast.  Both native max-token and preregistered
-expression-mean scorer routes were evaluated; the latter sensitivity is
-reported in the supplement.  \arrowv stays on its matched covered surface.
+\subsection{External ordering transfers; calibration does not}
+On FineCops, the local original GroundingDINO-T replay has higher positive P@1
+than the frozen-base routes, while the learned Abstention score has stronger
+negative separation.  Adding Ranking+Abstention changes positive P@1 from
+43.11\% to 43.02\%,
+raises negative-expression/image Recall@1 from 42.66/43.98\% to 43.85/44.76\%,
+and raises official-scope AUROC from 58.87/59.55\% to 60.88/60.69\%.  This is
+an improvement in selective discrimination, not positive-grounding SOTA.
 
-On gRefCOCO Full, AUROC rises from 0.6895 to 0.7175 and FPR95 falls from 0.7410
-to 0.7083.  On Rejector-supervision-disjoint, AUROC rises from 0.6869 to 0.7150
-and FPR95 falls from 0.7497 to 0.7116; all four paired gain intervals exclude
-zero.  Because Stage-A saw every image, this controls rejector-supervision
-overlap only.  It is evidence about no-target rejection rather than a new
-localization domain.
+On restricted gRefCOCO Full, Abstention raises AUROC from 68.95\% to 71.75\% and
+lowers domain-relative FPR95 from 74.10\% to 70.83\%.  On the
+Rejector-supervision-disjoint slice, AUROC rises from 68.69\% to 71.50\% and
+FPR95 falls from 74.97\% to 71.16\%; planned paired intervals exclude zero.
+Because candidate-generator training saw all images, this tests no-target decision transfer rather
+than a new image domain.
 
 \begin{figure}[t]
   \centering
   \IfFileExists{figures/fig4_external_transfer.pdf}{%
     \includegraphics[width=\columnwidth]{figures/fig4_external_transfer.pdf}%
-  }{\fbox{\parbox[c][1.05in][c]{0.96\columnwidth}{\centering
-    Internal, FineCops, and gRefCOCO rejection ordering versus fixed-threshold
-    positive TPR, shown on separate aligned axes.}}}
-  \caption{FineCops improves descriptively and gRefCOCO with paired intervals.
-  The sealed threshold reaches its source operating point but only
-  \ArrowFineCopsFixedTPR\%/\ArrowGrefFixedTPR\% TPR externally; it is never
-  refit.}
+  }{\fbox{\parbox[c][1.25in][c]{0.96\columnwidth}{\centering
+    Admission controllability and cross-benchmark discrimination versus
+    fixed-threshold transfer.}}}
+  \caption{Standard accuracy hides cue controllability (top).  Abstention
+  ordering improves internally and externally, but the sealed source threshold
+  reaches only \ArrowFineCopsFixedTPR\%/\ArrowGrefFixedTPR\% TPR externally
+  (bottom); it is never refit.}
   \label{fig:external}
 \end{figure}
 
-Figure~\ref{fig:external} shows that the fixed source threshold under-accepts
-external positives.  The descriptive FineCops and paired gRefCOCO gains support
-ordering transfer, while score scale and tails remain domain-dependent.
+The fixed source threshold reaches only 80.05\% positive TPR on FineCops and
+approximately 90\% on gRefCOCO instead of 95\%.  Discrimination therefore
+transfers more readily than score scale and tail calibration.
