@@ -164,6 +164,16 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
             "shared-trunk gradient probes and claim boundary",
         ],
     },
+    "mmgdino_e5_cross_dataset_probe": {
+        "path": "paper/data/mmgdino_e5_cross_dataset_probe_results.json",
+        "kind": "zero_update_cross_dataset_gradient_probe",
+        "expected_sha256": "b9c631cc057410f1ed1fbf4f91aae6ac17521bba8f47eb9bd6e4e19e112c7839",
+        "owns": [
+            "strong-e5 rank-dataset gradient alignment",
+            "shared gradient norms and sign-conflict fractions",
+            "RefCOCO/+/g native rank difficulty diagnostics",
+        ],
+    },
     "gref_dataset_manifest": {
         "path": "/media/haoyi/T9/data/gRefCOCO/v1/manifests/dataset_manifest.json",
         "kind": "sealed_dataset_manifest",
@@ -575,6 +585,42 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
             status="published_model_zoo_reference",
             direction="higher_is_better",
         )
+
+    # Zero-update rank-dataset probe on the same strong e5 U150 shared owners.
+    # The D3 confidence batch and queue remain fixed; only the rank surface is
+    # exchanged among the three RefCOCO variants.
+    for route in ("shared_128", "shared_wide"):
+        for dataset in ("refcoco", "refcocoplus", "refcocog"):
+            for metric, direction in (
+                ("cosine", "descriptive"),
+                ("sign_conflict_fraction", "descriptive"),
+                ("rank_gradient_l2", "descriptive"),
+                ("confidence_gradient_l2", "descriptive"),
+                ("native_p1", "higher_is_better"),
+                ("rank_loss", "lower_is_better"),
+                ("native_top1_runnerup_margin", "descriptive"),
+                ("native_oracle_positive_negative_gap", "descriptive"),
+            ):
+                prefix = f"aggregate.{route}.{dataset}.{metric}"
+                b.add(
+                    f"strong_cross_probe.{route}.{dataset}.{metric}",
+                    "mmgdino_e5_cross_dataset_probe", f"{prefix}.mean",
+                    unit="fraction" if metric in ("cosine", "sign_conflict_fraction", "native_p1") else "score",
+                    surface=f"{dataset} val, fixed zero-update probe",
+                    status="post_release_zero_update_mechanism",
+                    direction=direction,
+                    sd_path=f"{prefix}.sample_sd",
+                )
+                for index, seed in enumerate((17, 42, 73)):
+                    b.add(
+                        f"strong_cross_probe.{route}.{dataset}.seed{seed}.{metric}",
+                        "mmgdino_e5_cross_dataset_probe",
+                        f"{prefix}.values.{index}",
+                        unit="fraction" if metric in ("cosine", "sign_conflict_fraction", "native_p1") else "score",
+                        surface=f"{dataset} val seed{seed}, fixed zero-update probe",
+                        status="post_release_zero_update_mechanism",
+                        direction=direction,
+                    )
 
     # Zero-training prompt and support interventions (seed 42 mechanism
     # surface).  They preserve sealed weights and change only the named input.

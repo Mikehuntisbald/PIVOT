@@ -262,6 +262,19 @@
       "sha256": "5fef908c32f03d9db930183116e08a1ca6c68645681ab1849cc21e99ad837955",
       "size_bytes": 13743
     },
+    "mmgdino_e5_cross_dataset_probe": {
+      "claims_owned": [
+        "strong-e5 rank-dataset gradient alignment",
+        "shared gradient norms and sign-conflict fractions",
+        "RefCOCO/+/g native rank difficulty diagnostics"
+      ],
+      "git_commit": "4564c45ed1c9d49c2a98f62cbb949f13633927d7",
+      "git_tracked": true,
+      "kind": "zero_update_cross_dataset_gradient_probe",
+      "path": "paper/data/mmgdino_e5_cross_dataset_probe_results.json",
+      "sha256": "b9c631cc057410f1ed1fbf4f91aae6ac17521bba8f47eb9bd6e4e19e112c7839",
+      "size_bytes": 18923
+    },
     "mmgdino_e5_ownership_results": {
       "claims_owned": [
         "capacity-controlled strong-trunk ownership transfer",
