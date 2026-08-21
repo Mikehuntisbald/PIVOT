@@ -1,0 +1,102 @@
+{
+  "schema": "arrow.stageb.b58_capacity_control.preregistration/v1",
+  "status": "locked_after_u1_and_before_formal_training",
+  "locked_at": "2026-08-21T14:44:16+08:00",
+  "git_commit": "22cb069083d078ef904b2fed98b9f865ec2f5648",
+  "question": "Does B58 responsibility isolation still beat a shared owner after matching total score-owner parameters/MACs and removing optimizer-state and weight-decay asymmetries?",
+  "arms": {
+    "shared_wide": {
+      "row_id": "B58_SHARED_WIDE",
+      "ownership": "shared_wide_two_heads",
+      "representation_dim": 163,
+      "gate_hidden_dim": 62,
+      "score_owner_parameters": 83971,
+      "total_trainable_parameters": 352138,
+      "score_macs_per_query_and_output": 83007
+    },
+    "isolated": {
+      "row_id": "B58_ISOLATED_REPLAY",
+      "ownership": "isolated_heads",
+      "representation_dim": 128,
+      "gate_hidden_dim": 128,
+      "score_owner_parameters": 83969,
+      "total_trainable_parameters": 352136,
+      "score_macs_per_query_and_output": 82944
+    }
+  },
+  "capacity_match": {
+    "parameter_difference_shared_minus_isolated": 2,
+    "score_mac_difference_shared_minus_isolated": 63,
+    "relative_score_mac_difference": 0.0007595485935119008,
+    "shared_per_task_representation_is_wider": true
+  },
+  "training": {
+    "seeds": [17, 42, 73],
+    "trajectories": 6,
+    "endpoint": "U150 fixed; no milestone selection",
+    "schedule": "100 Admission and 50 confidence updates, interleaved identically",
+    "admission_batch_size": 56,
+    "confidence_batch_size": 8,
+    "amp_initial_scale": 4096,
+    "clip_norm": 0.1,
+    "weight_decay": 0.0,
+    "optimizer": "two independent task-specific AdamW states",
+    "admission_learning_rates": {
+      "surface_and_auxiliary": 0.0003,
+      "shared_representation_and_rank_output": 0.00003
+    },
+    "confidence_learning_rate": 0.0003,
+    "gradient_accumulation_steps": 1,
+    "checkpoint_selection": "none"
+  },
+  "initializer": {
+    "path": "outputs/u2v5_leakage_clean_anchor_20260817/initializer/checkpoint_clean_init.pth",
+    "sha256": "ad7b3a563ef84356c6d952167ee6a48f615f8db887eba31bed92a81b0ba756a7",
+    "shared_wide_rank_initialization": "zero-pad the sealed 128-d R100 trunk/output into 163-d; maximum U1 numerical parity error must be <=1e-6",
+    "confidence_initialization": "identity score via zero final confidence output"
+  },
+  "data": {
+    "admission": {
+      "path": "config/datasets_stageb_u2_category_complete_three_ref.json",
+      "sha256": "ef703f730cadd2796bfc66bede54fb298d5719210a380db9247c8ddbaacc65e3"
+    },
+    "confidence": {
+      "path": "config/datasets_stageb_u2v5_clean_confidence_d3.json",
+      "sha256": "c15235c8c0f1c29e70c8a0613918f6122d0cb1f9277f76d63a0558d1dd604617"
+    }
+  },
+  "code": {
+    "engine.py": "b403d9a852470c30dca599629947fb964df8ff0d541bff7c6c39427156731e87",
+    "models/GroundingDINO/stage_b_gdino_score_adapter.py": "a7b8ac007018fcb6dd8ac77e170d314ebd5e8184584db9dd2100b536f9c7bd40",
+    "tools/train_stageb_u2v5_ownership.py": "725a8fee6861eb51cbf4521d5901d14a7eb8777879daf5c7d2d8c44544abcbf6",
+    "config/ablations/cfg_stageb_b58_capacity_shared_wide.py": "19a9a125e97c697c9a6d3e7bd54b7fad911d80b1c8e96403314fb11d8f9cb795",
+    "config/ablations/cfg_stageb_b58_capacity_isolated_replay.py": "ab526a71074fc3f7768436d346c0cd8156d1617f65f9193a16436db4f14896d0"
+  },
+  "u1_smoke": {
+    "shared_wide_receipt_sha256": "f0d805af343de6e03d7241cd0f9177058d1944e14a96a6bac30a5267219d81c8",
+    "isolated_receipt_sha256": "747cf25b1d36b73519f20215782043cf2861563b5fc4fa77233b7369b86d3800",
+    "both_tasks_updated": true,
+    "zero_amp_skip_or_nonfinite": true,
+    "shared_wide_r100_max_abs_error": 4.656612873077393e-10,
+    "minimum_device_free_bytes": 7478312960
+  },
+  "evaluation": {
+    "mechanism_only": ["Val3", "D3 calibration"],
+    "primary_localization": "Test5 micro with per-split 0.005 no-collapse guards",
+    "primary_rejection": "Strict-TN2031 FPR95",
+    "secondary": ["Strict-TN2031 AUROC", "Strict-TN2031 AUPR", "derived Strict1607"],
+    "bootstrap": "5000 paired image-cluster replicates; every FPR replicate recomputes each route's positive q05",
+    "planned_contrast": "isolated minus shared_wide",
+    "decision_gate": "Test5 noninferiority margin 0.005 AND Strict2031 FPR95 superiority with CI lower bound >0"
+  },
+  "formal_outputs_absent": {
+    "shared_wide": {"17": true, "42": true, "73": true},
+    "isolated": {"17": true, "42": true, "73": true}
+  },
+  "evidence_status": "prospectively frozen post-release capacity control on previously observed internal endpoints",
+  "prohibitions": [
+    "Do not select a milestone or change width, learning rate, optimizer state ownership, weight decay, or loss after seeing a result.",
+    "Do not compare the zero-WD dual-state Shared-Wide arm only against the historical one-optimizer O2 row; use the matched isolated replay.",
+    "Do not claim isolation beats capacity unless the preregistered paired gate passes."
+  ]
+}
