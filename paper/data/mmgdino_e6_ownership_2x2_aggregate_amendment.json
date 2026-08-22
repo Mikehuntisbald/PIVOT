@@ -1,0 +1,35 @@
+{
+  "schema": "arrow.mmgdino_e6_ownership_2x2.aggregate_amendment/v1",
+  "status": "locked_after_pure_aggregation_failure_before_retry",
+  "locked_at": "2026-08-22T15:28:07+08:00",
+  "parent_preregistration_sha256": "165d6c890b15c3ec65c0465f21bb08b87465be1a1901168bf4fce2f759403769",
+  "parent_candidate_availability_amendment_sha256": "6cd7ff88ab3d562f421cbed02364d671cbb2d49e75048e5c9d8a67aa7d254cff",
+  "failure": {
+    "stage": "gradient-statistics serialization after bootstrap computation",
+    "reason": "isolated cosine_mean is structurally null but was cast to float",
+    "model_forward_count": 0,
+    "optimizer_update_count": 0,
+    "aggregate_written": false,
+    "records_or_checkpoints_changed": false,
+    "preserved_log": {
+      "path": "outputs/mmgdino_e6_ownership_2x2_20260822/failed_attempts/aggregate_isolated_null_cosine.log",
+      "sha256": "fd6c6b4a76bab5f194b492f6a616fe85496972631efdd421217fe463bd61af7e"
+    }
+  },
+  "change": {
+    "scope": "serialization_only",
+    "old_aggregator_sha256": "3715c8b840a4c678c5b36ba882ce32ac0fe0d4f70847fa29868007f327b66d53",
+    "new_aggregator_sha256": "a5994fb8c5a6010fb25e0c53e9c6efc53b6e9d1ddc9f033cabbfc353e76551cc",
+    "behavior": "preserve null u150 cosine for structurally isolated owners instead of calling float(null)",
+    "bootstrap_draws_or_seed_changed": false,
+    "metric_definition_changed": false,
+    "contrast_or_claim_gate_changed": false,
+    "model_data_checkpoint_or_records_changed": false
+  },
+  "tests": {
+    "command": "/home/haoyi/miniconda/envs/mmgdino_l_cfd5d3a/bin/python -m pytest -q tests/test_mmgdino_e6_ownership_2x2.py",
+    "result": "6 passed",
+    "new_regression": "isolated null cosine is accepted while structural no-cross-path audit remains required"
+  },
+  "retry": "rerun the same 5000 PCG64 bootstrap replicates from the same sealed records and write aggregate.json atomically"
+}

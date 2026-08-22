@@ -1,6 +1,13 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
-from tools.aggregate_mmgdino_e6_ownership_2x2 import _holm, _one_sided
+from tools.aggregate_mmgdino_e6_ownership_2x2 import (
+    _gradient_statistics,
+    _holm,
+    _one_sided,
+)
 from tools.mmgdino_e5_ownership import (
     MMGDinoE5ResponsibilityOwners,
     OWNERSHIP_ISOLATED_128,
@@ -80,6 +87,39 @@ class MMGDinoE6Ownership2x2Tests(unittest.TestCase):
     def test_holm_and_one_sided_are_deterministic(self):
         self.assertEqual(_holm({"a": 0.01, "b": 0.04}), {"a": 0.02, "b": 0.04})
         self.assertAlmostEqual(_one_sided([-1.0, 1.0, 2.0], 0.0), 0.5)
+
+    def test_gradient_aggregate_accepts_isolated_null_cosine(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for trunk in TRUNK_SPECS:
+                for owner in OWNERS:
+                    for seed in FORMAL_SEEDS:
+                        isolated = owner == OWNERSHIP_ISOLATED_128
+                        probes = {
+                            str(milestone): {
+                                "structurally_isolated": isolated,
+                                "cosine_mean": None if isolated else -0.1,
+                                "cosines": [] if isolated else [-0.1] * 8,
+                            }
+                            for milestone in (25, 50, 100, 150)
+                        }
+                        path = (
+                            root
+                            / trunk
+                            / owner
+                            / f"seed{seed}"
+                            / "training_receipt.json"
+                        )
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_text(
+                            json.dumps({"gradient_probes": probes}),
+                            encoding="utf-8",
+                        )
+            result = _gradient_statistics(root)
+            for trunk in TRUNK_SPECS:
+                isolated = result[trunk][OWNERSHIP_ISOLATED_128]
+                self.assertTrue(isolated["all_cross_task_autograd_paths_absent"])
+                self.assertIsNone(isolated["per_seed"]["17"]["u150_mean"])
 
 
 if __name__ == "__main__":

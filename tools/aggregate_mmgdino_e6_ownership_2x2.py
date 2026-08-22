@@ -256,8 +256,11 @@ def _gradient_statistics(formal_root: Path) -> dict[str, Any]:
                 seed_u150 = [float(value) for value in probes["150"].get("cosines", [])]
                 all_cosines.extend(seed_all)
                 u150_cosines.extend(seed_u150)
+                u150_mean = probes["150"]["cosine_mean"]
                 per_seed[str(seed)] = {
-                    "u150_mean": float(probes["150"]["cosine_mean"]),
+                    "u150_mean": (
+                        None if u150_mean is None else float(u150_mean)
+                    ),
                     "u150_cosines": seed_u150,
                     "u150_p_negative": (
                         float(np.mean(np.asarray(seed_u150) < 0.0))
