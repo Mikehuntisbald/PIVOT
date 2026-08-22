@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
 import torch
 
@@ -129,3 +130,40 @@ def test_lineage_declares_only_trunk_weights_change() -> None:
     assert PURE_TRUNK_TENSORS == 938
     assert PARENT_TO_B58_CHANGED_TENSORS == 727
     assert PARENT_TO_B58_UNCHANGED_TENSORS == 211
+
+
+def test_sealed_b58_result_is_strict_same_head_and_fixed_endpoint() -> None:
+    root = Path(__file__).resolve().parents[1]
+    value = json.loads(
+        (root / "paper/data/b58_raw_query_ownership_results.json").read_text()
+    )
+    assert value["schema"] == "arrow.b58_raw_query_ownership.results/v1"
+    assert value["status"] == "complete_same_head_conditional_result"
+    assert value["matrix"] == {
+        "fixed_endpoint": "U150",
+        "owners": ["shared_wide", "isolated_128"],
+        "seeds": [17, 42, 73],
+        "shared_128_ran": False,
+        "strict_same_100k_head_contract_as_parent": True,
+        "trunk": "b58_raw_query",
+    }
+    assert value["artifacts"]["audit"]["formal_trajectories"] == 6
+    assert value["artifacts"]["audit"]["evaluation_routes"] == 42
+    assert value["artifacts"]["audit"]["training_rank_rows_without_positive"] == 1
+
+
+def test_sealed_same_head_axis_supports_rec_shift_not_fpr_shift() -> None:
+    root = Path(__file__).resolve().parents[1]
+    value = json.loads(
+        (root / "paper/data/b58_raw_query_ownership_results.json").read_text()
+    )
+    axis = value["statistics"]["same_head_parent_to_b58"]
+    assert all(axis["matched_contract"].values())
+    did = axis["ownership_effect_difference_in_differences"]
+    assert did["test5"]["ci95"][0] > 0.0
+    assert did["testab"]["ci95"][0] > 0.0
+    assert did["fpr95_reduction"]["ci95"][0] < 0.0
+    assert did["fpr95_reduction"]["ci95"][1] > 0.0
+    contrast = value["statistics"]["isolated_minus_shared_wide"]
+    assert contrast["test5_noninferior"] is True
+    assert contrast["fpr95_superior"] is False

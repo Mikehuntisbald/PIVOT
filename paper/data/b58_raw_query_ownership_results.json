@@ -1,0 +1,2013 @@
+{
+  "artifacts": {
+    "audit": {
+      "evaluation_routes": 42,
+      "formal_trajectories": 6,
+      "test5_all_query_oracle_complete_on_every_split": true,
+      "training_confidence_rows": 2400,
+      "training_rank_rows_input": 9600,
+      "training_rank_rows_kept": 9599,
+      "training_rank_rows_without_positive": 1
+    },
+    "evaluation_caches": [
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcoco_testA.pt",
+          "sha256": "98770e6b905e7f394a300adb76d91dd500d4f3bffb3e33e0a796110a59dc067d",
+          "size_bytes": 5329142896
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 5657,
+          "total_rows": 5657
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcoco_testA_receipt.json",
+          "sha256": "d2d1ca48af19cc77605f9290d60fb3877a961199a84b1d374b95016b36edf8d5",
+          "size_bytes": 2348
+        },
+        "row_count": 5657,
+        "surface_or_seed": "refcoco_testA"
+      },
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcoco_testB.pt",
+          "sha256": "3338b13c38459a01c1c12d30baa5e26487729b65550aa879fe7f5b1f389e3b91",
+          "size_bytes": 4799684778
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 5095,
+          "total_rows": 5095
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcoco_testB_receipt.json",
+          "sha256": "acc8510bdc373026ac329fa2f8b4913db81dab659b09f2015d0e2964c1b6d50b",
+          "size_bytes": 2348
+        },
+        "row_count": 5095,
+        "surface_or_seed": "refcoco_testB"
+      },
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocop_testA.pt",
+          "sha256": "f83e6e2edc4f7a8b2bda6fd2f246cb82a4937c3042c1dc3eca5415df95885e33",
+          "size_bytes": 5394181843
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 5726,
+          "total_rows": 5726
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocop_testA_receipt.json",
+          "sha256": "d927ea144a730c5b046b2aa3e2da862f4db732cae404f6de1bf0160522168a5c",
+          "size_bytes": 2354
+        },
+        "row_count": 5726,
+        "surface_or_seed": "refcocop_testA"
+      },
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocop_testB.pt",
+          "sha256": "38839ad3b5d73cb9a3755ef5961b61a8aa62dad120b81008944d4560e08b6fb8",
+          "size_bytes": 4605642167
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 4889,
+          "total_rows": 4889
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocop_testB_receipt.json",
+          "sha256": "8d86ec6e56584da18c2e6ff20359540dcf5b4f5e4aa8a7e191edc3389ceefdcf",
+          "size_bytes": 2354
+        },
+        "row_count": 4889,
+        "surface_or_seed": "refcocop_testB"
+      },
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocog_test.pt",
+          "sha256": "544d997a16f2f2627a7a92763bd28cd33cc1448c430d582938c6340f5929189d",
+          "size_bytes": 9045698299
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 9602,
+          "total_rows": 9602
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocog_test_receipt.json",
+          "sha256": "4412a477c211d9f038c2ae0e1b27129b7203b9412c6c2b49a998d264009ce6d7",
+          "size_bytes": 2348
+        },
+        "row_count": 9602,
+        "surface_or_seed": "refcocog_test"
+      },
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/strict2031.pt",
+          "sha256": "d666e5b3e72be3f510b31db0568ea4fc4bf27df270fee707402e7e0260072691",
+          "size_bytes": 3826732103
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": null,
+          "total_rows": null
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/strict2031_receipt.json",
+          "sha256": "40faf36efa7c6c1c17f1b7f5d653f50471202ebb84881c06f576c882af4f5d91",
+          "size_bytes": 2373
+        },
+        "row_count": 4062,
+        "surface_or_seed": "strict2031"
+      }
+    ],
+    "evaluation_routes": [
+      {
+        "metrics": {
+          "correct": 4098,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5657,
+          "p1_iou50": 0.7244122326321372,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/native/records.jsonl",
+          "sha256": "8c686936668fd57024cb3a3ac4123add25c400ca8693a9062299232d3b623488",
+          "size_bytes": 1507216
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/native/summary.json",
+          "sha256": "f0476b10a0da109b8b473993083ab5e873ad2ed0d725b28b7ffb07156e4f7ccc",
+          "size_bytes": 866
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4104,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5657,
+          "p1_iou50": 0.7254728654764009,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/shared_wide/seed17/records.jsonl",
+          "sha256": "f1ec01340eed33844deb39022871791aa7145fe48d992c7f7fcd6f7eb6c2934e",
+          "size_bytes": 1535518
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/shared_wide/seed17/summary.json",
+          "sha256": "112b76899837342c44cce8940a4d7202ef0f2d42846eea5ac4585c937b530ceb",
+          "size_bytes": 1731
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4112,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5657,
+          "p1_iou50": 0.7268870426020859,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/shared_wide/seed42/records.jsonl",
+          "sha256": "cc2a079b75bc86f08bdfb0b311e42492345229ed749941bdf4d68ad460a02c46",
+          "size_bytes": 1535517
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/shared_wide/seed42/summary.json",
+          "sha256": "c7c384bcff7b843ca15ce3b1840797c81d6378eb80ff8bbd794107e338b8e5b9",
+          "size_bytes": 1731
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4101,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5657,
+          "p1_iou50": 0.724942549054269,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/shared_wide/seed73/records.jsonl",
+          "sha256": "8d51b3e4741bc644e6316e231df174825abf000cd283edefc76c47dd197e8e98",
+          "size_bytes": 1535453
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/shared_wide/seed73/summary.json",
+          "sha256": "9264b96b594d6c3e1c3d06435c5a14f39bbe461d0d2eaa0d60945350475e3699",
+          "size_bytes": 1730
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4105,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5657,
+          "p1_iou50": 0.7256496376171115,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/isolated_128/seed17/records.jsonl",
+          "sha256": "089368d688b33ee8d4a7310afc23c8667bfbb1dba81a3fbf344f42f51eb2fc18",
+          "size_bytes": 1541151
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/isolated_128/seed17/summary.json",
+          "sha256": "7cd5d0014d003d3481471ef8575217dfe000b8127d1f5c84d4c635f00d1147cd",
+          "size_bytes": 1735
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4103,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5657,
+          "p1_iou50": 0.7252960933356903,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/isolated_128/seed42/records.jsonl",
+          "sha256": "37af628350375b600e390fdd86f27998a1540a2a57c7cf111f6bb8c8970ad869",
+          "size_bytes": 1541088
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/isolated_128/seed42/summary.json",
+          "sha256": "176f97cfe1c5c25ae5a86288bde7660285c04828df6be7d176aacf98b57df830",
+          "size_bytes": 1735
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4103,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5657,
+          "p1_iou50": 0.7252960933356903,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/isolated_128/seed73/records.jsonl",
+          "sha256": "53cd90b5f17b166ae63c04362ef5c6b6ada37b3f295d38d15352502c56ba57a1",
+          "size_bytes": 1541071
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testA/isolated_128/seed73/summary.json",
+          "sha256": "488f6dfac13c6ff71562bbb8aeb4ea06be65a8d7887972fe5d6037fc29eb5fcf",
+          "size_bytes": 1735
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2965,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.5819430814524044,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/native/records.jsonl",
+          "sha256": "e02bd5e912a31bd95c372e92e69b8cc15708330bfd6a6d9dfe7269c606193061",
+          "size_bytes": 1354666
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/native/summary.json",
+          "sha256": "b9c9811f3be8e958a4155c833ebbfc8b7c13c08452a2a510c11119afe6977abd",
+          "size_bytes": 866
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2971,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.5831207065750736,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/shared_wide/seed17/records.jsonl",
+          "sha256": "88de6eb8fabdd9a38ccb2ac3e7d3ec75a62f245e9c3b5bc880f15b399c7c75dd",
+          "size_bytes": 1379995
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/shared_wide/seed17/summary.json",
+          "sha256": "4ea00a43ac25af7cad170fa8dea494d0ee613528a5bd2a22e18aec94318a3b58",
+          "size_bytes": 1731
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2971,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.5831207065750736,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/shared_wide/seed42/records.jsonl",
+          "sha256": "495308b0d6a56d4bd7cfadbc798c5f7790cae92ddeca36a763ab1217f1a69126",
+          "size_bytes": 1380018
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/shared_wide/seed42/summary.json",
+          "sha256": "fb7f9dea050f1d7071e1eaeb3696073eb81249d0eb10ffedbf28440876286b61",
+          "size_bytes": 1731
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2973,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.5835132482826301,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/shared_wide/seed73/records.jsonl",
+          "sha256": "701f2e70c564c826bf40ea3984c5e3d1a334b42a5fa72a639480570ec67faed9",
+          "size_bytes": 1380111
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/shared_wide/seed73/summary.json",
+          "sha256": "9ada11610c422af7322e1e8e4418c5875b42a5d7ca7c6fad61ab2697f2c1c047",
+          "size_bytes": 1731
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2971,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.5831207065750736,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/isolated_128/seed17/records.jsonl",
+          "sha256": "5455fe248e9b620b6b36433e4421fe01f2e28e5fed16844132aa0b2cb2bfac48",
+          "size_bytes": 1385144
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/isolated_128/seed17/summary.json",
+          "sha256": "e45f8d763cc6bbdac10ac1d38e5be87f653b57a6018f667ced13f922172f25b4",
+          "size_bytes": 1735
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2972,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.5833169774288518,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/isolated_128/seed42/records.jsonl",
+          "sha256": "209c80a72751c97acd65f43d5442fd20cc394cfb689a021f7e100ba5ae0c2b06",
+          "size_bytes": 1385188
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/isolated_128/seed42/summary.json",
+          "sha256": "7f9e04ff01fc97e55db1c268950a3b13e744c82633aca771b450d9bdb778605b",
+          "size_bytes": 1735
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2971,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.5831207065750736,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/isolated_128/seed73/records.jsonl",
+          "sha256": "622da0b01b7551fb7a1b43d6d9278919bd5008817c68d073abb88893594ba811",
+          "size_bytes": 1385239
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcoco_testB/isolated_128/seed73/summary.json",
+          "sha256": "71aa42fbf0a532c7263b8cc766b37d4cb6ef9082da3a01eacfbe96b14f0d5799",
+          "size_bytes": 1735
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 4285,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5726,
+          "p1_iou50": 0.7483409011526371,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/native/records.jsonl",
+          "sha256": "1d7ff8b70ba347fcfb599603fff7b64aa70c17d8bbe6f93e987eafe0bad1c455",
+          "size_bytes": 1541591
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/native/summary.json",
+          "sha256": "7605dd516b30c2a734030d4229bbfb21612a4b2845ea231267fd689fdaacc86f",
+          "size_bytes": 869
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4302,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5726,
+          "p1_iou50": 0.751309814879497,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/shared_wide/seed17/records.jsonl",
+          "sha256": "aed2ad86859da525d0eda669d488169b84d1445ecd21cf4e9cc96aefee778877",
+          "size_bytes": 1570205
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/shared_wide/seed17/summary.json",
+          "sha256": "42a90e484ee6385bda6e3dae4a85844f5a44e9d7e450a9fdd23bb95ceb8c4e54",
+          "size_bytes": 1733
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4298,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5726,
+          "p1_iou50": 0.7506112469437652,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/shared_wide/seed42/records.jsonl",
+          "sha256": "43b4955bb3c8840253a583e6d5fa035a312d83af48a0c53b969ce49fbdb2937c",
+          "size_bytes": 1570197
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/shared_wide/seed42/summary.json",
+          "sha256": "a319bdca455f4a31fb35eb01b591c574ac8ffcb31dd7955f8df4e69febf5ac45",
+          "size_bytes": 1734
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4291,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5726,
+          "p1_iou50": 0.7493887530562348,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/shared_wide/seed73/records.jsonl",
+          "sha256": "9aa0167e2640b320901f466b64098ee855927d89c47875977f6588fa06c0dd15",
+          "size_bytes": 1570196
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/shared_wide/seed73/summary.json",
+          "sha256": "18891aab0f3e379c1976ed3ce59dd9a0f06d1488918cc52bc17017da01916317",
+          "size_bytes": 1734
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4291,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5726,
+          "p1_iou50": 0.7493887530562348,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/isolated_128/seed17/records.jsonl",
+          "sha256": "1a1875cb748b996dbf468e08b2cac9b7a530fc913151c8c9f92242dfd41d302b",
+          "size_bytes": 1575921
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/isolated_128/seed17/summary.json",
+          "sha256": "8bab29590b7345605e2f9b3577ee5fb17f42881bb4f2440603c3f99696684bc5",
+          "size_bytes": 1738
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4291,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5726,
+          "p1_iou50": 0.7493887530562348,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/isolated_128/seed42/records.jsonl",
+          "sha256": "a28fd9683bbf05aeffeaf558eaf4cac33d8a2e287a603849f59b855f3ff657ae",
+          "size_bytes": 1575921
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/isolated_128/seed42/summary.json",
+          "sha256": "deffe000950f6f1155ac3156cf1120a51dead4d444b90402b6e355d3518d9cd7",
+          "size_bytes": 1738
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 4283,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5726,
+          "p1_iou50": 0.7479916171847713,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/isolated_128/seed73/records.jsonl",
+          "sha256": "0774710a7ab1369a4443a25ade90c34d933c2639ffb2c9a389ee19189503894f",
+          "size_bytes": 1575937
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testA/isolated_128/seed73/summary.json",
+          "sha256": "2012a663256af50ab2afe3c72950dc0159047f6108217218c2ad9ce418df7e0b",
+          "size_bytes": 1738
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 3094,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 4889,
+          "p1_iou50": 0.6328492534260585,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/native/records.jsonl",
+          "sha256": "f4285313b6a34457188fd0ced3cdf3cfa4fd8e196eac911691f643c538d2d150",
+          "size_bytes": 1312394
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/native/summary.json",
+          "sha256": "72f255dc946ebfe356115f0fe1caae87779876fc3279a9a32d9982df031a178d",
+          "size_bytes": 869
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 3102,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 4889,
+          "p1_iou50": 0.6344855798731847,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/shared_wide/seed17/records.jsonl",
+          "sha256": "a52d8cb333bb3d8f75181e8456ae854f3b65a3d89cce27201f5f784fecc79745",
+          "size_bytes": 1336922
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/shared_wide/seed17/summary.json",
+          "sha256": "8db6c8eacd779494ad8f6708349c925799065216d5539ec3d41a4e8d6b74554d",
+          "size_bytes": 1734
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 3102,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 4889,
+          "p1_iou50": 0.6344855798731847,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/shared_wide/seed42/records.jsonl",
+          "sha256": "2eb02e7b84963b42a1a53e7d50a0e1041cb45e68f5439a901c5e55fb25df8a15",
+          "size_bytes": 1336949
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/shared_wide/seed42/summary.json",
+          "sha256": "2f9909a7f73e1d29ba073c0ef2c9f21e2302579af5d57bd2bd9d5b6634384bb7",
+          "size_bytes": 1734
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 3100,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 4889,
+          "p1_iou50": 0.6340764982614031,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/shared_wide/seed73/records.jsonl",
+          "sha256": "897cee71a5d3986a35bda93666cf4f68a8085d5cc48ec88299852090dc4b2c29",
+          "size_bytes": 1336854
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/shared_wide/seed73/summary.json",
+          "sha256": "6ac210e6595e61c36eaec5861aa9bc4d4d16212f21fda13c6fbf101411a7f446",
+          "size_bytes": 1734
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 3095,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 4889,
+          "p1_iou50": 0.6330537942319493,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/isolated_128/seed17/records.jsonl",
+          "sha256": "bccbc8fb2752349f5f32cb79ee04a7650bb262a594c90774e2181aaeedbc89f7",
+          "size_bytes": 1341779
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/isolated_128/seed17/summary.json",
+          "sha256": "a3497bc34af649bb74ba85cf6e0e9203a9ab2f2896cc7bb2c1e5f054d2a89403",
+          "size_bytes": 1738
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 3096,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 4889,
+          "p1_iou50": 0.63325833503784,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/isolated_128/seed42/records.jsonl",
+          "sha256": "9f088b42d1ff3300c4867004ccc554c255f25cc369a908e796a9a5f97ce07a18",
+          "size_bytes": 1341753
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/isolated_128/seed42/summary.json",
+          "sha256": "aab58fe127058d029b8031cfe3449e37c8a7fb9302bc9e002dba074fdc467352",
+          "size_bytes": 1736
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 3094,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 4889,
+          "p1_iou50": 0.6328492534260585,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/isolated_128/seed73/records.jsonl",
+          "sha256": "713d0be5891113e7c9306a0595d104adb4212190b7e6e59b019bc637bde820db",
+          "size_bytes": 1341744
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocop_testB/isolated_128/seed73/summary.json",
+          "sha256": "676af91235773a30b44fc81c00ab6c1b162008751e025823865e7da1764ff9e4",
+          "size_bytes": 1738
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 7870,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 9602,
+          "p1_iou50": 0.8196209123099354,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/native/records.jsonl",
+          "sha256": "8eacc756553b399152bc3c2c3c38edf5b1902ad4af5df9f0efa2162dbfe36c24",
+          "size_bytes": 2552451
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/native/summary.json",
+          "sha256": "2657a02f3df14c77c859f8591be6156661bc0ad8c1d92a7f1f082c3a43dfe1e1",
+          "size_bytes": 866
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 7872,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 9602,
+          "p1_iou50": 0.8198292022495314,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/shared_wide/seed17/records.jsonl",
+          "sha256": "b78b27a2907bc1312b86b7a48cf5e4b7d4300f2b48ae55829523ad1962e15179",
+          "size_bytes": 2600491
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/shared_wide/seed17/summary.json",
+          "sha256": "8793205bcc82838a3612ded7a7a6253805101e7e7b6fa94391d62dfdf7f29ca1",
+          "size_bytes": 1731
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 7876,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 9602,
+          "p1_iou50": 0.8202457821287232,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/shared_wide/seed42/records.jsonl",
+          "sha256": "f2dbcb97f270bbde52e5577b1f2f801f825a8a75b7da6782960f3ea301b0f389",
+          "size_bytes": 2600473
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/shared_wide/seed42/summary.json",
+          "sha256": "e737ac324f83fe522e901f0ab492560d8d91a76506eabb3220aa1a249e990304",
+          "size_bytes": 1731
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 7875,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 9602,
+          "p1_iou50": 0.8201416371589252,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/shared_wide/seed73/records.jsonl",
+          "sha256": "b80c05e5e090b5215594da58b78f8a25df79fed5378bf8b291ae0862d8fe857d",
+          "size_bytes": 2600485
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/shared_wide/seed73/summary.json",
+          "sha256": "1bb818ebfb2bb47b3a4b0eb15af94f2b41b77e1ac3db464eb3765d99a1786af3",
+          "size_bytes": 1731
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 7876,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 9602,
+          "p1_iou50": 0.8202457821287232,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/isolated_128/seed17/records.jsonl",
+          "sha256": "f1b6e43b60df70aafb90f72b7dde9dadad5717c303bb8a29d56d79443e7364dc",
+          "size_bytes": 2610097
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/isolated_128/seed17/summary.json",
+          "sha256": "9ba4c5cd0151434195206b67903e71696a0b2fec4aaddc796c3c7335ae9e6a77",
+          "size_bytes": 1735
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 7875,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 9602,
+          "p1_iou50": 0.8201416371589252,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/isolated_128/seed42/records.jsonl",
+          "sha256": "2092c6536f30403234d7fb6d39a27586a63cb5806a361128a764656414695bab",
+          "size_bytes": 2610119
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/isolated_128/seed42/summary.json",
+          "sha256": "351a31f3bcc4408d651caef6673b5f79895a8f1d08e6e39a6a24ab8b5c48def2",
+          "size_bytes": 1735
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 7875,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 9602,
+          "p1_iou50": 0.8201416371589252,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/isolated_128/seed73/records.jsonl",
+          "sha256": "86f50ede26313a303d35a8b25bddc9f951cb6d0f092a7e7700048f318a95ceff",
+          "size_bytes": 2610068
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/refcocog_test/isolated_128/seed73/summary.json",
+          "sha256": "983614648f768b8a6b0e07222faaa23b56abba325ae719ffc03c5bc5ebd8328d",
+          "size_bytes": 1735
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "aupr": 0.8154707941278956,
+          "auroc": 0.8306712475584618,
+          "domain_q05": 0.3127642571926117,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.5022156573116692,
+          "negative_mean": 0.29704221240178313,
+          "pairs": 2031,
+          "positive_mean": 0.4820878581496543
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/native/records.jsonl",
+          "sha256": "cc4386d0e230e6db310b5e55a5e59e0adacb29e912082109100cccb87b5075f5",
+          "size_bytes": 943007
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/native/summary.json",
+          "sha256": "f93a0e5bad7c1217940da62369efb5402b2df2f940d1761f8cbb70ff6a59a1af",
+          "size_bytes": 1094
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.8000816226613751,
+          "auroc": 0.8328912685477511,
+          "domain_q05": 0.03521423786878586,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.4667651403249631,
+          "negative_mean": 0.022053507215286153,
+          "pairs": 2031,
+          "positive_mean": 0.08897321107514454
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/shared_wide/seed17/records.jsonl",
+          "sha256": "8c6e92f063ebfa1dae649e41bd6be27603d93b8ef3637dc206accf5c85f21800",
+          "size_bytes": 957010
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/shared_wide/seed17/summary.json",
+          "sha256": "7e4286dc6629b677e33acec06294dec6fdeeaecbaa172d9f49ffa1b2dbf7e3b3",
+          "size_bytes": 1962
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.824415100739139,
+          "auroc": 0.8426436031758846,
+          "domain_q05": 0.04416598007082939,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.4692269817823732,
+          "negative_mean": 0.0029655090383135228,
+          "pairs": 2031,
+          "positive_mean": 0.15116425030585057
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/shared_wide/seed42/records.jsonl",
+          "sha256": "4039414a1a3adb8fe0218f57d0bf89495678b43ea22aa2a606df3ecd88c102f7",
+          "size_bytes": 956111
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/shared_wide/seed42/summary.json",
+          "sha256": "efb9391c3adf370ed262c9d0f581c6226ae9edc609c3c56b609742c225fc47c3",
+          "size_bytes": 1962
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.8279582617997382,
+          "auroc": 0.8459713922143749,
+          "domain_q05": 0.04571760818362236,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.47218119153126537,
+          "negative_mean": 0.00031156632015211043,
+          "pairs": 2031,
+          "positive_mean": 0.1553751481863762
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/shared_wide/seed73/records.jsonl",
+          "sha256": "dd1ad8009ee81612f8359226a40b591b39a5901a86f87575a4d2967442d71aef",
+          "size_bytes": 956156
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/shared_wide/seed73/summary.json",
+          "sha256": "3b86536e4c08602b2082fd993295b8cc7ac0d4628b74da425478115bcdbcd520",
+          "size_bytes": 1964
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.7551686444817292,
+          "auroc": 0.812111556933508,
+          "domain_q05": 0.01676003821194172,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.4707040866568193,
+          "negative_mean": 0.013301393219409327,
+          "pairs": 2031,
+          "positive_mean": 0.03538035788023175
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/isolated_128/seed17/records.jsonl",
+          "sha256": "44e62c346a94792e365f6ef78ab420ff1ac23f7c3c86f17efe773ce07271517a",
+          "size_bytes": 960732
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/isolated_128/seed17/summary.json",
+          "sha256": "0be0602aee59653eb694eb61438180276c42fe2c3f5cff4fedf9159dd03d712c",
+          "size_bytes": 1965
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.8248660511486382,
+          "auroc": 0.8437260376522348,
+          "domain_q05": 0.03785492479801178,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.4603643525356967,
+          "negative_mean": 0.014236705856055437,
+          "pairs": 2031,
+          "positive_mean": 0.0807193410888925
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/isolated_128/seed42/records.jsonl",
+          "sha256": "207852c15c77834174a83c1ec4f2278d1238f743cc779679a55957dfcb79c7fd",
+          "size_bytes": 958983
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/isolated_128/seed42/summary.json",
+          "sha256": "76fda1a44f4c00352cdbb7af6b19e577f7eccc12a212b2c0e0010778ff36d5dc",
+          "size_bytes": 1965
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.828232941975808,
+          "auroc": 0.8476269230181812,
+          "domain_q05": 0.0330478772521019,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.46134908911866074,
+          "negative_mean": 0.010545797364264434,
+          "pairs": 2031,
+          "positive_mean": 0.07267645033028716
+        },
+        "records": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/isolated_128/seed73/records.jsonl",
+          "sha256": "9c6aaf559e18f5ef03f3a058529a7b9356c47c6d1a275f2abc1cf8eaf12ccce3",
+          "size_bytes": 959111
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/b58_raw_query_ownership_20260822/evaluation/b58_raw_query/strict2031/isolated_128/seed73/summary.json",
+          "sha256": "74254a725de827076dc535b08e52e7e80f019a47b8a2a857b83982b458d81ae0",
+          "size_bytes": 1965
+        },
+        "surface": "strict2031"
+      }
+    ],
+    "formal_trajectories": [
+      {
+        "checkpoint": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed17/checkpoint_u150.pt",
+          "sha256": "1322b33d07ad1e67e46792a7dd7453f0e2d291612035fde6e330e6b8b630eeb5",
+          "size_bytes": 2077355
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": 0.0003089425154030323,
+          "cosines": [
+            -0.015286832116544247,
+            0.02059459500014782,
+            0.013736790977418423,
+            -0.04418772831559181,
+            -0.017726097255945206,
+            0.025948481634259224,
+            0.05298329144716263,
+            -0.03359096124768257
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.500459011644125,
+          "sign_conflict_fractions": [
+            0.5001400709152222,
+            0.49969980120658875,
+            0.49581748247146606,
+            0.5132279396057129,
+            0.503231942653656,
+            0.4912647306919098,
+            0.48672202229499817,
+            0.513568103313446
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed17/training_receipt.json",
+          "sha256": "ce1bc97c17d49b5a6820c39f07d53fbc82eaa2b683c9c18393ea0526149e5249",
+          "size_bytes": 6328
+        },
+        "seed": 17,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed42/checkpoint_u150.pt",
+          "sha256": "52848390cb117e14e56129323ce363e30a0bc58375736442e1ec380b74b4167e",
+          "size_bytes": 2077291
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": 0.007171775680035353,
+          "cosines": [
+            0.13410282135009766,
+            0.24115969240665436,
+            0.06015891209244728,
+            -0.07053254544734955,
+            0.04874196648597717,
+            -0.08882740885019302,
+            -0.09046626091003418,
+            -0.1769629716873169
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.502096239477396,
+          "sign_conflict_fractions": [
+            0.48237940669059753,
+            0.44596755504608154,
+            0.4781869053840637,
+            0.5231738686561584,
+            0.5097958445549011,
+            0.5179007053375244,
+            0.5235541462898254,
+            0.5358114838600159
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed42/training_receipt.json",
+          "sha256": "98636472e9b96d161986864737ca18b716eec180555a96070e9e6be8edf1fad0",
+          "size_bytes": 6289
+        },
+        "seed": 42,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed73/checkpoint_u150.pt",
+          "sha256": "642db22994802bf3cdd87c23f21c15ceda405294730154c723cc287fcd42783d",
+          "size_bytes": 2077291
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": -0.10785828286316246,
+          "cosines": [
+            0.004790004342794418,
+            -0.12705612182617188,
+            0.1133955866098404,
+            -0.1605471670627594,
+            -0.01312143262475729,
+            -0.14843720197677612,
+            -0.3746834099292755,
+            -0.15720652043819427
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.5399502143263817,
+          "sign_conflict_fractions": [
+            0.5245647430419922,
+            0.54302579164505,
+            0.4717230200767517,
+            0.5543926358222961,
+            0.5022913813591003,
+            0.5521612763404846,
+            0.6131178736686707,
+            0.5583249926567078
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed73/training_receipt.json",
+          "sha256": "782296d691ce32cb4da06d7a0496ddf25d17c8f77d0cfe25f2ba7bd17d1d9a10",
+          "size_bytes": 6285
+        },
+        "seed": 73,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed17/checkpoint_u150.pt",
+          "sha256": "1d861c1a154e8c62e9bfa0de898444cac41dac0a0cec70f0c38038631e0875f8",
+          "size_bytes": 1279703
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed17/training_receipt.json",
+          "sha256": "7e8daba50b241face4fb6dc5c711a0e623b8859bb3612ae79f86ec432cfd64a4",
+          "size_bytes": 4063
+        },
+        "seed": 17,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed42/checkpoint_u150.pt",
+          "sha256": "363ee42b74012886ee17ff9e285dfe78a1a20d95e0752c08763bd7f12c4811ea",
+          "size_bytes": 1279639
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed42/training_receipt.json",
+          "sha256": "30bbd3d0fb8ae5855c556937e16608a0524574144ab65d6057aaefc9cd4d5a88",
+          "size_bytes": 4063
+        },
+        "seed": 42,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed73/checkpoint_u150.pt",
+          "sha256": "42f686c95aad4c7a8d31d5242fa3e75d4bdce6041d8a595e7c258a96c780575d",
+          "size_bytes": 1279639
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed73/training_receipt.json",
+          "sha256": "02fd2ba65dd339c6c89e84d470a4e8941a45aa22a643bc4e21055ec5b8d53b92",
+          "size_bytes": 4063
+        },
+        "seed": 73,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      }
+    ],
+    "training_caches": [
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed17.pt",
+          "sha256": "96c5b15c8cb8d3d49f868ee44f3857d54fa257835eb269a8ae70700d0f79fb68",
+          "size_bytes": 3768003535
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3200,
+          "rank_no_positive": 0
+        },
+        "oracle": null,
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed17_receipt.json",
+          "sha256": "2c11e4f1adfbcd2c6ed1aa6c868919204ff3049ea1fb56d8a3b00c0b82b76352",
+          "size_bytes": 3582
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed17"
+      },
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed42.pt",
+          "sha256": "8616e25f6f15d38b3f2d9064600a11b5e7e0afc6b9270fe27ef0341a932381cd",
+          "size_bytes": 3768003599
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3200,
+          "rank_no_positive": 0
+        },
+        "oracle": null,
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed42_receipt.json",
+          "sha256": "c45c5132bc146888f300cf5cdd9e773c91c93822b8345db1e33f769d373669f7",
+          "size_bytes": 3582
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed42"
+      },
+      {
+        "cache": {
+          "path": "outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed73.pt",
+          "sha256": "0e31d0f49a7a20ce8bf9f284dd1b04bdf389614bf9af2abb30236b5d4cd84133",
+          "size_bytes": 3768003279
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3199,
+          "rank_no_positive": 1
+        },
+        "oracle": null,
+        "receipt": {
+          "path": "outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed73_receipt.json",
+          "sha256": "eb2cd167bd2b0cadb865869c55a5342e837c3273383988172e14116d48df03f6",
+          "size_bytes": 3582
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed73"
+      }
+    ]
+  },
+  "interpretation": {
+    "not_supported": [
+      "Isolated is superior to Shared-Wide on B58 REC",
+      "Isolated has statistically superior Strict2031 FPR95 on B58",
+      "the parent-to-B58 change in FPR ownership effect excludes zero",
+      "negative gradient cosine alone selects the deployed ownership topology"
+    ],
+    "paper_conclusion": "Mixed Stage-B adaptation changes ownership sensitivity: the same hard-isolation topology moves from a large REC penalty on the direct parent to practical non-inferiority on B58, while its rejection advantage remains statistically unresolved.",
+    "supported": [
+      "B58 makes Isolated REC-noninferior to Shared-Wide under the matched 100k owner contract",
+      "Stage-B adaptation significantly narrows the parent isolation REC penalty on Test5 and TestAB",
+      "B58 Shared-Wide retains frequent negative gradient events while hard isolation has no cross-task path"
+    ]
+  },
+  "matrix": {
+    "fixed_endpoint": "U150",
+    "owners": [
+      "shared_wide",
+      "isolated_128"
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "shared_128_ran": false,
+    "strict_same_100k_head_contract_as_parent": true,
+    "trunk": "b58_raw_query"
+  },
+  "provenance": {
+    "aggregate": {
+      "path": "outputs/b58_raw_query_ownership_20260822/aggregate.json",
+      "sha256": "46958630937a123ca6363c07f4cc7f49dfdd761c5bb2390dd034e52f01cbd768",
+      "size_bytes": 13526
+    },
+    "git_commit_before_packaging": "09fee3347dd17fc4e6a817c3da093d6975b9b2f0",
+    "preregistration": {
+      "path": "paper/data/b58_raw_query_ownership_preregistration.json",
+      "sha256": "2c89d7f9a8909a1dc81eec4f6e75315f282bf4f3538a22595120805f500e8a2a",
+      "size_bytes": 31419
+    },
+    "sealed_parent_result": {
+      "path": "paper/data/original_gdino_parent_ownership_results.json",
+      "sha256": "be371aee477efb42ab187f0213ddd545e4d31cac5d7bc4eaa38dbd1066087b9b",
+      "size_bytes": 73786
+    }
+  },
+  "schema": "arrow.b58_raw_query_ownership.results/v1",
+  "statistics": {
+    "bootstrap": {
+      "fpr95_recomputes_each_owner_seed_positive_q05_per_replicate": true,
+      "ref_cluster": "global image_id across all Test5 splits",
+      "replicates": 5000,
+      "same_draw_across_owners_and_seeds": true,
+      "seed": 20260825,
+      "strict_cluster": "image_id carrying the complete pair"
+    },
+    "claim_gate": {
+      "isolated_strict2031_fpr95_superior": false,
+      "isolated_test5_noninferior": true,
+      "isolated_testab_noninferior": true,
+      "joint_gate": false
+    },
+    "gradient_probes": {
+      "isolated_128": {
+        "all_cross_task_autograd_paths_absent": true,
+        "per_seed": {
+          "17": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          },
+          "42": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          },
+          "73": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          }
+        },
+        "structurally_isolated": true
+      },
+      "shared_wide": {
+        "all_milestones": {
+          "count": 96,
+          "mean": 0.030604846676093683,
+          "minimum": -0.6233512759208679,
+          "p_negative": 0.4791666666666667,
+          "q05": -0.4471116289496422
+        },
+        "per_seed": {
+          "17": {
+            "all_milestone_p_negative": 0.375,
+            "u150_cosines": [
+              -0.015286832116544247,
+              0.02059459500014782,
+              0.013736790977418423,
+              -0.04418772831559181,
+              -0.017726097255945206,
+              0.025948481634259224,
+              0.05298329144716263,
+              -0.03359096124768257
+            ],
+            "u150_mean": 0.0003089425154030323,
+            "u150_p_negative": 0.5
+          },
+          "42": {
+            "all_milestone_p_negative": 0.4375,
+            "u150_cosines": [
+              0.13410282135009766,
+              0.24115969240665436,
+              0.06015891209244728,
+              -0.07053254544734955,
+              0.04874196648597717,
+              -0.08882740885019302,
+              -0.09046626091003418,
+              -0.1769629716873169
+            ],
+            "u150_mean": 0.007171775680035353,
+            "u150_p_negative": 0.5
+          },
+          "73": {
+            "all_milestone_p_negative": 0.625,
+            "u150_cosines": [
+              0.004790004342794418,
+              -0.12705612182617188,
+              0.1133955866098404,
+              -0.1605471670627594,
+              -0.01312143262475729,
+              -0.14843720197677612,
+              -0.3746834099292755,
+              -0.15720652043819427
+            ],
+            "u150_mean": -0.10785828286316246,
+            "u150_p_negative": 0.75
+          }
+        },
+        "structurally_isolated": false,
+        "u150": {
+          "count": 24,
+          "mean": -0.03345918822257469,
+          "minimum": -0.3746834099292755,
+          "p_negative": 0.5833333333333334,
+          "q05": -0.17450060099363326
+        }
+      }
+    },
+    "isolated_minus_shared_wide": {
+      "candidate": "isolated_128",
+      "fpr95_ci95": [
+        -0.004438530219780223,
+        0.010998262318803147
+      ],
+      "fpr95_gain": 0.005251928442475018,
+      "fpr95_superior": false,
+      "fpr95_superiority_p": 0.17476504699060189,
+      "iut_p": 0.17476504699060189,
+      "iut_passes": false,
+      "reference": "shared_wide",
+      "split_gains": {
+        "refcoco_testA": {
+          "ci95": [
+            -0.0013593393168110065,
+            0.0005830589316587309
+          ],
+          "gain": -0.00035354428142109207
+        },
+        "refcoco_testB": {
+          "ci95": [
+            -0.0014294891668374915,
+            0.0011471159415655126
+          ],
+          "gain": -6.542361792605256e-05
+        },
+        "refcocog_test": {
+          "ci95": [
+            -0.0003880103307943407,
+            0.0005979404470524345
+          ],
+          "gain": 0.00010414496979804788
+        },
+        "refcocop_testA": {
+          "ci95": [
+            -0.0025294338848554708,
+            -0.0005891259210535406
+          ],
+          "gain": -0.0015135638607521873
+        },
+        "refcocop_testB": {
+          "ci95": [
+            -0.0025608237768583795,
+            -6.9415159997215e-05
+          ],
+          "gain": -0.0012954251039748454
+        }
+      },
+      "test5_ci95": [
+        -0.0009512209292277686,
+        -0.00010945829551565483
+      ],
+      "test5_gain": -0.0005274091295596195,
+      "test5_noninferior": true,
+      "test5_noninferiority_margin": 0.005,
+      "test5_noninferiority_p": 0.0001999600079984003,
+      "test5_superior": false,
+      "testab_ci95": [
+        -0.0010369204817503308,
+        0.0005357663545275549
+      ],
+      "testab_gain": -0.00021701388888883955,
+      "testab_noninferior": true
+    },
+    "point_metrics": {
+      "isolated_128": {
+        "splits": {
+          "refcoco_testA": {
+            "by_seed": {
+              "17": 0.7256496376171115,
+              "42": 0.7252960933356903,
+              "73": 0.7252960933356903
+            },
+            "mean": 0.7254139414294974,
+            "sample_sd": 0.0002041188860489844
+          },
+          "refcoco_testB": {
+            "by_seed": {
+              "17": 0.5831207065750736,
+              "42": 0.5833169774288518,
+              "73": 0.5831207065750736
+            },
+            "mean": 0.5831861301929997,
+            "sample_sd": 0.000113317030262897
+          },
+          "refcocog_test": {
+            "by_seed": {
+              "17": 0.8202457821287232,
+              "42": 0.8201416371589252,
+              "73": 0.8201416371589252
+            },
+            "mean": 0.820176352148858,
+            "sample_sd": 6.012812634764839e-05
+          },
+          "refcocop_testA": {
+            "by_seed": {
+              "17": 0.7493887530562348,
+              "42": 0.7493887530562348,
+              "73": 0.7479916171847713
+            },
+            "mean": 0.7489230410990803,
+            "sample_sd": 0.0008066367714839377
+          },
+          "refcocop_testB": {
+            "by_seed": {
+              "17": 0.6330537942319493,
+              "42": 0.63325833503784,
+              "73": 0.6328492534260585
+            },
+            "mean": 0.6330537942319493,
+            "sample_sd": 0.00020454080589077384
+          }
+        },
+        "strict2031_aupr": {
+          "by_seed": {
+            "17": 0.7551686444817292,
+            "42": 0.8248660511486382,
+            "73": 0.828232941975808
+          },
+          "mean": 0.8027558792020585,
+          "sample_sd": 0.04124612308698001
+        },
+        "strict2031_auroc": {
+          "by_seed": {
+            "17": 0.812111556933508,
+            "42": 0.8437260376522348,
+            "73": 0.8476269230181812
+          },
+          "mean": 0.8344881725346412,
+          "sample_sd": 0.01947662498946432
+        },
+        "strict2031_fpr95": {
+          "by_seed": {
+            "17": 0.4707040866568193,
+            "42": 0.4603643525356967,
+            "73": 0.46134908911866074
+          },
+          "mean": 0.4641391761037255,
+          "sample_sd": 0.005706659658858925
+        },
+        "test5_micro_p1": {
+          "by_seed": {
+            "17": 0.7213019471083987,
+            "42": 0.7212696567535277,
+            "73": 0.7209144628499468
+          },
+          "mean": 0.7211620222372911,
+          "sample_sd": 0.00021499977779322222
+        },
+        "testab_micro_p1": {
+          "by_seed": {
+            "17": 0.6581101190476191,
+            "42": 0.6580171130952381,
+            "73": 0.6579241071428571
+          },
+          "mean": 0.6580171130952381,
+          "sample_sd": 9.300595238098674e-05
+        }
+      },
+      "native": {
+        "splits": {
+          "refcoco_testA": 0.7244122326321372,
+          "refcoco_testB": 0.5819430814524044,
+          "refcocog_test": 0.8196209123099354,
+          "refcocop_testA": 0.7483409011526371,
+          "refcocop_testB": 0.6328492534260585
+        },
+        "strict2031_aupr": 0.8154707941278956,
+        "strict2031_auroc": 0.8306712475584618,
+        "strict2031_fpr95": 0.5022156573116692,
+        "test5_micro_p1": 0.7204623978817527,
+        "testab_micro_p1": 0.6569010416666666
+      },
+      "shared_wide": {
+        "splits": {
+          "refcoco_testA": {
+            "by_seed": {
+              "17": 0.7254728654764009,
+              "42": 0.7268870426020859,
+              "73": 0.724942549054269
+            },
+            "mean": 0.7257674857109185,
+            "sample_sd": 0.0010051689416788814
+          },
+          "refcoco_testB": {
+            "by_seed": {
+              "17": 0.5831207065750736,
+              "42": 0.5831207065750736,
+              "73": 0.5835132482826301
+            },
+            "mean": 0.5832515538109257,
+            "sample_sd": 0.00022663406052585811
+          },
+          "refcocog_test": {
+            "by_seed": {
+              "17": 0.8198292022495314,
+              "42": 0.8202457821287232,
+              "73": 0.8201416371589252
+            },
+            "mean": 0.8200722071790599,
+            "sample_sd": 0.00021679504264383688
+          },
+          "refcocop_testA": {
+            "by_seed": {
+              "17": 0.751309814879497,
+              "42": 0.7506112469437652,
+              "73": 0.7493887530562348
+            },
+            "mean": 0.7504366049598324,
+            "sample_sd": 0.0009723654143957022
+          },
+          "refcocop_testB": {
+            "by_seed": {
+              "17": 0.6344855798731847,
+              "42": 0.6344855798731847,
+              "73": 0.6340764982614031
+            },
+            "mean": 0.6343492193359241,
+            "sample_sd": 0.00023618337868260253
+          }
+        },
+        "strict2031_aupr": {
+          "by_seed": {
+            "17": 0.8000816226613751,
+            "42": 0.824415100739139,
+            "73": 0.8279582617997382
+          },
+          "mean": 0.8174849950667508,
+          "sample_sd": 0.015175523908105478
+        },
+        "strict2031_auroc": {
+          "by_seed": {
+            "17": 0.8328912685477511,
+            "42": 0.8426436031758846,
+            "73": 0.8459713922143749
+          },
+          "mean": 0.8405020879793369,
+          "sample_sd": 0.0067979389734188385
+        },
+        "strict2031_fpr95": {
+          "by_seed": {
+            "17": 0.4667651403249631,
+            "42": 0.4692269817823732,
+            "73": 0.47218119153126537
+          },
+          "mean": 0.46939110454620053,
+          "sample_sd": 0.002711753100583985
+        },
+        "test5_micro_p1": {
+          "by_seed": {
+            "17": 0.7217217217217218,
+            "42": 0.7219800445606898,
+            "73": 0.7213665278181407
+          },
+          "mean": 0.7216894313668507,
+          "sample_sd": 0.0003080303533911467
+        },
+        "testab_micro_p1": {
+          "by_seed": {
+            "17": 0.6580171130952381,
+            "42": 0.6587611607142857,
+            "73": 0.6579241071428571
+          },
+          "mean": 0.658234126984127,
+          "sample_sd": 0.00045878746859339797
+        }
+      }
+    },
+    "same_head_parent_to_b58": {
+      "bootstrap": {
+        "fpr95_recomputes_each_trunk_owner_seed_positive_q05": true,
+        "replicates": 5000,
+        "same_image_draw_across_parent_b58_owners_and_seeds": true,
+        "seed": 20260825
+      },
+      "matched_contract": {
+        "same_100k_raw_query_heads": true,
+        "same_effective_938_tensor_architecture": true,
+        "same_full_expression_mean_native_score": true,
+        "same_owner_architecture_and_initialization": true,
+        "same_test5_strict2031_evaluator": true,
+        "same_two_task_specific_adam_states": true,
+        "same_u150_schedules_losses_seeds_and_data_order": true,
+        "same_zero_weight_decay": true,
+        "trunk_weight_change_only": "727 changed and 211 unchanged tensors"
+      },
+      "native_parent_to_b58": {
+        "fpr95_reduction": 0.3943870014771048,
+        "test5_gain": 0.3251315831960993,
+        "testab_gain": 0.25102306547619047
+      },
+      "ownership_effect_difference_in_differences": {
+        "fpr95_reduction": {
+          "b58_effect": 0.005251928442475018,
+          "b58_minus_parent_difference_in_differences": 0.012145084523223382,
+          "ci95": [
+            -0.0011272414244199239,
+            0.02630897044613854
+          ],
+          "parent_effect": -0.006893156080748364
+        },
+        "test5": {
+          "b58_effect": -0.0005274091295596195,
+          "b58_minus_parent_difference_in_differences": 0.019481847438836686,
+          "ci95": [
+            0.01686419741278021,
+            0.02207829099266117
+          ],
+          "parent_effect": -0.020009256568396305
+        },
+        "testab": {
+          "b58_effect": -0.00021701388888883955,
+          "b58_minus_parent_difference_in_differences": 0.010943700396825462,
+          "ci95": [
+            0.007176411507732769,
+            0.014619405911360595
+          ],
+          "parent_effect": -0.011160714285714302
+        }
+      }
+    }
+  },
+  "status": "complete_same_head_conditional_result"
+}
