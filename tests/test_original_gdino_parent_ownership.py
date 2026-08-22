@@ -66,6 +66,15 @@ def test_expression_mean_uses_only_generated_phrase_tokens() -> None:
     assert torch.equal(observed, expected)
 
 
+def test_original_caption_matches_upstream_phrase_contract() -> None:
+    from tools.extract_original_gdino_ownership_cache import (
+        preprocess_original_caption,
+    )
+
+    assert preprocess_original_caption(" Old Lady ") == "old lady."
+    assert preprocess_original_caption("old lady.") == "old lady."
+
+
 def test_commands_bind_direct_parent_and_all_surfaces() -> None:
     from tools.original_gdino_parent_ownership import (
         CHECKPOINT_SHA256,

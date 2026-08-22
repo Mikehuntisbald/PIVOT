@@ -170,6 +170,13 @@ def original_expression_mean(
     return score
 
 
+def preprocess_original_caption(caption: str) -> str:
+    if not isinstance(caption, str) or not caption.strip():
+        raise OriginalGDINOExtractionError("caption must be non-empty")
+    value = caption.lower().strip()
+    return value if value.endswith(".") else value + "."
+
+
 class OriginalGDINOFrozenRuntime:
     def __init__(
         self,
@@ -222,8 +229,7 @@ class OriginalGDINOFrozenRuntime:
         )
 
     def infer(self, image_path: Path, caption: str) -> HookBatch:
-        if not isinstance(caption, str) or not caption.strip():
-            raise OriginalGDINOExtractionError("caption must be non-empty")
+        caption = preprocess_original_caption(caption)
         with Image.open(image_path) as source:
             image, _ = self.transform(source.convert("RGB"), None)
         image = image.to(self.device)
@@ -604,5 +610,5 @@ __all__ = [
     "EVALUATION_RECEIPT_SCHEMA", "OriginalGDINOExtractionError",
     "OriginalGDINOFrozenRuntime", "QUERY_FEATURE_NAME",
     "TRAINING_RECEIPT_SCHEMA", "extract_evaluation", "extract_training",
-    "original_expression_mean",
+    "original_expression_mean", "preprocess_original_caption",
 ]

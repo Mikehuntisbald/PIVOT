@@ -1,0 +1,33 @@
+{
+  "schema": "arrow.original_gdino_parent_ownership.runtime_amendment/v1",
+  "status": "locked_after_pre_metric_caption_failure_before_retry",
+  "locked_at": "2026-08-22T21:46:15+08:00",
+  "parent_preregistration_sha256": "08b3323212ba5d70ecfcd407f4029f619e0844febec4783f94d7675a89b1d637",
+  "failed_attempt": {
+    "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/logs/smoke_original_parent.log",
+    "sha256": "47983730f5b068f53ce2e736ddecd2f551e616f0a82ef7899c5f9f7b1b5e71ea",
+    "failure": "the first scheduled caption lacked the upstream terminal-period normalization, so phrase-mask construction raised before a HookBatch, cache row, score, or metric was emitted",
+    "cache_or_receipt_created": false,
+    "formal_training_started": false,
+    "evaluation_started": false,
+    "metric_observed": false
+  },
+  "code_changes": {
+    "extractor": {
+      "path": "/media/haoyi/T9/pivot/tools/extract_original_gdino_ownership_cache.py",
+      "old_sha256": "da60e8c148623a772391a67495460bf26861e756d620511257ec819fa87b4d71",
+      "new_sha256": "80942d573602df205e2f573988fcc5f2cbb3235c9a8b6d5587e4654f0df07231"
+    },
+    "runner": {
+      "path": "/media/haoyi/T9/pivot/tools/run_original_gdino_parent_ownership.py",
+      "old_sha256": "872cd955cdeb513fce8714b1f36ac63774bdfadb308cd3bf5dca022c4b44c53f",
+      "new_sha256": "3b612ff87df3ce133566c4209909a17a1dc7c9fa71a2d450296e7a6ebed6b83c"
+    }
+  },
+  "scientific_protocol_changes": false,
+  "change": {
+    "caption_normalization": "restore the upstream GroundingDINO preprocess_caption contract: lowercase, strip whitespace, append one terminal period only when absent",
+    "model_checkpoint_owner_capacity_schedule_losses_seeds_endpoint_native_score_surfaces_statistics_unchanged": true
+  },
+  "retry_authorized": true
+}

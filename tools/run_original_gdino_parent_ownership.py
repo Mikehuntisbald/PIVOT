@@ -45,6 +45,9 @@ from tools.responsibility_isolation_cache import file_sha256
 
 PREREG_SCHEMA = "arrow.original_gdino_parent_ownership.preregistration/v1"
 STATUS_SCHEMA = "arrow.original_gdino_parent_ownership.status/v1"
+RUNTIME_AMENDMENT = (
+    ROOT / "paper/data/original_gdino_parent_ownership_runtime_amendment.json"
+)
 
 
 class RunnerError(RuntimeError):
@@ -64,10 +67,34 @@ def _preflight() -> dict[str, Any]:
         raise RunnerError("preregistration schema drifted")
     if prereg.get("status") != "locked_before_any_parent_owner_gpu_forward":
         raise RunnerError("preregistration status drifted")
-    for record in prereg.get("code", {}).values():
+    amendment = _json(RUNTIME_AMENDMENT) if RUNTIME_AMENDMENT.is_file() else None
+    for name, record in prereg.get("code", {}).items():
         path = Path(record["path"])
-        if file_sha256(path) != record["sha256"]:
+        actual = file_sha256(path)
+        if actual == record["sha256"]:
+            continue
+        amended = bool(
+            amendment is not None
+            and amendment.get("schema")
+            == "arrow.original_gdino_parent_ownership.runtime_amendment/v1"
+            and amendment.get("status")
+            == "locked_after_pre_metric_caption_failure_before_retry"
+            and amendment.get("parent_preregistration_sha256")
+            == file_sha256(PREREGISTRATION)
+            and amendment.get("code_changes", {}).get(name, {}).get("old_sha256")
+            == record["sha256"]
+            and amendment.get("code_changes", {}).get(name, {}).get("new_sha256")
+            == actual
+        )
+        if not amended:
             raise RunnerError(f"preregistered code drifted: {path}")
+    if amendment is not None:
+        failure = amendment.get("failed_attempt")
+        if (
+            not isinstance(failure, Mapping)
+            or file_sha256(Path(failure["path"])) != failure["sha256"]
+        ):
+            raise RunnerError("runtime amendment failure log drifted")
     spec = next(iter(TRUNK_SPECS.values()))
     if file_sha256(spec.checkpoint) != CHECKPOINT_SHA256:
         raise RunnerError("parent checkpoint drifted")
