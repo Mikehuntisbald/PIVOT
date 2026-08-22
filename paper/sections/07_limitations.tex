@@ -8,12 +8,13 @@ single/no-target slice.
 
 \textbf{Hard isolation is not universal.}
 The frozen-base controls show recurrent destructive shared updates and a large
-Ranking benefit from isolation.  The strong MM-GDINO control does not reproduce
-a deployment benefit from isolation: TN10 creates a heavier negative-gradient
-tail, yet capacity-matched wide sharing preserves the same REC and has lower,
-less variable FPR95.  We claim representation-dependent interference, not a
-law that every responsibility needs disjoint parameters or that cosine sign
-alone selects the correct topology.
+Ranking benefit from isolation.  Neither the broad pretrained nor the strong
+task-tuned MM-GDINO controls reproduce a deployment benefit from isolation:
+TN10 creates a heavier negative-gradient tail, yet capacity-matched wide
+sharing preserves REC and has lower, less variable FPR95.  We claim
+representation-dependent interference, not a law that every responsibility
+needs disjoint parameters or that cosine sign alone selects the correct
+topology.
 
 \textbf{Domain-dependent calibration.}
 FineCops and gRefCOCO support rejection-ordering transfer, but the sealed source
@@ -29,11 +30,10 @@ input-equivalent to a standard full-expression-only method.
 \textbf{Exposure caveats.}
 FineCops is annotation/task-zero-shot rather than fully image-disjoint.  The
 gRefCOCO disjoint subset removes only Abstention train/calibration images; all
-evaluated images were exposed during candidate-generator training.  The strong e5 trunk is a
+evaluated images were exposed during candidate-generator training.  Broad
+MM-GDINO pretraining is also not claimed image-disjoint.  The strong e5 trunk is a
 retrospective replay whose original training evaluated benchmark splits every
 epoch, although its owner matrix was frozen prospectively.
-
-\textbf{Positive ceiling and negative verification.}
-\method targets selective reliability and does not establish positive REC or
-FineCops P@1 SOTA.  Strict negatives are proposal-covered SAM3+VLM verified,
-not image-global or all-query verified.
+ARROW targets selective reliability rather than positive REC or FineCops P@1
+SOTA; Strict negatives are proposal-covered, not image-global or all-query
+verified.

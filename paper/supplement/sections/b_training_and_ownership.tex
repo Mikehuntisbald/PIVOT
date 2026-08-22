@@ -165,6 +165,16 @@ but the two routes remain tied on REC and Shared-Wide is significantly better
 on Strict-TN2031.  This separates the presence of conflicting probe gradients
 from evidence that hard isolation improves deployment.
 
+The pretrained-trunk replay in Tab.~\ref{tab:supp-pretrain-ownership} removes
+RefCOCO-specific full-model trunk fine-tuning while preserving the same
+capacity-matched owner architectures and fixed Ranking/Abstention head
+supervision.  Its Shared-Wide gradients are near orthogonal on average at U150 but retain a
+moderate negative tail.  Shared-Wide is slightly better on both pooled REC
+surfaces, while the Strict-TN2031 interval crosses zero and points in the same
+direction.  This confirms that broad pretrained representation quality, not
+only task-specific trunk adaptation, can make wide sharing effective; it does
+not make the experiment image-disjoint or unsupervised.
+
 \input{supplement/tables/supp_training_controls}
 
 Admission trajectories use 100 updates, physical batch 56, seeds 17/42/73,

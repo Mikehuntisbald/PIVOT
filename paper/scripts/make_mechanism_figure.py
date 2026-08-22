@@ -21,7 +21,7 @@ def mean_pct(registry, prefix: str, metric: str) -> float:
 def main() -> None:
     configure_style()
     registry = load_registry()
-    fig, axes = plt.subplots(1, 2, figsize=(7.15, 2.42), gridspec_kw={"width_ratios": [1, 1]})
+    fig, axes = plt.subplots(1, 2, figsize=(7.15, 2.62), gridspec_kw={"width_ratios": [1, 1]})
 
     # a) On the frozen-base representation, mean cosine can hide recurrent
     # negative events. Show minima and the scheduled negative-event fraction.
@@ -64,18 +64,21 @@ def main() -> None:
     # b) On strong continuations, a heavier negative tail does not imply that
     # hard isolation will improve either deployed endpoint.
     ax = axes[1]
-    conditions = ("e5", "e6 PosCtrl", "e6 TN10")
+    conditions = ("pretrained", "e5", "e6 PosCtrl", "e6 TN10")
     q05 = np.asarray([
+        value(registry, "strong_pretrain.shared_wide.u150.q05"),
         value(registry, "strong_ownership.shared_wide.u150.q05"),
         value(registry, "strong_e6.e6_posctrl.shared_wide.u150.q05"),
         value(registry, "strong_e6.e6_tn10.shared_wide.u150.q05"),
     ])
     p_negative = np.asarray([
+        value(registry, "strong_pretrain.shared_wide.u150.p_negative"),
         value(registry, "strong_ownership.shared_wide.u150.p_negative"),
         value(registry, "strong_e6.e6_posctrl.shared_wide.u150.p_negative"),
         value(registry, "strong_e6.e6_tn10.shared_wide.u150.p_negative"),
     ])
     ax.axvline(0, color=COLORS["black"], lw=0.8)
+    y_strong = np.arange(len(conditions))
     for index, (point, fraction) in enumerate(zip(q05, p_negative)):
         ax.hlines(index, point, 0, color=COLORS["vermillion"], lw=2.2)
         ax.scatter(
@@ -87,28 +90,28 @@ def main() -> None:
             (point, index), xytext=(5, -1), textcoords="offset points",
             ha="left", va="center", color=COLORS["vermillion"], fontsize=6.8,
         )
-    ax.set_yticks(y, conditions)
+    ax.set_yticks(y_strong, conditions)
     ax.set_xlim(-0.59, 0.06)
-    ax.set_ylim(3.45, -0.75)
+    ax.set_ylim(4.75, -0.75)
     ax.set_xlabel("U150 gradient-cosine lower tail")
     ax.set_title(r"b  Strong trunk: conflict $\ne$ benefit", loc="left", weight="bold")
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.tick_params(axis="y", length=0)
-    tn_rec = 100 * value(
-        registry, "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.rec_gain"
+    pretrain_rec = 100 * value(
+        registry, "strong_pretrain.contrast.isolated_vs_shared_wide.test5_gain"
     )
-    tn_fpr = 100 * value(
-        registry, "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.fpr95_gain"
+    pretrain_fpr = 100 * value(
+        registry, "strong_pretrain.contrast.isolated_vs_shared_wide.fpr95_gain"
     )
     ax.text(
         0.02, 0.02,
-        f"TN10 Isolated-Shared REC  {tn_rec:+.3f} pp\n"
-        f"TN10 FPR95 reduction  {tn_fpr:+.3f} pp (Shared better)",
+        f"Pretrain Isolated-Shared Test5  {pretrain_rec:+.3f} pp\n"
+        f"Pretrain FPR95 reduction  {pretrain_fpr:+.3f} pp (n.s.)",
         transform=ax.transAxes, ha="left", va="bottom", fontsize=7.0, weight="bold",
         bbox={"facecolor": "white", "edgecolor": COLORS["light_gray"], "pad": 2.2},
     )
 
-    fig.subplots_adjust(left=0.075, right=0.99, bottom=0.22, top=0.87, wspace=0.34)
+    fig.subplots_adjust(left=0.075, right=0.99, bottom=0.21, top=0.88, wspace=0.34)
 
     rows = []
     for seed, minimum, fraction in zip(SEEDS, minima, negative):

@@ -25,17 +25,17 @@ $p=0.0002$; FPR95 reduction
 [$-0.382$, $1.337$],
 $p=0.139$. Joint gate: \textbf{fail}.}
 \\[5pt]
-\textbf{(b) Strong MM-GDINO continuation control}\\[2pt]
-\begin{tabular}{llrrrr}
+\textbf{(b) Representative MM-GDINO controls}\\[2pt]
+\begin{tabular}{llrrrrr}
 \toprule
-Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & TestAB$\uparrow$ & FPR95$\downarrow$ \\
+Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & Test5$\uparrow$ & TestAB$\uparrow$ & FPR95$\downarrow$ \\
 \midrule
-e5 reference & Shared-Wide & 33.3 & -0.156 & 88.979 $\pm$ 0.009 & 83.686 $\pm$ 0.444 \\
-e5 reference & Isolated & 0.0 & no path & 88.976 $\pm$ 0.014 & 84.211 $\pm$ 1.983 \\
-e6 PosCtrl & Shared-Wide & 58.3 & -0.182 & 88.914 $\pm$ 0.009 & 83.095 $\pm$ 0.233 \\
-e6 PosCtrl & Isolated & 0.0 & no path & 88.911 $\pm$ 0.011 & 83.276 $\pm$ 0.937 \\
-e6 TN10 & Shared-Wide & 66.7 & -0.516 & 89.131 $\pm$ 0.005 & 67.093 $\pm$ 0.173 \\
-e6 TN10 & Isolated & 0.0 & no path & 89.128 $\pm$ 0.009 & 68.653 $\pm$ 1.769 \\
+pretrained & Shared-Wide & 45.8 & -0.169 & 56.681 $\pm$ 0.097 & 53.382 $\pm$ 0.046 & 91.006 $\pm$ 1.495 \\
+pretrained & Isolated & 0.0 & no path & 56.587 $\pm$ 0.122 & 53.327 $\pm$ 0.070 & 91.695 $\pm$ 0.765 \\
+e5 reference & Shared-Wide & 33.3 & -0.156 & -- & 88.979 $\pm$ 0.009 & 83.686 $\pm$ 0.444 \\
+e5 reference & Isolated & 0.0 & no path & -- & 88.976 $\pm$ 0.014 & 84.211 $\pm$ 1.983 \\
+e6 TN10 & Shared-Wide & 66.7 & -0.516 & -- & 89.131 $\pm$ 0.005 & 67.093 $\pm$ 0.173 \\
+e6 TN10 & Isolated & 0.0 & no path & -- & 89.128 $\pm$ 0.009 & 68.653 $\pm$ 1.769 \\
 \bottomrule
 \end{tabular}
 \\[3pt]
@@ -43,16 +43,18 @@ e6 TN10 & Isolated & 0.0 & no path & 89.128 $\pm$ 0.009 & 68.653 $\pm$ 1.769 \\
 \toprule
 Planned contrast & $\Delta$REC [95\% CI] & FPR95 reduction [95\% CI] & Holm-IUT $p$ & Gate \\
 \midrule
-e6 PosCtrl: Isolated $-$ Shared-Wide & -0.003 [-0.009, 0.000] & -0.181 [-1.923, 1.118] & 1.0000 & fail \\
+pretrained: Isolated $-$ Shared-Wide & -0.056 [-0.104, -0.013] & -0.689 [-2.340, 0.365] & 0.9234 & fail \\
 e6 TN10: Isolated $-$ Shared-Wide & -0.003 [-0.009, 0.000] & -1.559 [-2.925, -0.304] & 1.0000 & fail \\
 \bottomrule
 \end{tabular}
 \vspace{2pt}
-\parbox{0.98\textwidth}{\footnotesize Test5 and TestAB are micro P@1 (\%).
+\parbox{0.98\textwidth}{\footnotesize Test5 and TestAB are micro P@1 (\%);
+Test5 was additionally extracted for the pretrained trunk.
 All deltas are percentage points; FPR95 reduction is positive when Isolated is
 better.  Strong rows aggregate fixed U150 probes across three seeds.  Native TestAB/FPR95
-references are e5 88.969/88.282, PosCtrl 88.904/87.740, and TN10
-89.137/69.375.  Every FPR95 bootstrap replicate recomputes the positive q05.
+references are pretrained 53.274/92.270, e5 88.969/88.282, and TN10
+89.137/69.375.  PosCtrl is reported in the supplement. Every FPR95 bootstrap replicate
+recomputes the positive q05.
 Shared-Wide (100,362 params; 99,424 MAC/query) and Isolated (100,358;
 98,816) use two task-specific Adam states, zero weight decay, matched updates,
 and identical data order.}

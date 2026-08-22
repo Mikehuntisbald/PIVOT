@@ -38,6 +38,13 @@ We report the scheduled gradient probes, negative-cosine fraction, minimum
 cosine, Test5, and Strict-TN2031.
 
 \paragraph{Strong MM-GDINO control.}
+We first freeze the official broad MM-GDINO-T pretrained checkpoint before
+RefCOCO-specific full-model fine-tuning.  Shared-Wide and Isolated retain the
+e5 input, parameter/MAC accounting, 100/50-update schedule, task-specific Adam
+states, zero decay, U150 endpoint, and three seeds.  We evaluate Test5, TestAB,
+and Strict-TN2031; the heads remain supervised and broad pretraining is not
+claimed image-disjoint.
+
 We freeze a locally supplied MM-GDINO-T checkpoint after five epochs of
 RefCOCO fine-tuning and reuse identical queries and boxes.  The trunk is
 retrospective because its original training evaluated benchmark splits each

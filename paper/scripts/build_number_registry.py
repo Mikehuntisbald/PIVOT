@@ -180,6 +180,16 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
             "fixed-probe gradient-tail shift and negative-result claim boundary",
         ],
     },
+    "mmgdino_pretrain_ownership_results": {
+        "path": "paper/data/mmgdino_pretrain_ownership_results.json",
+        "kind": "prospectively_frozen_pretrained_trunk_capacity_control",
+        "expected_sha256": "4ff72c188b9df21f8ff22604cf6d5902a165a2cdb1082785a18432f3ee0db514",
+        "owns": [
+            "MM-GDINO-T pretrained Shared-Wide versus Isolated replay",
+            "Test5, RefCOCO TestAB, and Strict-TN2031 paired contrasts",
+            "fixed-probe pretrained gradient geometry and negative-result boundary",
+        ],
+    },
     "b58_capacity_control_results": {
         "path": "paper/data/b58_capacity_control_results.json",
         "kind": "prospectively_frozen_post_release_capacity_control",
@@ -235,7 +245,7 @@ CLAIM_BOUNDARIES = {
     "gref": "previously exposed COCO imagery; Rejector-supervision-disjoint excludes only rejector train/calibration images",
     "verified_negatives": "proposal-covered verified negatives, not image-global or all-query verification",
     "calibration": "relative rejection discrimination transfers; the source operating threshold does not",
-    "ownership": "exclusive ownership benefits ARROW-U2 and is sufficient for strong-trunk route preservation, but it does not beat the capacity-matched Shared-Wide e5 control; phased scheduling is not independently superior",
+    "ownership": "exclusive ownership benefits ARROW-U2, but broad pretrained and strong task-tuned MM-GDINO representations do not beat capacity-matched Shared-Wide; phased scheduling is not independently superior",
     "positive_trust": "no standalone held-out causal gain is supported",
     "support": "visual support controls Admission but is not necessary for every correct top-1 prediction",
 }
@@ -824,6 +834,88 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
             f"statistics.gradient_probes.cross_trunk_tail_shift.{metric}",
             unit="fraction", surface="paired fixed gradient probes",
             status="descriptive_mechanism_shift", direction="descriptive",
+        )
+
+    # Capacity-matched ownership replay on the official broad MM-GDINO-T
+    # pretrained representation, before RefCOCO-specific trunk fine-tuning.
+    for route in ("native", "shared_wide", "isolated_128"):
+        learned = route != "native"
+        for json_metric, semantic, surface, direction in (
+            ("test5_micro_p1", "test5", "Test5 micro", "higher_is_better"),
+            (
+                "testab_micro_p1", "testab",
+                "RefCOCO testA+testB micro", "higher_is_better",
+            ),
+            (
+                "strict2031_fpr95", "strict_fpr95",
+                "Strict-TN2031", "lower_is_better",
+            ),
+            (
+                "strict2031_auroc", "strict_auroc",
+                "Strict-TN2031", "higher_is_better",
+            ),
+            (
+                "strict2031_aupr", "strict_aupr",
+                "Strict-TN2031", "higher_is_better",
+            ),
+        ):
+            base = f"statistics.point_metrics.{route}.{json_metric}"
+            b.add(
+                f"strong_pretrain.{route}.{semantic}",
+                "mmgdino_pretrain_ownership_results",
+                f"{base}.mean" if learned else base,
+                unit="fraction", surface=surface,
+                status="prospectively_frozen_capacity_control",
+                direction=direction,
+                sd_path=f"{base}.sample_sd" if learned else None,
+                by_seed_path=f"{base}.by_seed" if learned else None,
+            )
+        for split in (
+            "refcoco_testA", "refcoco_testB", "refcocop_testA",
+            "refcocop_testB", "refcocog_test",
+        ):
+            base = f"statistics.point_metrics.{route}.splits.{split}"
+            b.add(
+                f"strong_pretrain.{route}.{split}",
+                "mmgdino_pretrain_ownership_results",
+                f"{base}.mean" if learned else base,
+                unit="fraction", surface=split,
+                status="prospectively_frozen_capacity_control",
+                direction="higher_is_better",
+                sd_path=f"{base}.sample_sd" if learned else None,
+                by_seed_path=f"{base}.by_seed" if learned else None,
+            )
+    for horizon in ("all_milestones", "u150"):
+        for metric in ("count", "mean", "p_negative", "q05", "minimum"):
+            b.add(
+                f"strong_pretrain.shared_wide.{horizon}.{metric}",
+                "mmgdino_pretrain_ownership_results",
+                f"statistics.gradient_probes.shared_wide.{horizon}.{metric}",
+                unit="fraction", surface=f"fixed {horizon} gradient probes",
+                status="paired_mechanism_diagnostic", direction="descriptive",
+            )
+    b.add(
+        "strong_pretrain.bootstrap.replicates",
+        "mmgdino_pretrain_ownership_results",
+        "statistics.bootstrap.replicates",
+        unit="replicates", surface="paired image-cluster bootstrap",
+        status="exact_statistical_protocol", direction="descriptive",
+    )
+    for metric, ci_metric, direction in (
+        ("test5_gain", "test5_ci95", "higher_is_better"),
+        ("testab_gain", "testab_ci95", "higher_is_better"),
+        ("fpr95_gain", "fpr95_ci95", "higher_is_better"),
+        ("iut_p", None, "descriptive"),
+    ):
+        base = "statistics.isolated_minus_shared_wide"
+        b.add(
+            f"strong_pretrain.contrast.isolated_vs_shared_wide.{metric}",
+            "mmgdino_pretrain_ownership_results", f"{base}.{metric}",
+            unit="p_value" if metric.endswith("_p") else "absolute",
+            surface="Test5 + RefCOCO TestAB + Strict-TN2031",
+            status="planned_capacity_controlled_contrast",
+            direction=direction,
+            ci_path=f"{base}.{ci_metric}" if ci_metric is not None else None,
         )
 
     # Zero-update rank-dataset probe on the same strong e5 U150 shared owners.

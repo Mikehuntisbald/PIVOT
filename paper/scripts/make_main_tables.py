@@ -195,24 +195,41 @@ def table2(reg: Registry) -> None:
 
     strong_rows = [
         (
+            "pretrained", "Shared-Wide",
+            pct(reg.value("strong_pretrain.shared_wide.u150.p_negative"), 1),
+            f"{reg.value('strong_pretrain.shared_wide.u150.q05'):+.3f}",
+            registered_mean_sd("strong_pretrain.shared_wide", "test5"),
+            registered_mean_sd("strong_pretrain.shared_wide", "testab"),
+            registered_mean_sd("strong_pretrain.shared_wide", "strict_fpr95"),
+        ),
+        (
+            "pretrained", "Isolated", "0.0", "no path",
+            registered_mean_sd("strong_pretrain.isolated_128", "test5"),
+            registered_mean_sd("strong_pretrain.isolated_128", "testab"),
+            registered_mean_sd("strong_pretrain.isolated_128", "strict_fpr95"),
+        ),
+        (
             "e5 reference", "Shared-Wide",
             pct(reg.value("strong_ownership.shared_wide.u150.p_negative"), 1),
             f"{reg.value('strong_ownership.shared_wide.u150.q05'):+.3f}",
+            "--",
             registered_mean_sd("strong_ownership.shared_wide", "testab"),
             registered_mean_sd("strong_ownership.shared_wide", "strict_fpr95"),
         ),
         (
             "e5 reference", "Isolated", "0.0", "no path",
+            "--",
             registered_mean_sd("strong_ownership.isolated_128", "testab"),
             registered_mean_sd("strong_ownership.isolated_128", "strict_fpr95"),
         ),
     ]
-    for trunk, label in (("e6_posctrl", "e6 PosCtrl"), ("e6_tn10", "e6 TN10")):
+    for trunk, label in (("e6_tn10", "e6 TN10"),):
         strong_rows.extend((
             (
                 label, "Shared-Wide",
                 pct(reg.value(f"strong_e6.{trunk}.shared_wide.u150.p_negative"), 1),
                 f"{reg.value(f'strong_e6.{trunk}.shared_wide.u150.q05'):+.3f}",
+                "--",
                 registered_mean_sd(f"strong_e6.{trunk}.shared_wide", "testab"),
                 registered_mean_sd(
                     f"strong_e6.{trunk}.shared_wide", "strict_fpr95"
@@ -220,6 +237,7 @@ def table2(reg: Registry) -> None:
             ),
             (
                 label, "Isolated", "0.0", "no path",
+                "--",
                 registered_mean_sd(f"strong_e6.{trunk}.isolated_128", "testab"),
                 registered_mean_sd(
                     f"strong_e6.{trunk}.isolated_128", "strict_fpr95"
@@ -235,8 +253,17 @@ def table2(reg: Registry) -> None:
     frozen_rec_ci = frozen_rec["ci95"]
     frozen_fpr_ci = frozen_fpr["ci95"]
 
-    contrast_rows = []
-    for trunk, label in (("e6_posctrl", "e6 PosCtrl"), ("e6_tn10", "e6 TN10")):
+    pretrain_prefix = "strong_pretrain.contrast.isolated_vs_shared_wide"
+    pretrain_rec = reg.item(f"{pretrain_prefix}.testab_gain")
+    pretrain_fpr = reg.item(f"{pretrain_prefix}.fpr95_gain")
+    contrast_rows = [(
+        "pretrained: Isolated $-$ Shared-Wide",
+        rf"{signed_pp(float(pretrain_rec['value']), 3)} [{pct(pretrain_rec['ci95'][0], 3)}, {pct(pretrain_rec['ci95'][1], 3)}]",
+        rf"{signed_pp(float(pretrain_fpr['value']), 3)} [{pct(pretrain_fpr['ci95'][0], 3)}, {pct(pretrain_fpr['ci95'][1], 3)}]",
+        f"{reg.value(f'{pretrain_prefix}.iut_p'):.4f}",
+        "fail",
+    )]
+    for trunk, label in (("e6_tn10", "e6 TN10"),):
         prefix = f"strong_e6.{trunk}.contrast.isolated_vs_shared_wide"
         rec = reg.item(f"{prefix}.rec_gain")
         fpr = reg.item(f"{prefix}.fpr95_gain")
@@ -275,10 +302,10 @@ $p={frozen_rec_ci['one_sided_p_gain_le_margin']:.4f}$; FPR95 reduction
 [${pct(frozen_fpr_ci['ci95_low'], 3)}$, ${pct(frozen_fpr_ci['ci95_high'], 3)}$],
 $p={frozen_fpr_ci['one_sided_p_gain_le_margin']:.3f}$. Joint gate: \textbf{{fail}}.}}
 \\[5pt]
-\textbf{{(b) Strong MM-GDINO continuation control}}\\[2pt]
-\begin{{tabular}}{{llrrrr}}
+\textbf{{(b) Representative MM-GDINO controls}}\\[2pt]
+\begin{{tabular}}{{llrrrrr}}
 \toprule
-Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & TestAB$\uparrow$ & FPR95$\downarrow$ \\
+Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & Test5$\uparrow$ & TestAB$\uparrow$ & FPR95$\downarrow$ \\
 \midrule
 {strong_body}
 \bottomrule
@@ -292,11 +319,13 @@ Planned contrast & $\Delta$REC [95\% CI] & FPR95 reduction [95\% CI] & Holm-IUT 
 \bottomrule
 \end{{tabular}}
 \vspace{{2pt}}
-\parbox{{0.98\textwidth}}{{\footnotesize Test5 and TestAB are micro P@1 (\%).
+\parbox{{0.98\textwidth}}{{\footnotesize Test5 and TestAB are micro P@1 (\%);
+Test5 was additionally extracted for the pretrained trunk.
 All deltas are percentage points; FPR95 reduction is positive when Isolated is
 better.  Strong rows aggregate fixed U150 probes across three seeds.  Native TestAB/FPR95
-references are e5 88.969/88.282, PosCtrl 88.904/87.740, and TN10
-89.137/69.375.  Every FPR95 bootstrap replicate recomputes the positive q05.
+references are pretrained 53.274/92.270, e5 88.969/88.282, and TN10
+89.137/69.375.  PosCtrl is reported in the supplement. Every FPR95 bootstrap replicate
+recomputes the positive q05.
 Shared-Wide (100,362 params; 99,424 MAC/query) and Isolated (100,358;
 98,816) use two task-specific Adam states, zero weight decay, matched updates,
 and identical data order.}}
@@ -1023,6 +1052,108 @@ REC, and its rejection interval favors Shared-Wide.}
     write_supp_table("supp_strong_e6_ownership", body, reg)
 
 
+def supplement_pretrain_ownership_table(reg: Registry) -> None:
+    reg.reset_used()
+
+    def seed_value(key: str, seed: int) -> float:
+        return float(reg.item(key)["by_seed"][str(seed)])
+
+    result_rows = []
+    for route, label in (("shared_wide", "Shared-Wide"), ("isolated_128", "Isolated")):
+        for seed in (17, 42, 73):
+            result_rows.append(" & ".join((
+                label, {17: "A", 42: "B", 73: "C"}[seed],
+                pct(seed_value(f"strong_pretrain.{route}.test5", seed), 3),
+                pct(seed_value(f"strong_pretrain.{route}.testab", seed), 3),
+                pct(seed_value(f"strong_pretrain.{route}.strict_fpr95", seed), 3),
+                pct(seed_value(f"strong_pretrain.{route}.strict_auroc", seed), 3),
+                pct(seed_value(f"strong_pretrain.{route}.strict_aupr", seed), 3),
+            )) + r" \\")
+
+    split_rows = []
+    for route, label in (("shared_wide", "Shared-Wide"), ("isolated_128", "Isolated")):
+        split_rows.append(" & ".join((
+            label,
+            *(
+                pct(reg.value(f"strong_pretrain.{route}.{split}"), 3)
+                for split in (
+                    "refcoco_testA", "refcoco_testB", "refcocop_testA",
+                    "refcocop_testB", "refcocog_test",
+                )
+            ),
+        )) + r" \\")
+
+    gradient_rows = []
+    for horizon, label in (
+        ("all_milestones", "all milestones"),
+        ("u150", "final endpoint"),
+    ):
+        prefix = f"strong_pretrain.shared_wide.{horizon}"
+        gradient_rows.append(" & ".join((
+            label,
+            str(int(reg.value(f"{prefix}.count"))),
+            f"{reg.value(f'{prefix}.mean'):+.4f}",
+            pct(reg.value(f"{prefix}.p_negative"), 1),
+            f"{reg.value(f'{prefix}.q05'):+.4f}",
+            f"{reg.value(f'{prefix}.minimum'):+.4f}",
+        )) + r" \\")
+
+    prefix = "strong_pretrain.contrast.isolated_vs_shared_wide"
+    test5 = reg.item(f"{prefix}.test5_gain")
+    testab = reg.item(f"{prefix}.testab_gain")
+    fpr = reg.item(f"{prefix}.fpr95_gain")
+    body = r"""% Generated by paper/scripts/make_main_tables.py.
+\begin{table*}[t]
+\centering
+\caption{MM-GDINO-T pretrained-trunk ownership replay.  The trunk has broad
+grounding pretraining but no RefCOCO-specific full-model fine-tuning; only the
+capacity-matched Shared-Wide/Isolated pair is trained at fixed U150.}
+\label{tab:supp-pretrain-ownership}
+\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llrrrrr}
+\toprule
+Owner & Seed & Test5 & TestAB & FPR95$\downarrow$ & AUROC$\uparrow$ & AUPR$\uparrow$\\
+\midrule
+""" + "\n".join(result_rows) + r"""
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{tabular}{lrrrrr}
+\toprule
+Owner & RefCOCO A & RefCOCO B & RefCOCO+ A & RefCOCO+ B & RefCOCOg\\
+\midrule
+""" + "\n".join(split_rows) + r"""
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{tabular}{lrrrrr}
+\toprule
+Probe horizon & $n$ & Mean cosine & $P(\cos<0)$ & q05 & Minimum\\
+\midrule
+""" + "\n".join(gradient_rows) + r"""
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{tabular}{lrr}
+\toprule
+Endpoint & Isolated$-$Shared [95\% CI] & Interpretation\\
+\midrule
+Test5 & """ + rf"{signed_pp(test5['value'], 3)} [{pct(test5['ci95'][0], 3)}, {pct(test5['ci95'][1], 3)}]" + r""" & Shared-Wide higher\\
+TestAB & """ + rf"{signed_pp(testab['value'], 3)} [{pct(testab['ci95'][0], 3)}, {pct(testab['ci95'][1], 3)}]" + r""" & Shared-Wide higher\\
+FPR95 reduction & """ + rf"{signed_pp(fpr['value'], 3)} [{pct(fpr['ci95'][0], 3)}, {pct(fpr['ci95'][1], 3)}]" + r""" & interval crosses zero\\
+\bottomrule
+\end{tabular}
+\parbox{0.98\textwidth}{\scriptsize Percentages except gradient statistics.
+FPR95 reduction is Shared-Wide minus Isolated, hence positive values favor
+Isolated. Statistics use """ + f"{int(reg.value('strong_pretrain.bootstrap.replicates')):,}" + r""" paired image-cluster bootstrap replicates; every
+FPR95 replicate recomputes each route/seed positive q05. The five Test5 split
+means are three-seed means. Isolated has no cross-task autograd path.}
+\end{table*}
+"""
+    write_supp_table("supp_pretrain_ownership", body, reg)
+
+
 def supplement_b58_capacity_table(reg: Registry) -> None:
     reg.reset_used()
     rows = []
@@ -1188,6 +1319,7 @@ def main() -> None:
     supplement_strong_baseline_table(reg)
     supplement_strong_ownership_table(reg)
     supplement_strong_e6_ownership_table(reg)
+    supplement_pretrain_ownership_table(reg)
     supplement_b58_capacity_table(reg)
     supplement_cross_dataset_probe_table(reg)
     number_macros(reg)

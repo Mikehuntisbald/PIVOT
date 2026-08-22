@@ -32,15 +32,19 @@ reduction is not significant (CI [$-0.382$, 1.337], $p=0.139$).  Thus sharing
 can damage Ranking after capacity, compute, optimizer-state, decay, update, and
 data-order matching, but this replay does not establish a rejection advantage.
 
-The strong e5 trunk exhibits a different regime.  Shared-Wide and Isolated
-remain at 88.979\% and 88.976\% TestAB P@1; Shared-Wide also has the lower
-FPR95 (83.686\% versus 84.211\%).  We stress this result with the matched e6
-PosCtrl/TN10 $2\!\times\!2$.  TN exposure changes the gradient diagnostic as
-intended: across all milestones, $P(\cos<0)$ rises from 0.469 to 0.531 and q05
-moves from $-0.248$ to $-0.470$; at U150, q05 reaches $-0.516$.  Yet this
-heavier negative tail produces no REC separation.  On both continuations,
-Isolated$-$Shared-Wide TestAB is $-0.003$ points (CI [$-0.009$, 0]), with an
-exact TestA tie.
+Before RefCOCO-specific fine-tuning, Shared-Wide has 45.8\% negative U150
+probes (mean $-0.0015$, minimum $-0.179$), yet exceeds Isolated by 0.095 Test5
+points (CI [0.061, 0.129]) and 0.056 TestAB points (CI [0.013, 0.104]).
+Its FPR95 is also 0.689 points lower; the planned isolation-reduction CI
+[$-2.340$, 0.365] crosses zero.  Hard isolation
+therefore provides no deployed benefit; the native 53.27\% TestAB further
+shows that these heads do not replace task-specific trunk adaptation.
+
+After task-specific tuning, e5 Shared-Wide/Isolated remain at
+88.979/88.976\% TestAB, and Shared-Wide has lower FPR95 (83.686/84.211\%).
+The e6 PosCtrl/TN10 stress test deepens all-milestone q05 from $-0.248$ to
+$-0.470$ (U150 $-0.516$), but both continuations retain a $-0.003$-point
+Isolated$-$Shared-Wide TestAB gap (CI [$-0.009$, 0]).
 
 Rejection moves in the opposite direction from the isolation hypothesis.  On
 TN10, Shared-Wide reaches 67.093$\pm$0.173\% FPR95 versus
@@ -62,8 +66,9 @@ representation.
     capacity-matched sharing.}}}
   \caption{Owner allocation depends on the representation.  The frozen-base
   control shows recurrent negative events and a large localization gap;
-  strong MM-GDINO shows indistinguishable REC, and even the TN10 continuation's
-  heavier negative tail does not make Isolated outperform Shared-Wide.}
+  broad pretrained and task-tuned MM-GDINO representations support effective
+  sharing, and even the TN10 continuation's heavier negative tail does not make
+  Isolated outperform Shared-Wide.}
   \label{fig:mechanism}
 \end{figure*}
 
