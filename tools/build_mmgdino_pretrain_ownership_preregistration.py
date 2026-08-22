@@ -8,11 +8,16 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
 import torch
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.mmgdino_e5_ownership import MMGDinoE5ResponsibilityOwners
 from tools.mmgdino_pretrain_ownership import (
