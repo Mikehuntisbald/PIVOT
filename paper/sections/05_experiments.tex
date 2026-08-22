@@ -48,6 +48,15 @@ Strict-TN2031 FPR95.  A fixed zero-update probe replaces only the Ranking batch
 with RefCOCO+ or RefCOCOg while holding the Abstention probe fixed; it is
 exploratory representation analysis, not a new benchmark claim.
 
+We then stress this conclusion with two supplied e5-to-e6 continuations:
+positive-only PosCtrl and 10\% TN exposure (TN10).  On each frozen trunk we run
+only the capacity-matched Shared-Wide/Isolated pair for seeds 17/42/73, reusing
+the exact e5 sample identities, batch order, losses, two task-specific Adam
+states, zero weight decay, and fixed U150 endpoint.  The planned diagnostic is
+the shift in $P(\cos<0)$ and the cosine lower tail; the planned deployment test
+is whether Isolated improves TestAB while lowering Strict-TN2031 FPR95.  The
+e5 result is a no-forward reference, and Shared-128 is not rerun.
+
 \subsection{Admission interventions}
 The standard Ref evaluation compares visual support, category text, and
 learned null on identical frozen geometry, Ranking, and Abstention routes.  A

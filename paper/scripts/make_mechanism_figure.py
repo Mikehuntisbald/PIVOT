@@ -61,37 +61,49 @@ def main() -> None:
         bbox={"facecolor": "white", "edgecolor": COLORS["light_gray"], "pad": 2.2},
     )
 
-    # b) On strong e5, the same U150 probe is close to orthogonal and changes
-    # sign across seeds. Shared-Wide is at least as good at the endpoints.
+    # b) On strong continuations, a heavier negative tail does not imply that
+    # hard isolation will improve either deployed endpoint.
     ax = axes[1]
-    cosine = np.asarray([
-        value(registry, f"strong_ownership.shared_wide.seed{seed}.cosine_mean")
-        for seed in SEEDS
+    conditions = ("e5", "e6 PosCtrl", "e6 TN10")
+    q05 = np.asarray([
+        value(registry, "strong_ownership.shared_wide.u150.q05"),
+        value(registry, "strong_e6.e6_posctrl.shared_wide.u150.q05"),
+        value(registry, "strong_e6.e6_tn10.shared_wide.u150.q05"),
+    ])
+    p_negative = np.asarray([
+        value(registry, "strong_ownership.shared_wide.u150.p_negative"),
+        value(registry, "strong_e6.e6_posctrl.shared_wide.u150.p_negative"),
+        value(registry, "strong_e6.e6_tn10.shared_wide.u150.p_negative"),
     ])
     ax.axvline(0, color=COLORS["black"], lw=0.8)
-    for index, point in enumerate(cosine):
-        color = COLORS["vermillion"] if point < 0 else COLORS["blue"]
-        ax.hlines(index, 0, point, color=color, lw=2.2)
-        ax.scatter(point, index, s=42, color=color, edgecolor="white", zorder=3)
-        ax.annotate(f"{point:+.3f}", (point, index),
-                    xytext=(-5 if point < 0 else 5, 0), textcoords="offset points",
-                    ha="right" if point < 0 else "left", va="center", color=color,
-                    fontsize=7.0, weight="bold")
-    ax.set_yticks(y, [f"seed {seed}" for seed in SEEDS])
-    ax.set_xlim(-0.050, 0.055)
+    for index, (point, fraction) in enumerate(zip(q05, p_negative)):
+        ax.hlines(index, point, 0, color=COLORS["vermillion"], lw=2.2)
+        ax.scatter(
+            point, index, s=42, color=COLORS["vermillion"],
+            edgecolor="white", zorder=3,
+        )
+        ax.annotate(
+            f"q05 {point:+.3f}\n{100 * fraction:.1f}% neg.",
+            (point, index), xytext=(5, -1), textcoords="offset points",
+            ha="left", va="center", color=COLORS["vermillion"], fontsize=6.8,
+        )
+    ax.set_yticks(y, conditions)
+    ax.set_xlim(-0.59, 0.06)
     ax.set_ylim(3.45, -0.75)
-    ax.set_xlabel("U150 mean gradient cosine")
-    ax.set_title("b  Strong e5: effective sharing", loc="left", weight="bold")
+    ax.set_xlabel("U150 gradient-cosine lower tail")
+    ax.set_title(r"b  Strong trunk: conflict $\ne$ benefit", loc="left", weight="bold")
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.tick_params(axis="y", length=0)
-    strong_shared_rec = 100 * value(registry, "strong_ownership.shared_wide.testab")
-    strong_isolated_rec = 100 * value(registry, "strong_ownership.isolated_128.testab")
-    strong_shared_fpr = 100 * value(registry, "strong_ownership.shared_wide.strict_fpr95")
-    strong_isolated_fpr = 100 * value(registry, "strong_ownership.isolated_128.strict_fpr95")
+    tn_rec = 100 * value(
+        registry, "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.rec_gain"
+    )
+    tn_fpr = 100 * value(
+        registry, "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.fpr95_gain"
+    )
     ax.text(
         0.02, 0.02,
-        f"REC  Shared-Wide {strong_shared_rec:.3f} | Isolated {strong_isolated_rec:.3f}\n"
-        f"FPR95  Shared-Wide {strong_shared_fpr:.3f} | Isolated {strong_isolated_fpr:.3f}",
+        f"TN10 Isolated-Shared REC  {tn_rec:+.3f} pp\n"
+        f"TN10 FPR95 reduction  {tn_fpr:+.3f} pp (Shared better)",
         transform=ax.transAxes, ha="left", va="bottom", fontsize=7.0, weight="bold",
         bbox={"facecolor": "white", "edgecolor": COLORS["light_gray"], "pad": 2.2},
     )
@@ -105,11 +117,12 @@ def main() -> None:
             "metric": "minimum_cosine", "value": minimum,
             "secondary_metric": "negative_probe_fraction", "secondary_value": fraction / 100,
         })
-    for seed, point in zip(SEEDS, cosine):
+    for condition, point, fraction in zip(conditions, q05, p_negative):
         rows.append({
-            "panel": "strong_e5", "seed": seed,
-            "metric": "u150_mean_cosine", "value": point,
-            "secondary_metric": "", "secondary_value": "",
+            "panel": "strong_continuation", "seed": condition,
+            "metric": "u150_cosine_q05", "value": point,
+            "secondary_metric": "negative_probe_fraction",
+            "secondary_value": fraction,
         })
     write_csv(
         "fig3_mechanism_controllability.csv",

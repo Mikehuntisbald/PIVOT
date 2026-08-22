@@ -301,6 +301,19 @@
       "sha256": "f0c589d70b134609d8b3219f454db733d70466af689ec63382e230be7d0e4328",
       "size_bytes": 68218
     },
+    "mmgdino_e6_ownership_2x2_results": {
+      "claims_owned": [
+        "MM-GDINO e6 PosCtrl and TN10 Shared-Wide versus Isolated 2x2",
+        "paired RefCOCO TestAB and Strict-TN2031 contrasts",
+        "fixed-probe gradient-tail shift and negative-result claim boundary"
+      ],
+      "git_commit": "66872afb8d7050c6c9700bc8436f47d1b60e16a0",
+      "git_tracked": true,
+      "kind": "prospectively_frozen_capacity_controlled_negative_result",
+      "path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "size_bytes": 99502
+    },
     "original_ogc_finecops_results": {
       "claims_owned": [
         "original GroundingDINO-T OGC FineCops local replay"

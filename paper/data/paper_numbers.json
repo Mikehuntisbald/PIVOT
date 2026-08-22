@@ -9075,6 +9075,706 @@
       "unit": "fraction",
       "value": 0.4929315783083439
     },
+    "strong_e6.e6_posctrl.contrast.isolated_vs_shared_wide.fpr95_gain": {
+      "ci95": [
+        -0.019227900627522776,
+        0.01117798444413369
+      ],
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.contrast.isolated_vs_shared_wide.fpr95_gain",
+      "notes": "",
+      "source_json_path": "statistics.within_trunk_contrasts.e6_posctrl.fpr95_gain",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "planned_capacity_controlled_contrast",
+      "surface": "RefCOCO TestAB + Strict-TN2031",
+      "unit": "absolute",
+      "value": -0.001805350402100725
+    },
+    "strong_e6.e6_posctrl.contrast.isolated_vs_shared_wide.holm_iut_p": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.contrast.isolated_vs_shared_wide.holm_iut_p",
+      "notes": "",
+      "source_json_path": "statistics.within_trunk_contrasts.e6_posctrl.holm_iut_p",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "planned_capacity_controlled_contrast",
+      "surface": "RefCOCO TestAB + Strict-TN2031",
+      "unit": "p_value",
+      "value": 1.0
+    },
+    "strong_e6.e6_posctrl.contrast.isolated_vs_shared_wide.rec_gain": {
+      "ci95": [
+        -9.473532386419437e-05,
+        0.0
+      ],
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.contrast.isolated_vs_shared_wide.rec_gain",
+      "notes": "",
+      "source_json_path": "statistics.within_trunk_contrasts.e6_posctrl.rec_gain",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "planned_capacity_controlled_contrast",
+      "surface": "RefCOCO TestAB + Strict-TN2031",
+      "unit": "absolute",
+      "value": -3.100198412697708e-05
+    },
+    "strong_e6.e6_posctrl.isolated_128.strict_fpr95": {
+      "by_seed": {
+        "17": 0.8321024126046282,
+        "42": 0.8237321516494338,
+        "73": 0.8424421467257509
+      },
+      "direction": "lower_is_better",
+      "key": "strong_e6.e6_posctrl.isolated_128.strict_fpr95",
+      "notes": "",
+      "sample_sd": 0.009372257695893154,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.isolated_128.strict2031_fpr95.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8327589036599377
+    },
+    "strong_e6.e6_posctrl.isolated_128.testa": {
+      "by_seed": {
+        "17": 0.9112603853632667,
+        "42": 0.9112603853632667,
+        "73": 0.9112603853632667
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.isolated_128.testa",
+      "notes": "",
+      "sample_sd": 0.0,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.isolated_128.testA_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA",
+      "unit": "fraction",
+      "value": 0.9112603853632667
+    },
+    "strong_e6.e6_posctrl.isolated_128.testab": {
+      "by_seed": {
+        "17": 0.8890438988095238,
+        "42": 0.8892299107142857,
+        "73": 0.8890438988095238
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.isolated_128.testab",
+      "notes": "",
+      "sample_sd": 0.00010739402328673633,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.isolated_128.testAB_micro_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.8891059027777778
+    },
+    "strong_e6.e6_posctrl.isolated_128.testb": {
+      "by_seed": {
+        "17": 0.8643768400392542,
+        "42": 0.8647693817468106,
+        "73": 0.8643768400392542
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.isolated_128.testb",
+      "notes": "",
+      "sample_sd": 0.00022663406052585811,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.isolated_128.testB_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testB",
+      "unit": "fraction",
+      "value": 0.8645076872751063
+    },
+    "strong_e6.e6_posctrl.native.strict_fpr95": {
+      "direction": "lower_is_better",
+      "key": "strong_e6.e6_posctrl.native.strict_fpr95",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_posctrl.native.strict2031_fpr95",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8774002954209749
+    },
+    "strong_e6.e6_posctrl.native.testa": {
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.native.testa",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_posctrl.native.testA_p1",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA",
+      "unit": "fraction",
+      "value": 0.9112603853632667
+    },
+    "strong_e6.e6_posctrl.native.testab": {
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.native.testab",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_posctrl.native.testAB_micro_p1",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.8890438988095238
+    },
+    "strong_e6.e6_posctrl.native.testb": {
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.native.testb",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_posctrl.native.testB_p1",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testB",
+      "unit": "fraction",
+      "value": 0.8643768400392542
+    },
+    "strong_e6.e6_posctrl.shared_wide.all_milestones.mean": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.all_milestones.mean",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.all_milestones.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": 0.010304812568241081
+    },
+    "strong_e6.e6_posctrl.shared_wide.all_milestones.minimum": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.all_milestones.minimum",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.all_milestones.minimum",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": -0.3538128733634949
+    },
+    "strong_e6.e6_posctrl.shared_wide.all_milestones.p_negative": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.all_milestones.p_negative",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.all_milestones.p_negative",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": 0.46875
+    },
+    "strong_e6.e6_posctrl.shared_wide.all_milestones.q05": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.all_milestones.q05",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.all_milestones.q05",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": -0.24825213104486465
+    },
+    "strong_e6.e6_posctrl.shared_wide.strict_fpr95": {
+      "by_seed": {
+        "17": 0.8335795174790743,
+        "42": 0.8291482028557361,
+        "73": 0.8301329394387001
+      },
+      "direction": "lower_is_better",
+      "key": "strong_e6.e6_posctrl.shared_wide.strict_fpr95",
+      "notes": "",
+      "sample_sd": 0.0023268417657570577,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.shared_wide.strict2031_fpr95.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8309535532578369
+    },
+    "strong_e6.e6_posctrl.shared_wide.testa": {
+      "by_seed": {
+        "17": 0.9112603853632667,
+        "42": 0.9112603853632667,
+        "73": 0.9112603853632667
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.shared_wide.testa",
+      "notes": "",
+      "sample_sd": 0.0,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.shared_wide.testA_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA",
+      "unit": "fraction",
+      "value": 0.9112603853632667
+    },
+    "strong_e6.e6_posctrl.shared_wide.testab": {
+      "by_seed": {
+        "17": 0.8892299107142857,
+        "42": 0.8891369047619048,
+        "73": 0.8890438988095238
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.shared_wide.testab",
+      "notes": "",
+      "sample_sd": 9.300595238093123e-05,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.shared_wide.testAB_micro_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.8891369047619048
+    },
+    "strong_e6.e6_posctrl.shared_wide.testb": {
+      "by_seed": {
+        "17": 0.8647693817468106,
+        "42": 0.8645731108930323,
+        "73": 0.8643768400392542
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_posctrl.shared_wide.testb",
+      "notes": "",
+      "sample_sd": 0.00019627085377821318,
+      "source_json_path": "statistics.point_metrics.e6_posctrl.shared_wide.testB_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testB",
+      "unit": "fraction",
+      "value": 0.8645731108930325
+    },
+    "strong_e6.e6_posctrl.shared_wide.u150.mean": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.u150.mean",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.u150.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.04533148907163801
+    },
+    "strong_e6.e6_posctrl.shared_wide.u150.minimum": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.u150.minimum",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.u150.minimum",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.24222353100776672
+    },
+    "strong_e6.e6_posctrl.shared_wide.u150.p_negative": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.u150.p_negative",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.u150.p_negative",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": 0.5833333333333334
+    },
+    "strong_e6.e6_posctrl.shared_wide.u150.q05": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_posctrl.shared_wide.u150.q05",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_posctrl.shared_wide.u150.q05",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.18198126927018166
+    },
+    "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.fpr95_gain": {
+      "ci95": [
+        -0.029251807039395755,
+        -0.0030384666047134634
+      ],
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.fpr95_gain",
+      "notes": "",
+      "source_json_path": "statistics.within_trunk_contrasts.e6_tn10.fpr95_gain",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "planned_capacity_controlled_contrast",
+      "surface": "RefCOCO TestAB + Strict-TN2031",
+      "unit": "absolute",
+      "value": -0.015591662563597453
+    },
+    "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.holm_iut_p": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.holm_iut_p",
+      "notes": "",
+      "source_json_path": "statistics.within_trunk_contrasts.e6_tn10.holm_iut_p",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "planned_capacity_controlled_contrast",
+      "surface": "RefCOCO TestAB + Strict-TN2031",
+      "unit": "p_value",
+      "value": 1.0
+    },
+    "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.rec_gain": {
+      "ci95": [
+        -9.473532386424348e-05,
+        0.0
+      ],
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.contrast.isolated_vs_shared_wide.rec_gain",
+      "notes": "",
+      "source_json_path": "statistics.within_trunk_contrasts.e6_tn10.rec_gain",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "planned_capacity_controlled_contrast",
+      "surface": "RefCOCO TestAB + Strict-TN2031",
+      "unit": "absolute",
+      "value": -3.100198412697708e-05
+    },
+    "strong_e6.e6_tn10.isolated_128.strict_fpr95": {
+      "by_seed": {
+        "17": 0.6819300837026095,
+        "42": 0.671590349581487,
+        "73": 0.7060561299852289
+      },
+      "direction": "lower_is_better",
+      "key": "strong_e6.e6_tn10.isolated_128.strict_fpr95",
+      "notes": "",
+      "sample_sd": 0.017686464833150235,
+      "source_json_path": "statistics.point_metrics.e6_tn10.isolated_128.strict2031_fpr95.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.686525521089775
+    },
+    "strong_e6.e6_tn10.isolated_128.testa": {
+      "by_seed": {
+        "17": 0.9123210182075305,
+        "42": 0.9124977903482411,
+        "73": 0.9123210182075305
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.isolated_128.testa",
+      "notes": "",
+      "sample_sd": 0.00010205944302446015,
+      "source_json_path": "statistics.point_metrics.e6_tn10.isolated_128.testA_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA",
+      "unit": "fraction",
+      "value": 0.9123799422544341
+    },
+    "strong_e6.e6_tn10.isolated_128.testab": {
+      "by_seed": {
+        "17": 0.8912760416666666,
+        "42": 0.8913690476190477,
+        "73": 0.8911830357142857
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.isolated_128.testab",
+      "notes": "",
+      "sample_sd": 9.300595238098674e-05,
+      "source_json_path": "statistics.point_metrics.e6_tn10.isolated_128.testAB_micro_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.8912760416666666
+    },
+    "strong_e6.e6_tn10.isolated_128.testb": {
+      "by_seed": {
+        "17": 0.867909715407262,
+        "42": 0.867909715407262,
+        "73": 0.8677134445534838
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.isolated_128.testb",
+      "notes": "",
+      "sample_sd": 0.00011331703026296111,
+      "source_json_path": "statistics.point_metrics.e6_tn10.isolated_128.testB_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testB",
+      "unit": "fraction",
+      "value": 0.867844291789336
+    },
+    "strong_e6.e6_tn10.native.strict_fpr95": {
+      "direction": "lower_is_better",
+      "key": "strong_e6.e6_tn10.native.strict_fpr95",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_tn10.native.strict2031_fpr95",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.6937469226981783
+    },
+    "strong_e6.e6_tn10.native.testa": {
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.native.testa",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_tn10.native.testA_p1",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA",
+      "unit": "fraction",
+      "value": 0.9124977903482411
+    },
+    "strong_e6.e6_tn10.native.testab": {
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.native.testab",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_tn10.native.testAB_micro_p1",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.8913690476190477
+    },
+    "strong_e6.e6_tn10.native.testb": {
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.native.testb",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.e6_tn10.native.testB_p1",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testB",
+      "unit": "fraction",
+      "value": 0.867909715407262
+    },
+    "strong_e6.e6_tn10.shared_wide.all_milestones.mean": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.all_milestones.mean",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.all_milestones.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": 0.0542551416826124
+    },
+    "strong_e6.e6_tn10.shared_wide.all_milestones.minimum": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.all_milestones.minimum",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.all_milestones.minimum",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": -0.6726779341697693
+    },
+    "strong_e6.e6_tn10.shared_wide.all_milestones.p_negative": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.all_milestones.p_negative",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.all_milestones.p_negative",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": 0.53125
+    },
+    "strong_e6.e6_tn10.shared_wide.all_milestones.q05": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.all_milestones.q05",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.all_milestones.q05",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": -0.47039616107940674
+    },
+    "strong_e6.e6_tn10.shared_wide.strict_fpr95": {
+      "by_seed": {
+        "17": 0.672575086164451,
+        "42": 0.6691285081240768,
+        "73": 0.671097981290005
+      },
+      "direction": "lower_is_better",
+      "key": "strong_e6.e6_tn10.shared_wide.strict_fpr95",
+      "notes": "",
+      "sample_sd": 0.0017291406126461574,
+      "source_json_path": "statistics.point_metrics.e6_tn10.shared_wide.strict2031_fpr95.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.6709338585261776
+    },
+    "strong_e6.e6_tn10.shared_wide.testa": {
+      "by_seed": {
+        "17": 0.9123210182075305,
+        "42": 0.9124977903482411,
+        "73": 0.9123210182075305
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.shared_wide.testa",
+      "notes": "",
+      "sample_sd": 0.00010205944302446015,
+      "source_json_path": "statistics.point_metrics.e6_tn10.shared_wide.testA_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA",
+      "unit": "fraction",
+      "value": 0.9123799422544341
+    },
+    "strong_e6.e6_tn10.shared_wide.testab": {
+      "by_seed": {
+        "17": 0.8912760416666666,
+        "42": 0.8913690476190477,
+        "73": 0.8912760416666666
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.shared_wide.testab",
+      "notes": "",
+      "sample_sd": 5.369701164343226e-05,
+      "source_json_path": "statistics.point_metrics.e6_tn10.shared_wide.testAB_micro_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.8913070436507936
+    },
+    "strong_e6.e6_tn10.shared_wide.testb": {
+      "by_seed": {
+        "17": 0.867909715407262,
+        "42": 0.867909715407262,
+        "73": 0.867909715407262
+      },
+      "direction": "higher_is_better",
+      "key": "strong_e6.e6_tn10.shared_wide.testb",
+      "notes": "",
+      "sample_sd": 0.0,
+      "source_json_path": "statistics.point_metrics.e6_tn10.shared_wide.testB_p1.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "prospectively_frozen_capacity_control",
+      "surface": "RefCOCO testB",
+      "unit": "fraction",
+      "value": 0.867909715407262
+    },
+    "strong_e6.e6_tn10.shared_wide.u150.mean": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.u150.mean",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.u150.mean",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.07631093508098274
+    },
+    "strong_e6.e6_tn10.shared_wide.u150.minimum": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.u150.minimum",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.u150.minimum",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.5596128106117249
+    },
+    "strong_e6.e6_tn10.shared_wide.u150.p_negative": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.u150.p_negative",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.u150.p_negative",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": 0.6666666666666666
+    },
+    "strong_e6.e6_tn10.shared_wide.u150.q05": {
+      "direction": "descriptive",
+      "key": "strong_e6.e6_tn10.shared_wide.u150.q05",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.e6_tn10.shared_wide.u150.q05",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.5162017345428467
+    },
+    "strong_e6.tail_shift.all_milestones_p_negative_gain": {
+      "direction": "descriptive",
+      "key": "strong_e6.tail_shift.all_milestones_p_negative_gain",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.cross_trunk_tail_shift.all_milestones_p_negative_gain",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "descriptive_mechanism_shift",
+      "surface": "paired fixed gradient probes",
+      "unit": "fraction",
+      "value": 0.0625
+    },
+    "strong_e6.tail_shift.all_milestones_q05_shift": {
+      "direction": "descriptive",
+      "key": "strong_e6.tail_shift.all_milestones_q05_shift",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.cross_trunk_tail_shift.all_milestones_q05_shift",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "descriptive_mechanism_shift",
+      "surface": "paired fixed gradient probes",
+      "unit": "fraction",
+      "value": -0.22214403003454208
+    },
+    "strong_e6.tail_shift.u150_p_negative_gain": {
+      "direction": "descriptive",
+      "key": "strong_e6.tail_shift.u150_p_negative_gain",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.cross_trunk_tail_shift.u150_p_negative_gain",
+      "source_path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+      "source_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+      "status": "descriptive_mechanism_shift",
+      "surface": "paired fixed gradient probes",
+      "unit": "fraction",
+      "value": 0.08333333333333326
+    },
     "strong_ownership.contrast.isolated_vs_native.fpr95_gain": {
       "ci95": [
         0.020915524400697334,
@@ -10605,6 +11305,30 @@
       "surface": "architecture audit",
       "unit": "count",
       "value": 100362
+    },
+    "strong_ownership.shared_wide.u150.p_negative": {
+      "direction": "descriptive",
+      "key": "strong_ownership.shared_wide.u150.p_negative",
+      "notes": "",
+      "source_json_path": "gradient_u150.shared_wide",
+      "source_path": "paper/data/mmgdino_e5_ownership_results.json",
+      "source_sha256": "f0c589d70b134609d8b3219f454db733d70466af689ec63382e230be7d0e4328",
+      "status": "mechanism",
+      "surface": "fixed U150 gradient probes",
+      "unit": "fraction",
+      "value": 0.3333333333333333
+    },
+    "strong_ownership.shared_wide.u150.q05": {
+      "direction": "descriptive",
+      "key": "strong_ownership.shared_wide.u150.q05",
+      "notes": "",
+      "source_json_path": "gradient_u150.shared_wide",
+      "source_path": "paper/data/mmgdino_e5_ownership_results.json",
+      "source_sha256": "f0c589d70b134609d8b3219f454db733d70466af689ec63382e230be7d0e4328",
+      "status": "mechanism",
+      "surface": "fixed U150 gradient probes",
+      "unit": "fraction",
+      "value": -0.15569695085287094
     },
     "strong_ownership.shared_wide.val": {
       "by_seed": {

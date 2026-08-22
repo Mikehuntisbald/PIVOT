@@ -170,6 +170,16 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
             "shared-trunk gradient probes and claim boundary",
         ],
     },
+    "mmgdino_e6_ownership_2x2_results": {
+        "path": "paper/data/mmgdino_e6_ownership_2x2_results.json",
+        "kind": "prospectively_frozen_capacity_controlled_negative_result",
+        "expected_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1",
+        "owns": [
+            "MM-GDINO e6 PosCtrl and TN10 Shared-Wide versus Isolated 2x2",
+            "paired RefCOCO TestAB and Strict-TN2031 contrasts",
+            "fixed-probe gradient-tail shift and negative-result claim boundary",
+        ],
+    },
     "b58_capacity_control_results": {
         "path": "paper/data/b58_capacity_control_results.json",
         "kind": "prospectively_frozen_post_release_capacity_control",
@@ -271,6 +281,23 @@ def at(value: Any, dotted_path: str) -> Any:
 
 def mean_mapping(value: dict[str, float]) -> float:
     return statistics.fmean(value.values())
+
+
+def flattened_cosines(value: dict[str, Any]) -> list[float]:
+    return [
+        float(cosine)
+        for seed in sorted(value, key=int)
+        for cosine in value[seed]["cosines"]
+    ]
+
+
+def linear_quantile(values: list[float], probability: float) -> float:
+    ordered = sorted(float(value) for value in values)
+    position = (len(ordered) - 1) * float(probability)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    fraction = position - lower
+    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
 
 
 def source_registry() -> dict[str, Any]:
@@ -682,6 +709,22 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
                         unit="fraction", surface=f"fixed U{update} gradient probes",
                         status="mechanism", direction="descriptive",
                     )
+    b.add(
+        "strong_ownership.shared_wide.u150.p_negative",
+        "mmgdino_e5_ownership_results", "gradient_u150.shared_wide",
+        unit="fraction", surface="fixed U150 gradient probes",
+        status="mechanism", direction="descriptive",
+        transform=lambda value: statistics.fmean(
+            float(cosine < 0.0) for cosine in flattened_cosines(value)
+        ),
+    )
+    b.add(
+        "strong_ownership.shared_wide.u150.q05",
+        "mmgdino_e5_ownership_results", "gradient_u150.shared_wide",
+        unit="fraction", surface="fixed U150 gradient probes",
+        status="mechanism", direction="descriptive",
+        transform=lambda value: linear_quantile(flattened_cosines(value), 0.05),
+    )
     for reference in ("native", "shared_128", "shared_wide"):
         name = f"isolated_128-{reference}"
         for metric, unit in (
@@ -709,6 +752,78 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
             unit="fraction", surface=f"standard {split}",
             status="published_model_zoo_reference",
             direction="higher_is_better",
+        )
+
+    # Fixed U150 Shared-Wide versus Isolated replay on two e5-to-e6 trunks.
+    # The original e5 block above is reused as the reference and Shared-128 is
+    # intentionally absent from this new 2x2.
+    for trunk in ("e6_posctrl", "e6_tn10"):
+        for route in ("native", "shared_wide", "isolated_128"):
+            for json_metric, semantic, surface, direction in (
+                ("testA_p1", "testa", "RefCOCO testA", "higher_is_better"),
+                ("testB_p1", "testb", "RefCOCO testB", "higher_is_better"),
+                (
+                    "testAB_micro_p1", "testab",
+                    "RefCOCO testA+testB micro", "higher_is_better",
+                ),
+                (
+                    "strict2031_fpr95", "strict_fpr95",
+                    "Strict-TN2031", "lower_is_better",
+                ),
+            ):
+                base = f"statistics.point_metrics.{trunk}.{route}.{json_metric}"
+                learned = route != "native"
+                b.add(
+                    f"strong_e6.{trunk}.{route}.{semantic}",
+                    "mmgdino_e6_ownership_2x2_results",
+                    f"{base}.mean" if learned else base,
+                    unit="fraction", surface=surface,
+                    status="prospectively_frozen_capacity_control",
+                    direction=direction,
+                    sd_path=f"{base}.sample_sd" if learned else None,
+                    by_seed_path=f"{base}.by_seed" if learned else None,
+                )
+        for horizon in ("all_milestones", "u150"):
+            for metric in ("mean", "p_negative", "q05", "minimum"):
+                b.add(
+                    f"strong_e6.{trunk}.shared_wide.{horizon}.{metric}",
+                    "mmgdino_e6_ownership_2x2_results",
+                    (
+                        f"statistics.gradient_probes.{trunk}.shared_wide."
+                        f"{horizon}.{metric}"
+                    ),
+                    unit="fraction", surface=f"fixed {horizon} gradient probes",
+                    status="paired_mechanism_diagnostic", direction="descriptive",
+                )
+        for metric, direction in (
+            ("rec_gain", "higher_is_better"),
+            ("fpr95_gain", "higher_is_better"),
+            ("holm_iut_p", "descriptive"),
+        ):
+            base = f"statistics.within_trunk_contrasts.{trunk}"
+            b.add(
+                f"strong_e6.{trunk}.contrast.isolated_vs_shared_wide.{metric}",
+                "mmgdino_e6_ownership_2x2_results", f"{base}.{metric}",
+                unit="p_value" if metric.endswith("_p") else "absolute",
+                surface="RefCOCO TestAB + Strict-TN2031",
+                status="planned_capacity_controlled_contrast",
+                direction=direction,
+                ci_path=(
+                    f"{base}.rec_ci95" if metric == "rec_gain"
+                    else f"{base}.fpr95_ci95" if metric == "fpr95_gain"
+                    else None
+                ),
+            )
+    for metric in (
+        "all_milestones_p_negative_gain", "u150_p_negative_gain",
+        "all_milestones_q05_shift",
+    ):
+        b.add(
+            f"strong_e6.tail_shift.{metric}",
+            "mmgdino_e6_ownership_2x2_results",
+            f"statistics.gradient_probes.cross_trunk_tail_shift.{metric}",
+            unit="fraction", surface="paired fixed gradient probes",
+            status="descriptive_mechanism_shift", direction="descriptive",
         )
 
     # Zero-update rank-dataset probe on the same strong e5 U150 shared owners.

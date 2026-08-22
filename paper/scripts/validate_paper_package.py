@@ -51,6 +51,7 @@ REQUIRED_SUPPLEMENT_TABLES = (
     "supplement/tables/supp_gap_sensitivity.tex",
     "supplement/tables/supp_finecops_subgroups.tex",
     "supplement/tables/supp_input_interventions.tex",
+    "supplement/tables/supp_strong_e6_ownership.tex",
 )
 REQUIRED_FIGURES = (
     "figures/fig1_teaser.pdf",
@@ -72,6 +73,7 @@ REQUIRED_SUPPLEMENT_TABLE_CSVS = (
     "data/table_sources/supp_gap_sensitivity.csv",
     "data/table_sources/supp_finecops_subgroups.csv",
     "data/table_sources/supp_input_interventions.csv",
+    "data/table_sources/supp_strong_e6_ownership.csv",
 )
 REQUIRED_PLOT_CSVS = (
     "data/plot_sources/fig1_qualitative.csv",

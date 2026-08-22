@@ -157,6 +157,14 @@ alternative explanations.  The resulting Shared-Wide point estimate is better
 than Isolated on Strict-TN2031, so the transfer supports safe route separation
 but not universal optimization superiority.
 
+The continuation stress test in
+Tab.~\ref{tab:supp-strong-e6-ownership} freezes supplied PosCtrl and TN10 e6
+trunks and reruns only Shared-Wide versus Isolated.  It reuses the exact e5
+schedule bytes and fixed endpoint.  TN10 increases the negative cosine tail,
+but the two routes remain tied on REC and Shared-Wide is significantly better
+on Strict-TN2031.  This separates the presence of conflicting probe gradients
+from evidence that hard isolation improves deployment.
+
 \input{supplement/tables/supp_training_controls}
 
 Admission trajectories use 100 updates, physical batch 56, seeds 17/42/73,

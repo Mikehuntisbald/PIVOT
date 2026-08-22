@@ -2,6 +2,6 @@ panel,seed,metric,value,secondary_metric,secondary_value
 frozen_base,17,minimum_cosine,-0.39308421021967116,negative_probe_fraction,0.1554054054054054
 frozen_base,42,minimum_cosine,-0.6848164404364196,negative_probe_fraction,0.25
 frozen_base,73,minimum_cosine,-0.6442681497702732,negative_probe_fraction,0.1891891891891892
-strong_e5,17,u150_mean_cosine,-0.017795644496800378,,
-strong_e5,42,u150_mean_cosine,0.0324251102283597,,
-strong_e5,73,u150_mean_cosine,0.011831841780804098,,
+strong_continuation,e5,u150_cosine_q05,-0.15569695085287094,negative_probe_fraction,0.3333333333333333
+strong_continuation,e6 PosCtrl,u150_cosine_q05,-0.18198126927018166,negative_probe_fraction,0.5833333333333334
+strong_continuation,e6 TN10,u150_cosine_q05,-0.5162017345428467,negative_probe_fraction,0.6666666666666666

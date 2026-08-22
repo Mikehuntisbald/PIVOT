@@ -32,15 +32,26 @@ reduction is not significant (CI [$-0.382$, 1.337], $p=0.139$).  Thus sharing
 can damage Ranking after capacity, compute, optimizer-state, decay, update, and
 data-order matching, but this replay does not establish a rejection advantage.
 
-The strong e5 trunk exhibits a different regime.  All designs remain at
-88.969--88.979\% TestA+TestB P@1.  Shared-Wide has the best FPR95 point
-estimate (83.686\%), followed by Isolated (84.211\%), Shared-128 (85.442\%),
-and Native (88.282\%).  Isolated passes the preregistered gate versus Native
-but not versus either shared learned control after Holm correction.  Shared
-cosines are near zero and not sign-consistent across seeds.  The combined
-evidence rejects both extremes: Ranking and Abstention are not inherently
-antagonistic, yet matching capacity does not prevent destructive sharing on
-every representation.
+The strong e5 trunk exhibits a different regime.  Shared-Wide and Isolated
+remain at 88.979\% and 88.976\% TestAB P@1; Shared-Wide also has the lower
+FPR95 (83.686\% versus 84.211\%).  We stress this result with the matched e6
+PosCtrl/TN10 $2\!\times\!2$.  TN exposure changes the gradient diagnostic as
+intended: across all milestones, $P(\cos<0)$ rises from 0.469 to 0.531 and q05
+moves from $-0.248$ to $-0.470$; at U150, q05 reaches $-0.516$.  Yet this
+heavier negative tail produces no REC separation.  On both continuations,
+Isolated$-$Shared-Wide TestAB is $-0.003$ points (CI [$-0.009$, 0]), with an
+exact TestA tie.
+
+Rejection moves in the opposite direction from the isolation hypothesis.  On
+TN10, Shared-Wide reaches 67.093$\pm$0.173\% FPR95 versus
+68.653$\pm$1.769\% for Isolated; the preregistered Isolated reduction is
+$-1.559$ points (CI [$-2.925$, $-0.304$]).  Thus a negative gradient tail is
+a useful warning but not a sufficient topology-selection rule.  With separate
+task optimizer states, the wide shared owner absorbs these probe conflicts
+without REC collapse and is more stable for rejection.  The combined evidence
+rejects both extremes: Ranking and Abstention are not inherently antagonistic,
+yet matching capacity does not prevent destructive sharing on every
+representation.
 
 \begin{figure*}[t]
   \centering
@@ -51,8 +62,8 @@ every representation.
     capacity-matched sharing.}}}
   \caption{Owner allocation depends on the representation.  The frozen-base
   control shows recurrent negative events and a large localization gap;
-  strong e5 shows near-orthogonal gradients and indistinguishable REC, with
-  Shared-Wide giving the best rejection point estimate.}
+  strong MM-GDINO shows indistinguishable REC, and even the TN10 continuation's
+  heavier negative tail does not make Isolated outperform Shared-Wide.}
   \label{fig:mechanism}
 \end{figure*}
 
