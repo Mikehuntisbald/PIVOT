@@ -45,6 +45,7 @@ from tools.train_mmgdino_e5_ownership import FormalConfig, load_schedule, run_fo
 
 PREREG_SCHEMA = "arrow.mmgdino_e6_ownership_2x2.preregistration/v1"
 STATUS_SCHEMA = "arrow.mmgdino_e6_ownership_2x2.status/v1"
+RUNTIME_AMENDMENT = ROOT / "paper/data/mmgdino_e6_ownership_2x2_runtime_amendment.json"
 
 
 class RunnerError(RuntimeError):
@@ -64,9 +65,24 @@ def _preflight() -> dict[str, Any]:
         raise RunnerError("preregistration schema drifted")
     if prereg.get("status") != "locked_before_any_e6_owner_gpu_forward":
         raise RunnerError("preregistration status drifted")
-    for record in prereg.get("code", {}).values():
+    amendment = _json(RUNTIME_AMENDMENT) if RUNTIME_AMENDMENT.is_file() else None
+    for name, record in prereg.get("code", {}).items():
         path = Path(record["path"])
-        if file_sha256(path) != record["sha256"]:
+        actual = file_sha256(path)
+        if actual == record["sha256"]:
+            continue
+        amended = bool(
+            name == "runner"
+            and amendment is not None
+            and amendment.get("schema")
+            == "arrow.mmgdino_e6_ownership_2x2.runtime_amendment/v1"
+            and amendment.get("status")
+            == "locked_after_pre_forward_failure_before_retry"
+            and amendment.get("parent_preregistration_sha256")
+            == file_sha256(PREREGISTRATION)
+            and amendment.get("change", {}).get("new_runner_sha256") == actual
+        )
+        if not amended:
             raise RunnerError(f"preregistered code drifted: {path}")
     for trunk_id, spec in TRUNK_SPECS.items():
         if file_sha256(spec.checkpoint) != spec.checkpoint_sha256:
@@ -93,6 +109,7 @@ def _run_logged(command: Sequence[str], log_path: Path) -> None:
     environment.setdefault("TOKENIZERS_PARALLELISM", "false")
     environment.setdefault("TRANSFORMERS_OFFLINE", "1")
     environment.setdefault("HF_HUB_OFFLINE", "1")
+    environment.setdefault("TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD", "1")
     with log_path.open("w", encoding="utf-8") as handle:
         handle.write("command=" + json.dumps(list(command)) + "\n")
         handle.flush()
