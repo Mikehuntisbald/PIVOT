@@ -49,6 +49,12 @@ RUNTIME_AMENDMENT = ROOT / "paper/data/mmgdino_e6_ownership_2x2_runtime_amendmen
 CANDIDATE_AVAILABILITY_AMENDMENT = (
     ROOT / "paper/data/mmgdino_e6_ownership_2x2_candidate_availability_amendment.json"
 )
+AGGREGATE_AMENDMENT = (
+    ROOT / "paper/data/mmgdino_e6_ownership_2x2_aggregate_amendment.json"
+)
+POSTFLIGHT_RECONCILIATION = (
+    ROOT / "paper/data/mmgdino_e6_ownership_2x2_postflight_reconciliation.json"
+)
 
 
 class RunnerError(RuntimeError):
@@ -72,6 +78,14 @@ def _preflight() -> dict[str, Any]:
     candidate_amendment = (
         _json(CANDIDATE_AVAILABILITY_AMENDMENT)
         if CANDIDATE_AVAILABILITY_AMENDMENT.is_file()
+        else None
+    )
+    aggregate_amendment = (
+        _json(AGGREGATE_AMENDMENT) if AGGREGATE_AMENDMENT.is_file() else None
+    )
+    reconciliation = (
+        _json(POSTFLIGHT_RECONCILIATION)
+        if POSTFLIGHT_RECONCILIATION.is_file()
         else None
     )
     for name, record in prereg.get("code", {}).items():
@@ -105,7 +119,34 @@ def _preflight() -> dict[str, Any]:
             .get("new_sha256")
             == actual
         )
-        if not amended and not candidate_amended:
+        aggregate_amended = bool(
+            name == "aggregator"
+            and aggregate_amendment is not None
+            and aggregate_amendment.get("schema")
+            == "arrow.mmgdino_e6_ownership_2x2.aggregate_amendment/v1"
+            and aggregate_amendment.get("status")
+            == "locked_after_pure_aggregation_failure_before_retry"
+            and aggregate_amendment.get("parent_preregistration_sha256")
+            == file_sha256(PREREGISTRATION)
+            and aggregate_amendment.get("change", {}).get(
+                "new_aggregator_sha256"
+            )
+            == actual
+        )
+        reconciled = bool(
+            name == "runner"
+            and reconciliation is not None
+            and reconciliation.get("schema")
+            == "arrow.mmgdino_e6_ownership_2x2.postflight_reconciliation/v1"
+            and reconciliation.get("status")
+            == "locked_after_complete_aggregate_before_status_retry"
+            and reconciliation.get("parent_preregistration_sha256")
+            == file_sha256(PREREGISTRATION)
+            and reconciliation.get("parent_aggregate_amendment_sha256")
+            == file_sha256(AGGREGATE_AMENDMENT)
+            and reconciliation.get("runner", {}).get("new_sha256") == actual
+        )
+        if not amended and not candidate_amended and not aggregate_amended and not reconciled:
             raise RunnerError(f"preregistered code drifted: {path}")
     if candidate_amendment is not None:
         for name, record in candidate_amendment.get(

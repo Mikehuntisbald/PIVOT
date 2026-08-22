@@ -1,0 +1,26 @@
+{
+  "schema": "arrow.mmgdino_e6_ownership_2x2.postflight_reconciliation/v1",
+  "status": "locked_after_complete_aggregate_before_status_retry",
+  "locked_at": "2026-08-22T15:48:59+08:00",
+  "parent_preregistration_sha256": "165d6c890b15c3ec65c0465f21bb08b87465be1a1901168bf4fce2f759403769",
+  "parent_aggregate_amendment_sha256": "fd00457cddbc31b890d739dda5fd68f79fd3b56d3b5b9cf8f267508b67828007",
+  "failure": {
+    "stage": "read-only postflight status",
+    "reason": "runner preflight recognized the candidate-availability amendment but not the later aggregate-only amendment",
+    "model_forward_count": 0,
+    "optimizer_update_count": 0,
+    "artifact_write_count": 0,
+    "result_or_metric_changed": false
+  },
+  "runner": {
+    "old_sha256": "052ca2bf7b1169bb47ba09667db7bebf4a823966ec0ffc5802ac8f286d4a5417",
+    "new_sha256": "9a67a5497ab3185b255f17a88e8100f42a10621987dce0da109a6d493ac410d7",
+    "change": "validate the sealed aggregate amendment and this reconciliation in the read-only preflight chain"
+  },
+  "sealed_outputs": {
+    "aggregate_sha256": "1b8927b3368fe40af055676d3023f4bd64c2d9e56d45999541fb11e129444ed5",
+    "result_receipt_sha256": "7ebaf3bc04e386c7cb82a44974a627dc1a7c7939cc9eec93bde8191eaae954a1"
+  },
+  "scientific_protocol_changed": false,
+  "retry": "rerun read-only status only"
+}
