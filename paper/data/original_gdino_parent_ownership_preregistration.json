@@ -1,0 +1,355 @@
+{
+  "causal_axis": {
+    "descendant_reference": "b58_descendant",
+    "formal_frozen_trunk": "pre_stageb_parent",
+    "formal_trunk_is_direct_b58_parent": true,
+    "release_initializer": "release_ogc",
+    "same_effective_938_tensor_architecture": true
+  },
+  "checkpoint_audit": {
+    "all_effective_tensors_finite": true,
+    "b58_descendant": {
+      "path": "/media/haoyi/T9/gdino/outputs/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch/checkpoint0001.pth",
+      "sha256": "b58e5209dc07dbffb2e5ed3d792e0db70c3306ec2ed24389693b4aeeebab1157",
+      "size_bytes": 1199416771
+    },
+    "parent_to_b58": {
+      "changed_tensors": 727,
+      "unchanged_tensors": 211
+    },
+    "parent_unused_patch_names_sha256": "88225c2cbd40e7ee2d94209337f481b6a8527c0f49c112069e7408b32b6cb1c0",
+    "parent_unused_patch_tensors": 200,
+    "pre_stageb_parent": {
+      "path": "/media/haoyi/T9/gdino/outputs/ogc_original_finetune_stage_a/checkpoint0001.pth",
+      "sha256": "2aa2b20bd777d0f3ef955f0a0a6ddb9f7ea2efc6886891e321bfa8f2ed8b45de",
+      "size_bytes": 1200805073
+    },
+    "pure_trunk_numel": 174327226,
+    "pure_trunk_schema_sha256": "b93506604856b80042f8db06edb612f2ab57df617175e20e8dbd7f3838e013b6",
+    "pure_trunk_tensor_count": 938,
+    "release_ogc": {
+      "path": "/media/haoyi/T9/pivot/weights/groundingdino_swint_ogc.pth",
+      "sha256": "3b3ca2563c77c69f651d7bd133e97139c186df06231157a64c507099c52bc799",
+      "size_bytes": 693997677
+    },
+    "release_to_parent": {
+      "changed_tensors": 727,
+      "unchanged_tensors": 211
+    }
+  },
+  "code": {
+    "aggregator": {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_original_gdino_parent_ownership.py",
+      "sha256": "060bb4965c2d7b6db5e5653335bcf4beba2509448e0cfdd78fb9e6d5bbe6dca4",
+      "size_bytes": 2128
+    },
+    "cache_contract": {
+      "path": "/media/haoyi/T9/pivot/tools/responsibility_isolation_cache.py",
+      "sha256": "916214c620e54c05b54c4ef2399de8aca4c8d8acccecb58f67cc3164fb464a6b",
+      "size_bytes": 21126
+    },
+    "cache_evaluator": {
+      "path": "/media/haoyi/T9/pivot/tools/eval_mmgdino_e5_ownership_cache.py",
+      "sha256": "ee19c726cf1869459a0dd21f9f77d8d0c3672a5bba97e57daafde5678ad98bea",
+      "size_bytes": 14636
+    },
+    "config": {
+      "path": "/media/haoyi/T9/pivot/config/ablations/cfg_original_gdino_parent_ownership_eval.py",
+      "sha256": "b0c29f8043905f1fe5d1a2267315ac2610df042e76e4563aafb574baf5aee5e7",
+      "size_bytes": 830
+    },
+    "contract": {
+      "path": "/media/haoyi/T9/pivot/tools/original_gdino_parent_ownership.py",
+      "sha256": "40eacd74afc70f04a96688c38a2dca7afd4ddf5615068f73b96573e2115aed42",
+      "size_bytes": 5619
+    },
+    "extractor": {
+      "path": "/media/haoyi/T9/pivot/tools/extract_original_gdino_ownership_cache.py",
+      "sha256": "da60e8c148623a772391a67495460bf26861e756d620511257ec819fa87b4d71",
+      "size_bytes": 22203
+    },
+    "mature_aggregator": {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_mmgdino_pretrain_ownership.py",
+      "sha256": "64f3cbe884d428f1daa3c097a673d860705eb9845b4a4f4a38307c62fc05150a",
+      "size_bytes": 18850
+    },
+    "mature_runner": {
+      "path": "/media/haoyi/T9/pivot/tools/run_mmgdino_e6_ownership_2x2.py",
+      "sha256": "9a67a5497ab3185b255f17a88e8100f42a10621987dce0da109a6d493ac410d7",
+      "size_bytes": 22167
+    },
+    "owners": {
+      "path": "/media/haoyi/T9/pivot/tools/mmgdino_e5_ownership.py",
+      "sha256": "4c68e5cfe426752ff9716186daf37406b795736a1388357d1d7671ed699877cb",
+      "size_bytes": 15566
+    },
+    "preregistration_builder": {
+      "path": "/media/haoyi/T9/pivot/tools/build_original_gdino_parent_ownership_preregistration.py",
+      "sha256": "c36984ae984e7775a708710fbdb8dbc05cb46910a9dc9b25c8c8079ed62b42ab",
+      "size_bytes": 13902
+    },
+    "runner": {
+      "path": "/media/haoyi/T9/pivot/tools/run_original_gdino_parent_ownership.py",
+      "sha256": "872cd955cdeb513fce8714b1f36ac63774bdfadb308cd3bf5dca022c4b44c53f",
+      "size_bytes": 8894
+    },
+    "score_objectives": {
+      "path": "/media/haoyi/T9/pivot/models/GroundingDINO/stage_b_gdino_score_adapter.py",
+      "sha256": "a7b8ac007018fcb6dd8ac77e170d314ebd5e8184584db9dd2100b536f9c7bd40",
+      "size_bytes": 77460
+    },
+    "trainer": {
+      "path": "/media/haoyi/T9/pivot/tools/train_mmgdino_e5_ownership.py",
+      "sha256": "671590873b4cbce0a2b01f9b811c1af521b0a937341dcb0167d3b74b81b37b41",
+      "size_bytes": 37771
+    }
+  },
+  "evaluation": {
+    "inputs": {
+      "refcoco_testA": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcoco_unc_testA.jsonl",
+        "rows": 5657,
+        "sha256": "47278ef1043382235a151cd90d1e6c18c79d30bb71cb4eb7df1932abc622946e",
+        "size_bytes": 3245312
+      },
+      "refcoco_testB": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcoco_unc_testB.jsonl",
+        "rows": 5095,
+        "sha256": "41687648194225a693da5c42c5448eb1a9f4d2f59ca4cd138d4063d818116c8f",
+        "size_bytes": 2965138
+      },
+      "refcocog_test": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcocog_umd_test.jsonl",
+        "rows": 9602,
+        "sha256": "6c1c9bf2006344167bdce1859578faf83ca594383cc1acac62792c3e6a0f0a1d",
+        "size_bytes": 6108720
+      },
+      "refcocop_testA": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcocoplus_unc_testA.jsonl",
+        "rows": 5726,
+        "sha256": "57a0fb2342f120d49a1174084a7748cb18ff75a7b789bf2ddaf6c8555dce1105",
+        "size_bytes": 3345000
+      },
+      "refcocop_testB": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcocoplus_unc_testB.jsonl",
+        "rows": 4889,
+        "sha256": "49fe753d28a45cfb47f3d33cf5fbe34a1fda0ae111c7dcd24063c68e2b411d36",
+        "size_bytes": 2902782
+      },
+      "strict2031": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/final_once/strict2031_u50/tn_eval_inputs/tn_refcocop_val_refcocog_umd_val.jsonl",
+        "rows": 2031,
+        "sha256": "999c6f77f6affcf0f24a9fb17132e59e824bd012d53adf73f9b287dae454702c",
+        "size_bytes": 6431256
+      }
+    },
+    "no_checkpoint_gap_or_threshold_selection": true,
+    "same_cache_for_native_shared_and_isolated": true,
+    "strict_surface": "strict2031",
+    "test5_surfaces": [
+      "refcoco_testA",
+      "refcoco_testB",
+      "refcocop_testA",
+      "refcocop_testB",
+      "refcocog_test"
+    ],
+    "testab_surfaces": [
+      "refcoco_testA",
+      "refcoco_testB"
+    ]
+  },
+  "git": {
+    "commit": "267f4f598606addf951e9eb008fb6e242eb6148c",
+    "status": "clean"
+  },
+  "locked_at": "2026-08-22T21:44:28.300964+08:00",
+  "matrix": {
+    "architecture": {
+      "isolated_128": {
+        "confidence_owned_parameter_count": 50179,
+        "confidence_representation_dim": 128,
+        "macs_per_query_both_outputs": 98816,
+        "ownership": "isolated_128",
+        "rank_owned_parameter_count": 50179,
+        "rank_representation_dim": 128,
+        "shared_parameter_count": 0,
+        "trainable_parameters": 100358
+      },
+      "shared_wide": {
+        "confidence_owned_parameter_count": 100151,
+        "confidence_representation_dim": 210,
+        "macs_per_query_both_outputs": 99424,
+        "ownership": "shared_wide",
+        "rank_owned_parameter_count": 100151,
+        "rank_representation_dim": 210,
+        "shared_parameter_count": 99940,
+        "trainable_parameters": 100362
+      }
+    },
+    "formal_trajectory_count": 6,
+    "owners": [
+      "shared_wide",
+      "isolated_128"
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "shared_128_excluded": true
+  },
+  "native_score": {
+    "definition": "mean sigmoid probability over generated full-expression phrase tokens",
+    "same_reduction_as_pure_GDINO_B58_base": true,
+    "selected_after_results": false
+  },
+  "output_targets_absent": {
+    "evaluation_caches": [
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcoco_testA.pt",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcoco_testB.pt",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocop_testA.pt",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocop_testB.pt",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocog_test.pt",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/strict2031.pt"
+    ],
+    "formal": [
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed17",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed42",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed73",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed17",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed42",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed73"
+    ],
+    "training_caches": [
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed17.pt",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed42.pt",
+      "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed73.pt"
+    ]
+  },
+  "prohibitions": [
+    "do not substitute the earlier release OGC initializer for the direct B58 parent",
+    "do not update the parent or import B58 tensors",
+    "do not run Shared-128",
+    "do not change owner capacity, schedule, losses, seeds, or endpoint",
+    "do not select a checkpoint, score reduction, Gap, or threshold from results",
+    "do not stop after one seed or one surface"
+  ],
+  "references": {
+    "b58_capacity": {
+      "path": "/media/haoyi/T9/pivot/paper/data/b58_capacity_control_results.json",
+      "sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+      "size_bytes": 21463
+    },
+    "mmgdino_e5": {
+      "path": "/media/haoyi/T9/pivot/paper/data/mmgdino_e5_ownership_results.json",
+      "sha256": "f0c589d70b134609d8b3219f454db733d70466af689ec63382e230be7d0e4328",
+      "size_bytes": 68218
+    },
+    "mmgdino_pretrained": {
+      "path": "/media/haoyi/T9/pivot/paper/data/mmgdino_pretrain_ownership_results.json",
+      "sha256": "4ff72c188b9df21f8ff22604cf6d5902a165a2cdb1082785a18432f3ee0db514",
+      "size_bytes": 73585
+    },
+    "reuse_only_no_forward": true
+  },
+  "research_question": "Before the mixed Stage-B continuation that produced B58, does the same pure GroundingDINO representation benefit from Shared-Wide or capacity-matched hard isolation?",
+  "runtime_assets": {
+    "evaluation_config": {
+      "path": "/media/haoyi/T9/pivot/config/ablations/cfg_original_gdino_parent_ownership_eval.py",
+      "sha256": "b0c29f8043905f1fe5d1a2267315ac2610df042e76e4563aafb574baf5aee5e7",
+      "size_bytes": 830
+    },
+    "image_root": "/media/haoyi/T9/data/COCO/coco2014/train2014"
+  },
+  "schedule_contract": {
+    "per_seed": {
+      "17": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed17.jsonl",
+          "sha256": "05a79ba8103781788f6d4dd5ea93739e58333e0084e3eb690a2121d0e3949c3c",
+          "size_bytes": 670106
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed17.jsonl",
+          "sha256": "8e4f8910533493f2ce77250de3bfd6809eac684f677121f5cf2921c3328114fe",
+          "size_bytes": 1911386
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed17.json",
+          "sha256": "fe02d269c51157679d36057598bcd15977308d99e3e1a96a1410a87361140a7f",
+          "size_bytes": 241557
+        }
+      },
+      "42": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed42.jsonl",
+          "sha256": "fe15b7d2f81f56f73567b8c85494e43705c000920ae905218a7c3c166426ffb4",
+          "size_bytes": 669039
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed42.jsonl",
+          "sha256": "59ba69ea0a009b6c77ed2c1f86aa8a2408814f909d92b14bcb9ae6c54a327a81",
+          "size_bytes": 1911968
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed42.json",
+          "sha256": "ab891284699f2bc0e95c395594be57eb0bf2345548b518659d3f40ee3030f7cb",
+          "size_bytes": 241609
+        }
+      },
+      "73": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed73.jsonl",
+          "sha256": "7011df38690dc1eb40bb8ae5343d878d8c545da47397a08e8bf6443aec82edd4",
+          "size_bytes": 670431
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed73.jsonl",
+          "sha256": "6365a22666f98ed351ce104cc293cab0a32234fd5dd38884b107672ffefd9976",
+          "size_bytes": 1910835
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed73.json",
+          "sha256": "2501af198b5e84169cd87914ac891d3e6ab3a86d90f31dca7d28a6c7df384d62",
+          "size_bytes": 241418
+        }
+      }
+    },
+    "receipt": {
+      "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_receipt.json",
+      "sha256": "4608b6c8bc62f426e1f72bf44d13b693448f03f011af79740e0952fceb370346",
+      "size_bytes": 3610
+    },
+    "same_identity_batch_order_and_losses_as_mmgdino_e5_e6_pretrain": true
+  },
+  "schema": "arrow.original_gdino_parent_ownership.preregistration/v1",
+  "statistics": {
+    "bootstrap_replicates": 5000,
+    "bootstrap_rng": "PCG64",
+    "bootstrap_seed": 20260824,
+    "contrast": "Isolated minus Shared-Wide",
+    "fpr95_recomputes_each_owner_seed_positive_q05_per_replicate": true,
+    "rec_noninferiority_margin": 0.005,
+    "ref_cluster": "global image_id across Test5",
+    "strict_cluster": "image_id carrying the complete pair"
+  },
+  "status": "locked_before_any_parent_owner_gpu_forward",
+  "training": {
+    "clip_norm": 0.1,
+    "confidence_batch_size": 8,
+    "confidence_learning_rate": 0.0001,
+    "confidence_updates": 50,
+    "deterministic_fp32": true,
+    "fixed_endpoint": 150,
+    "interleave": [
+      "rank",
+      "confidence",
+      "rank"
+    ],
+    "rank_batch_size": 32,
+    "rank_learning_rate": 3e-05,
+    "rank_updates": 100,
+    "task_specific_adam_states": true,
+    "weight_decay": 0.0
+  }
+}
