@@ -1,0 +1,1982 @@
+{
+  "artifacts": {
+    "evaluation_caches": [
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcoco_testA.pt",
+          "sha256": "b38aaf6c3d0d6ca6c4d1a9ed07b18b21151335134f07f17e96197eac5e73b32c",
+          "size_bytes": 5329142896
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 5625,
+          "total_rows": 5657
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcoco_testA_receipt.json",
+          "sha256": "83ca8cb59a910b40fd611267842abc592ac904caedac6a3c74b0e50fe1b5b17c",
+          "size_bytes": 1886
+        },
+        "row_count": 5657,
+        "surface_or_seed": "refcoco_testA"
+      },
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcoco_testB.pt",
+          "sha256": "5fe1b02fe75c9e335358b0fe80c04a556428c4ddff0bca6012e74e12dff435c1",
+          "size_bytes": 4799684778
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 5086,
+          "total_rows": 5095
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcoco_testB_receipt.json",
+          "sha256": "e5eb99aafa0c00caf3f5ed0d7bb22912838827d7f5bac3d1526171a1b225b53e",
+          "size_bytes": 1886
+        },
+        "row_count": 5095,
+        "surface_or_seed": "refcoco_testB"
+      },
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocop_testA.pt",
+          "sha256": "4a988c8c04be962f41a5bfbf29fd3620346606367c5dc0e8e3910dce5e1ef7dc",
+          "size_bytes": 5394181843
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 5671,
+          "total_rows": 5726
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocop_testA_receipt.json",
+          "sha256": "b3bea6f42215095f58c14c84a64e5875386b5a071f77ed55969f1927182ac95f",
+          "size_bytes": 1892
+        },
+        "row_count": 5726,
+        "surface_or_seed": "refcocop_testA"
+      },
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocop_testB.pt",
+          "sha256": "2c8209d8aeed5aaa9d499c8f005b0d3c577f3b01a04ced20a53cb300a98fd872",
+          "size_bytes": 4605642167
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 4881,
+          "total_rows": 4889
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocop_testB_receipt.json",
+          "sha256": "50d23647f04d8291c778beba2c46a424d302b7373d6b4c603466c9f118a073e7",
+          "size_bytes": 1892
+        },
+        "row_count": 4889,
+        "surface_or_seed": "refcocop_testB"
+      },
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocog_test.pt",
+          "sha256": "8aaf0c7bd59236b5dc94915fbbb22d169d9c518ba05f811dc9e537ae51697304",
+          "size_bytes": 9045698299
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": 9595,
+          "total_rows": 9602
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/refcocog_test_receipt.json",
+          "sha256": "c91f7726019bfb7042a78fc78ee4a8c54816ce6a7a66440aa163bd6e5a2ecf8e",
+          "size_bytes": 1886
+        },
+        "row_count": 9602,
+        "surface_or_seed": "refcocog_test"
+      },
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/strict2031.pt",
+          "sha256": "6a7bbf201f1634df4ae12a2cd734ad67e6f44a4c9327632f1eb1b2a14d1fbcf6",
+          "size_bytes": 3826732103
+        },
+        "counters": null,
+        "oracle": {
+          "rows_with_iou50_candidate": null,
+          "total_rows": null
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation_caches/original_parent/strict2031_receipt.json",
+          "sha256": "656e2d8764238d45688725f86ba1c6fb836e8d9f5902ef3016e87d9a59174bac",
+          "size_bytes": 1911
+        },
+        "row_count": 4062,
+        "surface_or_seed": "strict2031"
+      }
+    ],
+    "evaluation_routes": [
+      {
+        "metrics": {
+          "correct": 2330,
+          "oracle_iou50": 0.9943432914972601,
+          "oracle_rows": 5625,
+          "p1_iou50": 0.41187908785575394,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/native/records.jsonl",
+          "sha256": "9a3f91cb5265ff86651f309c14d85853cd4d89261b8f41191b5b372e88968a4a",
+          "size_bytes": 1499977
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/native/summary.json",
+          "sha256": "2e96eaa59a239eb4ee25fffae90cdd1aace0dc01c6c7a4c0fb01e4615c21cc1d",
+          "size_bytes": 902
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2536,
+          "oracle_iou50": 0.9943432914972601,
+          "oracle_rows": 5625,
+          "p1_iou50": 0.44829414884214247,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed17/records.jsonl",
+          "sha256": "713a274cf9e11eadc03fee5dcd6f712b093d0383d22165f9b94bb4a773620d14",
+          "size_bytes": 1529658
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed17/summary.json",
+          "sha256": "ddceba2a878decac29ac4af750d85f252ba28b1cd82ce8c1952b1b35eafffc2a",
+          "size_bytes": 1777
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2555,
+          "oracle_iou50": 0.9943432914972601,
+          "oracle_rows": 5625,
+          "p1_iou50": 0.45165281951564434,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed42/records.jsonl",
+          "sha256": "710f19ae4439e203945d2b48b5c6b5163004e699d75816b6e2d956085dd38f3d",
+          "size_bytes": 1529761
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed42/summary.json",
+          "sha256": "bb92e57f1ad5036a46606ae05bb216a0bf941a090af88a32763a007682278a92",
+          "size_bytes": 1777
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2593,
+          "oracle_iou50": 0.9943432914972601,
+          "oracle_rows": 5625,
+          "p1_iou50": 0.45837016086264804,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed73/records.jsonl",
+          "sha256": "b45d439b20a3a5136e33fa13e0fe205c27dba972f444c6f12279940a7ec1d416",
+          "size_bytes": 1529602
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed73/summary.json",
+          "sha256": "ec74149cddbbdf5ff6215d2a70b2161385bc056148f59c5d60bc5c65d142abb1",
+          "size_bytes": 1777
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2445,
+          "oracle_iou50": 0.9943432914972601,
+          "oracle_rows": 5625,
+          "p1_iou50": 0.4322078840374757,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed17/records.jsonl",
+          "sha256": "4cf587abc2e84cbe42f0e1cfb22a3118a6c1bfca4fa842997e94c5fb385c1052",
+          "size_bytes": 1534804
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed17/summary.json",
+          "sha256": "724d31154527afb8f0086a6ff1c6ffaf5e44663d47f82934024cd7c8ace2f1cb",
+          "size_bytes": 1780
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2423,
+          "oracle_iou50": 0.9943432914972601,
+          "oracle_rows": 5625,
+          "p1_iou50": 0.42831889694184194,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed42/records.jsonl",
+          "sha256": "75e02497cd98a9a4ba6371f023c0de2613588967025a8f700147a8a25ac342d4",
+          "size_bytes": 1534703
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed42/summary.json",
+          "sha256": "2cc95c5f3195dac633a868383e6359c4804bbf64ce99962231e13d1c10afe44b",
+          "size_bytes": 1781
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2491,
+          "oracle_iou50": 0.9943432914972601,
+          "oracle_rows": 5625,
+          "p1_iou50": 0.4403394025101644,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed73/records.jsonl",
+          "sha256": "d141ac72e3e741cbf552e44507a72a31599ef739befca614cbe5c15f666bdbc8",
+          "size_bytes": 1534874
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed73/summary.json",
+          "sha256": "bc5da6fe61c37f4ef838ea6cecb054b68ec329f71015ac674cf7ecfb01ebc17f",
+          "size_bytes": 1780
+        },
+        "surface": "refcoco_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2034,
+          "oracle_iou50": 0.998233562315996,
+          "oracle_rows": 5086,
+          "p1_iou50": 0.39921491658488717,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/native/records.jsonl",
+          "sha256": "7d7b94cc7778aa60952a3be49ec234f861929481eca9753da42ad9de8c09f560",
+          "size_bytes": 1349732
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/native/summary.json",
+          "sha256": "aa67c930d16ee9c384e1179e05a740a8a5210400fc285f8d7f64296f3f19bef5",
+          "size_bytes": 901
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2065,
+          "oracle_iou50": 0.998233562315996,
+          "oracle_rows": 5086,
+          "p1_iou50": 0.4052993130520118,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed17/records.jsonl",
+          "sha256": "1ef36572193000add97da70bd455779284f2b7cb75dd90e25d0c10a8c8df76ea",
+          "size_bytes": 1376679
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed17/summary.json",
+          "sha256": "d98a5c6c121b6563a19403850d530a1726f87bdd928ef04a04bc0e95da511670",
+          "size_bytes": 1775
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2056,
+          "oracle_iou50": 0.998233562315996,
+          "oracle_rows": 5086,
+          "p1_iou50": 0.40353287536800786,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed42/records.jsonl",
+          "sha256": "de5b704930738321051d5719b2ebf4957093a2fb1d01116958e9202bb0132139",
+          "size_bytes": 1377140
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed42/summary.json",
+          "sha256": "157d9fd9c8ff8a1f131d6567a794dfad8e2f942187455ab9ff0b42e1506e9688",
+          "size_bytes": 1776
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2074,
+          "oracle_iou50": 0.998233562315996,
+          "oracle_rows": 5086,
+          "p1_iou50": 0.4070657507360157,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed73/records.jsonl",
+          "sha256": "bee250afab523bdf55050bd6b0590158573abe81120166931facf4e5ccbc35d0",
+          "size_bytes": 1376823
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed73/summary.json",
+          "sha256": "81dff62ca66ca393fca1f938adc8ec2cd026e9ed170957400ef9fd1bb82f8066",
+          "size_bytes": 1775
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2051,
+          "oracle_iou50": 0.998233562315996,
+          "oracle_rows": 5086,
+          "p1_iou50": 0.4025515210991168,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed17/records.jsonl",
+          "sha256": "c9e2671e0b604c355fca497c003b7f559ee47fff7b86686b22ff01333084fb6a",
+          "size_bytes": 1380720
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed17/summary.json",
+          "sha256": "b242865464cf09c3d59a4719616eb7068d916d2269c8e4a160ae8f4e8fd43c75",
+          "size_bytes": 1779
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2047,
+          "oracle_iou50": 0.998233562315996,
+          "oracle_rows": 5086,
+          "p1_iou50": 0.40176643768400394,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed42/records.jsonl",
+          "sha256": "92a4d59e5ed636065804dfa0c666d1aa694f737116c2693351b02d6c2fd54286",
+          "size_bytes": 1380846
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed42/summary.json",
+          "sha256": "3bfb2fd89423facbb2380226444d538e67d5594ac9494821d3cecf2a6c7a24da",
+          "size_bytes": 1780
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2062,
+          "oracle_iou50": 0.998233562315996,
+          "oracle_rows": 5086,
+          "p1_iou50": 0.40471050049067714,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed73/records.jsonl",
+          "sha256": "d84e99a9f36dafcb147fd93c088da0c3fbd0385602b96d76b9146a999f6cafd5",
+          "size_bytes": 1381125
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed73/summary.json",
+          "sha256": "2e3d18fda721320b32ce455f752050bd4ebc146dc913961d60ffc6fb3a62e4f7",
+          "size_bytes": 1780
+        },
+        "surface": "refcoco_testB"
+      },
+      {
+        "metrics": {
+          "correct": 2082,
+          "oracle_iou50": 0.9903946908836885,
+          "oracle_rows": 5671,
+          "p1_iou50": 0.36360461054837584,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/native/records.jsonl",
+          "sha256": "f0384898e46c702a571cc55757472377cd98c92d3206a77e73d57255ce6e8847",
+          "size_bytes": 1533299
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/native/summary.json",
+          "sha256": "5513c1585bab65b0826e23964907d0d65934a119ab20d4722aa1e482b63b0c70",
+          "size_bytes": 905
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2331,
+          "oracle_iou50": 0.9903946908836885,
+          "oracle_rows": 5671,
+          "p1_iou50": 0.4070904645476773,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed17/records.jsonl",
+          "sha256": "0d34851aeb2f50aba3e7e8a02ba4974f0535e44f991f7b585b203e2159b85cad",
+          "size_bytes": 1562093
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed17/summary.json",
+          "sha256": "4be049b30551fef170187e2932a9aed119bf78c5e34529fca66379b254bbb449",
+          "size_bytes": 1779
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2323,
+          "oracle_iou50": 0.9903946908836885,
+          "oracle_rows": 5671,
+          "p1_iou50": 0.40569332867621377,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed42/records.jsonl",
+          "sha256": "9fb8e83d67b22f27078ba59d785b4d24dd4aa02870699917de04ccbd4d9d16f1",
+          "size_bytes": 1562320
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed42/summary.json",
+          "sha256": "d6829e4aadefd34ad89799fc4ec7da729ee03a32ed802bb0bf7316f40e35ab84",
+          "size_bytes": 1780
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2386,
+          "oracle_iou50": 0.9903946908836885,
+          "oracle_rows": 5671,
+          "p1_iou50": 0.4166957736639888,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed73/records.jsonl",
+          "sha256": "2f930e519032b0fd31a43f67f549a4e6aab3a103ceac11bbbc40d4f221e32814",
+          "size_bytes": 1562120
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed73/summary.json",
+          "sha256": "79102cbddfa862b20a98cfa85a4c3bb20837f90d446efe48441716d0dc90d670",
+          "size_bytes": 1779
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2207,
+          "oracle_iou50": 0.9903946908836885,
+          "oracle_rows": 5671,
+          "p1_iou50": 0.38543485853999304,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed17/records.jsonl",
+          "sha256": "2947b8b1561cfbcbcbecd7f3e92ed44c7b670676527cd615d0be987463d041f4",
+          "size_bytes": 1568082
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed17/summary.json",
+          "sha256": "9aca32314efa116df43c2c31dc58f08412dd275596c8e5e53421688544d19d69",
+          "size_bytes": 1784
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2174,
+          "oracle_iou50": 0.9903946908836885,
+          "oracle_rows": 5671,
+          "p1_iou50": 0.37967167307020605,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed42/records.jsonl",
+          "sha256": "aaab601dab9d6642f50328a532028873d8c23bdf69cb0121c0e7fe70ac02c07c",
+          "size_bytes": 1567950
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed42/summary.json",
+          "sha256": "abeff668e9b33285bf45cbea9d6fcd22e0f5bd1144a02c0f602574206c6399f1",
+          "size_bytes": 1784
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 2224,
+          "oracle_iou50": 0.9903946908836885,
+          "oracle_rows": 5671,
+          "p1_iou50": 0.38840377226685296,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed73/records.jsonl",
+          "sha256": "b2f9839c20ce2f7712d360835882aa26d56c35ecab55d1b7411749d4e076fa1a",
+          "size_bytes": 1567853
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed73/summary.json",
+          "sha256": "51c1e29210f1812b3dc79ebb01040a4cb3ea64da36f133a78388a96781e43a3b",
+          "size_bytes": 1784
+        },
+        "surface": "refcocop_testA"
+      },
+      {
+        "metrics": {
+          "correct": 1870,
+          "oracle_iou50": 0.9983636735528738,
+          "oracle_rows": 4881,
+          "p1_iou50": 0.3824913070157496,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/native/records.jsonl",
+          "sha256": "95ed3c9cc80636d7cd65639a68da891ed3efb415b8098ef0631e99cd2c2e2f24",
+          "size_bytes": 1305048
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/native/summary.json",
+          "sha256": "7b3767d6341b6394ce3b53a8d224ea40459189e1d35dfb36ed11144ce31c34fa",
+          "size_bytes": 904
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 1870,
+          "oracle_iou50": 0.9983636735528738,
+          "oracle_rows": 4881,
+          "p1_iou50": 0.3824913070157496,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed17/records.jsonl",
+          "sha256": "7a9617b37b50bcb4e364232528944263ec34583a05bd128d972d44f61092d27c",
+          "size_bytes": 1331030
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed17/summary.json",
+          "sha256": "f43b8c272ad196b35c19d297462f4d1631cf1c904b492ff46bb5e400a22efc1b",
+          "size_bytes": 1779
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 1907,
+          "oracle_iou50": 0.9983636735528738,
+          "oracle_rows": 4881,
+          "p1_iou50": 0.3900593168337083,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed42/records.jsonl",
+          "sha256": "a9623a97d02d28a3f5c26d8a7c126610a9b4c34ccaa10cd79d4c1b825b0e6456",
+          "size_bytes": 1331955
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed42/summary.json",
+          "sha256": "02e00ce89af0162d5569231e898072a5f213eee74edf4ea55ca6eaf2ee83e6e7",
+          "size_bytes": 1779
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 1919,
+          "oracle_iou50": 0.9983636735528738,
+          "oracle_rows": 4881,
+          "p1_iou50": 0.3925138065043976,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed73/records.jsonl",
+          "sha256": "3badbc27b70622bea42c397eb35a0e146594576df53d281b7921103ff934a470",
+          "size_bytes": 1331360
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed73/summary.json",
+          "sha256": "36d904e3f9624e630faad755f0da0bd9ed57481c406cba4148f4f34ac9cc82ec",
+          "size_bytes": 1779
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 1857,
+          "oracle_iou50": 0.9983636735528738,
+          "oracle_rows": 4881,
+          "p1_iou50": 0.37983227653916957,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed17/records.jsonl",
+          "sha256": "47fd2b16a65a2f127950971587a4cffa8d63fb0feff2968d8252b264d0d4154c",
+          "size_bytes": 1334826
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed17/summary.json",
+          "sha256": "6b6b16563cbf22a3abf446b3ba727caa85dd482c5bc56b270b7b046eb46d6424",
+          "size_bytes": 1784
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 1881,
+          "oracle_iou50": 0.9983636735528738,
+          "oracle_rows": 4881,
+          "p1_iou50": 0.3847412558805482,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed42/records.jsonl",
+          "sha256": "0f509ff0af49cba774cf65c345ab89ea878be41090803319a3f3be998b857e82",
+          "size_bytes": 1334943
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed42/summary.json",
+          "sha256": "df2b746f8f46918a9d0ee1c1b969aaca85d7757708f473bd9bcdb424ed54524d",
+          "size_bytes": 1783
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 1894,
+          "oracle_iou50": 0.9983636735528738,
+          "oracle_rows": 4881,
+          "p1_iou50": 0.38740028635712825,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed73/records.jsonl",
+          "sha256": "2e72e640b380c8cb3f36b81a2350b3311006ae05468495daf70cfd4c24152d00",
+          "size_bytes": 1335255
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed73/summary.json",
+          "sha256": "d2afe06aea1f318f950b74b699eb0796f52171a69e911a0bf56d2399275c62e3",
+          "size_bytes": 1784
+        },
+        "surface": "refcocop_testB"
+      },
+      {
+        "metrics": {
+          "correct": 3927,
+          "oracle_iou50": 0.9992709852114143,
+          "oracle_rows": 9595,
+          "p1_iou50": 0.40897729639658403,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/native/records.jsonl",
+          "sha256": "52adf9579610c5a7d2e3de758e8381b79e8f1ffeb9a5d38fc595f2eb6298329d",
+          "size_bytes": 2543450
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/native/summary.json",
+          "sha256": "3485ee4ff44ca6784578c61123df45f698b1dfafde17af5e0ae3ced27500e8dd",
+          "size_bytes": 902
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 4426,
+          "oracle_iou50": 0.9992709852114143,
+          "oracle_rows": 9595,
+          "p1_iou50": 0.46094563632576546,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed17/records.jsonl",
+          "sha256": "741920cf053ba19af1835b08abc7cfd8e087089be887e9a33ecc8453087c52d7",
+          "size_bytes": 2592403
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed17/summary.json",
+          "sha256": "78730e31a3bf4add3e4ee844f9d7b60ffdcc382e782959bcd011ce1b9a70b43c",
+          "size_bytes": 1777
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 4440,
+          "oracle_iou50": 0.9992709852114143,
+          "oracle_rows": 9595,
+          "p1_iou50": 0.4624036659029369,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed42/records.jsonl",
+          "sha256": "c0cc75eb5306574685f5c0de6f67ce7e9d368686b74b0a38869e508bb915aaa3",
+          "size_bytes": 2593200
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed42/summary.json",
+          "sha256": "6e5ef06111d16dcb4467d2fcf8ae9d13f61b58116b35ef287ffbee5bdebb16e2",
+          "size_bytes": 1776
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 4584,
+          "oracle_iou50": 0.9992709852114143,
+          "oracle_rows": 9595,
+          "p1_iou50": 0.4774005415538429,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed73/records.jsonl",
+          "sha256": "3fa54784add22323f4d0f8cca7e5adb424db51b9ad09b1d87fb0cdcc83c95b6f",
+          "size_bytes": 2592982
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed73/summary.json",
+          "sha256": "8a047d272b5a3207cfe6f7732265ffe1eaaac698056007e467cfc80819c27f49",
+          "size_bytes": 1776
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 4135,
+          "oracle_iou50": 0.9992709852114143,
+          "oracle_rows": 9595,
+          "p1_iou50": 0.43063945011455945,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed17/records.jsonl",
+          "sha256": "a399bfad58be0feca2505730d31421e3698665bd2ca04f383e6d68ce823c8d5f",
+          "size_bytes": 2601778
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed17/summary.json",
+          "sha256": "6f66d7bf7a554aa2c717de4f6193225965d39d3f0022a7db2b60ac4b0568f8a8",
+          "size_bytes": 1781
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 4084,
+          "oracle_iou50": 0.9992709852114143,
+          "oracle_rows": 9595,
+          "p1_iou50": 0.42532805665486356,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed42/records.jsonl",
+          "sha256": "dac9f5b207f64974d865e1473aba3b2941bb24f56531d63bae4a8eb91510f60d",
+          "size_bytes": 2601587
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed42/summary.json",
+          "sha256": "a89cf79a77fc38aa556fd920b34671f4b075330c2720df366464227fed3fe0a9",
+          "size_bytes": 1781
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "correct": 4231,
+          "oracle_iou50": 0.9992709852114143,
+          "oracle_rows": 9595,
+          "p1_iou50": 0.4406373672151635,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed73/records.jsonl",
+          "sha256": "8ca4417ca9d63ef12ea8c18fbeb9f81cf6fb4832f33525ada0078390632ac7f7",
+          "size_bytes": 2601786
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed73/summary.json",
+          "sha256": "cfa970eb54527d335f5a7aff9e5b67ca6da683ef53d036cb10746b2832badd78",
+          "size_bytes": 1780
+        },
+        "surface": "refcocog_test"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5497719258715683,
+          "auroc": 0.5575633321139278,
+          "domain_q05": 0.1044108048081398,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.896602658788774,
+          "negative_mean": 0.25460151967040895,
+          "pairs": 2031,
+          "positive_mean": 0.28418374422374526
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/native/records.jsonl",
+          "sha256": "1743ea56ca135a44d6cd518ec390dc353429f08b43a5dd5be4b09d06533e435d",
+          "size_bytes": 943755
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/native/summary.json",
+          "sha256": "d37a83777beac0c741b94f674258f99836b90ef89548f8cc68ac6cdbe403ef8b",
+          "size_bytes": 1114
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5692252255940126,
+          "auroc": 0.5824365369757435,
+          "domain_q05": -0.0062385438941419125,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9059576563269326,
+          "negative_mean": 0.01653796770212808,
+          "pairs": 2031,
+          "positive_mean": 0.02143428945606508
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed17/records.jsonl",
+          "sha256": "480f8f51ab354002d4883f34535ac5c424edaa5ce0579e0c2999c9b323f385b5",
+          "size_bytes": 959347
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed17/summary.json",
+          "sha256": "3d656e9e09fd6d1d2618c223d6a0bc2a444888ec53a70aab48ac9a8b0746e7f2",
+          "size_bytes": 1994
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5213306436502754,
+          "auroc": 0.5263617037833812,
+          "domain_q05": 0.0028298005927354097,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9379615952732644,
+          "negative_mean": 0.005919597079973495,
+          "pairs": 2031,
+          "positive_mean": 0.006102468170833662
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed42/records.jsonl",
+          "sha256": "80763ca9b9c2de99a2663378e2353eb2168be0a5d3ebb35645d4943912c32407",
+          "size_bytes": 960110
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed42/summary.json",
+          "sha256": "c97c96a48cadfa080a28ec8f8f1d2af88c893e95302caf38006330e19d6f55db",
+          "size_bytes": 1995
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5629968657953549,
+          "auroc": 0.576599633305624,
+          "domain_q05": -0.012696681544184685,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9158050221565731,
+          "negative_mean": 0.009500292713367204,
+          "pairs": 2031,
+          "positive_mean": 0.013695552924186852
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed73/records.jsonl",
+          "sha256": "84a54474cffd405f3c5512f0f5558c67750fbcb0717babbd5f7972cb5607b016",
+          "size_bytes": 960194
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed73/summary.json",
+          "sha256": "66abf87c43ccb5876ac374ac450af751cf672013b19516f2e2a27d710b1fa20b",
+          "size_bytes": 1994
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5629448051929614,
+          "auroc": 0.578479408653803,
+          "domain_q05": -0.0003650854923762381,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9049729197439685,
+          "negative_mean": 0.0064847028682651275,
+          "pairs": 2031,
+          "positive_mean": 0.007974139759330798
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed17/records.jsonl",
+          "sha256": "d4073306aa7cc4e43204427387e4c0de70f28ddd30c199c0189986660848dd25",
+          "size_bytes": 962911
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed17/summary.json",
+          "sha256": "2db8a5096816ac30aaee22220ba0ea413a3fc6aaf87ae0611998a4b90a4cc9eb",
+          "size_bytes": 2000
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5134591662945315,
+          "auroc": 0.5295622188912816,
+          "domain_q05": 0.0016712700016796589,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9359921221073363,
+          "negative_mean": 0.003836251305613863,
+          "pairs": 2031,
+          "positive_mean": 0.0039778292011850205
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed42/records.jsonl",
+          "sha256": "d807e713a737c2fe0c16b3d0fddec2dc926d23787a4db8a20af95fb5ac3ade14",
+          "size_bytes": 963215
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed42/summary.json",
+          "sha256": "fcd97dc42437d59729074deb2c283cebb218086aae6773865a2c0a1b4b90588f",
+          "size_bytes": 2000
+        },
+        "surface": "strict2031"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5234726123416893,
+          "auroc": 0.5271766205789582,
+          "domain_q05": 0.0038760658353567123,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9394387001477105,
+          "negative_mean": 0.00550096555751006,
+          "pairs": 2031,
+          "positive_mean": 0.005587909821189797
+        },
+        "records": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed73/records.jsonl",
+          "sha256": "c9648ac36baf609bcaf7d80b8661f02128607eb75aabcd4e993fedf350ddb722",
+          "size_bytes": 962245
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed73/summary.json",
+          "sha256": "61d11addaf411f40be3d5905cf39a84a1f9b2b85b712da2934e649142eb867a3",
+          "size_bytes": 1998
+        },
+        "surface": "strict2031"
+      }
+    ],
+    "formal_trajectories": [
+      {
+        "checkpoint": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed17/checkpoint_u150.pt",
+          "sha256": "5512e93a4ffd225699e0966115028a2c8742341b45a8c0d9a33fdc772193b071",
+          "size_bytes": 2077355
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": -0.05382336617913097,
+          "cosines": [
+            -0.0492556095123291,
+            -0.1446918100118637,
+            0.010165737010538578,
+            -0.008208390325307846,
+            0.17058336734771729,
+            0.14952176809310913,
+            -0.23467028141021729,
+            -0.3240317106246948
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.5058997794985771,
+          "sign_conflict_fractions": [
+            0.4947868585586548,
+            0.5231338739395142,
+            0.4781268537044525,
+            0.5030118227005005,
+            0.4598158895969391,
+            0.4671702980995178,
+            0.548058807849884,
+            0.573093831539154
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed17/training_receipt.json",
+          "sha256": "f87baaafe5ea4a2ad81ba732bea6340293e598b5cd7595f5eb2822cf712ca36c",
+          "size_bytes": 6317
+        },
+        "seed": 17,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed42/checkpoint_u150.pt",
+          "sha256": "ec3645db63b81073d0db6d646f254c5fe3c27c7b0013ed1cfb4868f62794a8cc",
+          "size_bytes": 2077291
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": -0.006100172613514587,
+          "cosines": [
+            -0.01202044915407896,
+            -0.028069058433175087,
+            -0.008252334780991077,
+            0.0044561466202139854,
+            -0.009898691438138485,
+            0.0031848943326622248,
+            -0.03000369668006897,
+            0.03180180862545967
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.5000500120222569,
+          "sign_conflict_fractions": [
+            0.49975985288619995,
+            0.5056133270263672,
+            0.5002701282501221,
+            0.49946966767311096,
+            0.502411425113678,
+            0.5027716755867004,
+            0.506904125213623,
+            0.4831998944282532
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed42/training_receipt.json",
+          "sha256": "dacc652b11ccfc6d148fe3d44dc0663dea4ec774dc9fd08e4155f66ee0d1a9f1",
+          "size_bytes": 6354
+        },
+        "seed": 42,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed73/checkpoint_u150.pt",
+          "sha256": "df67ddfcd465ed831ce7ba2bf241171fc4c886c6cdbd652ee280c463cd364940",
+          "size_bytes": 2077291
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": 0.09547225767164491,
+          "cosines": [
+            0.0013676590751856565,
+            0.18955212831497192,
+            0.2431611716747284,
+            0.15968914330005646,
+            -0.1957981288433075,
+            0.07364517450332642,
+            0.3778876066207886,
+            -0.08572669327259064
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.4732576906681061,
+          "sign_conflict_fractions": [
+            0.5058234930038452,
+            0.4566039443016052,
+            0.4456573724746704,
+            0.4670602083206177,
+            0.5427656173706055,
+            0.4677906632423401,
+            0.3893235921859741,
+            0.5110366344451904
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/shared_wide/seed73/training_receipt.json",
+          "sha256": "990fb8e93dc44a651d76a0f136166da926a9829640915510558180d01783d847",
+          "size_bytes": 6319
+        },
+        "seed": 73,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed17/checkpoint_u150.pt",
+          "sha256": "f64b26d6ea00886ba414c978caaaed0bdfbfd5fa6869c5d463dc8080c665c696",
+          "size_bytes": 1279703
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed17/training_receipt.json",
+          "sha256": "a990905d04af3d038f5ece77667d6757c70af3a850c0247751053bd946eee3b6",
+          "size_bytes": 4083
+        },
+        "seed": 17,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed42/checkpoint_u150.pt",
+          "sha256": "ba1bd184979645484075fcefe801d243b118a4f71c5e1022fb7040c0c133c9fa",
+          "size_bytes": 1279639
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed42/training_receipt.json",
+          "sha256": "f2a58b6d98394b158303a4861cc0a34429f61cc64131e5e51fb8d690a3ce2f4e",
+          "size_bytes": 4083
+        },
+        "seed": 42,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed73/checkpoint_u150.pt",
+          "sha256": "e1f81b9c97dbe1e4d8d3a5c3bae13b7791beb075c84eb67d0b6021251198d76c",
+          "size_bytes": 1279639
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/formal/original_parent/isolated_128/seed73/training_receipt.json",
+          "sha256": "fbd81b069d78e5a4cbac76c4dcd2e2b979da3b2b3c257eba685e21dc76631cab",
+          "size_bytes": 4083
+        },
+        "seed": 73,
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      }
+    ],
+    "training_caches": [
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed17.pt",
+          "sha256": "f648ddac5ce157194795a302df7c6ab011002e972dd63fffa5bd69fb94258f4a",
+          "size_bytes": 3768003535
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3186,
+          "rank_no_positive": 14
+        },
+        "oracle": null,
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed17_receipt.json",
+          "sha256": "044646c9346dce9783396f936f735b11686929f1e35623859bc3aa24043a1dbb",
+          "size_bytes": 3101
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed17"
+      },
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed42.pt",
+          "sha256": "1b9d1b3834cf4d329bec136015b32b6df1e5627c0bc0273c07ae939f948b182c",
+          "size_bytes": 3768003599
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3189,
+          "rank_no_positive": 11
+        },
+        "oracle": null,
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed42_receipt.json",
+          "sha256": "fcc0d927f36ce2ecddbde842a726ba32776eb859747a1fc67bd53a26ff8e89f6",
+          "size_bytes": 3101
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed42"
+      },
+      {
+        "cache": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed73.pt",
+          "sha256": "d6514e016d61311256d104815c81650e00a9ab862740409e28babce0f4627ed1",
+          "size_bytes": 3768003343
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3185,
+          "rank_no_positive": 15
+        },
+        "oracle": null,
+        "receipt": {
+          "path": "outputs/original_gdino_parent_ownership_20260822/caches/original_parent/seed73_receipt.json",
+          "sha256": "35cd7ddc1dfe24a535fa1267d1233633cb33beebfdedda64fcee2e81d1072d97",
+          "size_bytes": 3101
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed73"
+      }
+    ]
+  },
+  "interpretation": {
+    "head_mismatch_caveat": "this replay uses the 100k raw-query owner; the existing B58 capacity block uses an 84k integrated adapter owner",
+    "not_supported": [
+      "hard isolation is REC-noninferior on the direct parent",
+      "hard isolation improves Strict-TN2031 FPR95",
+      "the mature C50 rejection owner improves FPR95 over the native parent score",
+      "this result and the existing B58 capacity block alone form a strict same-head causal contrast"
+    ],
+    "supported": [
+      "Shared-Wide improves Test5 and TestAB over Isolated on the direct pre-Stage-B parent",
+      "the shared gradient geometry has a negative lower tail despite positive mean cosine",
+      "Isolated has no cross-task autograd path"
+    ]
+  },
+  "matrix": {
+    "fixed_endpoint": "U150",
+    "owners": [
+      "shared_wide",
+      "isolated_128"
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "shared_128_ran": false,
+    "trunk": "original_parent"
+  },
+  "provenance": {
+    "aggregate": {
+      "path": "outputs/original_gdino_parent_ownership_20260822/aggregate.json",
+      "sha256": "a9bb3b58f13a813e42870f1ee22f985f1d9aae457d07c08fd663476d8f6a4a80",
+      "size_bytes": 11647
+    },
+    "git_commit_before_packaging": "b3b009cdff6b8191f8bc19cf3a8063f06d67452b",
+    "preregistration": {
+      "path": "paper/data/original_gdino_parent_ownership_preregistration.json",
+      "sha256": "08b3323212ba5d70ecfcd407f4029f619e0844febec4783f94d7675a89b1d637",
+      "size_bytes": 15525
+    },
+    "runtime_amendment": {
+      "path": "paper/data/original_gdino_parent_ownership_runtime_amendment.json",
+      "sha256": "d70c44bf290aea8c99fe224774480954cd5c57f06d9005171f93749505c32587",
+      "size_bytes": 1817
+    }
+  },
+  "schema": "arrow.original_gdino_parent_ownership.results/v1",
+  "statistics": {
+    "bootstrap": {
+      "fpr95_recomputes_each_owner_seed_positive_q05_per_replicate": true,
+      "ref_cluster": "global image_id across all Test5 splits",
+      "replicates": 5000,
+      "same_draw_across_owners_and_seeds": true,
+      "seed": 20260824,
+      "strict_cluster": "image_id carrying the complete pair"
+    },
+    "claim_gate": {
+      "isolated_strict2031_fpr95_superior": false,
+      "isolated_test5_noninferior": false,
+      "isolated_testab_noninferior": false,
+      "joint_gate": false
+    },
+    "gradient_probes": {
+      "isolated_128": {
+        "all_cross_task_autograd_paths_absent": true,
+        "per_seed": {
+          "17": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          },
+          "42": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          },
+          "73": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          }
+        },
+        "structurally_isolated": true
+      },
+      "shared_wide": {
+        "all_milestones": {
+          "count": 96,
+          "mean": 0.054094636434456334,
+          "minimum": -0.3240317106246948,
+          "p_negative": 0.3541666666666667,
+          "q05": -0.1004679724574089
+        },
+        "per_seed": {
+          "17": {
+            "all_milestone_p_negative": 0.34375,
+            "u150_cosines": [
+              -0.0492556095123291,
+              -0.1446918100118637,
+              0.010165737010538578,
+              -0.008208390325307846,
+              0.17058336734771729,
+              0.14952176809310913,
+              -0.23467028141021729,
+              -0.3240317106246948
+            ],
+            "u150_mean": -0.05382336617913097,
+            "u150_p_negative": 0.625
+          },
+          "42": {
+            "all_milestone_p_negative": 0.5,
+            "u150_cosines": [
+              -0.01202044915407896,
+              -0.028069058433175087,
+              -0.008252334780991077,
+              0.0044561466202139854,
+              -0.009898691438138485,
+              0.0031848943326622248,
+              -0.03000369668006897,
+              0.03180180862545967
+            ],
+            "u150_mean": -0.006100172613514587,
+            "u150_p_negative": 0.625
+          },
+          "73": {
+            "all_milestone_p_negative": 0.21875,
+            "u150_cosines": [
+              0.0013676590751856565,
+              0.18955212831497192,
+              0.2431611716747284,
+              0.15968914330005646,
+              -0.1957981288433075,
+              0.07364517450332642,
+              0.3778876066207886,
+              -0.08572669327259064
+            ],
+            "u150_mean": 0.09547225767164491,
+            "u150_p_negative": 0.25
+          }
+        },
+        "structurally_isolated": false,
+        "u150": {
+          "count": 24,
+          "mean": 0.011849572959666451,
+          "minimum": -0.3240317106246948,
+          "p_negative": 0.5,
+          "q05": -0.2288394585251808
+        }
+      }
+    },
+    "isolated_minus_shared_wide": {
+      "candidate": "isolated_128",
+      "fpr95_ci95": [
+        -0.020457168008048292,
+        0.0018226265119903223
+      ],
+      "fpr95_gain": -0.006893156080748364,
+      "fpr95_superior": false,
+      "fpr95_superiority_p": 0.9466106778644271,
+      "iut_p": 1.0,
+      "iut_passes": false,
+      "reference": "shared_wide",
+      "split_gains": {
+        "refcoco_testA": {
+          "ci95": [
+            -0.0246787587237579,
+            -0.013359799140149434
+          ],
+          "gain": -0.01915031524365096
+        },
+        "refcoco_testB": {
+          "ci95": [
+            -0.0067028187721392294,
+            0.002128850395268124
+          ],
+          "gain": -0.0022898266274125056
+        },
+        "refcocog_test": {
+          "ci95": [
+            -0.04004380109747684,
+            -0.029511911790608397
+          ],
+          "gain": -0.034714989932652984
+        },
+        "refcocop_testA": {
+          "ci95": [
+            -0.031240563482973584,
+            -0.01960383948679435
+          ],
+          "gain": -0.025323087670275912
+        },
+        "refcocop_testB": {
+          "ci95": [
+            -0.00860633972873797,
+            -0.00013995078573355554
+          ],
+          "gain": -0.0043635371923365085
+        }
+      },
+      "test5_ci95": [
+        -0.022694001118246303,
+        -0.017354138017886208
+      ],
+      "test5_gain": -0.020009256568396305,
+      "test5_noninferior": false,
+      "test5_noninferiority_margin": 0.005,
+      "test5_noninferiority_p": 1.0,
+      "test5_superior": false,
+      "testab_ci95": [
+        -0.014823235369050447,
+        -0.007410695024658044
+      ],
+      "testab_gain": -0.011160714285714302,
+      "testab_noninferior": false
+    },
+    "point_metrics": {
+      "isolated_128": {
+        "splits": {
+          "refcoco_testA": {
+            "by_seed": {
+              "17": 0.4322078840374757,
+              "42": 0.42831889694184194,
+              "73": 0.4403394025101644
+            },
+            "mean": 0.43362206116316065,
+            "sample_sd": 0.00613376403496465
+          },
+          "refcoco_testB": {
+            "by_seed": {
+              "17": 0.4025515210991168,
+              "42": 0.40176643768400394,
+              "73": 0.40471050049067714
+            },
+            "mean": 0.4030094864245993,
+            "sample_sd": 0.0015245247232883218
+          },
+          "refcocog_test": {
+            "by_seed": {
+              "17": 0.43063945011455945,
+              "42": 0.42532805665486356,
+              "73": 0.4406373672151635
+            },
+            "mean": 0.43220162466152884,
+            "sample_sd": 0.007773290129946717
+          },
+          "refcocop_testA": {
+            "by_seed": {
+              "17": 0.38543485853999304,
+              "42": 0.37967167307020605,
+              "73": 0.38840377226685296
+            },
+            "mean": 0.384503434625684,
+            "sample_sd": 0.004439938285171369
+          },
+          "refcocop_testB": {
+            "by_seed": {
+              "17": 0.37983227653916957,
+              "42": 0.3847412558805482,
+              "73": 0.38740028635712825
+            },
+            "mean": 0.38399127292561536,
+            "sample_sd": 0.003839342258212614
+          }
+        },
+        "strict2031_aupr": {
+          "by_seed": {
+            "17": 0.5629448051929614,
+            "42": 0.5134591662945315,
+            "73": 0.5234726123416893
+          },
+          "mean": 0.5332921946097274,
+          "sample_sd": 0.026163433666771013
+        },
+        "strict2031_auroc": {
+          "by_seed": {
+            "17": 0.578479408653803,
+            "42": 0.5295622188912816,
+            "73": 0.5271766205789582
+          },
+          "mean": 0.5450727493746809,
+          "sample_sd": 0.02895559415675067
+        },
+        "strict2031_fpr95": {
+          "by_seed": {
+            "17": 0.9049729197439685,
+            "42": 0.9359921221073363,
+            "73": 0.9394387001477105
+          },
+          "mean": 0.9268012473330051,
+          "sample_sd": 0.018982271704087957
+        },
+        "test5_micro_p1": {
+          "by_seed": {
+            "17": 0.4099260550873454,
+            "42": 0.4071490845684394,
+            "73": 0.41661015854564243
+          },
+          "mean": 0.4112284327338091,
+          "sample_sd": 0.004863138991539647
+        },
+        "testab_micro_p1": {
+          "by_seed": {
+            "17": 0.4181547619047619,
+            "42": 0.41573660714285715,
+            "73": 0.42345610119047616
+          },
+          "mean": 0.41911582341269843,
+          "sample_sd": 0.003948465082071034
+        }
+      },
+      "native": {
+        "splits": {
+          "refcoco_testA": 0.41187908785575394,
+          "refcoco_testB": 0.39921491658488717,
+          "refcocog_test": 0.40897729639658403,
+          "refcocop_testA": 0.36360461054837584,
+          "refcocop_testB": 0.3824913070157496
+        },
+        "strict2031_aupr": 0.5497719258715683,
+        "strict2031_auroc": 0.5575633321139278,
+        "strict2031_fpr95": 0.896602658788774,
+        "test5_micro_p1": 0.3953308146856534,
+        "testab_micro_p1": 0.40587797619047616
+      },
+      "shared_wide": {
+        "splits": {
+          "refcoco_testA": {
+            "by_seed": {
+              "17": 0.44829414884214247,
+              "42": 0.45165281951564434,
+              "73": 0.45837016086264804
+            },
+            "mean": 0.4527723764068116,
+            "sample_sd": 0.005130454198583519
+          },
+          "refcoco_testB": {
+            "by_seed": {
+              "17": 0.4052993130520118,
+              "42": 0.40353287536800786,
+              "73": 0.4070657507360157
+            },
+            "mean": 0.4052993130520118,
+            "sample_sd": 0.0017664376840039187
+          },
+          "refcocog_test": {
+            "by_seed": {
+              "17": 0.46094563632576546,
+              "42": 0.4624036659029369,
+              "73": 0.4774005415538429
+            },
+            "mean": 0.4669166145941818,
+            "sample_sd": 0.009108567721305545
+          },
+          "refcocop_testA": {
+            "by_seed": {
+              "17": 0.4070904645476773,
+              "42": 0.40569332867621377,
+              "73": 0.4166957736639888
+            },
+            "mean": 0.4098265222959599,
+            "sample_sd": 0.005989821193383589
+          },
+          "refcocop_testB": {
+            "by_seed": {
+              "17": 0.3824913070157496,
+              "42": 0.3900593168337083,
+              "73": 0.3925138065043976
+            },
+            "mean": 0.38835481011795187,
+            "sample_sd": 0.005224139293513468
+          }
+        },
+        "strict2031_aupr": {
+          "by_seed": {
+            "17": 0.5692252255940126,
+            "42": 0.5213306436502754,
+            "73": 0.5629968657953549
+          },
+          "mean": 0.5511842450132143,
+          "sample_sd": 0.026040857362965887
+        },
+        "strict2031_auroc": {
+          "by_seed": {
+            "17": 0.5824365369757435,
+            "42": 0.5263617037833812,
+            "73": 0.576599633305624
+          },
+          "mean": 0.5617992913549162,
+          "sample_sd": 0.030828303890762857
+        },
+        "strict2031_fpr95": {
+          "by_seed": {
+            "17": 0.9059576563269326,
+            "42": 0.9379615952732644,
+            "73": 0.9158050221565731
+          },
+          "mean": 0.9199080912522567,
+          "sample_sd": 0.016391748199112217
+        },
+        "test5_micro_p1": {
+          "by_seed": {
+            "17": 0.4271368142335884,
+            "42": 0.4288482030417514,
+            "73": 0.43772805063127646
+          },
+          "mean": 0.4312376893022054,
+          "sample_sd": 0.005685578734799291
+        },
+        "testab_micro_p1": {
+          "by_seed": {
+            "17": 0.4279203869047619,
+            "42": 0.42885044642857145,
+            "73": 0.43405877976190477
+          },
+          "mean": 0.43027653769841273,
+          "sample_sd": 0.0033083634851076567
+        }
+      }
+    },
+    "references": {
+      "b58": {
+        "sha256_bound_by_preregistration": true,
+        "source": "/media/haoyi/T9/pivot/paper/data/b58_capacity_control_results.json"
+      },
+      "e5": {
+        "isolated_128": {
+          "strict2031_fpr95": 0.8421139011980961,
+          "testAB_micro_p1": 0.8897569444444444,
+          "testA_p1": 0.9127334865358553,
+          "testB_p1": 0.864245992803402
+        },
+        "native": {
+          "strict2031_fpr95": 0.8828163466272771,
+          "testAB_micro_p1": 0.8896949404761905,
+          "testA_p1": 0.9126745624889517,
+          "testB_p1": 0.8641805691854759
+        },
+        "shared_128": {
+          "strict2031_fpr95": 0.8544231084851468,
+          "testAB_micro_p1": 0.8897259424603173,
+          "testA_p1": 0.9127334865358553,
+          "testB_p1": 0.8641805691854759
+        },
+        "shared_wide": {
+          "strict2031_fpr95": 0.8368619727556212,
+          "testAB_micro_p1": 0.8897879464285714,
+          "testA_p1": 0.9127334865358553,
+          "testB_p1": 0.864311416421328
+        }
+      }
+    }
+  },
+  "status": "complete_negative_isolation_result"
+}
