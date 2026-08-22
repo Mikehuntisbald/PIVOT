@@ -1,5 +1,9 @@
 # MM-GDINO e6 ownership 2×2 protocol
 
+> Status: complete. The preregistered full pattern did not pass. See
+> `docs/paper_cvpr_mmgdino_e6_ownership_2x2_results_20260822.md` and the sealed
+> receipt `paper/data/mmgdino_e6_ownership_2x2_results.json`.
+
 ## Question
 
 This block tests whether the usefulness of parameter isolation depends on how
