@@ -1,0 +1,2015 @@
+{
+  "artifacts": {
+    "evaluation_caches": [
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcoco_testA.pt",
+          "sha256": "75a4cbe91721e16e0d9edaea25ebf7c8a4a51a94925efabba6d61a3825ffc122",
+          "size_bytes": 5329142832
+        },
+        "counters": null,
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcoco_testA_receipt.json",
+          "sha256": "7696358d2505a53c154d982c8e70f731d2305a620cd0471f1d5ac27bbc6d3850",
+          "size_bytes": 1424
+        },
+        "row_count": 5657,
+        "surface_or_seed": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcoco_testB.pt",
+          "sha256": "40ed52f3459d014f42ee452b685a5d5d3c7d00707c29b2ee6b937fc18cab5ed2",
+          "size_bytes": 4799684778
+        },
+        "counters": null,
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcoco_testB_receipt.json",
+          "sha256": "7d6ccbb9ddb5326d47f116cc973629491c1f566259d16245baa5fce8d01af2d6",
+          "size_bytes": 1424
+        },
+        "row_count": 5095,
+        "surface_or_seed": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcocop_testA.pt",
+          "sha256": "3078928212d7303625e54c2f2a3407d954d122414e7483d559a43fac53ca0c83",
+          "size_bytes": 5394181843
+        },
+        "counters": null,
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcocop_testA_receipt.json",
+          "sha256": "04efc7461666cd78fe5d9cde5324568a0c7d0bb491a30af0f9962209b42a927d",
+          "size_bytes": 1430
+        },
+        "row_count": 5726,
+        "surface_or_seed": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcocop_testB.pt",
+          "sha256": "7a5201dd2f16e3f79881d609f75c59259346bf48486b88b2f6e25575079d091b",
+          "size_bytes": 4605642167
+        },
+        "counters": null,
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcocop_testB_receipt.json",
+          "sha256": "2dbde31e30d3368ecac2dfb09333c87614c0a0ab5d57fbc237d25e5b77512249",
+          "size_bytes": 1430
+        },
+        "row_count": 4889,
+        "surface_or_seed": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcocog_test.pt",
+          "sha256": "1090d54fb0de890a11ea032fb559ed2a4df3ec05791bc050a5f117c64c386ed3",
+          "size_bytes": 9045698299
+        },
+        "counters": null,
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/refcocog_test_receipt.json",
+          "sha256": "f94e9fc404ea8e446b906cc0bcc8123fc5cef83f9cb078e3b17a2d930343033d",
+          "size_bytes": 1424
+        },
+        "row_count": 9602,
+        "surface_or_seed": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/strict2031.pt",
+          "sha256": "fe462e9bdd0ed67ae1bfb3a96b474f4a6ad50541b79e1f573ef3d890aa33051e",
+          "size_bytes": 3826732103
+        },
+        "counters": null,
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation_caches/pretrained/strict2031_receipt.json",
+          "sha256": "a88356fa7e75b6ed6d82c54865d02e7e8cb93c2e26a1feb40013cc4a22d76987",
+          "size_bytes": 1449
+        },
+        "row_count": 4062,
+        "surface_or_seed": "strict2031",
+        "trunk": "pretrained"
+      }
+    ],
+    "evaluation_routes": [
+      {
+        "metrics": {
+          "correct": 3347,
+          "oracle_iou50": 0.9996464557185788,
+          "oracle_rows": 5655,
+          "p1_iou50": 0.5916563549584586,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/native/records.jsonl",
+          "sha256": "93ddef985969993fa4990cdb9b6c8b7581a5bef1e9a2e48438574f3aa79f1dc1",
+          "size_bytes": 1503995
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/native/summary.json",
+          "sha256": "9629af8109c45c6464f2ff8646b2455b826a42f286efa31c45dc5ecc44d6d67c",
+          "size_bytes": 881
+        },
+        "surface": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3356,
+          "oracle_iou50": 0.9996464557185788,
+          "oracle_rows": 5655,
+          "p1_iou50": 0.5932473042248542,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/shared_wide/seed17/records.jsonl",
+          "sha256": "013c5aaf54bbe240f1949eef941ed6f274d2977bef73d6785928aabdecbb398f",
+          "size_bytes": 1532324
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/shared_wide/seed17/summary.json",
+          "sha256": "b72181386230fc63c3464e7d2372b7ec8eb790ada75ed1bebe84bf5322a2f9ca",
+          "size_bytes": 1746
+        },
+        "surface": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3359,
+          "oracle_iou50": 0.9996464557185788,
+          "oracle_rows": 5655,
+          "p1_iou50": 0.593777620646986,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/shared_wide/seed42/records.jsonl",
+          "sha256": "c407b8a4294e26d21f86eb745cdac6d65c396426ed1994209bfa8e32dc9d578b",
+          "size_bytes": 1532320
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/shared_wide/seed42/summary.json",
+          "sha256": "f1f485bb9f43389b06449af15d1e60938aa6d00d239c70c00402b349a0ab46b0",
+          "size_bytes": 1745
+        },
+        "surface": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3352,
+          "oracle_iou50": 0.9996464557185788,
+          "oracle_rows": 5655,
+          "p1_iou50": 0.5925402156620116,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/shared_wide/seed73/records.jsonl",
+          "sha256": "5cd02481d71bbca33ade77587d44a00571d9e9b1013a515572ec3dba1dcda2f3",
+          "size_bytes": 1532302
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/shared_wide/seed73/summary.json",
+          "sha256": "f6500f84f775e61ac1550db1b3d435f7e18e3e5beaa5a45cd4fa20d0e0f6e70f",
+          "size_bytes": 1746
+        },
+        "surface": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3352,
+          "oracle_iou50": 0.9996464557185788,
+          "oracle_rows": 5655,
+          "p1_iou50": 0.5925402156620116,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/isolated_128/seed17/records.jsonl",
+          "sha256": "342e890969b8a651f2e99e6a3c52c20a5011e87f26cc38d717f8b3a19f1d9d50",
+          "size_bytes": 1537993
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/isolated_128/seed17/summary.json",
+          "sha256": "1fb1cf7cd6c19837db4c39021c1214868a9d7fa90adf65adfe0942da69834b60",
+          "size_bytes": 1750
+        },
+        "surface": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3356,
+          "oracle_iou50": 0.9996464557185788,
+          "oracle_rows": 5655,
+          "p1_iou50": 0.5932473042248542,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/isolated_128/seed42/records.jsonl",
+          "sha256": "8724c02805c866f2384861edb72be998de03b20e9fde62f8e7b8a475d704cd18",
+          "size_bytes": 1537985
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/isolated_128/seed42/summary.json",
+          "sha256": "d99db71663d80545b03d0d65367f356002660de502b5aba730fd9b9c492cb1c5",
+          "size_bytes": 1750
+        },
+        "surface": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3344,
+          "oracle_iou50": 0.9996464557185788,
+          "oracle_rows": 5655,
+          "p1_iou50": 0.5911260385363267,
+          "rows": 5657
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/isolated_128/seed73/records.jsonl",
+          "sha256": "02f6c2837131266bae14e1799d0d988365f6127279abaeedfda4fbebeedb1363",
+          "size_bytes": 1537960
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testA/isolated_128/seed73/summary.json",
+          "sha256": "3e2f18bc5e6d56fc27574a09cb7b9e9ded55e06ead4bf05719261ba628c6c152",
+          "size_bytes": 1750
+        },
+        "surface": "refcoco_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2381,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.46732090284592737,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/native/records.jsonl",
+          "sha256": "2e4ebcd62122c050a087b51e16459af01acf27c62da6f6720663621c4fc3be4e",
+          "size_bytes": 1356532
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/native/summary.json",
+          "sha256": "3f2a1d78531b60bcacffea66ced0b8cb280c2cced75f1ca1bc450103b1dbf710",
+          "size_bytes": 867
+        },
+        "surface": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2387,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.46849852796859665,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/shared_wide/seed17/records.jsonl",
+          "sha256": "e81be62152a891e7c8c8729bead148364a8180e08ca4b1ad5dcc0cfe77623f29",
+          "size_bytes": 1381872
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/shared_wide/seed17/summary.json",
+          "sha256": "fe2493a6c03f322e1e248bf47f4809e209f04c189326791443091268445e8c62",
+          "size_bytes": 1732
+        },
+        "surface": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2383,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.4677134445534838,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/shared_wide/seed42/records.jsonl",
+          "sha256": "74ecee6793277814f0641b0137de8499c84983715bb45d4aad60c5cbe3d4a70b",
+          "size_bytes": 1382004
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/shared_wide/seed42/summary.json",
+          "sha256": "8efd72a422bd599aa47b89f7b282d6ce572522ed54a5acb7f7f37f03b4c1bfee",
+          "size_bytes": 1731
+        },
+        "surface": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2382,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.4675171736997056,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/shared_wide/seed73/records.jsonl",
+          "sha256": "fee0e66fe38509ddc14d71d250121559795a4a38f1cbba356ff3b8acda7d09be",
+          "size_bytes": 1381991
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/shared_wide/seed73/summary.json",
+          "sha256": "18b9ea8fef3602cbee3c174c5924d4be15075e2621d53f77b2b4b923c975e0e0",
+          "size_bytes": 1731
+        },
+        "surface": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2386,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.46830225711481843,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/isolated_128/seed17/records.jsonl",
+          "sha256": "54223cc944950546293a71c9f792baf5f8e25bbcc26ec18a3e09497de86d8025",
+          "size_bytes": 1386988
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/isolated_128/seed17/summary.json",
+          "sha256": "1466620c9872be66a75cef6712ac0d36f248820e554d36bc55831c589d1d1a5d",
+          "size_bytes": 1736
+        },
+        "surface": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2382,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.4675171736997056,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/isolated_128/seed42/records.jsonl",
+          "sha256": "74db4946074d5733421c500f1f9d561ee35b80bd16fa6e5fb6a4f5dd57275fe8",
+          "size_bytes": 1387086
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/isolated_128/seed42/summary.json",
+          "sha256": "2f7622c4f4a75c8605c716fa417892e6fd3b49e89e4b494b6246db750f6a33d7",
+          "size_bytes": 1735
+        },
+        "surface": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2381,
+          "oracle_iou50": 1.0,
+          "oracle_rows": 5095,
+          "p1_iou50": 0.46732090284592737,
+          "rows": 5095
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/isolated_128/seed73/records.jsonl",
+          "sha256": "1e0255aac299f19bcaa200f9b3d50c5b275e792e64eef3672a4b8dfbdddb5ccf",
+          "size_bytes": 1387070
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcoco_testB/isolated_128/seed73/summary.json",
+          "sha256": "62a3e36ebc6ec478b2f5e31db5b6f15991a6fd1b6ab98551d40c963b635bbda4",
+          "size_bytes": 1736
+        },
+        "surface": "refcoco_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3362,
+          "oracle_iou50": 0.9998253580160671,
+          "oracle_rows": 5725,
+          "p1_iou50": 0.5871463499825358,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/native/records.jsonl",
+          "sha256": "a5684844f90e7bf3db50df9bfaaa04e53fedf2f3c724b75b4eb3a3f901c0f28d",
+          "size_bytes": 1537911
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/native/summary.json",
+          "sha256": "361547275a71cf6a9f2c0fca5fb586d3a766ab805319753552b54f94a260399c",
+          "size_bytes": 884
+        },
+        "surface": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3384,
+          "oracle_iou50": 0.9998253580160671,
+          "oracle_rows": 5725,
+          "p1_iou50": 0.5909884736290604,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/shared_wide/seed17/records.jsonl",
+          "sha256": "3716111d0154ff70d4eaeda74f44e24f00d728bddcc906c1be16376c62f2908b",
+          "size_bytes": 1566565
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/shared_wide/seed17/summary.json",
+          "sha256": "b2de97dfca528cb7b2fc5264edbca41eb5349500fdee519204e5d5fc3567759d",
+          "size_bytes": 1749
+        },
+        "surface": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3384,
+          "oracle_iou50": 0.9998253580160671,
+          "oracle_rows": 5725,
+          "p1_iou50": 0.5909884736290604,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/shared_wide/seed42/records.jsonl",
+          "sha256": "225d7dadc6114f0ec0dc854f6282e723addb660f2c0aaf05c3fa6746730ca6f8",
+          "size_bytes": 1566502
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/shared_wide/seed42/summary.json",
+          "sha256": "1b09b7767be7f83041ce01c98dd8dbd6bfd66d7d41a0159e798e9869276ce289",
+          "size_bytes": 1749
+        },
+        "surface": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3369,
+          "oracle_iou50": 0.9998253580160671,
+          "oracle_rows": 5725,
+          "p1_iou50": 0.5883688438700664,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/shared_wide/seed73/records.jsonl",
+          "sha256": "e6a47c6fd793bea77bdea40ebf79243e87ae33ffc78679dbdedf5498071501b4",
+          "size_bytes": 1566549
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/shared_wide/seed73/summary.json",
+          "sha256": "42bdd0e153581832b5eb05bb11708894c06bd0c66c109e48a70e83512fa10450",
+          "size_bytes": 1749
+        },
+        "surface": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3374,
+          "oracle_iou50": 0.9998253580160671,
+          "oracle_rows": 5725,
+          "p1_iou50": 0.589242053789731,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/isolated_128/seed17/records.jsonl",
+          "sha256": "00e4027853eff93953d461bc27a0b43d5eea927a73daec48eb0e720236184fb3",
+          "size_bytes": 1572179
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/isolated_128/seed17/summary.json",
+          "sha256": "2692eb29e93043e51f99b9c4a6f271ec94c451b449591db3372c5a0e0cc5bfa1",
+          "size_bytes": 1752
+        },
+        "surface": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3377,
+          "oracle_iou50": 0.9998253580160671,
+          "oracle_rows": 5725,
+          "p1_iou50": 0.5897659797415299,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/isolated_128/seed42/records.jsonl",
+          "sha256": "48f4f11f1ce8b5643df2e5da8f2ddef67ffa812c28adf010eda10ef70ffc8ba3",
+          "size_bytes": 1572272
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/isolated_128/seed42/summary.json",
+          "sha256": "1fd421c7886e5c3b77e979ab5de7e6a61702be0c3c2c8cdf996ea83e54755b04",
+          "size_bytes": 1753
+        },
+        "surface": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 3364,
+          "oracle_iou50": 0.9998253580160671,
+          "oracle_rows": 5725,
+          "p1_iou50": 0.5874956339504017,
+          "rows": 5726
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/isolated_128/seed73/records.jsonl",
+          "sha256": "bff93ac3ab476d10910f6210e46762910e6043ac3a24d5169909be51fea09ddb",
+          "size_bytes": 1572280
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testA/isolated_128/seed73/summary.json",
+          "sha256": "46afb342a89dbdb93dad93942cd31d9e9ae747c1bab9108257ea23070b2b63ca",
+          "size_bytes": 1753
+        },
+        "surface": "refcocop_testA",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2366,
+          "oracle_iou50": 0.9991818367764369,
+          "oracle_rows": 4885,
+          "p1_iou50": 0.48394354673757417,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/native/records.jsonl",
+          "sha256": "d968ba56ef6ec04c8ba564ddecab3e5357afe9836ea05a503bb86ca7f59dfdf9",
+          "size_bytes": 1312302
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/native/summary.json",
+          "sha256": "c50b7f52490ee716bec2bebf4fd487961a5f76fd3e9850556bc92da22f20f889",
+          "size_bytes": 885
+        },
+        "surface": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2365,
+          "oracle_iou50": 0.9991818367764369,
+          "oracle_rows": 4885,
+          "p1_iou50": 0.4837390059316834,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/shared_wide/seed17/records.jsonl",
+          "sha256": "da725d1fb3379412379d05ae81bcd70d6902d083a08a2a559f72a4def1855bc0",
+          "size_bytes": 1336725
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/shared_wide/seed17/summary.json",
+          "sha256": "56fcb513501498db049fe230ea391ea71aa2fba8811470224b746c7da6fd776b",
+          "size_bytes": 1749
+        },
+        "surface": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2366,
+          "oracle_iou50": 0.9991818367764369,
+          "oracle_rows": 4885,
+          "p1_iou50": 0.48394354673757417,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/shared_wide/seed42/records.jsonl",
+          "sha256": "4b0fa207c2807ea422f3610753136d8fc95f87a2822dcd1910064c4e79e5c05b",
+          "size_bytes": 1336757
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/shared_wide/seed42/summary.json",
+          "sha256": "5aa4c99b07aa7394abe4f14b4238bd3ffb9c7a35c09015e97d44268b4393c2ac",
+          "size_bytes": 1750
+        },
+        "surface": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2365,
+          "oracle_iou50": 0.9991818367764369,
+          "oracle_rows": 4885,
+          "p1_iou50": 0.4837390059316834,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/shared_wide/seed73/records.jsonl",
+          "sha256": "45d31da25ef19bab4f9d3fdedd7b02b8cb46a4af366b2e0c16f7c51daa29e0bb",
+          "size_bytes": 1336726
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/shared_wide/seed73/summary.json",
+          "sha256": "8ceaebfe9297debabe41d66a6b24d08acd8cc7a77976fe9af49f086110737cc5",
+          "size_bytes": 1749
+        },
+        "surface": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2366,
+          "oracle_iou50": 0.9991818367764369,
+          "oracle_rows": 4885,
+          "p1_iou50": 0.48394354673757417,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/isolated_128/seed17/records.jsonl",
+          "sha256": "fb317078f06bdddd42b8b8f54b94d47ad0c602b97b213d55448d54ad0d2bda77",
+          "size_bytes": 1341616
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/isolated_128/seed17/summary.json",
+          "sha256": "1e1123c54db975e24df66430cf68d3cad93c75356671749786a58ddb6ec75aaf",
+          "size_bytes": 1754
+        },
+        "surface": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2367,
+          "oracle_iou50": 0.9991818367764369,
+          "oracle_rows": 4885,
+          "p1_iou50": 0.48414808754346494,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/isolated_128/seed42/records.jsonl",
+          "sha256": "1fe9c82d39b16ebacf771439470f01dc8cf6b1a96f962344e0fae89685c08855",
+          "size_bytes": 1341656
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/isolated_128/seed42/summary.json",
+          "sha256": "0a195cdce6235228f1d6af220a7446c4a5ca654a45629b4cdf9c19454b12babc",
+          "size_bytes": 1754
+        },
+        "surface": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 2363,
+          "oracle_iou50": 0.9991818367764369,
+          "oracle_rows": 4885,
+          "p1_iou50": 0.4833299243199018,
+          "rows": 4889
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/isolated_128/seed73/records.jsonl",
+          "sha256": "a86b1cd14d08688a67d651825b8de16f800dfa57fb6f550a83bed687021eba65",
+          "size_bytes": 1341668
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocop_testB/isolated_128/seed73/summary.json",
+          "sha256": "6e8b596b5cd753648a364bcde7a5b92e754ee45ac9d41e572285ce9f3dd42230",
+          "size_bytes": 1753
+        },
+        "surface": "refcocop_testB",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 6037,
+          "oracle_iou50": 0.9996875650906061,
+          "oracle_rows": 9599,
+          "p1_iou50": 0.628723182670277,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/native/records.jsonl",
+          "sha256": "7b2fc66713ae691380b99a7dd4681782b41ad0a83afd289c25c6a02ee69f8e1d",
+          "size_bytes": 2549918
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/native/summary.json",
+          "sha256": "51e122dcb6af6f2eff09d79284a6ddbf0b793116d8d04887ab7dd514a15a6526",
+          "size_bytes": 880
+        },
+        "surface": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 6078,
+          "oracle_iou50": 0.9996875650906061,
+          "oracle_rows": 9599,
+          "p1_iou50": 0.6329931264319933,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/shared_wide/seed17/records.jsonl",
+          "sha256": "7f0387f63777974d559cfdd4d54f88032b1df02432b62030f0dcd1c73c80868e",
+          "size_bytes": 2597814
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/shared_wide/seed17/summary.json",
+          "sha256": "9b69176ff43129b9fe0fc645764278836762be51e79462c536dfd30329bb98f1",
+          "size_bytes": 1746
+        },
+        "surface": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 6080,
+          "oracle_iou50": 0.9996875650906061,
+          "oracle_rows": 9599,
+          "p1_iou50": 0.6332014163715892,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/shared_wide/seed42/records.jsonl",
+          "sha256": "37ae003ce29c5f18c8c241dde5bc05f50b13a198d63205faa341a245e3ff5e7e",
+          "size_bytes": 2597862
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/shared_wide/seed42/summary.json",
+          "sha256": "e3ff501f2d75c6a494fb69c949778e01b7f5a398322d6c61abd3cd8522aa45e5",
+          "size_bytes": 1746
+        },
+        "surface": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 6051,
+          "oracle_iou50": 0.9996875650906061,
+          "oracle_rows": 9599,
+          "p1_iou50": 0.6301812122474485,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/shared_wide/seed73/records.jsonl",
+          "sha256": "8fe06743e97b7c98a96765a784e0be3485d63b4f90b0617a7c10aba228e52592",
+          "size_bytes": 2597920
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/shared_wide/seed73/summary.json",
+          "sha256": "0646d921f73c96b36cf47d21896637a9c1e3eceeccaad2f053b675028f60296e",
+          "size_bytes": 1746
+        },
+        "surface": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 6052,
+          "oracle_iou50": 0.9996875650906061,
+          "oracle_rows": 9599,
+          "p1_iou50": 0.6302853572172464,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/isolated_128/seed17/records.jsonl",
+          "sha256": "606188eb5dbe0dd42724084be52958c4ad009c625619875d376c0af16f87ac9d",
+          "size_bytes": 2607482
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/isolated_128/seed17/summary.json",
+          "sha256": "c2c44c3398ee2b3621ed925e1b51585df1b07fba42f995b3084978ce39dcd680",
+          "size_bytes": 1750
+        },
+        "surface": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 6077,
+          "oracle_iou50": 0.9996875650906061,
+          "oracle_rows": 9599,
+          "p1_iou50": 0.6328889814621954,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/isolated_128/seed42/records.jsonl",
+          "sha256": "48e9063537406e9c03e44a162ffc24f9d0f716b3552a862a5bd1267295826657",
+          "size_bytes": 2607464
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/isolated_128/seed42/summary.json",
+          "sha256": "48df9c9552443bb42401ebcd158e17ce5269f75e25cf5820a605eb2230ea0b9a",
+          "size_bytes": 1750
+        },
+        "surface": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "correct": 6032,
+          "oracle_iou50": 0.9996875650906061,
+          "oracle_rows": 9599,
+          "p1_iou50": 0.6282024578212873,
+          "rows": 9602
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/isolated_128/seed73/records.jsonl",
+          "sha256": "163d038963b120ae6bfa23a9c4c3bd3f24250753d79fe2a41f266e517c272939",
+          "size_bytes": 2607596
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/refcocog_test/isolated_128/seed73/summary.json",
+          "sha256": "88a5f2874134f67dbe261999971ba6ee22a3e85dc14e30874bf1dc791193973e",
+          "size_bytes": 1750
+        },
+        "surface": "refcocog_test",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5820103779299256,
+          "auroc": 0.5913703184102832,
+          "domain_q05": 0.36562368273735046,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9226981782373215,
+          "negative_mean": 0.5431357190519175,
+          "pairs": 2031,
+          "positive_mean": 0.5960003595261782
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/native/records.jsonl",
+          "sha256": "5138f764c0ca146a4b14138501fa1b5364071c18db2a34ad414366c56040a879",
+          "size_bytes": 941908
+        },
+        "route": "native",
+        "seed": null,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/native/summary.json",
+          "sha256": "498a9da48da76231c43d687426bf1b7ecaf7d0b22dca3d761e552c408971d952",
+          "size_bytes": 1094
+        },
+        "surface": "strict2031",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5958902115608427,
+          "auroc": 0.5962960619506463,
+          "domain_q05": 0.0008868455188348889,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9266371245691778,
+          "negative_mean": 0.01552203333909577,
+          "pairs": 2031,
+          "positive_mean": 0.019946351716274707
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/shared_wide/seed17/records.jsonl",
+          "sha256": "3021a91014642f193c09e5e27442b95585c89ebe064dc4dd4d629fd0ca6d6aa1",
+          "size_bytes": 959375
+        },
+        "route": "shared_wide",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/shared_wide/seed17/summary.json",
+          "sha256": "4748fb47508d7a356b08a20f1a776f639f4339c220f662d2660e39be10cdb4c0",
+          "size_bytes": 1964
+        },
+        "surface": "strict2031",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5894955517755553,
+          "auroc": 0.6012856848828388,
+          "domain_q05": -0.0028579621575772762,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9059576563269326,
+          "negative_mean": 0.004276383482025806,
+          "pairs": 2031,
+          "positive_mean": 0.006341430797438921
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/shared_wide/seed42/records.jsonl",
+          "sha256": "0898ee2d8e5287b91cf93cc15aa285a8d59891dfa667a8ac4616187cea6ccc9e",
+          "size_bytes": 961734
+        },
+        "route": "shared_wide",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/shared_wide/seed42/summary.json",
+          "sha256": "f819f0c49cf2feec9c1c6a319c887fa6aa1da8527208a96c40fb69c1a9f362e2",
+          "size_bytes": 1966
+        },
+        "surface": "strict2031",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5893932253444059,
+          "auroc": 0.599937066071655,
+          "domain_q05": 0.000990396598353982,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.897587395371738,
+          "negative_mean": 0.024182897001784158,
+          "pairs": 2031,
+          "positive_mean": 0.03050813244154529
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/shared_wide/seed73/records.jsonl",
+          "sha256": "d52986c42accde552e4a3ee22bc54f2ddf104193f1a161e20845431b1a26ffd4",
+          "size_bytes": 958437
+        },
+        "route": "shared_wide",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/shared_wide/seed73/summary.json",
+          "sha256": "292d8e9ccacc84fe53035b487748a126f59f21b446215e029402896740b4f968",
+          "size_bytes": 1961
+        },
+        "surface": "strict2031",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "aupr": 0.6000114740984226,
+          "auroc": 0.5933071852073268,
+          "domain_q05": 0.0042267669923603535,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9192516001969473,
+          "negative_mean": 0.010020957855816224,
+          "pairs": 2031,
+          "positive_mean": 0.011776065908084431
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/isolated_128/seed17/records.jsonl",
+          "sha256": "1ceab5d5be0707f9add6768453d25333028b1c74eb2c08597285fc28a3866a51",
+          "size_bytes": 961403
+        },
+        "route": "isolated_128",
+        "seed": 17,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/isolated_128/seed17/summary.json",
+          "sha256": "fab09b6886117227b96a1d0e288bb91e4feed02837125a84a9c0dddc94e56d90",
+          "size_bytes": 1969
+        },
+        "surface": "strict2031",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5391427154673846,
+          "auroc": 0.5472551134422846,
+          "domain_q05": 0.006736645009368658,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9231905465288035,
+          "negative_mean": 0.009468926694143264,
+          "pairs": 2031,
+          "positive_mean": 0.009786075850740508
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/isolated_128/seed42/records.jsonl",
+          "sha256": "479981fa7594924a37fcb7eb37b43f995d6c7d71335a8200c7b3597718b56d27",
+          "size_bytes": 961300
+        },
+        "route": "isolated_128",
+        "seed": 42,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/isolated_128/seed42/summary.json",
+          "sha256": "18c3ad9f9d71d1c72e4277112c4a107a4d60052574ded468601051d74e05aec1",
+          "size_bytes": 1968
+        },
+        "surface": "strict2031",
+        "trunk": "pretrained"
+      },
+      {
+        "metrics": {
+          "aupr": 0.5767803495851516,
+          "auroc": 0.5752124686754614,
+          "domain_q05": 8.617527782917023e-06,
+          "domain_tpr": 0.9502708025603152,
+          "fixed_fpr": null,
+          "fixed_threshold": null,
+          "fixed_tpr": null,
+          "fpr95": 0.9084194977843427,
+          "negative_mean": 0.005462606699051861,
+          "pairs": 2031,
+          "positive_mean": 0.006467894604911084
+        },
+        "records": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/isolated_128/seed73/records.jsonl",
+          "sha256": "1fa75b7f303beb0e15698fd4fc864a9d595eff4ed7c1e5b6a3b06afee4db0045",
+          "size_bytes": 963017
+        },
+        "route": "isolated_128",
+        "seed": 73,
+        "summary": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/evaluation/pretrained/strict2031/isolated_128/seed73/summary.json",
+          "sha256": "a496665b4b03a3254117124e88888421ff0832f8cb8f88d7cd144a0e489b6182",
+          "size_bytes": 1969
+        },
+        "surface": "strict2031",
+        "trunk": "pretrained"
+      }
+    ],
+    "formal_trajectories": [
+      {
+        "checkpoint": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/shared_wide/seed17/checkpoint_u150.pt",
+          "sha256": "71420d7f97e900d74d4384de1281b96fee23c2eb8db3e47462326ec3ea700227",
+          "size_bytes": 2077355
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": -0.017285908048506826,
+          "cosines": [
+            -0.0886482298374176,
+            0.07518751174211502,
+            0.005831464659422636,
+            -0.009244919754564762,
+            0.009343652054667473,
+            -0.13850137591362,
+            0.11483345925807953,
+            -0.10708882659673691
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.5072543397545815,
+          "sign_conflict_fractions": [
+            0.5358114838600159,
+            0.4628576934337616,
+            0.4943666160106659,
+            0.499179482460022,
+            0.5086851716041565,
+            0.5580848455429077,
+            0.461667001247406,
+            0.5373824238777161
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/shared_wide/seed17/training_receipt.json",
+          "sha256": "fbea3142e331361432bb27d16494b69e45fbb2dae9591c3848682c6f5e9da04d",
+          "size_bytes": 6297
+        },
+        "seed": 17,
+        "trunk": "pretrained",
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/shared_wide/seed42/checkpoint_u150.pt",
+          "sha256": "da54581988d2caa1e3c83c8c1d62f94645d425c518cdb7e155cff8e7f19260e2",
+          "size_bytes": 2077291
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": 0.004052647011121735,
+          "cosines": [
+            -0.10662976652383804,
+            0.16647931933403015,
+            -0.05890527367591858,
+            -0.07409720122814178,
+            -0.0031959793996065855,
+            0.028843361884355545,
+            0.07861874252557755,
+            0.0013079731725156307
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.496881864964962,
+          "sign_conflict_fractions": [
+            0.5230337977409363,
+            0.4511406719684601,
+            0.5140884518623352,
+            0.5217730402946472,
+            0.4999099373817444,
+            0.4875825345516205,
+            0.4786972105503082,
+            0.49882927536964417
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/shared_wide/seed42/training_receipt.json",
+          "sha256": "61a3a3a08245b530d384afb946d43ae6b67004a0d2860640c7f418e63aa6e412",
+          "size_bytes": 6309
+        },
+        "seed": 42,
+        "trunk": "pretrained",
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/shared_wide/seed73/checkpoint_u150.pt",
+          "sha256": "0a3a4861e23b9e9216b0432a2ee1b5df5cd11a634090f0e28f3ad5d78b04a4cc",
+          "size_bytes": 2077291
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": 0.008703908999450505,
+          "cosines": [
+            0.08139098435640335,
+            0.010948718525469303,
+            0.08749742805957794,
+            -0.17444221675395966,
+            -0.11015588045120239,
+            0.18212969601154327,
+            0.17146597802639008,
+            -0.17920343577861786
+          ],
+          "cross_task_parameter_count": 6,
+          "probe_count": 8,
+          "sign_conflict_fraction_mean": 0.49849533289670944,
+          "sign_conflict_fractions": [
+            0.4818390905857086,
+            0.4953972101211548,
+            0.4784470498561859,
+            0.5487992763519287,
+            0.53452068567276,
+            0.45029017329216003,
+            0.4471983015537262,
+            0.5514708757400513
+          ],
+          "structurally_isolated": false
+        },
+        "owner": "shared_wide",
+        "ownership": {
+          "confidence_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "shared_trunk.norm.weight",
+            "shared_trunk.norm.bias",
+            "shared_trunk.linear_1.weight",
+            "shared_trunk.linear_1.bias",
+            "shared_trunk.linear_2.weight",
+            "shared_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 99940,
+          "structurally_isolated": false
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/shared_wide/seed73/training_receipt.json",
+          "sha256": "f6039bd76df4fe2bd5d30f89d0a38eb16abb5e8ceadfd8c403c8c999d75ba2d9",
+          "size_bytes": 6294
+        },
+        "seed": 73,
+        "trunk": "pretrained",
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/isolated_128/seed17/checkpoint_u150.pt",
+          "sha256": "e33d88c96d22a9085231935a8f904fead0a6c63701ab03ca7f93adc4a6eeed18",
+          "size_bytes": 1279703
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/isolated_128/seed17/training_receipt.json",
+          "sha256": "33b567331deb1f04128e634402c112cd0586209fdd8087f8615a81db2aadc7d8",
+          "size_bytes": 4063
+        },
+        "seed": 17,
+        "trunk": "pretrained",
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/isolated_128/seed42/checkpoint_u150.pt",
+          "sha256": "556424378b857f1487ee32e789ecd61b17e0e12f34ed2dea66973b1f48639fb6",
+          "size_bytes": 1279639
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/isolated_128/seed42/training_receipt.json",
+          "sha256": "b1544e123414a330c8fad7ab8200a2a4850cdae1792828bf339a19828d8aeea3",
+          "size_bytes": 4063
+        },
+        "seed": 42,
+        "trunk": "pretrained",
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      },
+      {
+        "checkpoint": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/isolated_128/seed73/checkpoint_u150.pt",
+          "sha256": "38d9d1d60e52a163f3b57f74f7b2a4885d02a6c6c4c45faa55144392d985f301",
+          "size_bytes": 1279639
+        },
+        "gradient_probe_u150": {
+          "cosine_mean": null,
+          "cross_task_parameter_count": 0,
+          "probe_count": 0,
+          "sign_conflict_fraction_mean": null,
+          "structurally_isolated": true
+        },
+        "owner": "isolated_128",
+        "ownership": {
+          "confidence_parameter_names": [
+            "confidence_trunk.norm.weight",
+            "confidence_trunk.norm.bias",
+            "confidence_trunk.linear_1.weight",
+            "confidence_trunk.linear_1.bias",
+            "confidence_trunk.linear_2.weight",
+            "confidence_trunk.linear_2.bias",
+            "confidence_head.weight",
+            "confidence_head.bias"
+          ],
+          "rank_parameter_names": [
+            "rank_trunk.norm.weight",
+            "rank_trunk.norm.bias",
+            "rank_trunk.linear_1.weight",
+            "rank_trunk.linear_1.bias",
+            "rank_trunk.linear_2.weight",
+            "rank_trunk.linear_2.bias",
+            "rank_head.weight",
+            "rank_head.bias"
+          ],
+          "shared_parameter_count": 0,
+          "structurally_isolated": true
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/formal/pretrained/isolated_128/seed73/training_receipt.json",
+          "sha256": "916493079621daacad63b3eec2d22d2671c6ad850e5057bfce22cdd9052dbbc9",
+          "size_bytes": 4063
+        },
+        "seed": 73,
+        "trunk": "pretrained",
+        "updates": {
+          "amp_skips": 0,
+          "confidence": 50,
+          "nonfinite": 0,
+          "rank": 100,
+          "total": 150
+        }
+      }
+    ],
+    "training_caches": [
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/caches/pretrained/seed17.pt",
+          "sha256": "1f9a27428a7c0aa2a7632bd10bab864b052be744412c8a6b1d90c981bc93e7bf",
+          "size_bytes": 3768003535
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3198,
+          "rank_no_positive": 2
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/caches/pretrained/seed17_receipt.json",
+          "sha256": "784bd82c3ebc2bb3bf0e7603316f706850f055a0cea036e8bec16cc2d047163a",
+          "size_bytes": 2894
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed17",
+        "trunk": "pretrained"
+      },
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/caches/pretrained/seed42.pt",
+          "sha256": "ee0154ebed313b4c61c56427c41f001871768545e15a3b9c7d38ee54a5528526",
+          "size_bytes": 3768003599
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3199,
+          "rank_no_positive": 1
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/caches/pretrained/seed42_receipt.json",
+          "sha256": "c7a18c78e267dd0c2b8126102601dfd860ebb0fe50969d830c312d462607ca62",
+          "size_bytes": 2894
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed42",
+        "trunk": "pretrained"
+      },
+      {
+        "cache": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/caches/pretrained/seed73.pt",
+          "sha256": "84445e377b055f4aee4467e2806ed20731cefc28f764aa06eb48edb68849e69b",
+          "size_bytes": 3768003279
+        },
+        "counters": {
+          "confidence_rows": 800,
+          "rank_input": 3200,
+          "rank_kept": 3198,
+          "rank_no_positive": 2
+        },
+        "receipt": {
+          "path": "outputs/mmgdino_pretrain_ownership_20260822/caches/pretrained/seed73_receipt.json",
+          "sha256": "c57dce7c171ff729808e2b4d7a24a9367a5cd38283c83e7de3bdee236324c0e1",
+          "size_bytes": 2894
+        },
+        "row_count": 4000,
+        "surface_or_seed": "seed73",
+        "trunk": "pretrained"
+      }
+    ]
+  },
+  "interpretation": {
+    "not_supported": [
+      "isolated ownership improves REC on the pretrained trunk",
+      "isolated ownership improves Strict-TN2031 FPR95 over Shared-Wide",
+      "negative gradient probes alone imply a deployment benefit from hard isolation"
+    ],
+    "observed_rejection_direction": "Shared-Wide has lower mean Strict-TN2031 FPR95 than Isolated, but the paired confidence interval includes zero",
+    "supported": [
+      "the pretrained shared gradients are near zero on average at U150",
+      "Shared-Wide has higher pooled Test5 and TestAB REC than Isolated",
+      "both learned owner layouts preserve REC within the preregistered margin"
+    ]
+  },
+  "matrix": {
+    "confidence_updates": 50,
+    "fixed_endpoint": "U150",
+    "owners": [
+      "shared_wide",
+      "isolated_128"
+    ],
+    "rank_updates": 100,
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "shared_128_ran": false,
+    "trunk": "pretrained"
+  },
+  "provenance": {
+    "aggregate": {
+      "path": "outputs/mmgdino_pretrain_ownership_20260822/aggregate.json",
+      "sha256": "fd4bb5559e69ed7214ccba18bfa0f56a4d982161750bd555efbe9c2163c43a83",
+      "size_bytes": 11673
+    },
+    "amendments": [
+      {
+        "path": "paper/data/mmgdino_pretrain_ownership_runtime_amendment.json",
+        "sha256": "a8448d06b3c1578062faea156f2bab878feeb16b459abb5c9194513400992c3e",
+        "size_bytes": 1411
+      }
+    ],
+    "git_commit_before_result_packaging": "fb943df5415ebe0eb28a59edd51bb385b0796f17",
+    "preregistration": {
+      "path": "paper/data/mmgdino_pretrain_ownership_preregistration.json",
+      "sha256": "88ba3b85a6e184b3c857ea15a58ccc6d364fb2e927172942e8bcd0f047cff45c",
+      "size_bytes": 14489
+    }
+  },
+  "schema": "arrow.mmgdino_pretrain_ownership.results/v1",
+  "statistics": {
+    "bootstrap": {
+      "fpr95_recomputes_each_owner_seed_positive_q05_per_replicate": true,
+      "ref_cluster": "global image_id across all Test5 splits",
+      "replicates": 5000,
+      "same_draw_across_owners_and_seeds": true,
+      "seed": 20260823,
+      "strict_cluster": "image_id carrying the complete pair"
+    },
+    "claim_gate": {
+      "isolated_strict2031_fpr95_superior": false,
+      "isolated_test5_noninferior": true,
+      "isolated_testab_noninferior": true,
+      "joint_gate": false
+    },
+    "gradient_probes": {
+      "isolated_128": {
+        "all_cross_task_autograd_paths_absent": true,
+        "per_seed": {
+          "17": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          },
+          "42": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          },
+          "73": {
+            "all_milestone_p_negative": null,
+            "u150_cosines": [],
+            "u150_mean": null,
+            "u150_p_negative": null
+          }
+        },
+        "structurally_isolated": true
+      },
+      "shared_wide": {
+        "all_milestones": {
+          "count": 96,
+          "mean": 0.05099268827143533,
+          "minimum": -0.27429938316345215,
+          "p_negative": 0.3854166666666667,
+          "q05": -0.20641886815428734
+        },
+        "per_seed": {
+          "17": {
+            "all_milestone_p_negative": 0.46875,
+            "u150_cosines": [
+              -0.0886482298374176,
+              0.07518751174211502,
+              0.005831464659422636,
+              -0.009244919754564762,
+              0.009343652054667473,
+              -0.13850137591362,
+              0.11483345925807953,
+              -0.10708882659673691
+            ],
+            "u150_mean": -0.017285908048506826,
+            "u150_p_negative": 0.5
+          },
+          "42": {
+            "all_milestone_p_negative": 0.375,
+            "u150_cosines": [
+              -0.10662976652383804,
+              0.16647931933403015,
+              -0.05890527367591858,
+              -0.07409720122814178,
+              -0.0031959793996065855,
+              0.028843361884355545,
+              0.07861874252557755,
+              0.0013079731725156307
+            ],
+            "u150_mean": 0.004052647011121735,
+            "u150_p_negative": 0.5
+          },
+          "73": {
+            "all_milestone_p_negative": 0.3125,
+            "u150_cosines": [
+              0.08139098435640335,
+              0.010948718525469303,
+              0.08749742805957794,
+              -0.17444221675395966,
+              -0.11015588045120239,
+              0.18212969601154327,
+              0.17146597802639008,
+              -0.17920343577861786
+            ],
+            "u150_mean": 0.008703908999450505,
+            "u150_p_negative": 0.375
+          }
+        },
+        "structurally_isolated": false,
+        "u150": {
+          "count": 24,
+          "mean": -0.001509784012644862,
+          "minimum": -0.17920343577861786,
+          "p_negative": 0.4583333333333333,
+          "q05": -0.1690510906279087
+        }
+      }
+    },
+    "isolated_minus_shared_wide": {
+      "candidate": "isolated_128",
+      "fpr95_ci95": [
+        -0.02339787172543806,
+        0.003653725193882993
+      ],
+      "fpr95_gain": -0.006893156080748364,
+      "fpr95_superior": false,
+      "fpr95_superiority_p": 0.9234153169366127,
+      "iut_p": 0.9234153169366127,
+      "iut_passes": false,
+      "reference": "shared_wide",
+      "split_gains": {
+        "refcoco_testA": {
+          "ci95": [
+            -0.001646716501662539,
+            -0.0002269851293634218
+          ],
+          "gain": -0.0008838607035530632
+        },
+        "refcoco_testB": {
+          "ci95": [
+            -0.0007486338933742356,
+            0.0003205883671863713
+          ],
+          "gain": -0.00019627085377821318
+        },
+        "refcocog_test": {
+          "ci95": [
+            -0.002476654921858229,
+            -0.0009042542959277972
+          ],
+          "gain": -0.0016663195167672118
+        },
+        "refcocop_testA": {
+          "ci95": [
+            -0.0020910161538048983,
+            -0.0005075492666663174
+          ],
+          "gain": -0.0012807078821748252
+        },
+        "refcocop_testB": {
+          "ci95": [
+            -0.0005285945086257524,
+            0.0004787429700696958
+          ],
+          "gain": 0.0
+        }
+      },
+      "test5_ci95": [
+        -0.0012882887547983261,
+        -0.0006146675747311351
+      ],
+      "test5_gain": -0.0009471837428827179,
+      "test5_noninferior": true,
+      "test5_noninferiority_margin": 0.005,
+      "test5_noninferiority_p": 0.0001999600079984003,
+      "test5_superior": false,
+      "testab_ci95": [
+        -0.0010371901305039454,
+        -0.00012568982176871526
+      ],
+      "testab_gain": -0.0005580357142856984,
+      "testab_noninferior": true
+    },
+    "point_metrics": {
+      "isolated_128": {
+        "splits": {
+          "refcoco_testA": {
+            "by_seed": {
+              "17": 0.5925402156620116,
+              "42": 0.5932473042248542,
+              "73": 0.5911260385363267
+            },
+            "mean": 0.5923045194743976,
+            "sample_sd": 0.0010800956207543976
+          },
+          "refcoco_testB": {
+            "by_seed": {
+              "17": 0.46830225711481843,
+              "42": 0.4675171736997056,
+              "73": 0.46732090284592737
+            },
+            "mean": 0.4677134445534838,
+            "sample_sd": 0.0005192838687074741
+          },
+          "refcocog_test": {
+            "by_seed": {
+              "17": 0.6302853572172464,
+              "42": 0.6328889814621954,
+              "73": 0.6282024578212873
+            },
+            "mean": 0.6304589321669097,
+            "sample_sd": 0.0023480783965959735
+          },
+          "refcocop_testA": {
+            "by_seed": {
+              "17": 0.589242053789731,
+              "42": 0.5897659797415299,
+              "73": 0.5874956339504017
+            },
+            "mean": 0.5888345558272209,
+            "sample_sd": 0.001188763409981481
+          },
+          "refcocop_testB": {
+            "by_seed": {
+              "17": 0.48394354673757417,
+              "42": 0.48414808754346494,
+              "73": 0.4833299243199018
+            },
+            "mean": 0.48380718620031365,
+            "sample_sd": 0.0004257856411262571
+          }
+        },
+        "strict2031_aupr": {
+          "by_seed": {
+            "17": 0.6000114740984226,
+            "42": 0.5391427154673846,
+            "73": 0.5767803495851516
+          },
+          "mean": 0.5719781797169863,
+          "sample_sd": 0.030717211313902305
+        },
+        "strict2031_auroc": {
+          "by_seed": {
+            "17": 0.5933071852073268,
+            "42": 0.5472551134422846,
+            "73": 0.5752124686754614
+          },
+          "mean": 0.571924922441691,
+          "sample_sd": 0.023201385705223156
+        },
+        "strict2031_fpr95": {
+          "by_seed": {
+            "17": 0.9192516001969473,
+            "42": 0.9231905465288035,
+            "73": 0.9084194977843427
+          },
+          "mean": 0.9169538815033645,
+          "sample_sd": 0.007648895583608064
+        },
+        "test5_micro_p1": {
+          "by_seed": {
+            "17": 0.5660499208886306,
+            "42": 0.5669863411798896,
+            "73": 0.5645645645645646
+          },
+          "mean": 0.5658669422110282,
+          "sample_sd": 0.0012212130817250988
+        },
+        "testab_micro_p1": {
+          "by_seed": {
+            "17": 0.5336681547619048,
+            "42": 0.5336681547619048,
+            "73": 0.5324590773809523
+          },
+          "mean": 0.533265128968254,
+          "sample_sd": 0.0006980611513639785
+        }
+      },
+      "native": {
+        "splits": {
+          "refcoco_testA": 0.5916563549584586,
+          "refcoco_testB": 0.46732090284592737,
+          "refcocog_test": 0.628723182670277,
+          "refcocop_testA": 0.5871463499825358,
+          "refcocop_testB": 0.48394354673757417
+        },
+        "strict2031_aupr": 0.5820103779299256,
+        "strict2031_auroc": 0.5913703184102832,
+        "strict2031_fpr95": 0.9226981782373215,
+        "test5_micro_p1": 0.5648551777584035,
+        "testab_micro_p1": 0.5327380952380952
+      },
+      "shared_wide": {
+        "splits": {
+          "refcoco_testA": {
+            "by_seed": {
+              "17": 0.5932473042248542,
+              "42": 0.593777620646986,
+              "73": 0.5925402156620116
+            },
+            "mean": 0.5931883801779506,
+            "sample_sd": 0.0006208033558925714
+          },
+          "refcoco_testB": {
+            "by_seed": {
+              "17": 0.46849852796859665,
+              "42": 0.4677134445534838,
+              "73": 0.4675171736997056
+            },
+            "mean": 0.467909715407262,
+            "sample_sd": 0.0005192838687074741
+          },
+          "refcocog_test": {
+            "by_seed": {
+              "17": 0.6329931264319933,
+              "42": 0.6332014163715892,
+              "73": 0.6301812122474485
+            },
+            "mean": 0.632125251683677,
+            "sample_sd": 0.0016868056117831135
+          },
+          "refcocop_testA": {
+            "by_seed": {
+              "17": 0.5909884736290604,
+              "42": 0.5909884736290604,
+              "73": 0.5883688438700664
+            },
+            "mean": 0.5901152637093957,
+            "sample_sd": 0.0015124439465323352
+          },
+          "refcocop_testB": {
+            "by_seed": {
+              "17": 0.4837390059316834,
+              "42": 0.48394354673757417,
+              "73": 0.4837390059316834
+            },
+            "mean": 0.48380718620031365,
+            "sample_sd": 0.00011809168934130126
+          }
+        },
+        "strict2031_aupr": {
+          "by_seed": {
+            "17": 0.5958902115608427,
+            "42": 0.5894955517755553,
+            "73": 0.5893932253444059
+          },
+          "mean": 0.5915929962269346,
+          "sample_sd": 0.003721849324476838
+        },
+        "strict2031_auroc": {
+          "by_seed": {
+            "17": 0.5962960619506463,
+            "42": 0.6012856848828388,
+            "73": 0.599937066071655
+          },
+          "mean": 0.5991729376350468,
+          "sample_sd": 0.0025810857118837415
+        },
+        "strict2031_fpr95": {
+          "by_seed": {
+            "17": 0.9266371245691778,
+            "42": 0.9059576563269326,
+            "73": 0.897587395371738
+          },
+          "mean": 0.9100607254226162,
+          "sample_sd": 0.014953196100302804
+        },
+        "test5_micro_p1": {
+          "by_seed": {
+            "17": 0.5673415350834705,
+            "42": 0.5674061157932125,
+            "73": 0.5656947269850495
+          },
+          "mean": 0.5668141259539109,
+          "sample_sd": 0.0009699655693031396
+        },
+        "testab_micro_p1": {
+          "by_seed": {
+            "17": 0.5341331845238095,
+            "42": 0.5340401785714286,
+            "73": 0.5332961309523809
+          },
+          "mean": 0.5338231646825397,
+          "sample_sd": 0.0004587874685934242
+        }
+      }
+    },
+    "references": {
+      "b58": {
+        "sha256_bound_by_preregistration": true,
+        "source": "/media/haoyi/T9/pivot/paper/data/b58_capacity_control_results.json"
+      },
+      "e5": {
+        "isolated_128": {
+          "strict2031_fpr95": 0.8421139011980961,
+          "testAB_micro_p1": 0.8897569444444444,
+          "testA_p1": 0.9127334865358553,
+          "testB_p1": 0.864245992803402
+        },
+        "native": {
+          "strict2031_fpr95": 0.8828163466272771,
+          "testAB_micro_p1": 0.8896949404761905,
+          "testA_p1": 0.9126745624889517,
+          "testB_p1": 0.8641805691854759
+        },
+        "shared_128": {
+          "strict2031_fpr95": 0.8544231084851468,
+          "testAB_micro_p1": 0.8897259424603173,
+          "testA_p1": 0.9127334865358553,
+          "testB_p1": 0.8641805691854759
+        },
+        "shared_wide": {
+          "strict2031_fpr95": 0.8368619727556212,
+          "testAB_micro_p1": 0.8897879464285714,
+          "testA_p1": 0.9127334865358553,
+          "testB_p1": 0.864311416421328
+        }
+      }
+    }
+  },
+  "status": "complete_negative_result"
+}
