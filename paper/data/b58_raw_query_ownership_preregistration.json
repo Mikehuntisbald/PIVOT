@@ -1,0 +1,690 @@
+{
+  "checkpoint_audit": {
+    "all_effective_tensors_finite": true,
+    "b58": {
+      "path": "/media/haoyi/T9/gdino/outputs/gdino_ft_stageb_from_gdino_ft_e1_with_tn_bs19_nopatchbranch/checkpoint0001.pth",
+      "sha256": "b58e5209dc07dbffb2e5ed3d792e0db70c3306ec2ed24389693b4aeeebab1157",
+      "size_bytes": 1199416771
+    },
+    "changed_tensors": 727,
+    "parent": {
+      "path": "/media/haoyi/T9/gdino/outputs/ogc_original_finetune_stage_a/checkpoint0001.pth",
+      "sha256": "2aa2b20bd777d0f3ef955f0a0a6ddb9f7ea2efc6886891e321bfa8f2ed8b45de",
+      "size_bytes": 1200805073
+    },
+    "pure_trunk_numel": 174327226,
+    "pure_trunk_schema_sha256": "b93506604856b80042f8db06edb612f2ab57df617175e20e8dbd7f3838e013b6",
+    "pure_trunk_tensor_count": 938,
+    "same_effective_architecture": true,
+    "unchanged_tensors": 211
+  },
+  "code": {
+    "aggregator": {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_b58_raw_query_ownership.py",
+      "sha256": "1814293f6d4f0bce23c489bd27dd6956a276610677e99905630ecb4a27220268",
+      "size_bytes": 9844
+    },
+    "cache_contract": {
+      "path": "/media/haoyi/T9/pivot/tools/responsibility_isolation_cache.py",
+      "sha256": "916214c620e54c05b54c4ef2399de8aca4c8d8acccecb58f67cc3164fb464a6b",
+      "size_bytes": 21126
+    },
+    "cache_evaluator": {
+      "path": "/media/haoyi/T9/pivot/tools/eval_mmgdino_e5_ownership_cache.py",
+      "sha256": "ee19c726cf1869459a0dd21f9f77d8d0c3672a5bba97e57daafde5678ad98bea",
+      "size_bytes": 14636
+    },
+    "config": {
+      "path": "/media/haoyi/T9/pivot/config/ablations/cfg_b58_raw_query_ownership_eval.py",
+      "sha256": "9dd4064085c4aa8fc58d20c2abb7e1a9c0124961b187ec87c6b87a201277734e",
+      "size_bytes": 781
+    },
+    "contract": {
+      "path": "/media/haoyi/T9/pivot/tools/b58_raw_query_ownership.py",
+      "sha256": "940c9b0fb3384ef89ce165a2b2f7fb7b705c5c2c4618dab341b0be0ee38524e3",
+      "size_bytes": 5541
+    },
+    "extractor": {
+      "path": "/media/haoyi/T9/pivot/tools/extract_b58_raw_query_ownership_cache.py",
+      "sha256": "1fe2ac1b1927e442f7343d250ae6ef9668f97c9589a9d24d58d4fb3b41f161a1",
+      "size_bytes": 10417
+    },
+    "mature_aggregator": {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_mmgdino_pretrain_ownership.py",
+      "sha256": "64f3cbe884d428f1daa3c097a673d860705eb9845b4a4f4a38307c62fc05150a",
+      "size_bytes": 18850
+    },
+    "mature_runner": {
+      "path": "/media/haoyi/T9/pivot/tools/run_mmgdino_e6_ownership_2x2.py",
+      "sha256": "9a67a5497ab3185b255f17a88e8100f42a10621987dce0da109a6d493ac410d7",
+      "size_bytes": 22167
+    },
+    "owners": {
+      "path": "/media/haoyi/T9/pivot/tools/mmgdino_e5_ownership.py",
+      "sha256": "4c68e5cfe426752ff9716186daf37406b795736a1388357d1d7671ed699877cb",
+      "size_bytes": 15566
+    },
+    "preregistration_builder": {
+      "path": "/media/haoyi/T9/pivot/tools/build_b58_raw_query_ownership_preregistration.py",
+      "sha256": "76bfd5121c8dc494c1fb598945cb01d218db79224b3eafbae959e6aff685cff8",
+      "size_bytes": 13592
+    },
+    "runner": {
+      "path": "/media/haoyi/T9/pivot/tools/run_b58_raw_query_ownership.py",
+      "sha256": "36f2d9ac11f51c42dd904c15f24267c7ea4d33de72e6f762ebb45ebecf610d55",
+      "size_bytes": 9247
+    },
+    "score_objectives": {
+      "path": "/media/haoyi/T9/pivot/models/GroundingDINO/stage_b_gdino_score_adapter.py",
+      "sha256": "a7b8ac007018fcb6dd8ac77e170d314ebd5e8184584db9dd2100b536f9c7bd40",
+      "size_bytes": 77460
+    },
+    "shared_gdino_extraction_engine": {
+      "path": "/media/haoyi/T9/pivot/tools/extract_original_gdino_ownership_cache.py",
+      "sha256": "80942d573602df205e2f573988fcc5f2cbb3235c9a8b6d5587e4654f0df07231",
+      "size_bytes": 22430
+    },
+    "trainer": {
+      "path": "/media/haoyi/T9/pivot/tools/train_mmgdino_e5_ownership.py",
+      "sha256": "671590873b4cbce0a2b01f9b811c1af521b0a937341dcb0167d3b74b81b37b41",
+      "size_bytes": 37771
+    }
+  },
+  "evaluation": {
+    "inputs": {
+      "refcoco_testA": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcoco_unc_testA.jsonl",
+        "rows": 5657,
+        "sha256": "47278ef1043382235a151cd90d1e6c18c79d30bb71cb4eb7df1932abc622946e",
+        "size_bytes": 3245312
+      },
+      "refcoco_testB": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcoco_unc_testB.jsonl",
+        "rows": 5095,
+        "sha256": "41687648194225a693da5c42c5448eb1a9f4d2f59ca4cd138d4063d818116c8f",
+        "size_bytes": 2965138
+      },
+      "refcocog_test": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcocog_umd_test.jsonl",
+        "rows": 9602,
+        "sha256": "6c1c9bf2006344167bdce1859578faf83ca594383cc1acac62792c3e6a0f0a1d",
+        "size_bytes": 6108720
+      },
+      "refcocop_testA": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcocoplus_unc_testA.jsonl",
+        "rows": 5726,
+        "sha256": "57a0fb2342f120d49a1174084a7748cb18ff75a7b789bf2ddaf6c8555dce1105",
+        "size_bytes": 3345000
+      },
+      "refcocop_testB": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcocoplus_unc_testB.jsonl",
+        "rows": 4889,
+        "sha256": "49fe753d28a45cfb47f3d33cf5fbe34a1fda0ae111c7dcd24063c68e2b411d36",
+        "size_bytes": 2902782
+      },
+      "strict2031": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/final_once/strict2031_u50/tn_eval_inputs/tn_refcocop_val_refcocog_umd_val.jsonl",
+        "rows": 2031,
+        "sha256": "999c6f77f6affcf0f24a9fb17132e59e824bd012d53adf73f9b287dae454702c",
+        "size_bytes": 6431256
+      }
+    },
+    "no_checkpoint_gap_or_threshold_selection": true,
+    "same_cache_for_native_shared_and_isolated": true,
+    "strict_surface": "strict2031",
+    "test5_surfaces": [
+      "refcoco_testA",
+      "refcoco_testB",
+      "refcocop_testA",
+      "refcocop_testB",
+      "refcocog_test"
+    ],
+    "testab_surfaces": [
+      "refcoco_testA",
+      "refcoco_testB"
+    ]
+  },
+  "git": {
+    "commit": "5ad335a46b42244b0730d18b85543df87cc9cf2a",
+    "status": "clean"
+  },
+  "locked_at": "2026-08-22T23:19:43.952556+08:00",
+  "matrix": {
+    "architecture": {
+      "isolated_128": {
+        "confidence_owned_parameter_count": 50179,
+        "confidence_representation_dim": 128,
+        "macs_per_query_both_outputs": 98816,
+        "ownership": "isolated_128",
+        "rank_owned_parameter_count": 50179,
+        "rank_representation_dim": 128,
+        "shared_parameter_count": 0,
+        "trainable_parameters": 100358
+      },
+      "shared_wide": {
+        "confidence_owned_parameter_count": 100151,
+        "confidence_representation_dim": 210,
+        "macs_per_query_both_outputs": 99424,
+        "ownership": "shared_wide",
+        "rank_owned_parameter_count": 100151,
+        "rank_representation_dim": 210,
+        "shared_parameter_count": 99940,
+        "trainable_parameters": 100362
+      }
+    },
+    "formal_trajectory_count": 6,
+    "owners": [
+      "shared_wide",
+      "isolated_128"
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "shared_128_excluded": true
+  },
+  "native_score": {
+    "definition": "mean sigmoid probability over generated full-expression phrase tokens",
+    "same_reduction_as_parent_and_pure_GDINO_B58_base": true
+  },
+  "output_targets_absent": {
+    "evaluation_caches": [
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcoco_testA.pt",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcoco_testB.pt",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocop_testA.pt",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocop_testB.pt",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/refcocog_test.pt",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/evaluation_caches/b58_raw_query/strict2031.pt"
+    ],
+    "formal": [
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed17",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed42",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/shared_wide/seed73",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed17",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed42",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/formal/b58_raw_query/isolated_128/seed73"
+    ],
+    "training_caches": [
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed17.pt",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed42.pt",
+      "/media/haoyi/T9/pivot/outputs/b58_raw_query_ownership_20260822/caches/b58_raw_query/seed73.pt"
+    ]
+  },
+  "prohibitions": [
+    "do not import or initialize from parent owner weights",
+    "do not update B58 or run Shared-128",
+    "do not change owner capacity initialization optimizer schedule losses seeds or endpoint",
+    "do not select a checkpoint score reduction Gap or threshold from results",
+    "do not stop after one seed or one evaluation surface"
+  ],
+  "references": {
+    "e5": {
+      "path": "/media/haoyi/T9/pivot/paper/data/mmgdino_e5_ownership_results.json",
+      "sha256": "f0c589d70b134609d8b3219f454db733d70466af689ec63382e230be7d0e4328",
+      "size_bytes": 68218
+    },
+    "existing_b58_integrated_capacity": {
+      "path": "/media/haoyi/T9/pivot/paper/data/b58_capacity_control_results.json",
+      "sha256": "c916a087ca731f218bdf1ef2b5ad905ce4fb6d1a37753fc4ce6842634070d829",
+      "size_bytes": 21463
+    },
+    "reuse_only_no_forward": true
+  },
+  "research_question": "Holding the mature 100k raw-query ownership heads and every training/evaluation choice fixed, does mixed Stage-B adaptation change the Shared-Wide versus Isolated effect from the direct parent to B58?",
+  "runtime_assets": {
+    "evaluation_config": {
+      "path": "/media/haoyi/T9/pivot/config/ablations/cfg_b58_raw_query_ownership_eval.py",
+      "sha256": "9dd4064085c4aa8fc58d20c2abb7e1a9c0124961b187ec87c6b87a201277734e",
+      "size_bytes": 781
+    },
+    "image_root": "/media/haoyi/T9/data/COCO/coco2014/train2014"
+  },
+  "same_head_axis": {
+    "parent_aggregate": {
+      "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/aggregate.json",
+      "sha256": "a9bb3b58f13a813e42870f1ee22f985f1d9aae457d07c08fd663476d8f6a4a80",
+      "size_bytes": 11647
+    },
+    "parent_records": [
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/native/records.jsonl",
+        "route": "native",
+        "seed": null,
+        "sha256": "9a3f91cb5265ff86651f309c14d85853cd4d89261b8f41191b5b372e88968a4a",
+        "size_bytes": 1499977,
+        "surface": "refcoco_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed17/records.jsonl",
+        "route": "shared_wide",
+        "seed": 17,
+        "sha256": "713a274cf9e11eadc03fee5dcd6f712b093d0383d22165f9b94bb4a773620d14",
+        "size_bytes": 1529658,
+        "surface": "refcoco_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed42/records.jsonl",
+        "route": "shared_wide",
+        "seed": 42,
+        "sha256": "710f19ae4439e203945d2b48b5c6b5163004e699d75816b6e2d956085dd38f3d",
+        "size_bytes": 1529761,
+        "surface": "refcoco_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/shared_wide/seed73/records.jsonl",
+        "route": "shared_wide",
+        "seed": 73,
+        "sha256": "b45d439b20a3a5136e33fa13e0fe205c27dba972f444c6f12279940a7ec1d416",
+        "size_bytes": 1529602,
+        "surface": "refcoco_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed17/records.jsonl",
+        "route": "isolated_128",
+        "seed": 17,
+        "sha256": "4cf587abc2e84cbe42f0e1cfb22a3118a6c1bfca4fa842997e94c5fb385c1052",
+        "size_bytes": 1534804,
+        "surface": "refcoco_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed42/records.jsonl",
+        "route": "isolated_128",
+        "seed": 42,
+        "sha256": "75e02497cd98a9a4ba6371f023c0de2613588967025a8f700147a8a25ac342d4",
+        "size_bytes": 1534703,
+        "surface": "refcoco_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testA/isolated_128/seed73/records.jsonl",
+        "route": "isolated_128",
+        "seed": 73,
+        "sha256": "d141ac72e3e741cbf552e44507a72a31599ef739befca614cbe5c15f666bdbc8",
+        "size_bytes": 1534874,
+        "surface": "refcoco_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/native/records.jsonl",
+        "route": "native",
+        "seed": null,
+        "sha256": "7d7b94cc7778aa60952a3be49ec234f861929481eca9753da42ad9de8c09f560",
+        "size_bytes": 1349732,
+        "surface": "refcoco_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed17/records.jsonl",
+        "route": "shared_wide",
+        "seed": 17,
+        "sha256": "1ef36572193000add97da70bd455779284f2b7cb75dd90e25d0c10a8c8df76ea",
+        "size_bytes": 1376679,
+        "surface": "refcoco_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed42/records.jsonl",
+        "route": "shared_wide",
+        "seed": 42,
+        "sha256": "de5b704930738321051d5719b2ebf4957093a2fb1d01116958e9202bb0132139",
+        "size_bytes": 1377140,
+        "surface": "refcoco_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/shared_wide/seed73/records.jsonl",
+        "route": "shared_wide",
+        "seed": 73,
+        "sha256": "bee250afab523bdf55050bd6b0590158573abe81120166931facf4e5ccbc35d0",
+        "size_bytes": 1376823,
+        "surface": "refcoco_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed17/records.jsonl",
+        "route": "isolated_128",
+        "seed": 17,
+        "sha256": "c9e2671e0b604c355fca497c003b7f559ee47fff7b86686b22ff01333084fb6a",
+        "size_bytes": 1380720,
+        "surface": "refcoco_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed42/records.jsonl",
+        "route": "isolated_128",
+        "seed": 42,
+        "sha256": "92a4d59e5ed636065804dfa0c666d1aa694f737116c2693351b02d6c2fd54286",
+        "size_bytes": 1380846,
+        "surface": "refcoco_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcoco_testB/isolated_128/seed73/records.jsonl",
+        "route": "isolated_128",
+        "seed": 73,
+        "sha256": "d84e99a9f36dafcb147fd93c088da0c3fbd0385602b96d76b9146a999f6cafd5",
+        "size_bytes": 1381125,
+        "surface": "refcoco_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/native/records.jsonl",
+        "route": "native",
+        "seed": null,
+        "sha256": "f0384898e46c702a571cc55757472377cd98c92d3206a77e73d57255ce6e8847",
+        "size_bytes": 1533299,
+        "surface": "refcocop_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed17/records.jsonl",
+        "route": "shared_wide",
+        "seed": 17,
+        "sha256": "0d34851aeb2f50aba3e7e8a02ba4974f0535e44f991f7b585b203e2159b85cad",
+        "size_bytes": 1562093,
+        "surface": "refcocop_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed42/records.jsonl",
+        "route": "shared_wide",
+        "seed": 42,
+        "sha256": "9fb8e83d67b22f27078ba59d785b4d24dd4aa02870699917de04ccbd4d9d16f1",
+        "size_bytes": 1562320,
+        "surface": "refcocop_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/shared_wide/seed73/records.jsonl",
+        "route": "shared_wide",
+        "seed": 73,
+        "sha256": "2f930e519032b0fd31a43f67f549a4e6aab3a103ceac11bbbc40d4f221e32814",
+        "size_bytes": 1562120,
+        "surface": "refcocop_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed17/records.jsonl",
+        "route": "isolated_128",
+        "seed": 17,
+        "sha256": "2947b8b1561cfbcbcbecd7f3e92ed44c7b670676527cd615d0be987463d041f4",
+        "size_bytes": 1568082,
+        "surface": "refcocop_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed42/records.jsonl",
+        "route": "isolated_128",
+        "seed": 42,
+        "sha256": "aaab601dab9d6642f50328a532028873d8c23bdf69cb0121c0e7fe70ac02c07c",
+        "size_bytes": 1567950,
+        "surface": "refcocop_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testA/isolated_128/seed73/records.jsonl",
+        "route": "isolated_128",
+        "seed": 73,
+        "sha256": "b2f9839c20ce2f7712d360835882aa26d56c35ecab55d1b7411749d4e076fa1a",
+        "size_bytes": 1567853,
+        "surface": "refcocop_testA"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/native/records.jsonl",
+        "route": "native",
+        "seed": null,
+        "sha256": "95ed3c9cc80636d7cd65639a68da891ed3efb415b8098ef0631e99cd2c2e2f24",
+        "size_bytes": 1305048,
+        "surface": "refcocop_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed17/records.jsonl",
+        "route": "shared_wide",
+        "seed": 17,
+        "sha256": "7a9617b37b50bcb4e364232528944263ec34583a05bd128d972d44f61092d27c",
+        "size_bytes": 1331030,
+        "surface": "refcocop_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed42/records.jsonl",
+        "route": "shared_wide",
+        "seed": 42,
+        "sha256": "a9623a97d02d28a3f5c26d8a7c126610a9b4c34ccaa10cd79d4c1b825b0e6456",
+        "size_bytes": 1331955,
+        "surface": "refcocop_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/shared_wide/seed73/records.jsonl",
+        "route": "shared_wide",
+        "seed": 73,
+        "sha256": "3badbc27b70622bea42c397eb35a0e146594576df53d281b7921103ff934a470",
+        "size_bytes": 1331360,
+        "surface": "refcocop_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed17/records.jsonl",
+        "route": "isolated_128",
+        "seed": 17,
+        "sha256": "47fd2b16a65a2f127950971587a4cffa8d63fb0feff2968d8252b264d0d4154c",
+        "size_bytes": 1334826,
+        "surface": "refcocop_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed42/records.jsonl",
+        "route": "isolated_128",
+        "seed": 42,
+        "sha256": "0f509ff0af49cba774cf65c345ab89ea878be41090803319a3f3be998b857e82",
+        "size_bytes": 1334943,
+        "surface": "refcocop_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocop_testB/isolated_128/seed73/records.jsonl",
+        "route": "isolated_128",
+        "seed": 73,
+        "sha256": "2e72e640b380c8cb3f36b81a2350b3311006ae05468495daf70cfd4c24152d00",
+        "size_bytes": 1335255,
+        "surface": "refcocop_testB"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/native/records.jsonl",
+        "route": "native",
+        "seed": null,
+        "sha256": "52adf9579610c5a7d2e3de758e8381b79e8f1ffeb9a5d38fc595f2eb6298329d",
+        "size_bytes": 2543450,
+        "surface": "refcocog_test"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed17/records.jsonl",
+        "route": "shared_wide",
+        "seed": 17,
+        "sha256": "741920cf053ba19af1835b08abc7cfd8e087089be887e9a33ecc8453087c52d7",
+        "size_bytes": 2592403,
+        "surface": "refcocog_test"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed42/records.jsonl",
+        "route": "shared_wide",
+        "seed": 42,
+        "sha256": "c0cc75eb5306574685f5c0de6f67ce7e9d368686b74b0a38869e508bb915aaa3",
+        "size_bytes": 2593200,
+        "surface": "refcocog_test"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/shared_wide/seed73/records.jsonl",
+        "route": "shared_wide",
+        "seed": 73,
+        "sha256": "3fa54784add22323f4d0f8cca7e5adb424db51b9ad09b1d87fb0cdcc83c95b6f",
+        "size_bytes": 2592982,
+        "surface": "refcocog_test"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed17/records.jsonl",
+        "route": "isolated_128",
+        "seed": 17,
+        "sha256": "a399bfad58be0feca2505730d31421e3698665bd2ca04f383e6d68ce823c8d5f",
+        "size_bytes": 2601778,
+        "surface": "refcocog_test"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed42/records.jsonl",
+        "route": "isolated_128",
+        "seed": 42,
+        "sha256": "dac9f5b207f64974d865e1473aba3b2941bb24f56531d63bae4a8eb91510f60d",
+        "size_bytes": 2601587,
+        "surface": "refcocog_test"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/refcocog_test/isolated_128/seed73/records.jsonl",
+        "route": "isolated_128",
+        "seed": 73,
+        "sha256": "8ca4417ca9d63ef12ea8c18fbeb9f81cf6fb4832f33525ada0078390632ac7f7",
+        "size_bytes": 2601786,
+        "surface": "refcocog_test"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/native/records.jsonl",
+        "route": "native",
+        "seed": null,
+        "sha256": "1743ea56ca135a44d6cd518ec390dc353429f08b43a5dd5be4b09d06533e435d",
+        "size_bytes": 943755,
+        "surface": "strict2031"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed17/records.jsonl",
+        "route": "shared_wide",
+        "seed": 17,
+        "sha256": "480f8f51ab354002d4883f34535ac5c424edaa5ce0579e0c2999c9b323f385b5",
+        "size_bytes": 959347,
+        "surface": "strict2031"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed42/records.jsonl",
+        "route": "shared_wide",
+        "seed": 42,
+        "sha256": "80763ca9b9c2de99a2663378e2353eb2168be0a5d3ebb35645d4943912c32407",
+        "size_bytes": 960110,
+        "surface": "strict2031"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/shared_wide/seed73/records.jsonl",
+        "route": "shared_wide",
+        "seed": 73,
+        "sha256": "84a54474cffd405f3c5512f0f5558c67750fbcb0717babbd5f7972cb5607b016",
+        "size_bytes": 960194,
+        "surface": "strict2031"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed17/records.jsonl",
+        "route": "isolated_128",
+        "seed": 17,
+        "sha256": "d4073306aa7cc4e43204427387e4c0de70f28ddd30c199c0189986660848dd25",
+        "size_bytes": 962911,
+        "surface": "strict2031"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed42/records.jsonl",
+        "route": "isolated_128",
+        "seed": 42,
+        "sha256": "d807e713a737c2fe0c16b3d0fddec2dc926d23787a4db8a20af95fb5ac3ade14",
+        "size_bytes": 963215,
+        "surface": "strict2031"
+      },
+      {
+        "path": "/media/haoyi/T9/pivot/outputs/original_gdino_parent_ownership_20260822/evaluation/original_parent/strict2031/isolated_128/seed73/records.jsonl",
+        "route": "isolated_128",
+        "seed": 73,
+        "sha256": "c9648ac36baf609bcaf7d80b8661f02128607eb75aabcd4e993fedf350ddb722",
+        "size_bytes": 962245,
+        "surface": "strict2031"
+      }
+    ],
+    "parent_result": {
+      "path": "/media/haoyi/T9/pivot/paper/data/original_gdino_parent_ownership_results.json",
+      "sha256": "be371aee477efb42ab187f0213ddd545e4d31cac5d7bc4eaa38dbd1066087b9b",
+      "size_bytes": 73786
+    },
+    "planned_difference_in_differences": [
+      "Test5 ownership effect",
+      "TestAB ownership effect",
+      "Strict2031 FPR95-reduction ownership effect"
+    ],
+    "same_100k_owner_code_and_initialization": true,
+    "same_native_score_and_evaluator": true,
+    "same_schedule_identity_batch_order_and_losses": true
+  },
+  "schedule_contract": {
+    "bitwise_reused_from_parent_replay": true,
+    "per_seed": {
+      "17": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed17.jsonl",
+          "sha256": "05a79ba8103781788f6d4dd5ea93739e58333e0084e3eb690a2121d0e3949c3c",
+          "size_bytes": 670106
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed17.jsonl",
+          "sha256": "8e4f8910533493f2ce77250de3bfd6809eac684f677121f5cf2921c3328114fe",
+          "size_bytes": 1911386
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed17.json",
+          "sha256": "fe02d269c51157679d36057598bcd15977308d99e3e1a96a1410a87361140a7f",
+          "size_bytes": 241557
+        }
+      },
+      "42": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed42.jsonl",
+          "sha256": "fe15b7d2f81f56f73567b8c85494e43705c000920ae905218a7c3c166426ffb4",
+          "size_bytes": 669039
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed42.jsonl",
+          "sha256": "59ba69ea0a009b6c77ed2c1f86aa8a2408814f909d92b14bcb9ae6c54a327a81",
+          "size_bytes": 1911968
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed42.json",
+          "sha256": "ab891284699f2bc0e95c395594be57eb0bf2345548b518659d3f40ee3030f7cb",
+          "size_bytes": 241609
+        }
+      },
+      "73": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed73.jsonl",
+          "sha256": "7011df38690dc1eb40bb8ae5343d878d8c545da47397a08e8bf6443aec82edd4",
+          "size_bytes": 670431
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed73.jsonl",
+          "sha256": "6365a22666f98ed351ce104cc293cab0a32234fd5dd38884b107672ffefd9976",
+          "size_bytes": 1910835
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed73.json",
+          "sha256": "2501af198b5e84169cd87914ac891d3e6ab3a86d90f31dca7d28a6c7df384d62",
+          "size_bytes": 241418
+        }
+      }
+    },
+    "receipt": {
+      "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_receipt.json",
+      "sha256": "4608b6c8bc62f426e1f72bf44d13b693448f03f011af79740e0952fceb370346",
+      "size_bytes": 3610
+    }
+  },
+  "schema": "arrow.b58_raw_query_ownership.preregistration/v1",
+  "statistics": {
+    "bootstrap_replicates": 5000,
+    "bootstrap_rng": "PCG64",
+    "bootstrap_seed": 20260825,
+    "fpr95_recomputes_each_trunk_owner_seed_positive_q05_per_replicate": true,
+    "rec_noninferiority_margin": 0.005,
+    "same_image_draw_across_parent_b58_owners_and_seeds": true
+  },
+  "status": "locked_before_any_b58_raw_query_gpu_forward",
+  "training": {
+    "clip_norm": 0.1,
+    "confidence_batch_size": 8,
+    "confidence_learning_rate": 0.0001,
+    "confidence_updates": 50,
+    "deterministic_fp32": true,
+    "fixed_endpoint": 150,
+    "interleave": [
+      "rank",
+      "confidence",
+      "rank"
+    ],
+    "rank_batch_size": 32,
+    "rank_learning_rate": 3e-05,
+    "rank_updates": 100,
+    "task_specific_adam_states": true,
+    "weight_decay": 0.0
+  }
+}
