@@ -1,0 +1,340 @@
+{
+  "cache_output_targets_absent": [
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/caches/e6_posctrl/seed17.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/caches/e6_posctrl/seed42.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/caches/e6_posctrl/seed73.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/caches/e6_tn10/seed17.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/caches/e6_tn10/seed42.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/caches/e6_tn10/seed73.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/evaluation_caches/e6_posctrl/refcoco_testA.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/evaluation_caches/e6_posctrl/refcoco_testB.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/evaluation_caches/e6_posctrl/strict2031.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/evaluation_caches/e6_tn10/refcoco_testA.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/evaluation_caches/e6_tn10/refcoco_testB.pt",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/evaluation_caches/e6_tn10/strict2031.pt"
+  ],
+  "code": {
+    "aggregator": {
+      "path": "/media/haoyi/T9/pivot/tools/aggregate_mmgdino_e6_ownership_2x2.py",
+      "sha256": "3715c8b840a4c678c5b36ba882ce32ac0fe0d4f70847fa29868007f327b66d53",
+      "size_bytes": 19074
+    },
+    "cache_evaluator": {
+      "path": "/media/haoyi/T9/pivot/tools/eval_mmgdino_e5_ownership_cache.py",
+      "sha256": "ee19c726cf1869459a0dd21f9f77d8d0c3672a5bba97e57daafde5678ad98bea",
+      "size_bytes": 14636
+    },
+    "contract": {
+      "path": "/media/haoyi/T9/pivot/tools/mmgdino_e6_ownership_2x2.py",
+      "sha256": "99fc47dd197d50d8e1a3995cbfe601c1e27f9e6ba1fcaa6835cc19cdcb660683",
+      "size_bytes": 5989
+    },
+    "evaluation_extractor": {
+      "path": "/media/haoyi/T9/pivot/tools/extract_mmgdino_e5_eval_cache.py",
+      "sha256": "205b601413a84a3777d046b796e8bc7e5378cd0945f870449971113b0553fadd",
+      "size_bytes": 13027
+    },
+    "owners": {
+      "path": "/media/haoyi/T9/pivot/tools/mmgdino_e5_ownership.py",
+      "sha256": "4c68e5cfe426752ff9716186daf37406b795736a1388357d1d7671ed699877cb",
+      "size_bytes": 15566
+    },
+    "preregistration_builder": {
+      "path": "/media/haoyi/T9/pivot/tools/build_mmgdino_e6_ownership_2x2_preregistration.py",
+      "sha256": "7d9b929d6d615ab4b4baea9c7456abacad8a7265890728c9f66e4b3e5922657c",
+      "size_bytes": 13026
+    },
+    "runner": {
+      "path": "/media/haoyi/T9/pivot/tools/run_mmgdino_e6_ownership_2x2.py",
+      "sha256": "87660c683992da99ed61a765c1d39f0f3be6106a026e4306c51a967e0c33c048",
+      "size_bytes": 17766
+    },
+    "trainer": {
+      "path": "/media/haoyi/T9/pivot/tools/train_mmgdino_e5_ownership.py",
+      "sha256": "fb51d883b8186604ef8a22b594087d2d5e91c8fc2c2b6e60aa10b7efde259653",
+      "size_bytes": 36583
+    },
+    "training_extractor": {
+      "path": "/media/haoyi/T9/pivot/tools/extract_mmgdino_responsibility_cache.py",
+      "sha256": "c12b560928bf22f61c7dec509191eb0a2e88b4d5f7678020d24238d8bd42ee31",
+      "size_bytes": 52889
+    }
+  },
+  "e5_reference": {
+    "result": {
+      "path": "/media/haoyi/T9/pivot/paper/data/mmgdino_e5_ownership_results.json",
+      "sha256": "f0c589d70b134609d8b3219f454db733d70466af689ec63382e230be7d0e4328",
+      "size_bytes": 68218
+    },
+    "reuse_only_no_new_forward": true
+  },
+  "evaluation": {
+    "refcoco_testA": {
+      "input": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcoco_unc_testA.jsonl",
+        "rows": 5657,
+        "sha256": "47278ef1043382235a151cd90d1e6c18c79d30bb71cb4eb7df1932abc622946e",
+        "size_bytes": 3245312
+      },
+      "mode": "ref"
+    },
+    "refcoco_testB": {
+      "input": {
+        "path": "/media/haoyi/T9/pivot/outputs/paper_cvpr_v1/baseline_b58_ref8_seed42/refcoco_eval_inputs/refcoco_unc_testB.jsonl",
+        "rows": 5095,
+        "sha256": "41687648194225a693da5c42c5448eb1a9f4d2f59ca4cd138d4063d818116c8f",
+        "size_bytes": 2965138
+      },
+      "mode": "ref"
+    },
+    "strict2031": {
+      "input": {
+        "path": "/media/haoyi/T9/pivot/outputs/u2v5_leakage_clean_anchor_20260817/final_once/strict2031_u50/tn_eval_inputs/tn_refcocop_val_refcocog_umd_val.jsonl",
+        "rows": 2031,
+        "sha256": "999c6f77f6affcf0f24a9fb17132e59e824bd012d53adf73f9b287dae454702c",
+        "size_bytes": 6431256
+      },
+      "mode": "tn"
+    }
+  },
+  "formal_output_targets_absent": [
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_posctrl/shared_wide/seed17",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_posctrl/shared_wide/seed42",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_posctrl/shared_wide/seed73",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_posctrl/isolated_128/seed17",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_posctrl/isolated_128/seed42",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_posctrl/isolated_128/seed73",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_tn10/shared_wide/seed17",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_tn10/shared_wide/seed42",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_tn10/shared_wide/seed73",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_tn10/isolated_128/seed17",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_tn10/isolated_128/seed42",
+    "/media/haoyi/T9/pivot/outputs/mmgdino_e6_ownership_2x2_20260822/formal/e6_tn10/isolated_128/seed73"
+  ],
+  "git": {
+    "commit": "457ad294e022f1a20bf60d992d000aa21f3cefdc",
+    "status": "clean"
+  },
+  "locked_at": "2026-08-22T13:51:15.151760+08:00",
+  "matrix": {
+    "architecture": {
+      "isolated_128": {
+        "confidence_owned_parameter_count": 50179,
+        "confidence_representation_dim": 128,
+        "macs_per_query_both_outputs": 98816,
+        "ownership": "isolated_128",
+        "rank_owned_parameter_count": 50179,
+        "rank_representation_dim": 128,
+        "shared_parameter_count": 0,
+        "trainable_parameters": 100358
+      },
+      "shared_wide": {
+        "confidence_owned_parameter_count": 100151,
+        "confidence_representation_dim": 210,
+        "macs_per_query_both_outputs": 99424,
+        "ownership": "shared_wide",
+        "rank_owned_parameter_count": 100151,
+        "rank_representation_dim": 210,
+        "shared_parameter_count": 99940,
+        "trainable_parameters": 100362
+      }
+    },
+    "excluded_arm": "shared_128",
+    "formal_trajectories": 12,
+    "owners": [
+      "shared_wide",
+      "isolated_128"
+    ],
+    "seeds": [
+      17,
+      42,
+      73
+    ],
+    "trunks": [
+      "e6_posctrl",
+      "e6_tn10"
+    ]
+  },
+  "prohibitions": [
+    "do not run Shared-128",
+    "do not change seeds, sample identities, batch order, update count, losses, learning rates, optimizer states, or weight decay by trunk or owner",
+    "do not select a milestone, threshold, margin, or checkpoint from e6 results",
+    "do not stop after one seed or one trunk",
+    "do not interpret milestone gradient probes as expression-IID samples"
+  ],
+  "research_question": "Does TN-aware trunk adaptation turn near-orthogonal shared ranking/abstention gradients into a negative-tail regime where isolation protects REC?",
+  "runtime_assets": {
+    "eval_config": {
+      "path": "/media/haoyi/T9/external/mmgdino_l_baseline/mmgdino_t_refcoco5e_formal_b4a8_seed20260819.py",
+      "sha256": "8f22719d7815563006de550e5f4f0173576bedfa8293922aa80c92e7524f2b82",
+      "size_bytes": 3348
+    },
+    "image_root": "/media/haoyi/T9/data/COCO/coco2014/train2014",
+    "mmdet_commit": "cfd5d3a985b0249de009b67d04f37263e11cdf3d",
+    "mmdet_root": "/media/haoyi/T9/external/mmgdino_l_baseline/mmdetection"
+  },
+  "schedule_contract": {
+    "checkpoint_or_metric_dependent_selection": false,
+    "per_seed": {
+      "17": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed17.jsonl",
+          "sha256": "05a79ba8103781788f6d4dd5ea93739e58333e0084e3eb690a2121d0e3949c3c",
+          "size_bytes": 670106
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed17.jsonl",
+          "sha256": "8e4f8910533493f2ce77250de3bfd6809eac684f677121f5cf2921c3328114fe",
+          "size_bytes": 1911386
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed17.json",
+          "sha256": "fe02d269c51157679d36057598bcd15977308d99e3e1a96a1410a87361140a7f",
+          "size_bytes": 241557
+        }
+      },
+      "42": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed42.jsonl",
+          "sha256": "fe15b7d2f81f56f73567b8c85494e43705c000920ae905218a7c3c166426ffb4",
+          "size_bytes": 669039
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed42.jsonl",
+          "sha256": "59ba69ea0a009b6c77ed2c1f86aa8a2408814f909d92b14bcb9ae6c54a327a81",
+          "size_bytes": 1911968
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed42.json",
+          "sha256": "ab891284699f2bc0e95c395594be57eb0bf2345548b518659d3f40ee3030f7cb",
+          "size_bytes": 241609
+        }
+      },
+      "73": {
+        "d3": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/d3_seed73.jsonl",
+          "sha256": "7011df38690dc1eb40bb8ae5343d878d8c545da47397a08e8bf6443aec82edd4",
+          "size_bytes": 670431
+        },
+        "rank": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/rank_seed73.jsonl",
+          "sha256": "6365a22666f98ed351ce104cc293cab0a32234fd5dd38884b107672ffefd9976",
+          "size_bytes": 1910835
+        },
+        "schedule": {
+          "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_seed73.json",
+          "sha256": "2501af198b5e84169cd87914ac891d3e6ab3a86d90f31dca7d28a6c7df384d62",
+          "size_bytes": 241418
+        }
+      }
+    },
+    "receipt": {
+      "path": "/media/haoyi/T9/pivot/outputs/mmgdino_e5_ownership_transfer_20260821/schedules/schedule_receipt.json",
+      "sha256": "4608b6c8bc62f426e1f72bf44d13b693448f03f011af79740e0952fceb370346",
+      "size_bytes": 3610
+    },
+    "same_identity_and_batch_order_across_trunks_and_owners": true
+  },
+  "schema": "arrow.mmgdino_e6_ownership_2x2.preregistration/v1",
+  "shared_state_schema_sha256": "67484843f8942dcf84c06c1b204c9b69e31cc540ec7afe93ced4e872d8c8a596",
+  "statistics": {
+    "bootstrap_replicates": 5000,
+    "bootstrap_seed": 20260822,
+    "cluster": "image_id; TestA and TestB sampled as separate strata",
+    "fpr95_recomputes_each_model_seed_positive_q05_per_replicate": true,
+    "gradient_tail": {
+      "metrics": [
+        "P(cosine<0)",
+        "q05",
+        "minimum",
+        "mean"
+      ],
+      "primary_description": "pooled fixed milestone probes",
+      "status": "mechanism_descriptive_not_iid_expression_inference"
+    },
+    "holm_family_size": 2,
+    "planned_cross_trunk_contrast": "(isolated_128-shared_wide)_e6_tn10 minus (isolated_128-shared_wide)_e6_posctrl",
+    "planned_within_trunk_contrasts": [
+      "e6_posctrl:isolated_128-shared_wide",
+      "e6_tn10:isolated_128-shared_wide"
+    ],
+    "rec_noninferiority_margin": 0.005,
+    "same_draw_across_both_trunks_both_owners_and_three_seeds": true
+  },
+  "status": "locked_before_any_e6_owner_gpu_forward",
+  "training": {
+    "clip_norm": 0.1,
+    "confidence_batch_size": 8,
+    "confidence_learning_rate": 0.0001,
+    "confidence_updates": 50,
+    "interleave": "rank,confidence,rank",
+    "milestones_audit_only": [
+      25,
+      50,
+      100,
+      150
+    ],
+    "precision": "fp32 deterministic",
+    "rank_batch_size": 32,
+    "rank_learning_rate": 3e-05,
+    "rank_updates": 100,
+    "selected_update": 150,
+    "two_task_specific_adamw_states": true,
+    "updates": 150,
+    "weight_decay": 0.0
+  },
+  "trunks": {
+    "e6_posctrl": {
+      "all_tensors_finite": true,
+      "checkpoint": {
+        "path": "/media/haoyi/T9/pivot/weights/epoch_6_postctrl.pth",
+        "sha256": "08177fac668d62de99100b292ee5ff157366c33c48eb56b742006263a42022c3",
+        "size_bytes": 2114451773
+      },
+      "checkpoint_sha256": "08177fac668d62de99100b292ee5ff157366c33c48eb56b742006263a42022c3",
+      "display_name": "e5\u2192e6 PosCtrl",
+      "expected_epoch": 6,
+      "expected_experiment_name": "grounding_dino_swin-t_finetune_2x16_e6_from_e5_refcoco_20260822_023402",
+      "expected_iter": 45234,
+      "meta": {
+        "epoch": 6,
+        "experiment_name": "grounding_dino_swin-t_finetune_2x16_e6_from_e5_refcoco_20260822_023402",
+        "iter": 45234,
+        "seed": 922835489,
+        "time": "20260822_044936"
+      },
+      "model_id": "mmgroundingdino-t-e6_posctrl-08177fac",
+      "state_dict_parameter_count": 173006505,
+      "state_dict_tensor_count": 908,
+      "state_schema_sha256": "67484843f8942dcf84c06c1b204c9b69e31cc540ec7afe93ced4e872d8c8a596",
+      "training_surface": "positive RefCOCO continuation control",
+      "trunk_id": "e6_posctrl"
+    },
+    "e6_tn10": {
+      "all_tensors_finite": true,
+      "checkpoint": {
+        "path": "/media/haoyi/T9/pivot/weights/epoch_6_tn10.pth",
+        "sha256": "a7078f1139c847d99e85221c8228f7cfd00e5be5ca0b85820f5d4d6a02cfa66c",
+        "size_bytes": 2115094973
+      },
+      "checkpoint_sha256": "a7078f1139c847d99e85221c8228f7cfd00e5be5ca0b85820f5d4d6a02cfa66c",
+      "display_name": "e5\u2192e6 TN10",
+      "expected_epoch": 6,
+      "expected_experiment_name": "grounding_dino_swin-t_finetune_2x16_e6_from_e5_refcoco_tn10_20260822_050029",
+      "expected_iter": 45988,
+      "meta": {
+        "epoch": 6,
+        "experiment_name": "grounding_dino_swin-t_finetune_2x16_e6_from_e5_refcoco_tn10_20260822_050029",
+        "iter": 45988,
+        "seed": 922835489,
+        "time": "20260822_072949"
+      },
+      "model_id": "mmgroundingdino-t-e6_tn10-a7078f11",
+      "state_dict_parameter_count": 173006505,
+      "state_dict_tensor_count": 908,
+      "state_schema_sha256": "67484843f8942dcf84c06c1b204c9b69e31cc540ec7afe93ced4e872d8c8a596",
+      "training_surface": "RefCOCO continuation with 10 percent TN exposure",
+      "trunk_id": "e6_tn10"
+    }
+  }
+}
