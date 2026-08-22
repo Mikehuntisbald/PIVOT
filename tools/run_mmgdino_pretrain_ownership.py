@@ -7,8 +7,13 @@ import argparse
 import contextlib
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, Sequence
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 import tools.run_mmgdino_e6_ownership_2x2 as mature
 from tools.mmgdino_pretrain_ownership import (
@@ -39,6 +44,9 @@ from tools.responsibility_isolation_cache import file_sha256
 
 PREREG_SCHEMA = "arrow.mmgdino_pretrain_ownership.preregistration/v1"
 STATUS_SCHEMA = "arrow.mmgdino_pretrain_ownership.status/v1"
+RUNTIME_AMENDMENT = (
+    ROOT / "paper/data/mmgdino_pretrain_ownership_runtime_amendment.json"
+)
 
 
 class RunnerError(RuntimeError):
@@ -58,9 +66,24 @@ def _preflight() -> dict[str, Any]:
         raise RunnerError("preregistration schema drifted")
     if prereg.get("status") != "locked_before_any_pretrained_trunk_gpu_forward":
         raise RunnerError("preregistration status drifted")
-    for record in prereg.get("code", {}).values():
+    amendment = _json(RUNTIME_AMENDMENT) if RUNTIME_AMENDMENT.is_file() else None
+    for name, record in prereg.get("code", {}).items():
         path = Path(record["path"])
-        if file_sha256(path) != record["sha256"]:
+        actual = file_sha256(path)
+        if actual == record["sha256"]:
+            continue
+        amended = bool(
+            name == "runner"
+            and amendment is not None
+            and amendment.get("schema")
+            == "arrow.mmgdino_pretrain_ownership.runtime_amendment/v1"
+            and amendment.get("status")
+            == "locked_after_pre_forward_import_failure_before_retry"
+            and amendment.get("parent_preregistration_sha256")
+            == file_sha256(PREREGISTRATION)
+            and amendment.get("change", {}).get("new_runner_sha256") == actual
+        )
+        if not amended:
             raise RunnerError(f"preregistered code drifted: {path}")
     for spec in TRUNK_SPECS.values():
         if file_sha256(spec.checkpoint) != spec.checkpoint_sha256:

@@ -1,0 +1,30 @@
+{
+  "schema": "arrow.mmgdino_pretrain_ownership.runtime_amendment/v1",
+  "status": "locked_after_pre_forward_import_failure_before_retry",
+  "locked_at": "2026-08-22T19:02:11+08:00",
+  "parent_preregistration_sha256": "88ba3b85a6e184b3c857ea15a58ccc6d364fb2e927172942e8bcd0f047cff45c",
+  "failure": {
+    "stage": "runner module import before preflight",
+    "reason": "direct entrypoint did not inject the repository root into sys.path",
+    "checkpoint_load_count": 0,
+    "model_forward_count": 0,
+    "optimizer_update_count": 0,
+    "artifact_or_metric_written": false,
+    "preserved_log": {
+      "path": "outputs/mmgdino_pretrain_ownership_20260822/failed_attempts/dry_run_import_before_forward.log",
+      "sha256": "018e9b03c44088d48241d9fcc849d60106199dc0d19a66b414bfda5cd8b2678a"
+    }
+  },
+  "change": {
+    "scope": "entrypoint_only",
+    "old_runner_sha256": "cde83833a3129c3563cceff21e4abc5306f6623744d7579b0cbf4fb7d27b7535",
+    "new_runner_sha256": "5173c0ca5d3284f0cfacac8f2a28131debf120f2ba1f768da6e9cfd5e4e27086",
+    "behavior": "prepend the repository root to sys.path before importing tools",
+    "checkpoint_data_schedule_model_loss_optimizer_evaluator_or_statistics_changed": false
+  },
+  "retry": "rerun read-only dry-run, then first GPU smoke",
+  "prohibitions": [
+    "do not modify any scientific protocol field",
+    "do not permit code drift outside the runner entrypoint"
+  ]
+}
