@@ -1,0 +1,37 @@
+{
+  "schema": "arrow.mmgdino_e6_ownership_2x2.runtime_amendment/v1",
+  "status": "locked_after_pre_forward_failure_before_retry",
+  "locked_at": "2026-08-22T13:53:11+08:00",
+  "parent_preregistration_sha256": "165d6c890b15c3ec65c0465f21bb08b87465be1a1901168bf4fce2f759403769",
+  "failure": {
+    "trunk": "e6_posctrl",
+    "stage": "trusted MMEngine checkpoint CPU deserialization",
+    "reason": "PyTorch 2.6 defaulted torch.load to weights_only=True and rejected HistoryBuffer metadata",
+    "model_forward_count": 0,
+    "optimizer_update_count": 0,
+    "cache_written": false,
+    "prediction_or_metric_viewed": false,
+    "preserved_log": {
+      "path": "outputs/mmgdino_e6_ownership_2x2_20260822/failed_attempts/smoke_e6_posctrl_weights_only_before_forward.log",
+      "sha256": "c89a68df976e101e5d4c8fe6cbcb9d226488efc9d686ef1d46af90afa19cd8bc"
+    }
+  },
+  "change": {
+    "scope": "runtime_only",
+    "environment": {
+      "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD": "1"
+    },
+    "old_runner_sha256": "87660c683992da99ed61a765c1d39f0f3be6106a026e4306c51a967e0c33c048",
+    "new_runner_sha256": "9d311dd563aae209e6f4b3e7d77e44ae9c610372a2d56fc2de9aaf214e8d9733",
+    "checkpoint_changed": false,
+    "model_changed": false,
+    "data_or_schedule_changed": false,
+    "loss_or_optimizer_changed": false,
+    "evaluation_changed": false
+  },
+  "retry": "restart smoke from zero for both trunks",
+  "prohibitions": [
+    "do not add checkpoint classes to the safe allowlist based on results",
+    "do not change any scientific protocol field"
+  ]
+}
