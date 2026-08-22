@@ -174,7 +174,10 @@ def normalized_cxcywh_iou(boxes: Tensor, gt_boxes: Tensor) -> Tensor:
 
 
 def validate_cached_candidate_row(
-    row: Mapping[str, Any], *, require_trainable_rank_pair: bool = True
+    row: Mapping[str, Any],
+    *,
+    require_trainable_rank_pair: bool = True,
+    allow_rank_row_without_positive: bool = False,
 ) -> dict[str, Any]:
     """Validate one row and return it unchanged as a plain dictionary.
 
@@ -258,8 +261,11 @@ def validate_cached_candidate_row(
         best_iou = normalized_cxcywh_iou(boxes, gt_boxes).amax(dim=1)
         positives = mask & (best_iou >= 0.5)
         negatives = mask & (~positives)
+        has_positive = bool(positives.any().item())
+        has_negative = bool(negatives.any().item())
         if require_trainable_rank_pair and (
-            not bool(positives.any().item()) or not bool(negatives.any().item())
+            (not has_positive and not allow_rank_row_without_positive)
+            or not has_negative
         ):
             raise CachedCandidateContractError(
                 "rank row must contain eligible IoU>=0.5 positives and hard negatives"
@@ -283,6 +289,8 @@ def validate_cached_candidate_row(
 
 def validate_cached_candidate_shard(
     payload: Mapping[str, Any],
+    *,
+    allow_rank_rows_without_positive: bool = False,
 ) -> dict[str, Any]:
     """Validate row identities, pair closure and the immutable shard envelope."""
     if not isinstance(payload, Mapping):
@@ -312,7 +320,13 @@ def validate_cached_candidate_shard(
         payload["rows"], (str, bytes)
     ):
         raise CachedCandidateContractError("cache shard rows must be a sequence")
-    rows = tuple(validate_cached_candidate_row(row) for row in payload["rows"])
+    rows = tuple(
+        validate_cached_candidate_row(
+            row,
+            allow_rank_row_without_positive=allow_rank_rows_without_positive,
+        )
+        for row in payload["rows"]
+    )
     if not rows:
         raise CachedCandidateContractError("cache shard must not be empty")
     sample_ids = [row["sample_id"] for row in rows]
@@ -354,9 +368,16 @@ def file_sha256(path: str | Path) -> str:
     return digest.hexdigest()
 
 
-def cached_candidate_content_sha256(payload: Mapping[str, Any]) -> str:
+def cached_candidate_content_sha256(
+    payload: Mapping[str, Any],
+    *,
+    allow_rank_rows_without_positive: bool = False,
+) -> str:
     """Hash validated semantic content, including tensor dtype/shape/bytes."""
-    shard = validate_cached_candidate_shard(payload)
+    shard = validate_cached_candidate_shard(
+        payload,
+        allow_rank_rows_without_positive=allow_rank_rows_without_positive,
+    )
     digest = hashlib.sha256()
 
     def text(name: str, value: Any) -> None:
@@ -397,19 +418,32 @@ def cached_candidate_content_sha256(payload: Mapping[str, Any]) -> str:
 
 
 def save_cached_candidate_shard(
-    payload: Mapping[str, Any], path: str | Path
+    payload: Mapping[str, Any],
+    path: str | Path,
+    *,
+    allow_rank_rows_without_positive: bool = False,
 ) -> dict[str, str]:
-    shard = validate_cached_candidate_shard(payload)
+    shard = validate_cached_candidate_shard(
+        payload,
+        allow_rank_rows_without_positive=allow_rank_rows_without_positive,
+    )
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     torch.save(shard, destination)
     return {
         "file_sha256": file_sha256(destination),
-        "content_sha256": cached_candidate_content_sha256(shard),
+        "content_sha256": cached_candidate_content_sha256(
+            shard,
+            allow_rank_rows_without_positive=allow_rank_rows_without_positive,
+        ),
     }
 
 
-def load_cached_candidate_shard(path: str | Path) -> dict[str, Any]:
+def load_cached_candidate_shard(
+    path: str | Path,
+    *,
+    allow_rank_rows_without_positive: bool = False,
+) -> dict[str, Any]:
     source = Path(path)
     try:
         payload = torch.load(source, map_location="cpu", weights_only=True)
@@ -417,7 +451,10 @@ def load_cached_candidate_shard(path: str | Path) -> dict[str, Any]:
         raise CachedCandidateContractError(
             f"could not load cached-candidate shard {source}: {exc}"
         ) from exc
-    return validate_cached_candidate_shard(payload)
+    return validate_cached_candidate_shard(
+        payload,
+        allow_rank_rows_without_positive=allow_rank_rows_without_positive,
+    )
 
 
 def build_synthetic_cached_candidate_shard(

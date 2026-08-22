@@ -27,6 +27,7 @@ from tools.responsibility_isolation_cache import (
     CACHE_SHARD_SCHEMA,
     CACHE_TASK_CONFIDENCE_PAIR,
     CACHE_TASK_RANK,
+    CachedCandidateContractError,
     cached_candidate_content_sha256,
     file_sha256,
     load_cached_candidate_shard,
@@ -309,7 +310,15 @@ class MMGroundingDinoExtractorTest(unittest.TestCase):
         self.assertEqual(shard["schema"], CACHE_SHARD_SCHEMA)
         self.assertEqual(shard["source"]["extractor_code_sha256"], "2" * 64)
         self.assertEqual(shard["source"]["checkpoint_sha256"], "1" * 64)
-        self.assertEqual(counters, {"rank_input": 1, "rank_kept": 1, "confidence_rows": 2})
+        self.assertEqual(
+            counters,
+            {
+                "rank_input": 1,
+                "rank_kept": 1,
+                "rank_no_positive": 0,
+                "confidence_rows": 2,
+            },
+        )
         self.assertEqual(len(runtime.calls), 3)
         self.assertEqual(
             [caption for _, caption in runtime.calls],
@@ -336,6 +345,26 @@ class MMGroundingDinoExtractorTest(unittest.TestCase):
                 checkpoint_sha256="1" * 64,
                 extractor_sha256="2" * 64,
             )
+
+        shard, counters = extract_cached_candidate_shard(
+            rank_requests=rank,
+            pair_requests=pairs,
+            runtime=_FakeRuntime(_valid_hook_batch(oracle=False)),
+            shard_id="no-oracle-preserved",
+            checkpoint_sha256="1" * 64,
+            extractor_sha256="2" * 64,
+            allow_rank_rows_without_positive=True,
+        )
+        self.assertEqual(counters["rank_input"], 1)
+        self.assertEqual(counters["rank_kept"], 0)
+        self.assertEqual(counters["rank_no_positive"], 1)
+        validate_cached_candidate_shard(
+            shard, allow_rank_rows_without_positive=True
+        )
+        with self.assertRaisesRegex(
+            CachedCandidateContractError, "positives and hard negatives"
+        ):
+            validate_cached_candidate_shard(shard)
 
         malformed = replace(
             _valid_hook_batch(),

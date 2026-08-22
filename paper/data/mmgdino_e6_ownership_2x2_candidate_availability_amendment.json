@@ -1,0 +1,71 @@
+{
+  "schema": "arrow.mmgdino_e6_ownership_2x2.candidate_availability_amendment/v1",
+  "status": "locked_after_candidate_availability_failure_before_retry",
+  "locked_at": "2026-08-22T14:30:34+08:00",
+  "parent_preregistration_sha256": "165d6c890b15c3ec65c0465f21bb08b87465be1a1901168bf4fce2f759403769",
+  "parent_runtime_amendment_sha256": "7fe3b07ae200bb0866cfa39ff05c0b0b94ee34d3ade02df63357505283bdcc51",
+  "failure": {
+    "trunk": "e6_tn10",
+    "seed": 73,
+    "stage": "frozen training-cache extraction",
+    "reason": "one scheduled RefCOCO rank row exposed no eligible IoU>=0.5 candidate",
+    "scheduled_rank_row_index_one_based": 439,
+    "sample_id": "refcoco:refcoco_unc_train:424340:576198:13735:39085",
+    "model_forward_count": 439,
+    "optimizer_update_count": 0,
+    "cache_written": false,
+    "prediction_or_metric_viewed": false,
+    "preserved_log": {
+      "path": "outputs/mmgdino_e6_ownership_2x2_20260822/failed_attempts/extract_training_e6_tn10_seed73_no_oracle.log",
+      "sha256": "d7c4362f20e04ff64181a8b9b814f3a3d8d26f7d40e36bb26daf01934524f291"
+    }
+  },
+  "change": {
+    "scope": "candidate_availability_contract_only",
+    "scheduled_identity_policy": "preserve_every_row_without_replacement_or_resampling",
+    "rank_row_without_eligible_positive": "zero_margin_via_existing_valid_row_mask_plus_residual_l2",
+    "rank_row_without_hard_negative": "fail_closed",
+    "default_behavior_outside_this_runner": "fail_closed",
+    "checkpoint_changed": false,
+    "data_or_schedule_changed": false,
+    "optimizer_or_update_order_changed": false,
+    "evaluation_changed": false,
+    "metric_or_result_dependent_selection": false
+  },
+  "completed_cache_policy": {
+    "reuse_five_completed_strict_caches_without_recomputation": true,
+    "reason": "all 3200 rank rows in each completed cache passed the original stricter check and valid-row computation remains unchanged",
+    "byte_or_hash_change": false
+  },
+  "retry": "restart only missing e6_tn10 seed73 extraction from row one; then run all twelve owner trajectories from U0",
+  "code_changes": {
+    "runner": {
+      "old_sha256": "9d311dd563aae209e6f4b3e7d77e44ae9c610372a2d56fc2de9aaf214e8d9733",
+      "new_sha256": "052ca2bf7b1169bb47ba09667db7bebf4a823966ec0ffc5802ac8f286d4a5417"
+    },
+    "trainer": {
+      "old_sha256": "fb51d883b8186604ef8a22b594087d2d5e91c8fc2c2b6e60aa10b7efde259653",
+      "new_sha256": "671590873b4cbce0a2b01f9b811c1af521b0a937341dcb0167d3b74b81b37b41"
+    },
+    "training_extractor": {
+      "old_sha256": "c12b560928bf22f61c7dec509191eb0a2e88b4d5f7678020d24238d8bd42ee31",
+      "new_sha256": "05c548cc7b8e70c933057a664a10db62b2aee925ff0a9398afd2536441c49c07"
+    }
+  },
+  "additional_code_bindings": {
+    "cache_contract": {
+      "path": "/media/haoyi/T9/pivot/tools/responsibility_isolation_cache.py",
+      "sha256": "916214c620e54c05b54c4ef2399de8aca4c8d8acccecb58f67cc3164fb464a6b",
+      "previous_sha256": "f45e41c4702a400c819b4117c21a9e7b4ef4563f7d12ed7968524373b4fed0b0"
+    }
+  },
+  "tests": {
+    "command": "/home/haoyi/miniconda/envs/mmgdino_l_cfd5d3a/bin/python -m pytest -q tests/test_extract_mmgdino_responsibility_cache.py tests/test_train_mmgdino_e5_ownership.py tests/test_mmgdino_e6_ownership_2x2.py",
+    "result": "23 passed"
+  },
+  "prohibitions": [
+    "do not drop or replace no-positive scheduled rows",
+    "do not use candidate availability to alter a checkpoint, Gap, loss weight, seed, or endpoint",
+    "do not view e6 owner metrics before all twelve U150 trajectories complete"
+  ]
+}

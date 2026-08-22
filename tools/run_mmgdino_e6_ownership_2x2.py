@@ -46,6 +46,9 @@ from tools.train_mmgdino_e5_ownership import FormalConfig, load_schedule, run_fo
 PREREG_SCHEMA = "arrow.mmgdino_e6_ownership_2x2.preregistration/v1"
 STATUS_SCHEMA = "arrow.mmgdino_e6_ownership_2x2.status/v1"
 RUNTIME_AMENDMENT = ROOT / "paper/data/mmgdino_e6_ownership_2x2_runtime_amendment.json"
+CANDIDATE_AVAILABILITY_AMENDMENT = (
+    ROOT / "paper/data/mmgdino_e6_ownership_2x2_candidate_availability_amendment.json"
+)
 
 
 class RunnerError(RuntimeError):
@@ -66,6 +69,11 @@ def _preflight() -> dict[str, Any]:
     if prereg.get("status") != "locked_before_any_e6_owner_gpu_forward":
         raise RunnerError("preregistration status drifted")
     amendment = _json(RUNTIME_AMENDMENT) if RUNTIME_AMENDMENT.is_file() else None
+    candidate_amendment = (
+        _json(CANDIDATE_AVAILABILITY_AMENDMENT)
+        if CANDIDATE_AVAILABILITY_AMENDMENT.is_file()
+        else None
+    )
     for name, record in prereg.get("code", {}).items():
         path = Path(record["path"])
         actual = file_sha256(path)
@@ -82,8 +90,31 @@ def _preflight() -> dict[str, Any]:
             == file_sha256(PREREGISTRATION)
             and amendment.get("change", {}).get("new_runner_sha256") == actual
         )
-        if not amended:
+        candidate_amended = bool(
+            candidate_amendment is not None
+            and candidate_amendment.get("schema")
+            == "arrow.mmgdino_e6_ownership_2x2.candidate_availability_amendment/v1"
+            and candidate_amendment.get("status")
+            == "locked_after_candidate_availability_failure_before_retry"
+            and candidate_amendment.get("parent_preregistration_sha256")
+            == file_sha256(PREREGISTRATION)
+            and candidate_amendment.get("parent_runtime_amendment_sha256")
+            == file_sha256(RUNTIME_AMENDMENT)
+            and candidate_amendment.get("code_changes", {})
+            .get(name, {})
+            .get("new_sha256")
+            == actual
+        )
+        if not amended and not candidate_amended:
             raise RunnerError(f"preregistered code drifted: {path}")
+    if candidate_amendment is not None:
+        for name, record in candidate_amendment.get(
+            "additional_code_bindings", {}
+        ).items():
+            if file_sha256(Path(record["path"])) != record["sha256"]:
+                raise RunnerError(
+                    f"candidate-availability dependency drifted: {name}"
+                )
     for trunk_id, spec in TRUNK_SPECS.items():
         if file_sha256(spec.checkpoint) != spec.checkpoint_sha256:
             raise RunnerError(f"{trunk_id} checkpoint drifted")
@@ -151,6 +182,7 @@ def _training_extract_command(
         "--shard-id", f"{trunk_id}-owner-seed{seed}",
         "--feature-dtype", "float32",
         "--device", "cuda:0",
+        "--allow-rank-rows-without-positive",
     ]
     if rank_limit:
         command.extend(("--rank-limit", str(rank_limit)))
@@ -238,7 +270,13 @@ def extract_training(trunks: Sequence[str], seeds: Sequence[int]) -> dict[str, A
             output = training_cache_path(trunk_id, seed)
             receipt = training_cache_receipt_path(trunk_id, seed)
             if output.exists() or receipt.exists():
-                raise RunnerError(f"training cache output already exists: {output}")
+                value = _validate_training_cache(trunk_id, seed)
+                completed.append({
+                    "trunk": trunk_id, "seed": seed,
+                    "cache_sha256": value["output"]["file_sha256"],
+                    "reused_complete_cache": True,
+                })
+                continue
             command = _training_extract_command(
                 trunk_id, seed, output=output, receipt=receipt
             )
@@ -270,7 +308,12 @@ def train(
                     cache_path=training_cache_path(trunk_id, seed),
                     schedule_path=schedule_path(seed),
                     output_dir=output,
-                    config=FormalConfig(ownership=owner, seed=seed, device="cuda"),
+                    config=FormalConfig(
+                        ownership=owner,
+                        seed=seed,
+                        device="cuda",
+                        allow_rank_rows_without_positive=True,
+                    ),
                 )
                 completed.append({
                     "trunk": trunk_id, "owner": owner, "seed": seed,

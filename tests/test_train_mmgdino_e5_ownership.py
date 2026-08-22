@@ -6,6 +6,7 @@ from pathlib import Path
 import torch
 
 from tools.mmgdino_e5_ownership import (
+    MMGDinoE5ResponsibilityOwners,
     OWNERSHIP_ISOLATED_128,
     OWNERSHIP_SHARED_128,
 )
@@ -27,6 +28,7 @@ from tools.train_mmgdino_e5_ownership import (
     FORMAL_RANK_UPDATES,
     FormalConfig,
     SCHEDULE_SCHEMA,
+    _rank_loss,
     run_formal_training,
     validate_schedule,
 )
@@ -183,6 +185,21 @@ class FormalOwnershipTrainingTests(unittest.TestCase):
                 torch.tensor([2.0, 3.0, 4.0, 5.0]),
             )
         )
+
+    def test_no_eligible_positive_preserves_row_with_zero_rank_margin(self):
+        row = _rank_row(0)
+        row["candidate_mask"] = torch.tensor([False, True, True, True])
+        module = MMGDinoE5ResponsibilityOwners(
+            ownership=OWNERSHIP_SHARED_128
+        )
+        loss, metrics = _rank_loss(
+            module, [row], device=torch.device("cpu")
+        )
+        self.assertEqual(metrics["valid_rows"], 0.0)
+        self.assertEqual(metrics["rows_no_positive"], 1.0)
+        self.assertEqual(metrics["fix_loss"], 0.0)
+        self.assertEqual(metrics["preserve_loss"], 0.0)
+        self.assertEqual(float(loss.detach()), 0.0)
 
     def test_shared_run_has_two_optimizer_states_and_zero_decay(self):
         output = self.root / "shared"

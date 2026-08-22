@@ -301,6 +301,20 @@ def _rank_loss(
             for row in rows
         ]
     ).to(device=device)
+    # A frozen candidate generator can occasionally fail to expose any
+    # eligible IoU-positive query for a scheduled training example.  Preserve
+    # that identity rather than replacing it: suppress only non-candidate
+    # positives on such rows so the pre-existing objective's valid-row mask
+    # assigns zero margin loss.  Rows with an eligible positive are bitwise
+    # unchanged.
+    no_eligible_positive = ~(
+        mask & (candidate_iou >= 0.5)
+    ).any(dim=1)
+    candidate_iou = torch.where(
+        no_eligible_positive[:, None] & (~mask),
+        torch.full_like(candidate_iou, -1.0),
+        candidate_iou,
+    )
     result = baseline_preserving_top1_rank_loss(
         output["rank_score"],
         output["native_score"],
@@ -323,6 +337,8 @@ def _rank_loss(
         "adapted_correct": float(result.adapted_correct.detach()),
         "wrong_fixed": float(result.wrong_fixed.detach()),
         "correct_regressed": float(result.correct_regressed.detach()),
+        "valid_rows": float(result.valid_rows.detach()),
+        "rows_no_positive": float(result.rows_no_positive.detach()),
     }
 
 
@@ -544,6 +560,7 @@ class FormalConfig:
     confidence_learning_rate: float = 1e-4
     weight_decay: float = 0.0
     clip_norm: float = 0.1
+    allow_rank_rows_without_positive: bool = False
 
     def validate(self) -> "FormalConfig":
         if self.ownership not in OWNERSHIP_MODES:
@@ -558,6 +575,10 @@ class FormalConfig:
             raise FormalOwnershipError("CUDA was requested but unavailable")
         if self.weight_decay != 0.0:
             raise FormalOwnershipError("formal owner weight_decay must be zero")
+        if not isinstance(self.allow_rank_rows_without_positive, bool):
+            raise FormalOwnershipError(
+                "allow_rank_rows_without_positive must be boolean"
+            )
         for name, value in (
             ("rank_learning_rate", self.rank_learning_rate),
             ("confidence_learning_rate", self.confidence_learning_rate),
@@ -577,6 +598,7 @@ class FormalConfig:
             "confidence_learning_rate": self.confidence_learning_rate,
             "weight_decay": self.weight_decay,
             "clip_norm": self.clip_norm,
+            "allow_rank_rows_without_positive": self.allow_rank_rows_without_positive,
             "rank_batch_size": FORMAL_RANK_BATCH_SIZE,
             "confidence_batch_size": FORMAL_CONFIDENCE_BATCH_SIZE,
             "rank_updates": FORMAL_RANK_UPDATES,
@@ -627,7 +649,10 @@ def run_formal_training(
     if schedule["seed"] != config.seed:
         raise FormalOwnershipError("schedule seed and run seed differ")
     cache_file_before = file_sha256(cache_path)
-    shard = load_cached_candidate_shard(cache_path)
+    shard = load_cached_candidate_shard(
+        cache_path,
+        allow_rank_rows_without_positive=config.allow_rank_rows_without_positive,
+    )
     validate_schedule_cache_coverage(schedule, shard)
     rank_index, pair_index = _cache_indices(shard)
     device = torch.device(config.device)

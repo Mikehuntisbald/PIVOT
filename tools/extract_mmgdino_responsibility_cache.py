@@ -1111,6 +1111,7 @@ def extract_cached_candidate_shard(
     extractor_sha256: str,
     model_id: str = PINNED_MODEL_ID,
     config_sha256: str = PINNED_FORMAL_CONFIG_SHA256,
+    allow_rank_rows_without_positive: bool = False,
 ) -> tuple[dict[str, Any], dict[str, int]]:
     _require_identifier(shard_id, name="shard_id")
     checkpoint_sha = _require_sha256(
@@ -1130,6 +1131,7 @@ def extract_cached_candidate_shard(
     counters = {
         "rank_input": len(rank_requests),
         "rank_kept": 0,
+        "rank_no_positive": 0,
         "confidence_rows": len(pair_requests),
     }
     if any(request.task != CACHE_TASK_RANK for request in rank_requests):
@@ -1154,16 +1156,19 @@ def extract_cached_candidate_shard(
             iou = normalized_cxcywh_iou(row["boxes"], row["gt_boxes"]).amax(dim=1)
             eligible = row["candidate_mask"]
             if not bool((eligible & (iou >= 0.5)).any().item()):
-                raise MMGroundingDinoExtractionError(
-                    f"rank request {request.sample_id!r} has no IoU>=0.5 "
-                    "query; extraction is fail-closed"
-                )
+                counters["rank_no_positive"] += 1
+                if not allow_rank_rows_without_positive:
+                    raise MMGroundingDinoExtractionError(
+                        f"rank request {request.sample_id!r} has no IoU>=0.5 "
+                        "query; extraction is fail-closed"
+                    )
             if not bool((eligible & (iou < 0.5)).any().item()):
                 raise MMGroundingDinoExtractionError(
                     f"rank request {request.sample_id!r} has no hard negative "
                     "query; extraction is fail-closed"
                 )
-            counters["rank_kept"] += 1
+            if bool((eligible & (iou >= 0.5)).any().item()):
+                counters["rank_kept"] += 1
         rows.append(row)
     payload = {
         "schema": CACHE_SHARD_SCHEMA,
@@ -1181,7 +1186,10 @@ def extract_cached_candidate_shard(
         "rows": tuple(rows),
     }
     try:
-        validated = validate_cached_candidate_shard(payload)
+        validated = validate_cached_candidate_shard(
+            payload,
+            allow_rank_rows_without_positive=allow_rank_rows_without_positive,
+        )
     except CachedCandidateContractError as exc:
         raise MMGroundingDinoExtractionError(
             f"extracted shard violates cache contract: {exc}"
@@ -1239,6 +1247,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--pair-limit", type=int, default=0)
     parser.add_argument("--feature-dtype", choices=tuple(FEATURE_DTYPES), default="float16")
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--allow-rank-rows-without-positive",
+        action="store_true",
+        help=(
+            "Preserve scheduled rank rows without an eligible IoU>=0.5 query; "
+            "their rank margin is masked by the formal trainer."
+        ),
+    )
     return parser
 
 
@@ -1304,6 +1320,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         extractor_sha256=extractor_sha,
         model_id=args.model_id,
         config_sha256=asset_binding["config_sha256"],
+        allow_rank_rows_without_positive=args.allow_rank_rows_without_positive,
         )
     finally:
         runtime.close()
@@ -1314,7 +1331,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     os.close(descriptor)
     temporary_path = Path(temporary_name)
     try:
-        hashes = save_cached_candidate_shard(shard, temporary_path)
+        hashes = save_cached_candidate_shard(
+            shard,
+            temporary_path,
+            allow_rank_rows_without_positive=args.allow_rank_rows_without_positive,
+        )
         os.replace(temporary_path, args.output)
     except Exception:
         temporary_path.unlink(missing_ok=True)
@@ -1361,6 +1382,11 @@ def main(argv: Sequence[str] | None = None) -> None:
             "batch_size": 1,
             "training": False,
             "tokens_positive": -1,
+            "rank_rows_without_positive_policy": (
+                "preserve_and_zero_margin"
+                if args.allow_rank_rows_without_positive
+                else "fail_closed"
+            ),
         },
     }
     _atomic_json_dump(receipt, args.receipt)
