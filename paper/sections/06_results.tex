@@ -32,13 +32,17 @@ reduction is not significant (CI [$-0.382$, 1.337], $p=0.139$).  Thus sharing
 can damage Ranking after capacity, compute, optimizer-state, decay, update, and
 data-order matching, but this replay does not establish a rejection advantage.
 
-Before RefCOCO-specific fine-tuning, Shared-Wide has 45.8\% negative U150
-probes (mean $-0.0015$, minimum $-0.179$), yet exceeds Isolated by 0.095 Test5
-points (CI [0.061, 0.129]) and 0.056 TestAB points (CI [0.013, 0.104]).
-Its FPR95 is also 0.689 points lower; the planned isolation-reduction CI
-[$-2.340$, 0.365] crosses zero.  Hard isolation
-therefore provides no deployed benefit; the native 53.27\% TestAB further
-shows that these heads do not replace task-specific trunk adaptation.
+On the direct pre-Stage-B parent, U150 has 50.0\% negative probes and q05
+$-0.229$, yet Shared-Wide exceeds Isolated by 2.001 Test5 points (CI
+[1.735, 2.269]) and 1.116 TestAB points (CI [0.741, 1.482]); Isolated fails
+non-inferiority.  Shared-Wide's 0.689-point FPR95 advantage is not significant, and
+Native rejects better than both learned routes.  Head differences make the
+cross-stage comparison descriptive rather than causal.
+
+Before RefCOCO-specific MM-GDINO fine-tuning, Shared-Wide likewise exceeds
+Isolated by 0.095 Test5 points (CI [0.061, 0.129]) and 0.056 TestAB points (CI
+[0.013, 0.104]); its FPR95 advantage is not significant.  The previously
+implicit Native row is 53.274\% TestAB and 92.270\% FPR95.
 
 After task-specific tuning, e5 Shared-Wide/Isolated remain at
 88.979/88.976\% TestAB, and Shared-Wide has lower FPR95 (83.686/84.211\%).
@@ -66,9 +70,8 @@ representation.
     capacity-matched sharing.}}}
   \caption{Owner allocation depends on the representation.  The frozen-base
   control shows recurrent negative events and a large localization gap;
-  broad pretrained and task-tuned MM-GDINO representations support effective
-  sharing, and even the TN10 continuation's heavier negative tail does not make
-  Isolated outperform Shared-Wide.}
+  the direct parent and broad or task-tuned MM-GDINO representations support
+  sharing; even TN10's heavier negative tail does not make Isolated win.}
   \label{fig:mechanism}
 \end{figure*}
 

@@ -175,6 +175,16 @@ direction.  This confirms that broad pretrained representation quality, not
 only task-specific trunk adaptation, can make wide sharing effective; it does
 not make the experiment image-disjoint or unsupervised.
 
+The direct-parent replay in Tab.~\ref{tab:supp-original-parent-ownership}
+freezes the immediate pure-GDINO parent of the frozen-base checkpoint and
+applies the same raw-query owners used in the MM-GDINO blocks.  Shared-Wide is
+substantially better on both pooled REC surfaces; Isolated fails
+non-inferiority, while the rejection interval crosses zero.  The parent and
+frozen-base checkpoints share the effective 938-tensor architecture, but the
+ownership heads differ (100k raw-query versus 84k integrated).  We therefore
+report a representation-stage trend rather than a same-head causal effect of
+mixed Stage-B adaptation.
+
 \input{supplement/tables/supp_training_controls}
 
 Admission trajectories use 100 updates, physical batch 56, seeds 17/42/73,

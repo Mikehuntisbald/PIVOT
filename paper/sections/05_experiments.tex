@@ -37,6 +37,12 @@ decay, the same U150 schedule, seeds 17/42/73, data order, and update counts.
 We report the scheduled gradient probes, negative-cosine fraction, minimum
 cosine, Test5, and Strict-TN2031.
 
+\paragraph{Direct pure-GDINO parent.}
+We freeze the frozen-base checkpoint's immediate pure-GDINO parent and apply
+the mature raw-query owners, fixed schedule, and full-expression mean score.
+Its 100k heads differ from the integrated 84k frozen-base heads, so the
+cross-stage trend is not a strict causal comparison.
+
 \paragraph{Strong MM-GDINO control.}
 We first freeze the official broad MM-GDINO-T pretrained checkpoint before
 RefCOCO-specific full-model fine-tuning.  Shared-Wide and Isolated retain the
