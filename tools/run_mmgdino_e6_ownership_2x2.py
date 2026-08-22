@@ -11,6 +11,10 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from tools.eval_mmgdino_e5_ownership_cache import evaluate_cache
 from tools.mmgdino_e6_ownership_2x2 import (
     EVAL_CONFIG,

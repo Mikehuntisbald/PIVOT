@@ -7,11 +7,16 @@ import argparse
 import json
 import os
 import statistics
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import numpy as np
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.eval_mmgdino_e5_ownership_cache import exact_q05
 from tools.mmgdino_e6_ownership_2x2 import (

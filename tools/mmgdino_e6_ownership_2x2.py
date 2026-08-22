@@ -5,7 +5,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 from typing import Any
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.mmgdino_e5_ownership import (
     OWNERSHIP_ISOLATED_128,
@@ -13,7 +18,7 @@ from tools.mmgdino_e5_ownership import (
 )
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = _REPO_ROOT
 EXPERIMENT_ROOT = ROOT / "outputs/mmgdino_e6_ownership_2x2_20260822"
 PREREGISTRATION = ROOT / "paper/data/mmgdino_e6_ownership_2x2_preregistration.json"
 E5_REFERENCE = ROOT / "paper/data/mmgdino_e5_ownership_results.json"
