@@ -179,11 +179,16 @@ The direct-parent replay in Tab.~\ref{tab:supp-original-parent-ownership}
 freezes the immediate pure-GDINO parent of the frozen-base checkpoint and
 applies the same raw-query owners used in the MM-GDINO blocks.  Shared-Wide is
 substantially better on both pooled REC surfaces; Isolated fails
-non-inferiority, while the rejection interval crosses zero.  The parent and
-frozen-base checkpoints share the effective 938-tensor architecture, but the
-ownership heads differ (100k raw-query versus 84k integrated).  We therefore
-report a representation-stage trend rather than a same-head causal effect of
-mixed Stage-B adaptation.
+non-inferiority, while the rejection interval crosses zero.
+
+Tab.~\ref{tab:supp-same-head-stage-axis} closes the earlier head mismatch by
+replaying those exact 100k owners on the adapted descendant.  The two effective
+938-tensor architectures match; only 727 trunk tensors change.  Initialization,
+schedule bytes, losses, seeds, optimizer states, scorer, and evaluator are
+identical.  Adaptation narrows the isolation Test5 penalty from 2.001 to 0.053 points;
+the paired difference-in-differences excludes zero.  Its FPR95 shift is
+directionally favorable but unresolved.  This supports an adaptation-dependent
+ownership effect rather than a universal hard-isolation rule.
 
 \input{supplement/tables/supp_training_controls}
 

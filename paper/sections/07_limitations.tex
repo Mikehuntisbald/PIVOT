@@ -8,10 +8,11 @@ single/no-target slice.
 
 \textbf{Hard isolation is not universal.}
 The frozen-base controls show recurrent destructive shared updates and a large
-Ranking benefit from isolation; the direct parent and MM-GDINO instead favor
-wide sharing despite negative tails.  Their 100k raw-query versus 84k
-integrated heads make the cross-stage trend non-causal.  We claim
-representation-dependent interference, not a cosine-sign rule.
+Ranking benefit from isolation.  Under identical 100k heads, the adapted trunk removes the
+direct parent's large isolation penalty, but isolation remains slightly lower
+on Test5 and its FPR95 advantage does not exclude zero.  MM-GDINO also favors
+wide sharing despite negative tails.  We claim representation-dependent
+interference, not a cosine-sign rule or universal isolation benefit.
 
 \textbf{Domain-dependent calibration.}
 FineCops and gRefCOCO support rejection-ordering transfer, but the sealed source

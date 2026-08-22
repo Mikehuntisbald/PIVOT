@@ -37,11 +37,13 @@ decay, the same U150 schedule, seeds 17/42/73, data order, and update counts.
 We report the scheduled gradient probes, negative-cosine fraction, minimum
 cosine, Test5, and Strict-TN2031.
 
-\paragraph{Direct pure-GDINO parent.}
-We freeze the frozen-base checkpoint's immediate pure-GDINO parent and apply
-the mature raw-query owners, fixed schedule, and full-expression mean score.
-Its 100k heads differ from the integrated 84k frozen-base heads, so the
-cross-stage trend is not a strict causal comparison.
+\paragraph{Strict parent-to-adapted same-head axis.}
+We freeze the immediate pure-GDINO parent and its mixed-adapted descendant, whose
+effective 938-tensor architectures match while 727 tensors change.  Both use
+the same 100k raw-query Shared-Wide/Isolated heads, initialization, fixed U150
+schedule, losses, seeds, optimizer states, full-expression mean score, and
+evaluator.  A paired image-cluster difference-in-differences measures whether
+mixed adaptation changes the ownership effect.
 
 \paragraph{Strong MM-GDINO control.}
 We first freeze the official broad MM-GDINO-T pretrained checkpoint before

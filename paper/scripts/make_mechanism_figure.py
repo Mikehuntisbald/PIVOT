@@ -64,15 +64,17 @@ def main() -> None:
     # b) On strong continuations, a heavier negative tail does not imply that
     # hard isolation will improve either deployed endpoint.
     ax = axes[1]
-    conditions = ("GDINO parent", "MM pretrain", "MM e5", "MM e6 TN10")
+    conditions = ("GDINO parent", "Adapted same-head", "MM pretrain", "MM e5", "MM e6 TN10")
     q05 = np.asarray([
         value(registry, "original_parent.shared_wide.u150.q05"),
+        value(registry, "b58_raw_query.shared_wide.u150.q05"),
         value(registry, "strong_pretrain.shared_wide.u150.q05"),
         value(registry, "strong_ownership.shared_wide.u150.q05"),
         value(registry, "strong_e6.e6_tn10.shared_wide.u150.q05"),
     ])
     p_negative = np.asarray([
         value(registry, "original_parent.shared_wide.u150.p_negative"),
+        value(registry, "b58_raw_query.shared_wide.u150.p_negative"),
         value(registry, "strong_pretrain.shared_wide.u150.p_negative"),
         value(registry, "strong_ownership.shared_wide.u150.p_negative"),
         value(registry, "strong_e6.e6_tn10.shared_wide.u150.p_negative"),
@@ -97,20 +99,6 @@ def main() -> None:
     ax.set_title(r"b  Strong trunk: conflict $\ne$ benefit", loc="left", weight="bold")
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.tick_params(axis="y", length=0)
-    parent_rec = 100 * value(
-        registry, "original_parent.contrast.isolated_vs_shared_wide.test5_gain"
-    )
-    parent_fpr = 100 * value(
-        registry, "original_parent.contrast.isolated_vs_shared_wide.fpr95_gain"
-    )
-    ax.text(
-        0.02, 0.02,
-        f"Parent Isolated-Shared Test5  {parent_rec:+.3f} pp\n"
-        f"Parent FPR95 reduction  {parent_fpr:+.3f} pp (n.s.)",
-        transform=ax.transAxes, ha="left", va="bottom", fontsize=7.0, weight="bold",
-        bbox={"facecolor": "white", "edgecolor": COLORS["light_gray"], "pad": 2.2},
-    )
-
     fig.subplots_adjust(left=0.075, right=0.99, bottom=0.21, top=0.88, wspace=0.34)
 
     rows = []

@@ -35,31 +35,21 @@ data-order matching, but this replay does not establish a rejection advantage.
 On the direct pre-Stage-B parent, U150 has 50.0\% negative probes and q05
 $-0.229$, yet Shared-Wide exceeds Isolated by 2.001 Test5 points (CI
 [1.735, 2.269]) and 1.116 TestAB points (CI [0.741, 1.482]); Isolated fails
-non-inferiority.  Shared-Wide's 0.689-point FPR95 advantage is not significant, and
-Native rejects better than both learned routes.  Head differences make the
-cross-stage comparison descriptive rather than causal.
+non-inferiority.  On the adapted descendant with identical 100k heads, Isolated is only 0.053
+Test5 points lower (CI [0.011, 0.095]) and passes the 0.5-point non-inferiority
+margin; its 0.525-point FPR95 advantage has CI [$-0.444$, 1.100].  The paired
+parent$\rightarrow$adapted ownership-effect shift is +1.948 Test5 points (CI
+[1.686, 2.208]) and +1.094 TestAB points (CI [0.718, 1.462]); the analogous
+FPR95 shift, +1.215 points, crosses zero.  Mixed adaptation therefore
+removes the large localization cost of isolation without establishing a
+rejection advantage.
 
-Before RefCOCO-specific MM-GDINO fine-tuning, Shared-Wide likewise exceeds
-Isolated by 0.095 Test5 points (CI [0.061, 0.129]) and 0.056 TestAB points (CI
-[0.013, 0.104]); its FPR95 advantage is not significant.  The previously
-implicit Native row is 53.274\% TestAB and 92.270\% FPR95.
-
-After task-specific tuning, e5 Shared-Wide/Isolated remain at
-88.979/88.976\% TestAB, and Shared-Wide has lower FPR95 (83.686/84.211\%).
-The e6 PosCtrl/TN10 stress test deepens all-milestone q05 from $-0.248$ to
-$-0.470$ (U150 $-0.516$), but both continuations retain a $-0.003$-point
-Isolated$-$Shared-Wide TestAB gap (CI [$-0.009$, 0]).
-
-Rejection moves in the opposite direction from the isolation hypothesis.  On
-TN10, Shared-Wide reaches 67.093$\pm$0.173\% FPR95 versus
-68.653$\pm$1.769\% for Isolated; the preregistered Isolated reduction is
-$-1.559$ points (CI [$-2.925$, $-0.304$]).  Thus a negative gradient tail is
-a useful warning but not a sufficient topology-selection rule.  With separate
-task optimizer states, the wide shared owner absorbs these probe conflicts
-without REC collapse and is more stable for rejection.  The combined evidence
-rejects both extremes: Ranking and Abstention are not inherently antagonistic,
-yet matching capacity does not prevent destructive sharing on every
-representation.
+Supplementary MM-GDINO controls agree with this boundary: broad pretraining
+and task tuning support wide sharing, and TN10 deepens the negative tail
+without making Isolated win REC or FPR95.  Thus conflict is diagnostic rather
+than a topology selector; matched capacity does not prevent destructive
+sharing on every representation, but negative cosine does not make it
+inevitable either.
 
 \begin{figure*}[t]
   \centering
@@ -70,8 +60,9 @@ representation.
     capacity-matched sharing.}}}
   \caption{Owner allocation depends on the representation.  The frozen-base
   control shows recurrent negative events and a large localization gap;
-  the direct parent and broad or task-tuned MM-GDINO representations support
-  sharing; even TN10's heavier negative tail does not make Isolated win.}
+  the strict parent-to-adapted axis shows adaptation collapsing that gap, while
+  broad or task-tuned MM-GDINO supports sharing; negative tails alone do not
+  make Isolated win.}
   \label{fig:mechanism}
 \end{figure*}
 

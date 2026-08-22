@@ -25,7 +25,7 @@ $p=0.0002$; FPR95 reduction
 [$-0.382$, $1.337$],
 $p=0.139$. Joint gate: \textbf{fail}.}
 \\[5pt]
-\textbf{(b) Direct parent and MM pretrained representations}\\[2pt]
+\textbf{(b) Strict same-head parent $\rightarrow$ adapted axis}\\[2pt]
 \begin{tabular}{llrrrrr}
 \toprule
 Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & Test5$\uparrow$ & TestAB$\uparrow$ & FPR95$\downarrow$ \\
@@ -33,18 +33,18 @@ Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & Test5$\uparrow$ & TestAB$\u
 GDINO parent & Native & -- & -- & 39.533 & 40.588 & 89.660 \\
 GDINO parent & Shared-Wide & 50.0 & -0.229 & 43.124 $\pm$ 0.569 & 43.028 $\pm$ 0.331 & 91.991 $\pm$ 1.639 \\
 GDINO parent & Isolated & 0.0 & no path & 41.123 $\pm$ 0.486 & 41.912 $\pm$ 0.395 & 92.680 $\pm$ 1.898 \\
-MM pretrain & Native & -- & -- & 56.486 & 53.274 & 92.270 \\
-MM pretrain & Shared-Wide & 45.8 & -0.169 & 56.681 $\pm$ 0.097 & 53.382 $\pm$ 0.046 & 91.006 $\pm$ 1.495 \\
-MM pretrain & Isolated & 0.0 & no path & 56.587 $\pm$ 0.122 & 53.327 $\pm$ 0.070 & 91.695 $\pm$ 0.765 \\
+Adapted & Native & -- & -- & 72.046 & 65.690 & 50.222 \\
+Adapted & Shared-Wide & 58.3 & -0.175 & 72.169 $\pm$ 0.031 & 65.823 $\pm$ 0.046 & 46.939 $\pm$ 0.271 \\
+Adapted & Isolated & 0.0 & no path & 72.116 $\pm$ 0.021 & 65.802 $\pm$ 0.009 & 46.414 $\pm$ 0.571 \\
 \bottomrule
 \end{tabular}
 \\[3pt]
 \begin{tabular}{lrrrc}
 \toprule
-Planned contrast & $\Delta$REC [95\% CI] & FPR95 reduction [95\% CI] & Holm-IUT $p$ & Gate \\
+Planned contrast & $\Delta$REC [95\% CI] & FPR95 reduction [95\% CI] & IUT $p$ & Gate \\
 \midrule
 GDINO parent: Isolated $-$ Shared-Wide & -1.116 [-1.482, -0.741] & -0.689 [-2.046, 0.182] & 1.0000 & fail \\
-MM pretrain: Isolated $-$ Shared-Wide & -0.056 [-0.104, -0.013] & -0.689 [-2.340, 0.365] & 0.9234 & fail \\
+Adapted: Isolated $-$ Shared-Wide & -0.022 [-0.104, 0.054] & +0.525 [-0.444, 1.100] & 0.1748 & fail \\
 \bottomrule
 \end{tabular}
 \vspace{2pt}
@@ -52,6 +52,10 @@ MM pretrain: Isolated $-$ Shared-Wide & -0.056 [-0.104, -0.013] & -0.689 [-2.340
 positive FPR95 reduction favors Isolated. Learned rows are fixed U150,
 three-seed mean $\pm$ SD; every bootstrap replicate recomputes positive q05.
 Shared-Wide/Isolated have 100,362/100,358 parameters and matched optimization.
-The direct-parent raw-query heads differ from panel (a)'s integrated heads, so
-the cross-stage trend is not a same-head causal contrast. e5/e6 are supplementary.}
+Parent/adapted use identical 100k heads.  Ownership-effect DiD:
++1.948 pp Test5
+[$1.686$,
+$2.208$] and
++1.215 pp FPR95
+(CI crosses zero). MM controls are supplementary.}
 \end{table*}

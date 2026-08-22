@@ -200,6 +200,16 @@ SOURCE_SPECS: dict[str, dict[str, Any]] = {
             "direct-parent gradient geometry and same-head limitation boundary",
         ],
     },
+    "b58_raw_query_ownership_results": {
+        "path": "paper/data/b58_raw_query_ownership_results.json",
+        "kind": "prospectively_frozen_strict_same_head_capacity_control",
+        "expected_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+        "owns": [
+            "B58 100k raw-query Shared-Wide versus Isolated replay",
+            "strict same-head direct-parent to B58 difference-in-differences",
+            "B58 Test5, TestAB, Strict-TN2031, and gradient probes",
+        ],
+    },
     "b58_capacity_control_results": {
         "path": "paper/data/b58_capacity_control_results.json",
         "kind": "prospectively_frozen_post_release_capacity_control",
@@ -255,7 +265,7 @@ CLAIM_BOUNDARIES = {
     "gref": "previously exposed COCO imagery; Rejector-supervision-disjoint excludes only rejector train/calibration images",
     "verified_negatives": "proposal-covered verified negatives, not image-global or all-query verification",
     "calibration": "relative rejection discrimination transfers; the source operating threshold does not",
-    "ownership": "exclusive ownership benefits ARROW-U2, but the direct pure-GDINO parent and broad pretrained or strong task-tuned MM-GDINO representations favor capacity-matched Shared-Wide; the parent and B58 blocks use different head structures, and phasing is not independently superior",
+    "ownership": "exclusive ownership benefits ARROW-U2; under identical 100k raw-query heads, mixed Stage-B adaptation changes hard isolation from a large direct-parent REC penalty to B58 non-inferiority, but neither its B58 FPR95 advantage nor the parent-to-B58 FPR shift excludes zero; gradient cosine alone is not a topology selector",
     "positive_trust": "no standalone held-out causal gain is supported",
     "support": "visual support controls Admission but is not necessary for every correct top-1 prediction",
 }
@@ -928,9 +938,8 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
             ci_path=f"{base}.{ci_metric}" if ci_metric is not None else None,
         )
 
-    # Same raw-query owner pair on the direct pure-GDINO parent of B58.  This
-    # is a representation-stage trend, not a strict same-head contrast to the
-    # existing integrated B58 capacity block.
+    # Same raw-query owner pair on the direct pure-GDINO parent of B58.  The
+    # strict matched descendant replay is registered immediately below.
     for route in ("native", "shared_wide", "isolated_128"):
         learned = route != "native"
         for json_metric, semantic, surface, direction in (
@@ -1009,6 +1018,105 @@ def build_numbers(registry: dict[str, Any]) -> dict[str, Any]:
             status="planned_capacity_controlled_contrast",
             direction=direction,
             ci_path=f"{base}.{ci_metric}" if ci_metric is not None else None,
+        )
+
+    # Strict same-100k-head replay on the B58 descendant.  Unlike the earlier
+    # integrated B58 block, this is directly paired with original_parent.
+    for route in ("native", "shared_wide", "isolated_128"):
+        learned = route != "native"
+        for json_metric, semantic, surface, direction in (
+            ("test5_micro_p1", "test5", "Test5 micro", "higher_is_better"),
+            (
+                "testab_micro_p1", "testab",
+                "RefCOCO testA+testB micro", "higher_is_better",
+            ),
+            (
+                "strict2031_fpr95", "strict_fpr95",
+                "Strict-TN2031", "lower_is_better",
+            ),
+            (
+                "strict2031_auroc", "strict_auroc",
+                "Strict-TN2031", "higher_is_better",
+            ),
+            (
+                "strict2031_aupr", "strict_aupr",
+                "Strict-TN2031", "higher_is_better",
+            ),
+        ):
+            base = f"statistics.point_metrics.{route}.{json_metric}"
+            b.add(
+                f"b58_raw_query.{route}.{semantic}",
+                "b58_raw_query_ownership_results",
+                f"{base}.mean" if learned else base,
+                unit="fraction", surface=surface,
+                status="prospectively_frozen_strict_same_head_control",
+                direction=direction,
+                sd_path=f"{base}.sample_sd" if learned else None,
+                by_seed_path=f"{base}.by_seed" if learned else None,
+            )
+        for split in (
+            "refcoco_testA", "refcoco_testB", "refcocop_testA",
+            "refcocop_testB", "refcocog_test",
+        ):
+            base = f"statistics.point_metrics.{route}.splits.{split}"
+            b.add(
+                f"b58_raw_query.{route}.{split}",
+                "b58_raw_query_ownership_results",
+                f"{base}.mean" if learned else base,
+                unit="fraction", surface=split,
+                status="prospectively_frozen_strict_same_head_control",
+                direction="higher_is_better",
+                sd_path=f"{base}.sample_sd" if learned else None,
+                by_seed_path=f"{base}.by_seed" if learned else None,
+            )
+    for horizon in ("all_milestones", "u150"):
+        for metric in ("count", "mean", "p_negative", "q05", "minimum"):
+            b.add(
+                f"b58_raw_query.shared_wide.{horizon}.{metric}",
+                "b58_raw_query_ownership_results",
+                f"statistics.gradient_probes.shared_wide.{horizon}.{metric}",
+                unit="fraction", surface=f"fixed {horizon} gradient probes",
+                status="paired_mechanism_diagnostic", direction="descriptive",
+            )
+    b.add(
+        "b58_raw_query.bootstrap.replicates",
+        "b58_raw_query_ownership_results",
+        "statistics.bootstrap.replicates",
+        unit="replicates", surface="paired image-cluster bootstrap",
+        status="exact_statistical_protocol", direction="descriptive",
+    )
+    for metric, ci_metric, direction in (
+        ("test5_gain", "test5_ci95", "higher_is_better"),
+        ("testab_gain", "testab_ci95", "higher_is_better"),
+        ("fpr95_gain", "fpr95_ci95", "higher_is_better"),
+        ("iut_p", None, "descriptive"),
+    ):
+        base = "statistics.isolated_minus_shared_wide"
+        b.add(
+            f"b58_raw_query.contrast.isolated_vs_shared_wide.{metric}",
+            "b58_raw_query_ownership_results", f"{base}.{metric}",
+            unit="p_value" if metric.endswith("_p") else "absolute",
+            surface="Test5 + RefCOCO TestAB + Strict-TN2031",
+            status="planned_strict_same_head_contrast", direction=direction,
+            ci_path=f"{base}.{ci_metric}" if ci_metric is not None else None,
+        )
+    did_base = (
+        "statistics.same_head_parent_to_b58."
+        "ownership_effect_difference_in_differences"
+    )
+    for endpoint, direction in (
+        ("test5", "higher_is_better"),
+        ("testab", "higher_is_better"),
+        ("fpr95_reduction", "higher_is_better"),
+    ):
+        base = f"{did_base}.{endpoint}"
+        b.add(
+            f"parent_to_b58_did.{endpoint}",
+            "b58_raw_query_ownership_results",
+            f"{base}.b58_minus_parent_difference_in_differences",
+            unit="absolute", surface="paired parent-to-B58 same-head axis",
+            status="planned_strict_same_head_difference_in_differences",
+            direction=direction, ci_path=f"{base}.ci95",
         )
 
     # Zero-update rank-dataset probe on the same strong e5 U150 shared owners.

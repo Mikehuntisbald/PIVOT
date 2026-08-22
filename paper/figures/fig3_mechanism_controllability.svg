@@ -322,23 +322,29 @@ z
     <g id="ytick_5">
      <g id="line2d_21"/>
      <g id="text_27">
-      <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: end" x="299.019031" y="56.774071" transform="rotate(-0 299.019031 56.774071)">MM pretrain</text>
+      <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: end" x="299.019031" y="56.774071" transform="rotate(-0 299.019031 56.774071)">Adapted same-head</text>
      </g>
     </g>
     <g id="ytick_6">
      <g id="line2d_22"/>
      <g id="text_28">
-      <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: end" x="299.019031" y="79.753853" transform="rotate(-0 299.019031 79.753853)">MM e5</text>
+      <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: end" x="299.019031" y="79.753853" transform="rotate(-0 299.019031 79.753853)">MM pretrain</text>
      </g>
     </g>
     <g id="ytick_7">
      <g id="line2d_23"/>
      <g id="text_29">
-      <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: end" x="299.019031" y="102.733635" transform="rotate(-0 299.019031 102.733635)">MM e6 TN10</text>
+      <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: end" x="299.019031" y="102.733635" transform="rotate(-0 299.019031 102.733635)">MM e5</text>
+     </g>
+    </g>
+    <g id="ytick_8">
+     <g id="line2d_24"/>
+     <g id="text_30">
+      <text style="font-size: 7px; font-family: 'DejaVu Sans'; text-anchor: end" x="299.019031" y="125.713417" transform="rotate(-0 299.019031 125.713417)">MM e6 TN10</text>
      </g>
     </g>
    </g>
-   <g id="line2d_24">
+   <g id="line2d_25">
     <path d="M 485.237493 140.2888
 L 485.237493 13.9
 " clip-path="url(#p2f2a3550c4)" style="fill: none; stroke: #222222; stroke-width: 0.8; stroke-linecap: square"/>
@@ -349,18 +355,23 @@ L 485.237493 31.134836
 " clip-path="url(#p2f2a3550c4)" style="fill: none; stroke: #d55e00; stroke-width: 2.2"/>
    </g>
    <g id="LineCollection_5">
-    <path d="M 432.88367 54.114618
+    <path d="M 431.195999 54.114618
 L 485.237493 54.114618
 " clip-path="url(#p2f2a3550c4)" style="fill: none; stroke: #d55e00; stroke-width: 2.2"/>
    </g>
    <g id="LineCollection_6">
-    <path d="M 437.019345 77.0944
+    <path d="M 432.88367 77.0944
 L 485.237493 77.0944
 " clip-path="url(#p2f2a3550c4)" style="fill: none; stroke: #d55e00; stroke-width: 2.2"/>
    </g>
    <g id="LineCollection_7">
-    <path d="M 325.373786 100.074182
+    <path d="M 437.019345 100.074182
 L 485.237493 100.074182
+" clip-path="url(#p2f2a3550c4)" style="fill: none; stroke: #d55e00; stroke-width: 2.2"/>
+   </g>
+   <g id="LineCollection_8">
+    <path d="M 325.373786 123.053964
+L 485.237493 123.053964
 " clip-path="url(#p2f2a3550c4)" style="fill: none; stroke: #d55e00; stroke-width: 2.2"/>
    </g>
    <g id="patch_6">
@@ -373,50 +384,47 @@ L 503.819031 140.2888
      <use xlink:href="#mae483caaad" x="414.367673" y="31.134836" style="fill: #d55e00; stroke: #ffffff"/>
     </g>
    </g>
-   <g id="text_30">
+   <g id="text_31">
     <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(419.367673 30.203955)">q05 -0.229</text>
     <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(419.367673 37.818468)">50.0% neg.</text>
    </g>
    <g id="PathCollection_5">
     <g clip-path="url(#p2f2a3550c4)">
-     <use xlink:href="#mae483caaad" x="432.88367" y="54.114618" style="fill: #d55e00; stroke: #ffffff"/>
-    </g>
-   </g>
-   <g id="text_31">
-    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(437.88367 53.183737)">q05 -0.169</text>
-    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(437.88367 60.798249)">45.8% neg.</text>
-   </g>
-   <g id="PathCollection_6">
-    <g clip-path="url(#p2f2a3550c4)">
-     <use xlink:href="#mae483caaad" x="437.019345" y="77.0944" style="fill: #d55e00; stroke: #ffffff"/>
+     <use xlink:href="#mae483caaad" x="431.195999" y="54.114618" style="fill: #d55e00; stroke: #ffffff"/>
     </g>
    </g>
    <g id="text_32">
-    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(442.019345 76.163519)">q05 -0.156</text>
-    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(442.019345 83.778031)">33.3% neg.</text>
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(436.195999 53.183737)">q05 -0.175</text>
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(436.195999 60.798249)">58.3% neg.</text>
    </g>
-   <g id="PathCollection_7">
+   <g id="PathCollection_6">
     <g clip-path="url(#p2f2a3550c4)">
-     <use xlink:href="#mae483caaad" x="325.373786" y="100.074182" style="fill: #d55e00; stroke: #ffffff"/>
+     <use xlink:href="#mae483caaad" x="432.88367" y="77.0944" style="fill: #d55e00; stroke: #ffffff"/>
     </g>
    </g>
    <g id="text_33">
-    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(330.373786 99.143301)">q05 -0.516</text>
-    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(330.373786 106.757813)">66.7% neg.</text>
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(437.88367 76.163519)">q05 -0.169</text>
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(437.88367 83.778031)">45.8% neg.</text>
+   </g>
+   <g id="PathCollection_7">
+    <g clip-path="url(#p2f2a3550c4)">
+     <use xlink:href="#mae483caaad" x="437.019345" y="100.074182" style="fill: #d55e00; stroke: #ffffff"/>
+    </g>
    </g>
    <g id="text_34">
-    <g id="patch_7">
-     <path d="M 304.375031 139.931024
-L 468.392688 139.931024
-L 468.392688 120.977868
-L 304.375031 120.977868
-z
-" style="fill: #ffffff; stroke: #e5e5e5; stroke-linejoin: miter"/>
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(442.019345 99.143301)">q05 -0.156</text>
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(442.019345 106.757813)">33.3% neg.</text>
+   </g>
+   <g id="PathCollection_8">
+    <g clip-path="url(#p2f2a3550c4)">
+     <use xlink:href="#mae483caaad" x="325.373786" y="123.053964" style="fill: #d55e00; stroke: #ffffff"/>
     </g>
-    <text style="font-weight: 700; font-size: 7px; font-family: 'DejaVu Sans'" transform="translate(306.545031 128.466774)">Parent Isolated-Shared Test5  -2.001 pp</text>
-    <text style="font-weight: 700; font-size: 7px; font-family: 'DejaVu Sans'" transform="translate(306.545031 136.305243)">Parent FPR95 reduction  -0.689 pp (n.s.)</text>
    </g>
    <g id="text_35">
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(330.373786 122.123082)">q05 -0.516</text>
+    <text style="font-size: 6.8px; font-family: 'DejaVu Sans'; fill: #d55e00" transform="translate(330.373786 129.737595)">66.7% neg.</text>
+   </g>
+   <g id="text_36">
     <!-- b  Strong trunk: conflict $\ne$ benefit -->
     <g transform="translate(302.519031 7.9)">
      <text>

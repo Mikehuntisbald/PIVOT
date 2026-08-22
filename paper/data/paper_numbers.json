@@ -5,7 +5,7 @@
     "finecops_visual_surface": "ARROW-V uses the preregistered 95.60%-covered exact-support surface",
     "gref": "previously exposed COCO imagery; Rejector-supervision-disjoint excludes only rejector train/calibration images",
     "not_full_grec": "multi-target gRefCOCO expressions are excluded",
-    "ownership": "exclusive ownership benefits ARROW-U2, but the direct pure-GDINO parent and broad pretrained or strong task-tuned MM-GDINO representations favor capacity-matched Shared-Wide; the parent and B58 blocks use different head structures, and phasing is not independently superior",
+    "ownership": "exclusive ownership benefits ARROW-U2; under identical 100k raw-query heads, mixed Stage-B adaptation changes hard isolation from a large direct-parent REC penalty to B58 non-inferiority, but neither its B58 FPR95 advantage nor the parent-to-B58 FPR shift excludes zero; gradient cosine alone is not a topology selector",
     "positive_trust": "no standalone held-out causal gain is supported",
     "support": "visual support controls Admission but is not necessary for every correct top-1 prediction",
     "task": "single-target selective visual grounding; emit one box or abstain",
@@ -1508,6 +1508,678 @@
       "surface": "Test5 micro",
       "unit": "fraction",
       "value": 0.007201062862293607
+    },
+    "b58_raw_query.bootstrap.replicates": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.bootstrap.replicates",
+      "notes": "",
+      "source_json_path": "statistics.bootstrap.replicates",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "exact_statistical_protocol",
+      "surface": "paired image-cluster bootstrap",
+      "unit": "replicates",
+      "value": 5000
+    },
+    "b58_raw_query.contrast.isolated_vs_shared_wide.fpr95_gain": {
+      "ci95": [
+        -0.004438530219780223,
+        0.010998262318803147
+      ],
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.contrast.isolated_vs_shared_wide.fpr95_gain",
+      "notes": "",
+      "source_json_path": "statistics.isolated_minus_shared_wide.fpr95_gain",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "planned_strict_same_head_contrast",
+      "surface": "Test5 + RefCOCO TestAB + Strict-TN2031",
+      "unit": "absolute",
+      "value": 0.005251928442475018
+    },
+    "b58_raw_query.contrast.isolated_vs_shared_wide.iut_p": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.contrast.isolated_vs_shared_wide.iut_p",
+      "notes": "",
+      "source_json_path": "statistics.isolated_minus_shared_wide.iut_p",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "planned_strict_same_head_contrast",
+      "surface": "Test5 + RefCOCO TestAB + Strict-TN2031",
+      "unit": "p_value",
+      "value": 0.17476504699060189
+    },
+    "b58_raw_query.contrast.isolated_vs_shared_wide.test5_gain": {
+      "ci95": [
+        -0.0009512209292277686,
+        -0.00010945829551565483
+      ],
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.contrast.isolated_vs_shared_wide.test5_gain",
+      "notes": "",
+      "source_json_path": "statistics.isolated_minus_shared_wide.test5_gain",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "planned_strict_same_head_contrast",
+      "surface": "Test5 + RefCOCO TestAB + Strict-TN2031",
+      "unit": "absolute",
+      "value": -0.0005274091295596195
+    },
+    "b58_raw_query.contrast.isolated_vs_shared_wide.testab_gain": {
+      "ci95": [
+        -0.0010369204817503308,
+        0.0005357663545275549
+      ],
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.contrast.isolated_vs_shared_wide.testab_gain",
+      "notes": "",
+      "source_json_path": "statistics.isolated_minus_shared_wide.testab_gain",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "planned_strict_same_head_contrast",
+      "surface": "Test5 + RefCOCO TestAB + Strict-TN2031",
+      "unit": "absolute",
+      "value": -0.00021701388888883955
+    },
+    "b58_raw_query.isolated_128.refcoco_testA": {
+      "by_seed": {
+        "17": 0.7256496376171115,
+        "42": 0.7252960933356903,
+        "73": 0.7252960933356903
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.refcoco_testA",
+      "notes": "",
+      "sample_sd": 0.0002041188860489844,
+      "source_json_path": "statistics.point_metrics.isolated_128.splits.refcoco_testA.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcoco_testA",
+      "unit": "fraction",
+      "value": 0.7254139414294974
+    },
+    "b58_raw_query.isolated_128.refcoco_testB": {
+      "by_seed": {
+        "17": 0.5831207065750736,
+        "42": 0.5833169774288518,
+        "73": 0.5831207065750736
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.refcoco_testB",
+      "notes": "",
+      "sample_sd": 0.000113317030262897,
+      "source_json_path": "statistics.point_metrics.isolated_128.splits.refcoco_testB.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcoco_testB",
+      "unit": "fraction",
+      "value": 0.5831861301929997
+    },
+    "b58_raw_query.isolated_128.refcocog_test": {
+      "by_seed": {
+        "17": 0.8202457821287232,
+        "42": 0.8201416371589252,
+        "73": 0.8201416371589252
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.refcocog_test",
+      "notes": "",
+      "sample_sd": 6.012812634764839e-05,
+      "source_json_path": "statistics.point_metrics.isolated_128.splits.refcocog_test.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocog_test",
+      "unit": "fraction",
+      "value": 0.820176352148858
+    },
+    "b58_raw_query.isolated_128.refcocop_testA": {
+      "by_seed": {
+        "17": 0.7493887530562348,
+        "42": 0.7493887530562348,
+        "73": 0.7479916171847713
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.refcocop_testA",
+      "notes": "",
+      "sample_sd": 0.0008066367714839377,
+      "source_json_path": "statistics.point_metrics.isolated_128.splits.refcocop_testA.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocop_testA",
+      "unit": "fraction",
+      "value": 0.7489230410990803
+    },
+    "b58_raw_query.isolated_128.refcocop_testB": {
+      "by_seed": {
+        "17": 0.6330537942319493,
+        "42": 0.63325833503784,
+        "73": 0.6328492534260585
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.refcocop_testB",
+      "notes": "",
+      "sample_sd": 0.00020454080589077384,
+      "source_json_path": "statistics.point_metrics.isolated_128.splits.refcocop_testB.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocop_testB",
+      "unit": "fraction",
+      "value": 0.6330537942319493
+    },
+    "b58_raw_query.isolated_128.strict_aupr": {
+      "by_seed": {
+        "17": 0.7551686444817292,
+        "42": 0.8248660511486382,
+        "73": 0.828232941975808
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.strict_aupr",
+      "notes": "",
+      "sample_sd": 0.04124612308698001,
+      "source_json_path": "statistics.point_metrics.isolated_128.strict2031_aupr.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8027558792020585
+    },
+    "b58_raw_query.isolated_128.strict_auroc": {
+      "by_seed": {
+        "17": 0.812111556933508,
+        "42": 0.8437260376522348,
+        "73": 0.8476269230181812
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.strict_auroc",
+      "notes": "",
+      "sample_sd": 0.01947662498946432,
+      "source_json_path": "statistics.point_metrics.isolated_128.strict2031_auroc.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8344881725346412
+    },
+    "b58_raw_query.isolated_128.strict_fpr95": {
+      "by_seed": {
+        "17": 0.4707040866568193,
+        "42": 0.4603643525356967,
+        "73": 0.46134908911866074
+      },
+      "direction": "lower_is_better",
+      "key": "b58_raw_query.isolated_128.strict_fpr95",
+      "notes": "",
+      "sample_sd": 0.005706659658858925,
+      "source_json_path": "statistics.point_metrics.isolated_128.strict2031_fpr95.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.4641391761037255
+    },
+    "b58_raw_query.isolated_128.test5": {
+      "by_seed": {
+        "17": 0.7213019471083987,
+        "42": 0.7212696567535277,
+        "73": 0.7209144628499468
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.test5",
+      "notes": "",
+      "sample_sd": 0.00021499977779322222,
+      "source_json_path": "statistics.point_metrics.isolated_128.test5_micro_p1.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Test5 micro",
+      "unit": "fraction",
+      "value": 0.7211620222372911
+    },
+    "b58_raw_query.isolated_128.testab": {
+      "by_seed": {
+        "17": 0.6581101190476191,
+        "42": 0.6580171130952381,
+        "73": 0.6579241071428571
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.isolated_128.testab",
+      "notes": "",
+      "sample_sd": 9.300595238098674e-05,
+      "source_json_path": "statistics.point_metrics.isolated_128.testab_micro_p1.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.6580171130952381
+    },
+    "b58_raw_query.native.refcoco_testA": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.refcoco_testA",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.splits.refcoco_testA",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcoco_testA",
+      "unit": "fraction",
+      "value": 0.7244122326321372
+    },
+    "b58_raw_query.native.refcoco_testB": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.refcoco_testB",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.splits.refcoco_testB",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcoco_testB",
+      "unit": "fraction",
+      "value": 0.5819430814524044
+    },
+    "b58_raw_query.native.refcocog_test": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.refcocog_test",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.splits.refcocog_test",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocog_test",
+      "unit": "fraction",
+      "value": 0.8196209123099354
+    },
+    "b58_raw_query.native.refcocop_testA": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.refcocop_testA",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.splits.refcocop_testA",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocop_testA",
+      "unit": "fraction",
+      "value": 0.7483409011526371
+    },
+    "b58_raw_query.native.refcocop_testB": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.refcocop_testB",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.splits.refcocop_testB",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocop_testB",
+      "unit": "fraction",
+      "value": 0.6328492534260585
+    },
+    "b58_raw_query.native.strict_aupr": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.strict_aupr",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.strict2031_aupr",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8154707941278956
+    },
+    "b58_raw_query.native.strict_auroc": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.strict_auroc",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.strict2031_auroc",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8306712475584618
+    },
+    "b58_raw_query.native.strict_fpr95": {
+      "direction": "lower_is_better",
+      "key": "b58_raw_query.native.strict_fpr95",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.strict2031_fpr95",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.5022156573116692
+    },
+    "b58_raw_query.native.test5": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.test5",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.test5_micro_p1",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Test5 micro",
+      "unit": "fraction",
+      "value": 0.7204623978817527
+    },
+    "b58_raw_query.native.testab": {
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.native.testab",
+      "notes": "",
+      "source_json_path": "statistics.point_metrics.native.testab_micro_p1",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.6569010416666666
+    },
+    "b58_raw_query.shared_wide.all_milestones.count": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.all_milestones.count",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.all_milestones.count",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": 96
+    },
+    "b58_raw_query.shared_wide.all_milestones.mean": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.all_milestones.mean",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.all_milestones.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": 0.030604846676093683
+    },
+    "b58_raw_query.shared_wide.all_milestones.minimum": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.all_milestones.minimum",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.all_milestones.minimum",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": -0.6233512759208679
+    },
+    "b58_raw_query.shared_wide.all_milestones.p_negative": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.all_milestones.p_negative",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.all_milestones.p_negative",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": 0.4791666666666667
+    },
+    "b58_raw_query.shared_wide.all_milestones.q05": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.all_milestones.q05",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.all_milestones.q05",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed all_milestones gradient probes",
+      "unit": "fraction",
+      "value": -0.4471116289496422
+    },
+    "b58_raw_query.shared_wide.refcoco_testA": {
+      "by_seed": {
+        "17": 0.7254728654764009,
+        "42": 0.7268870426020859,
+        "73": 0.724942549054269
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.refcoco_testA",
+      "notes": "",
+      "sample_sd": 0.0010051689416788814,
+      "source_json_path": "statistics.point_metrics.shared_wide.splits.refcoco_testA.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcoco_testA",
+      "unit": "fraction",
+      "value": 0.7257674857109185
+    },
+    "b58_raw_query.shared_wide.refcoco_testB": {
+      "by_seed": {
+        "17": 0.5831207065750736,
+        "42": 0.5831207065750736,
+        "73": 0.5835132482826301
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.refcoco_testB",
+      "notes": "",
+      "sample_sd": 0.00022663406052585811,
+      "source_json_path": "statistics.point_metrics.shared_wide.splits.refcoco_testB.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcoco_testB",
+      "unit": "fraction",
+      "value": 0.5832515538109257
+    },
+    "b58_raw_query.shared_wide.refcocog_test": {
+      "by_seed": {
+        "17": 0.8198292022495314,
+        "42": 0.8202457821287232,
+        "73": 0.8201416371589252
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.refcocog_test",
+      "notes": "",
+      "sample_sd": 0.00021679504264383688,
+      "source_json_path": "statistics.point_metrics.shared_wide.splits.refcocog_test.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocog_test",
+      "unit": "fraction",
+      "value": 0.8200722071790599
+    },
+    "b58_raw_query.shared_wide.refcocop_testA": {
+      "by_seed": {
+        "17": 0.751309814879497,
+        "42": 0.7506112469437652,
+        "73": 0.7493887530562348
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.refcocop_testA",
+      "notes": "",
+      "sample_sd": 0.0009723654143957022,
+      "source_json_path": "statistics.point_metrics.shared_wide.splits.refcocop_testA.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocop_testA",
+      "unit": "fraction",
+      "value": 0.7504366049598324
+    },
+    "b58_raw_query.shared_wide.refcocop_testB": {
+      "by_seed": {
+        "17": 0.6344855798731847,
+        "42": 0.6344855798731847,
+        "73": 0.6340764982614031
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.refcocop_testB",
+      "notes": "",
+      "sample_sd": 0.00023618337868260253,
+      "source_json_path": "statistics.point_metrics.shared_wide.splits.refcocop_testB.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "refcocop_testB",
+      "unit": "fraction",
+      "value": 0.6343492193359241
+    },
+    "b58_raw_query.shared_wide.strict_aupr": {
+      "by_seed": {
+        "17": 0.8000816226613751,
+        "42": 0.824415100739139,
+        "73": 0.8279582617997382
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.strict_aupr",
+      "notes": "",
+      "sample_sd": 0.015175523908105478,
+      "source_json_path": "statistics.point_metrics.shared_wide.strict2031_aupr.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8174849950667508
+    },
+    "b58_raw_query.shared_wide.strict_auroc": {
+      "by_seed": {
+        "17": 0.8328912685477511,
+        "42": 0.8426436031758846,
+        "73": 0.8459713922143749
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.strict_auroc",
+      "notes": "",
+      "sample_sd": 0.0067979389734188385,
+      "source_json_path": "statistics.point_metrics.shared_wide.strict2031_auroc.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.8405020879793369
+    },
+    "b58_raw_query.shared_wide.strict_fpr95": {
+      "by_seed": {
+        "17": 0.4667651403249631,
+        "42": 0.4692269817823732,
+        "73": 0.47218119153126537
+      },
+      "direction": "lower_is_better",
+      "key": "b58_raw_query.shared_wide.strict_fpr95",
+      "notes": "",
+      "sample_sd": 0.002711753100583985,
+      "source_json_path": "statistics.point_metrics.shared_wide.strict2031_fpr95.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Strict-TN2031",
+      "unit": "fraction",
+      "value": 0.46939110454620053
+    },
+    "b58_raw_query.shared_wide.test5": {
+      "by_seed": {
+        "17": 0.7217217217217218,
+        "42": 0.7219800445606898,
+        "73": 0.7213665278181407
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.test5",
+      "notes": "",
+      "sample_sd": 0.0003080303533911467,
+      "source_json_path": "statistics.point_metrics.shared_wide.test5_micro_p1.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "Test5 micro",
+      "unit": "fraction",
+      "value": 0.7216894313668507
+    },
+    "b58_raw_query.shared_wide.testab": {
+      "by_seed": {
+        "17": 0.6580171130952381,
+        "42": 0.6587611607142857,
+        "73": 0.6579241071428571
+      },
+      "direction": "higher_is_better",
+      "key": "b58_raw_query.shared_wide.testab",
+      "notes": "",
+      "sample_sd": 0.00045878746859339797,
+      "source_json_path": "statistics.point_metrics.shared_wide.testab_micro_p1.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "prospectively_frozen_strict_same_head_control",
+      "surface": "RefCOCO testA+testB micro",
+      "unit": "fraction",
+      "value": 0.658234126984127
+    },
+    "b58_raw_query.shared_wide.u150.count": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.u150.count",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.u150.count",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": 24
+    },
+    "b58_raw_query.shared_wide.u150.mean": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.u150.mean",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.u150.mean",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.03345918822257469
+    },
+    "b58_raw_query.shared_wide.u150.minimum": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.u150.minimum",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.u150.minimum",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.3746834099292755
+    },
+    "b58_raw_query.shared_wide.u150.p_negative": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.u150.p_negative",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.u150.p_negative",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": 0.5833333333333334
+    },
+    "b58_raw_query.shared_wide.u150.q05": {
+      "direction": "descriptive",
+      "key": "b58_raw_query.shared_wide.u150.q05",
+      "notes": "",
+      "source_json_path": "statistics.gradient_probes.shared_wide.u150.q05",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "paired_mechanism_diagnostic",
+      "surface": "fixed u150 gradient probes",
+      "unit": "fraction",
+      "value": -0.17450060099363326
     },
     "cross_benchmark.finecops.auroc_gain": {
       "direction": "higher_is_better_gain",
@@ -7180,6 +7852,54 @@
       "surface": "Strict-TN2031",
       "unit": "absolute",
       "value": 0.0027900869850649435
+    },
+    "parent_to_b58_did.fpr95_reduction": {
+      "ci95": [
+        -0.0011272414244199239,
+        0.02630897044613854
+      ],
+      "direction": "higher_is_better",
+      "key": "parent_to_b58_did.fpr95_reduction",
+      "notes": "",
+      "source_json_path": "statistics.same_head_parent_to_b58.ownership_effect_difference_in_differences.fpr95_reduction.b58_minus_parent_difference_in_differences",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "planned_strict_same_head_difference_in_differences",
+      "surface": "paired parent-to-B58 same-head axis",
+      "unit": "absolute",
+      "value": 0.012145084523223382
+    },
+    "parent_to_b58_did.test5": {
+      "ci95": [
+        0.01686419741278021,
+        0.02207829099266117
+      ],
+      "direction": "higher_is_better",
+      "key": "parent_to_b58_did.test5",
+      "notes": "",
+      "source_json_path": "statistics.same_head_parent_to_b58.ownership_effect_difference_in_differences.test5.b58_minus_parent_difference_in_differences",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "planned_strict_same_head_difference_in_differences",
+      "surface": "paired parent-to-B58 same-head axis",
+      "unit": "absolute",
+      "value": 0.019481847438836686
+    },
+    "parent_to_b58_did.testab": {
+      "ci95": [
+        0.007176411507732769,
+        0.014619405911360595
+      ],
+      "direction": "higher_is_better",
+      "key": "parent_to_b58_did.testab",
+      "notes": "",
+      "source_json_path": "statistics.same_head_parent_to_b58.ownership_effect_difference_in_differences.testab.b58_minus_parent_difference_in_differences",
+      "source_path": "paper/data/b58_raw_query_ownership_results.json",
+      "source_sha256": "fc7b03d66765b43782ab11e9f4aa3baec0f74ae5963da7fe699ddb1255e93105",
+      "status": "planned_strict_same_head_difference_in_differences",
+      "surface": "paired parent-to-B58 same-head axis",
+      "unit": "absolute",
+      "value": 0.010943700396825462
     },
     "rejection_training.c1.fpr95": {
       "by_seed": {

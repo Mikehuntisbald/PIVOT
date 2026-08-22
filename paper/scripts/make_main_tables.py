@@ -215,24 +215,24 @@ def table2(reg: Registry) -> None:
             registered_mean_sd("original_parent.isolated_128", "strict_fpr95"),
         ),
         (
-            "MM pretrain", "Native", "--", "--",
-            pct(reg.value("strong_pretrain.native.test5"), 3),
-            pct(reg.value("strong_pretrain.native.testab"), 3),
-            pct(reg.value("strong_pretrain.native.strict_fpr95"), 3),
+            "Adapted", "Native", "--", "--",
+            pct(reg.value("b58_raw_query.native.test5"), 3),
+            pct(reg.value("b58_raw_query.native.testab"), 3),
+            pct(reg.value("b58_raw_query.native.strict_fpr95"), 3),
         ),
         (
-            "MM pretrain", "Shared-Wide",
-            pct(reg.value("strong_pretrain.shared_wide.u150.p_negative"), 1),
-            f"{reg.value('strong_pretrain.shared_wide.u150.q05'):+.3f}",
-            registered_mean_sd("strong_pretrain.shared_wide", "test5"),
-            registered_mean_sd("strong_pretrain.shared_wide", "testab"),
-            registered_mean_sd("strong_pretrain.shared_wide", "strict_fpr95"),
+            "Adapted", "Shared-Wide",
+            pct(reg.value("b58_raw_query.shared_wide.u150.p_negative"), 1),
+            f"{reg.value('b58_raw_query.shared_wide.u150.q05'):+.3f}",
+            registered_mean_sd("b58_raw_query.shared_wide", "test5"),
+            registered_mean_sd("b58_raw_query.shared_wide", "testab"),
+            registered_mean_sd("b58_raw_query.shared_wide", "strict_fpr95"),
         ),
         (
-            "MM pretrain", "Isolated", "0.0", "no path",
-            registered_mean_sd("strong_pretrain.isolated_128", "test5"),
-            registered_mean_sd("strong_pretrain.isolated_128", "testab"),
-            registered_mean_sd("strong_pretrain.isolated_128", "strict_fpr95"),
+            "Adapted", "Isolated", "0.0", "no path",
+            registered_mean_sd("b58_raw_query.isolated_128", "test5"),
+            registered_mean_sd("b58_raw_query.isolated_128", "testab"),
+            registered_mean_sd("b58_raw_query.isolated_128", "strict_fpr95"),
         ),
     ]
 
@@ -254,14 +254,14 @@ def table2(reg: Registry) -> None:
         f"{reg.value(f'{parent_prefix}.iut_p'):.4f}",
         "fail",
     )]
-    pretrain_prefix = "strong_pretrain.contrast.isolated_vs_shared_wide"
-    pretrain_rec = reg.item(f"{pretrain_prefix}.testab_gain")
-    pretrain_fpr = reg.item(f"{pretrain_prefix}.fpr95_gain")
+    b58_prefix = "b58_raw_query.contrast.isolated_vs_shared_wide"
+    b58_rec = reg.item(f"{b58_prefix}.testab_gain")
+    b58_fpr = reg.item(f"{b58_prefix}.fpr95_gain")
     contrast_rows.append((
-        "MM pretrain: Isolated $-$ Shared-Wide",
-        rf"{signed_pp(float(pretrain_rec['value']), 3)} [{pct(pretrain_rec['ci95'][0], 3)}, {pct(pretrain_rec['ci95'][1], 3)}]",
-        rf"{signed_pp(float(pretrain_fpr['value']), 3)} [{pct(pretrain_fpr['ci95'][0], 3)}, {pct(pretrain_fpr['ci95'][1], 3)}]",
-        f"{reg.value(f'{pretrain_prefix}.iut_p'):.4f}",
+        "Adapted: Isolated $-$ Shared-Wide",
+        rf"{signed_pp(float(b58_rec['value']), 3)} [{pct(b58_rec['ci95'][0], 3)}, {pct(b58_rec['ci95'][1], 3)}]",
+        rf"{signed_pp(float(b58_fpr['value']), 3)} [{pct(b58_fpr['ci95'][0], 3)}, {pct(b58_fpr['ci95'][1], 3)}]",
+        f"{reg.value(f'{b58_prefix}.iut_p'):.4f}",
         "fail",
     ))
     contrast_body = "\n".join(" & ".join(row) + r" \\" for row in contrast_rows)
@@ -291,7 +291,7 @@ $p={frozen_rec_ci['one_sided_p_gain_le_margin']:.4f}$; FPR95 reduction
 [${pct(frozen_fpr_ci['ci95_low'], 3)}$, ${pct(frozen_fpr_ci['ci95_high'], 3)}$],
 $p={frozen_fpr_ci['one_sided_p_gain_le_margin']:.3f}$. Joint gate: \textbf{{fail}}.}}
 \\[5pt]
-\textbf{{(b) Direct parent and MM pretrained representations}}\\[2pt]
+\textbf{{(b) Strict same-head parent $\rightarrow$ adapted axis}}\\[2pt]
 \begin{{tabular}}{{llrrrrr}}
 \toprule
 Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & Test5$\uparrow$ & TestAB$\uparrow$ & FPR95$\downarrow$ \\
@@ -302,7 +302,7 @@ Frozen trunk & Owner & $P(\cos<0)$ (\%) & U150 q05 & Test5$\uparrow$ & TestAB$\u
 \\[3pt]
 \begin{{tabular}}{{lrrrc}}
 \toprule
-Planned contrast & $\Delta$REC [95\% CI] & FPR95 reduction [95\% CI] & Holm-IUT $p$ & Gate \\
+Planned contrast & $\Delta$REC [95\% CI] & FPR95 reduction [95\% CI] & IUT $p$ & Gate \\
 \midrule
 {contrast_body}
 \bottomrule
@@ -312,8 +312,12 @@ Planned contrast & $\Delta$REC [95\% CI] & FPR95 reduction [95\% CI] & Holm-IUT 
 positive FPR95 reduction favors Isolated. Learned rows are fixed U150,
 three-seed mean $\pm$ SD; every bootstrap replicate recomputes positive q05.
 Shared-Wide/Isolated have 100,362/100,358 parameters and matched optimization.
-The direct-parent raw-query heads differ from panel (a)'s integrated heads, so
-the cross-stage trend is not a same-head causal contrast. e5/e6 are supplementary.}}
+Parent/adapted use identical 100k heads.  Ownership-effect DiD:
+{signed_pp(reg.value('parent_to_b58_did.test5'), 3)} pp Test5
+[${pct(reg.item('parent_to_b58_did.test5')['ci95'][0], 3)}$,
+${pct(reg.item('parent_to_b58_did.test5')['ci95'][1], 3)}$] and
+{signed_pp(reg.value('parent_to_b58_did.fpr95_reduction'), 3)} pp FPR95
+(CI crosses zero). MM controls are supplementary.}}
 \end{{table*}}
 """
     write_table("table2_ownership", body, reg)
@@ -1246,11 +1250,108 @@ FPR95 reduction & """ + rf"{signed_pp(fpr['value'], 3)} [{pct(fpr['ci95'][0], 3)
 FPR95 reduction is Shared-Wide minus Isolated. Statistics use """ + f"{int(reg.value('original_parent.bootstrap.replicates')):,}" + r""" paired image-cluster
 replicates and recompute every positive q05. The direct-parent raw-query owners
 have 100,362/100,358 parameters; the existing frozen-base integrated owners have
-83,971/83,969. Their cross-stage difference is descriptive, not a strict
-same-head causal contrast.}
+83,971/83,969.  This table alone is not a cross-stage contrast; the strict
+same-100k-head adapted replay is reported in the next table.}
 \end{table*}
 """
     write_supp_table("supp_original_parent_ownership", body, reg)
+
+
+def supplement_b58_raw_query_ownership_table(reg: Registry) -> None:
+    reg.reset_used()
+
+    def seed_value(key: str, seed: int) -> float:
+        return float(reg.item(key)["by_seed"][str(seed)])
+
+    result_rows = [" & ".join((
+        "Native", "--",
+        pct(reg.value("b58_raw_query.native.test5"), 3),
+        pct(reg.value("b58_raw_query.native.testab"), 3),
+        pct(reg.value("b58_raw_query.native.strict_fpr95"), 3),
+        pct(reg.value("b58_raw_query.native.strict_auroc"), 3),
+        pct(reg.value("b58_raw_query.native.strict_aupr"), 3),
+    )) + r" \\"]
+    for route, label in (("shared_wide", "Shared-Wide"), ("isolated_128", "Isolated")):
+        for seed in (17, 42, 73):
+            result_rows.append(" & ".join((
+                label, {17: "A", 42: "B", 73: "C"}[seed],
+                pct(seed_value(f"b58_raw_query.{route}.test5", seed), 3),
+                pct(seed_value(f"b58_raw_query.{route}.testab", seed), 3),
+                pct(seed_value(f"b58_raw_query.{route}.strict_fpr95", seed), 3),
+                pct(seed_value(f"b58_raw_query.{route}.strict_auroc", seed), 3),
+                pct(seed_value(f"b58_raw_query.{route}.strict_aupr", seed), 3),
+            )) + r" \\")
+
+    gradient_rows = []
+    for horizon, label in (("all_milestones", "all milestones"), ("u150", "final endpoint")):
+        prefix = f"b58_raw_query.shared_wide.{horizon}"
+        gradient_rows.append(" & ".join((
+            label,
+            str(int(reg.value(f"{prefix}.count"))),
+            f"{reg.value(f'{prefix}.mean'):+.4f}",
+            pct(reg.value(f"{prefix}.p_negative"), 1),
+            f"{reg.value(f'{prefix}.q05'):+.4f}",
+            f"{reg.value(f'{prefix}.minimum'):+.4f}",
+        )) + r" \\")
+
+    did_rows = []
+    for endpoint, label in (
+        ("test5", "Test5 ownership effect"),
+        ("testab", "TestAB ownership effect"),
+        ("fpr95_reduction", "FPR95-reduction ownership effect"),
+    ):
+        item = reg.item(f"parent_to_b58_did.{endpoint}")
+        did_rows.append(" & ".join((
+            label,
+            signed_pp(item["value"], 3),
+            rf"[{pct(item['ci95'][0], 3)}, {pct(item['ci95'][1], 3)}]",
+            "excludes zero" if item["ci95"][0] > 0.0 else "crosses zero",
+        )) + r" \\")
+
+    prefix = "b58_raw_query.contrast.isolated_vs_shared_wide"
+    test5 = reg.item(f"{prefix}.test5_gain")
+    testab = reg.item(f"{prefix}.testab_gain")
+    fpr = reg.item(f"{prefix}.fpr95_gain")
+    body = r"""% Generated by paper/scripts/make_main_tables.py.
+\begin{table*}[t]
+\centering
+\caption{Strict same-100k-head adapted-trunk replay and direct-parent difference-in-differences.}
+\label{tab:supp-same-head-stage-axis}
+\scriptsize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llrrrrr}
+\toprule
+Owner & Seed & Test5 & TestAB & FPR95$\downarrow$ & AUROC$\uparrow$ & AUPR$\uparrow$\\
+\midrule
+""" + "\n".join(result_rows) + r"""
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{tabular}{lrrrrr}
+\toprule
+Probe horizon & $n$ & Mean cosine & $P(\cos<0)$ & q05 & Minimum\\
+\midrule
+""" + "\n".join(gradient_rows) + r"""
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{tabular}{lrrl}
+\toprule
+Parent$\rightarrow$adapted DiD & Effect & 95\% CI & Decision\\
+\midrule
+""" + "\n".join(did_rows) + r"""
+\bottomrule
+\end{tabular}
+\parbox{0.98\textwidth}{\scriptsize Adapted-trunk Isolated$-$Shared:
+Test5 """ + rf"{signed_pp(test5['value'], 3)} [{pct(test5['ci95'][0], 3)}, {pct(test5['ci95'][1], 3)}]" + r""",
+TestAB """ + rf"{signed_pp(testab['value'], 3)} [{pct(testab['ci95'][0], 3)}, {pct(testab['ci95'][1], 3)}]" + r""";
+FPR95 reduction """ + rf"{signed_pp(fpr['value'], 3)} [{pct(fpr['ci95'][0], 3)}, {pct(fpr['ci95'][1], 3)}]" + r""".
+All values are percentages or percentage points except cosine.  The 5,000
+paired image-cluster replicates use the same draw across parent/adapted trunks, owners,
+and seeds and recompute every positive q05.}
+\end{table*}
+"""
+    write_supp_table("supp_same_head_stage_axis", body, reg)
 
 
 def supplement_b58_capacity_table(reg: Registry) -> None:
@@ -1420,6 +1521,7 @@ def main() -> None:
     supplement_strong_e6_ownership_table(reg)
     supplement_pretrain_ownership_table(reg)
     supplement_original_parent_ownership_table(reg)
+    supplement_b58_raw_query_ownership_table(reg)
     supplement_b58_capacity_table(reg)
     supplement_cross_dataset_probe_table(reg)
     number_macros(reg)

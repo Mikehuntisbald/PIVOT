@@ -51,9 +51,10 @@ negative-gradient events and substantially damages Ranking; hard isolation
 protects the localization route.  On a strong RefCOCO-tuned MM-GDINO trunk,
 capacity-matched wide sharing is competitive with isolation.  The same control
 on the broad MM-GDINO pretrained trunk, before RefCOCO-specific fine-tuning,
-also slightly favors Shared-Wide; the direct pure-GDINO parent favors sharing
-more strongly, although its head differs from the integrated frozen-base
-control.  A matched TN10
+also slightly favors Shared-Wide.  A strict same-head replay isolates mixed
+adaptation: Isolated loses 2.00 Test5 points on the direct pure-GDINO parent
+but only 0.05 on its adapted descendant and becomes non-inferior; the rejection-effect
+shift does not exclude zero.  A matched TN10
 continuation deepens the negative cosine tail without creating an isolation
 benefit, showing that gradient conflict alone is not a sufficient allocation
 rule.  The robust conclusion is thus conditional: decision semantics should be
@@ -75,8 +76,8 @@ Our contributions are:
   grounding as Admission, Ranking, and Abstention, with explicit deployed
   semantics and failure attribution.
   \item \textbf{Representation-dependent interference controls.}  Matched
-  shared and isolated owners show when hard separation protects Ranking and
-  when a strong representation supports effective sharing.
+  shared and isolated owners, including a same-head parent-to-adapted axis, show
+  when hard separation protects Ranking and when adaptation removes its cost.
   \item \textbf{Functional and external validation.}  Category-switch
   interventions reveal Admission controllability, while two external negative
   constructions separate transferable rejection ordering from calibration.

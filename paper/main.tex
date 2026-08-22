@@ -24,9 +24,10 @@ queries.  Its released ARROW-U2 instance improves a five-split RefCOCO-family
 endpoint by 2.08 points and reduces verified-negative FPR95 by 4.19 points,
 without letting confidence alter the selected box.  Capacity-matched controls
 show that Ranking--Abstention interference depends on representation strength:
-isolation recovers 5.31 localization points on one frozen representation, but
-a direct pre-Stage-B GroundingDINO parent and broad or task-tuned MM-GDINO
-representations favor wide sharing, even with negative-gradient tails.  A
+isolation recovers 5.31 localization points on one frozen representation. With
+identical 100k heads, it loses 2.00 points on a direct GroundingDINO parent but
+only 0.05 after mixed-supervision adaptation; the rejection shift remains
+unresolved despite negative-gradient tails.  A
 fresh category-switch test distinguishes learned-null, category-text, and
 visual-support Admission despite similar standard accuracy.  FineCops-Ref and
 restricted gRefCOCO further show that rejection ordering transfers more
