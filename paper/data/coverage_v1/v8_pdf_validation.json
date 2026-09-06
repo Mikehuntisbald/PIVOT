@@ -1,0 +1,750 @@
+{
+  "artifacts": {
+    "main": {
+      "bibtex_diagnostics": {
+        "errors": [],
+        "output_pages": null,
+        "warnings": []
+      },
+      "bibtex_log": {
+        "path": "/media/haoyi/T9/pivot/paper/.build/empirical_v8/empirical_study_v8.blg",
+        "sha256": "cb46bff88668cc4d21d2090bd8ab89d5d2b3e03aa6206fac28d9a24af2e5e3ab"
+      },
+      "fonts": [
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "IHAIZV+NimbusSanL-Regu",
+          "object": "4",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "BZIVMZ+NimbusSanL-Bold",
+          "object": "5",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "IXFAWU+NimbusRomNo9L-Medi",
+          "object": "6",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "TQTHRL+NimbusRomNo9L-Regu",
+          "object": "7",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "YEUUOC+NimbusRomNo9L-ReguItal",
+          "object": "8",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "AKHCZK+CMR10",
+          "object": "59",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "VDVGTR+CMMI10",
+          "object": "60",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "CAFSZL+CMMI7",
+          "object": "61",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "DDIEWW+CMR7",
+          "object": "62",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "FKPJSN+CMSY7",
+          "object": "63",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "PVTTLK+CMSY5",
+          "object": "64",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "JAGKKY+CMSY10",
+          "object": "65",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Identity-H",
+          "generation": "0",
+          "name": "EVICAO+DejaVuSans-Bold",
+          "object": "17",
+          "subset": "yes",
+          "type": "CID TrueType",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Identity-H",
+          "generation": "0",
+          "name": "BMQQDV+DejaVuSans",
+          "object": "24",
+          "subset": "yes",
+          "type": "CID TrueType",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "NOMARO+CMSY9",
+          "object": "73",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "KPXLOM+CMR9",
+          "object": "74",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "UTACNV+CMMI9",
+          "object": "75",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "FZDNHS+CMMI6",
+          "object": "76",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "DZGKAF+CMEX10",
+          "object": "77",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "GJMHKB+CMR6",
+          "object": "84",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Identity-H",
+          "generation": "0",
+          "name": "EVICAO+DejaVuSans-Bold",
+          "object": "86",
+          "subset": "yes",
+          "type": "CID TrueType",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Identity-H",
+          "generation": "0",
+          "name": "BMQQDV+DejaVuSans",
+          "object": "93",
+          "subset": "yes",
+          "type": "CID TrueType",
+          "unicode": "yes"
+        }
+      ],
+      "page_contract": {
+        "body_limit": 8,
+        "body_pages_conservative": 6,
+        "method": "isolated References heading and bibliographic rows; mixed page counted; otherwise all pages",
+        "reference_start_shares_body": true,
+        "references_start_page": 6,
+        "requires_visual_confirmation": true,
+        "total_pages": 6,
+        "within_provisional_body_limit": true
+      },
+      "pdf": {
+        "path": "/media/haoyi/T9/pivot/paper/empirical_study_v8.pdf",
+        "sha256": "6f53a2bf79b31be08453d56c9f587a02b1c6ed262a3846c277367d9c9c21de70"
+      },
+      "pdf_objects": {
+        "attachments": 0,
+        "available": true,
+        "checked": true,
+        "external_uris": [],
+        "forbidden_active_actions": 0,
+        "object_visits": 3821,
+        "scope": "reachable objects, not a general PDF security certificate"
+      },
+      "pdfinfo": {
+        "CreationDate": "Sun Sep  6 15:35:29 2026 CST",
+        "Creator": "LaTeX with hyperref",
+        "Custom Metadata": "no",
+        "Encrypted": "no",
+        "File size": "137577 bytes",
+        "Form": "none",
+        "JavaScript": "no",
+        "Metadata Stream": "no",
+        "Optimized": "no",
+        "PDF version": "1.5",
+        "Page rot": "0",
+        "Page size": "612 x 792 pts (letter)",
+        "Pages": 6,
+        "Producer": "xdvipdfmx (0.1)",
+        "Suspects": "no",
+        "Tagged": "no",
+        "UserProperties": "no"
+      },
+      "sources": [
+        {
+          "path": "/media/haoyi/T9/pivot/paper/cvpr.sty",
+          "sha256": "2602473285d1a7df2a445ac89b76e1afa0acab78e056f0369d19770245190153"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/empirical_study_v8.tex",
+          "sha256": "535dc52b56c602d94ea4062e09dc9bfa6d5ce771972386ce5431d1cf9cc00002"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/figure1_study.pdf",
+          "sha256": "86af5b5b5d8fb53fd8e01baee47f376b44615c65667c347628a02ec099f1a371"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/figure2_crossover.pdf",
+          "sha256": "46acb59c87c62d26191436b967e978e3c1b8c713b38c6ea7dd08f083fd00acb2"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/numbers.tex",
+          "sha256": "3bcb6fce82efaaad41e5897004390f1a43608b0620bb19fabf1b6dcdd2a22584"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/table_coverage.tex",
+          "sha256": "76dad76f98a0dcf5267eec2e3bf4c6714f50cd5661be90261dc182314c207e94"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/table_readout.tex",
+          "sha256": "92206da7f51abe6bc6f7d467acbe6c0f6f251e9767154ab00a1c952c781a47db"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/table_states.tex",
+          "sha256": "807a5c496408de5b8eba2b8bc9655e9a1cad8245b2cf357bcf3e1a87fcb253e1"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/publication_ready.tex",
+          "sha256": "e14553569996263516c5ad6703bc1fb3d1ea0812dff7a58bad3fab1e6716ba4b"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/ieeenat_fullname.bst",
+          "sha256": "e38e6166bd7b1e6d23a1b79dcdb55c656e4fcdbe91bdf6b50d827e6b5d1aacfc"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/preamble_empirical_v5.tex",
+          "sha256": "164676ba5f9a69ee31c0175838b55ae87f66a724cccf805f39ab5f41ea9811f3"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/references_empirical_v6.bib",
+          "sha256": "ecbfc95392fc8e9c536c51f1041c6436448b5a7da132bdedb80d24355cce4b8f"
+        }
+      ],
+      "tex_diagnostics": {
+        "errors": [],
+        "output_pages": 6,
+        "warnings": [
+          "Invalid UTF-8 byte or sequence at line 296 replaced by U+FFFD."
+        ]
+      },
+      "tex_log": {
+        "path": "/media/haoyi/T9/pivot/paper/.build/empirical_v8/empirical_study_v8.log",
+        "sha256": "a1050f3ea626a1e8fa896aafa72d47b001a3e7f9c47656418f8171835be1a9e2"
+      },
+      "text_anonymity_markers": []
+    },
+    "supplement": {
+      "bibtex_diagnostics": {
+        "errors": [],
+        "output_pages": null,
+        "warnings": []
+      },
+      "bibtex_log": {
+        "path": "/media/haoyi/T9/pivot/paper/.build/empirical_v8/empirical_supplement_v8.blg",
+        "sha256": "c6bba12cc88cfd3308c54d630e1c826da5c5ee6b8901bbfecc321015e24a4c4b"
+      },
+      "fonts": [
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "IHAIZV+NimbusSanL-Regu",
+          "object": "4",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "BZIVMZ+NimbusSanL-Bold",
+          "object": "5",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "IXFAWU+NimbusRomNo9L-Medi",
+          "object": "6",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "TQTHRL+NimbusRomNo9L-Regu",
+          "object": "7",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "YEUUOC+CMR10",
+          "object": "8",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "AKHCZK+CMSY10",
+          "object": "9",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "VDVGTR+CMSY7",
+          "object": "10",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "CAFSZL+CMR7",
+          "object": "11",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "DDIEWW+CMMI10",
+          "object": "17",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "FKPJSN+CMMI7",
+          "object": "18",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "PVTTLK+CMSY5",
+          "object": "19",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "JAGKKY+CMR5",
+          "object": "20",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "NOMARO+CMEX10",
+          "object": "21",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "KPXLOM+CMSY9",
+          "object": "29",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "UTACNV+CMR9",
+          "object": "30",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "FZDNHS+CMMI8",
+          "object": "31",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "DZGKAF+CMMI6",
+          "object": "32",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "GJMHKB+CMR8",
+          "object": "33",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "NITCSQ+CMSY8",
+          "object": "34",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Builtin",
+          "generation": "0",
+          "name": "UBBQTN+CMMI9",
+          "object": "50",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        },
+        {
+          "embedded": "yes",
+          "encoding": "Custom",
+          "generation": "0",
+          "name": "LPOGEQ+NimbusRomNo9L-ReguItal",
+          "object": "90",
+          "subset": "yes",
+          "type": "Type 1C",
+          "unicode": "yes"
+        }
+      ],
+      "pdf": {
+        "path": "/media/haoyi/T9/pivot/paper/empirical_supplement_v8.pdf",
+        "sha256": "cdcbc825f98e4f5e6ec70c7d28bfc5e1ac540edb60e151b3edd4fb32b2695db3"
+      },
+      "pdf_objects": {
+        "attachments": 0,
+        "available": true,
+        "checked": true,
+        "external_uris": [],
+        "forbidden_active_actions": 0,
+        "object_visits": 2738,
+        "scope": "reachable objects, not a general PDF security certificate"
+      },
+      "pdfinfo": {
+        "CreationDate": "Sun Sep  6 15:35:30 2026 CST",
+        "Creator": "LaTeX with hyperref",
+        "Custom Metadata": "no",
+        "Encrypted": "no",
+        "File size": "116851 bytes",
+        "Form": "none",
+        "JavaScript": "no",
+        "Metadata Stream": "no",
+        "Optimized": "no",
+        "PDF version": "1.5",
+        "Page rot": "0",
+        "Page size": "612 x 792 pts (letter)",
+        "Pages": 22,
+        "Producer": "xdvipdfmx (0.1)",
+        "Suspects": "no",
+        "Tagged": "no",
+        "UserProperties": "no"
+      },
+      "sources": [
+        {
+          "path": "/media/haoyi/T9/pivot/paper/cvpr.sty",
+          "sha256": "2602473285d1a7df2a445ac89b76e1afa0acab78e056f0369d19770245190153"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/empirical_supplement_v8.tex",
+          "sha256": "ce851f259d372ad7e9559a060afa79bfd9e5d4881744e92d0a7dbfd9d67e0dd4"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_cn_difficulty.tex",
+          "sha256": "de4aad693541e8ee4ad3c4ed02bcfad917256071f372eff5389c4ab99c9cfaaf"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_crossovers.tex",
+          "sha256": "7a4b9102b3dbf1fc7c95a361c87ce4ddd833436074d7e3a28ce9760aef4c93d2"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_effects_finecops_val.tex",
+          "sha256": "c35cd66d8fbf1f863a9cc0d21f3254dbdd0ddfeabfe2867b83f43636f0135108"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_effects_gref_full.tex",
+          "sha256": "d4ec98034c09d30b4a4e3306a49fe0e348c34e27ab76148ac15140975aec80af"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_effects_gref_source_disjoint.tex",
+          "sha256": "0a867f57de20d45dc3c621b67f380d7cc1602efe822493d537db40568c1d2e93"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_endpoints_finecops_val.tex",
+          "sha256": "c7ff93b4803e8d38c3a3d0a8cc91e0354b863b848e0ce606633b55e878da4852"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_endpoints_gref_full.tex",
+          "sha256": "76cf64d1e48faef28d32be1d35ed496835d59db16512d1ccaa2e7205eff4ea5a"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_endpoints_gref_source_disjoint.tex",
+          "sha256": "ef8b50088b962e9faa60bac822aea5dacb8e806a6c9cb4f7274014ad23a32615"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_seeds_finecops_val.tex",
+          "sha256": "fd8b67ad62204c384281e392c71cb50336495410b3f671974f938a3bdd5cf249"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_seeds_gref_full.tex",
+          "sha256": "26b458fd7ea6f93e28007734b531136488966df34e1726c23c358fd7ac511952"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/supp_seeds_gref_source_disjoint.tex",
+          "sha256": "2dfc1eb3a692249d28df38b6d2a18d88265620f08eba5067d294e7b58ed7ab9d"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/publication_ready.tex",
+          "sha256": "e14553569996263516c5ad6703bc1fb3d1ea0812dff7a58bad3fab1e6716ba4b"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_complete_endpoints.tex",
+          "sha256": "7fa6adab141f2992b231d03bde8c6844255b28057acd94e8c0c85dbf6c059170"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_condition_counts.tex",
+          "sha256": "8009e937402982610eb33552f95948fb86bfce98d557268ac7c31b6d7c278eed"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_conditionals.tex",
+          "sha256": "a0d9c294291b46b0b2e22f483f06ac1ecbcc6a0b9c89258546934c6e30a3ba38"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_cross_readouts.tex",
+          "sha256": "a771be9f35d6a04f1ee48cb704409f7e842e66b8d0b592d142f62816538157ba"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_crossovers.tex",
+          "sha256": "c291bf12eddfc720928964f38ef98e3b7ca7ccef3a86ed2126ab9c2d9e869bfb"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_fixed_coverage.tex",
+          "sha256": "8cb1a6bb8ed6841482a30c069b6eea9378d9e337b9533bbb6f7ab4817b444f47"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_parent_pairs.tex",
+          "sha256": "6bfc227820cab835d00db8b3e86f7211858d973832b8b4b73aba7345997491c1"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_seed_effects.tex",
+          "sha256": "7390982010f27ed48151dcc88d25dca340b75d211d05a2b71e1784048986113b"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_seed_endpoints.tex",
+          "sha256": "90174b60713b55b1cee08a5a162bcfa16a9c913ceedb5e0ed4eda96909caadd4"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/supp_winner_geometry.tex",
+          "sha256": "c7aeb744811de61482fa7028c80995cdc719b3184fa81c1b29b8713dc12c7ff4"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/generated/readout_v6/table_combinations.tex",
+          "sha256": "7c8b4d7ee5a6d4c05cd933edeeb053a7141446f53cf06e07a6d4b5025639e369"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/ieeenat_fullname.bst",
+          "sha256": "e38e6166bd7b1e6d23a1b79dcdb55c656e4fcdbe91bdf6b50d827e6b5d1aacfc"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/preamble_empirical_v5.tex",
+          "sha256": "164676ba5f9a69ee31c0175838b55ae87f66a724cccf805f39ab5f41ea9811f3"
+        },
+        {
+          "path": "/media/haoyi/T9/pivot/paper/references_empirical_v6.bib",
+          "sha256": "ecbfc95392fc8e9c536c51f1041c6436448b5a7da132bdedb80d24355cce4b8f"
+        }
+      ],
+      "tex_diagnostics": {
+        "errors": [],
+        "output_pages": 22,
+        "warnings": [
+          "Invalid UTF-8 byte or sequence at line 296 replaced by U+FFFD."
+        ]
+      },
+      "tex_log": {
+        "path": "/media/haoyi/T9/pivot/paper/.build/empirical_v8/empirical_supplement_v8.log",
+        "sha256": "f052867e2a7bdd59e57c530c3f2012247b35fd1648153abca12d61c9df839065"
+      },
+      "text_anonymity_markers": []
+    }
+  },
+  "code": {
+    "path": "/media/haoyi/T9/pivot/paper/scripts/validate_empirical_pdf.py",
+    "sha256": "d4c4f4d9cf560c51088bae5b292426a1890a6d327d4d4094c9daefacd6925e6e"
+  },
+  "commands": {
+    "pdffonts": "/usr/bin/pdffonts",
+    "pdfinfo": "/usr/bin/pdfinfo",
+    "pdftotext": "/usr/bin/pdftotext"
+  },
+  "distribution_status": "local_artifact_audit_not_anonymous_release",
+  "errors": [],
+  "not_verified": [
+    "visual legibility and figure semantics",
+    "scientific claims and statistics",
+    "source-to-PDF compilation provenance",
+    "official target-venue rules",
+    "absence of every identifying cue",
+    "dataset distribution rights"
+  ],
+  "schema": "arrow.paper.empirical_pdf_validation/v1",
+  "scope": "explicit PDF/log/source checks, provisional page bound, embedding and bounded anonymity scan",
+  "status": "passed_required_artifact_checks",
+  "submission_ready": false,
+  "venue_2027_rules_verified": false,
+  "warnings": [
+    "main: Invalid UTF-8 byte or sequence at line 296 replaced by U+FFFD.",
+    "supplement: Invalid UTF-8 byte or sequence at line 296 replaced by U+FFFD."
+  ]
+}

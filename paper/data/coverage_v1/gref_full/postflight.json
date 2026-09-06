@@ -1,0 +1,27 @@
+{
+  "detector_forwards": 0,
+  "native_parity_with_v6": true,
+  "optimizer_updates": 0,
+  "protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+    "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+  },
+  "records": {
+    "17": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/gref_full/seed17.jsonl",
+      "sha256": "8b88cd0369254ddb66123409e40651778480c040f1f4496fdb143bc194e3b34b"
+    },
+    "42": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/gref_full/seed42.jsonl",
+      "sha256": "265d3e6cadea42e2f57b2a6c4114bb860c29c90925d555a28ba7a1f2e13984cf"
+    },
+    "73": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/gref_full/seed73.jsonl",
+      "sha256": "391bbb1577536ca7d270e57459030ff667d368fb1e48dbeb0612b3d2d0a6d40e"
+    }
+  },
+  "schema": "arrow.confidence_coverage.evaluation_postflight/v1",
+  "status": "complete",
+  "surface": "gref_full",
+  "threshold_fitting": false
+}

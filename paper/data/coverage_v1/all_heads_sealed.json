@@ -1,0 +1,37 @@
+{
+  "postflights": {
+    "17": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed17/postflight.json",
+      "sha256": "892d294f6aaa017541b7b461d302c377bddf2c26bf6b4cef665d2bf73c79c240"
+    },
+    "42": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed42/postflight.json",
+      "sha256": "8a02bd94e8038473dae01833aecd56dfa4329882f0601c16714d656003850253"
+    },
+    "73": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed73/postflight.json",
+      "sha256": "902ac192d3cec884b3f1b95394f8f8c70af00e639b8fdfbf3d202931461be3d7"
+    }
+  },
+  "protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+    "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+  },
+  "schema": "arrow.confidence_coverage.all_heads_sealed/v1",
+  "status": "complete",
+  "terminals": {
+    "17": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/terminal.json",
+      "sha256": "98103498aaf6fa3893ae855a5b66f66820310e9fecbd6883a7cce3ddf5b9864a"
+    },
+    "42": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/terminal.json",
+      "sha256": "98103498aaf6fa3893ae855a5b66f66820310e9fecbd6883a7cce3ddf5b9864a"
+    },
+    "73": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/terminal.json",
+      "sha256": "98103498aaf6fa3893ae855a5b66f66820310e9fecbd6883a7cce3ddf5b9864a"
+    }
+  },
+  "trajectories": 12
+}

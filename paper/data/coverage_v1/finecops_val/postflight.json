@@ -1,0 +1,27 @@
+{
+  "detector_forwards": 0,
+  "native_parity_with_v6": true,
+  "optimizer_updates": 0,
+  "protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+    "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+  },
+  "records": {
+    "17": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/finecops_val/seed17.jsonl",
+      "sha256": "4db23247d7f00a9931169377a0e8bb30e8a3f61595cb0305ea2f64b3a978f5de"
+    },
+    "42": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/finecops_val/seed42.jsonl",
+      "sha256": "0a6821e25fb416822bb6bcc2014a78e825f07a91f7ec2013738034608f635eaa"
+    },
+    "73": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/finecops_val/seed73.jsonl",
+      "sha256": "bfb016a6f215c41b363dfe1b667be265acbe26b7788ec9845516d25fb0ca188f"
+    }
+  },
+  "schema": "arrow.confidence_coverage.evaluation_postflight/v1",
+  "status": "complete",
+  "surface": "finecops_val",
+  "threshold_fitting": false
+}

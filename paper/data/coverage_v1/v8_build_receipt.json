@@ -1,0 +1,128 @@
+{
+  "schema": "arrow.paper.coverage_v8_build/v1",
+  "status": "completed_results_integrated_and_compiled",
+  "pages": {
+    "main": 6,
+    "supplement": 22
+  },
+  "bindings": {
+    "paper/empirical_study_v8.tex": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_study_v8.tex",
+      "sha256": "535dc52b56c602d94ea4062e09dc9bfa6d5ce771972386ce5431d1cf9cc00002"
+    },
+    "paper/empirical_supplement_v8.tex": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_supplement_v8.tex",
+      "sha256": "ce851f259d372ad7e9559a060afa79bfd9e5d4881744e92d0a7dbfd9d67e0dd4"
+    },
+    "paper/empirical_study_v8.pdf": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_study_v8.pdf",
+      "sha256": "6f53a2bf79b31be08453d56c9f587a02b1c6ed262a3846c277367d9c9c21de70"
+    },
+    "paper/empirical_supplement_v8.pdf": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_supplement_v8.pdf",
+      "sha256": "cdcbc825f98e4f5e6ec70c7d28bfc5e1ac540edb60e151b3edd4fb32b2695db3"
+    },
+    "paper/references_empirical_v6.bib": {
+      "path": "/media/haoyi/T9/pivot/paper/references_empirical_v6.bib",
+      "sha256": "ecbfc95392fc8e9c536c51f1041c6436448b5a7da132bdedb80d24355cce4b8f"
+    },
+    "paper/preamble_empirical_v5.tex": {
+      "path": "/media/haoyi/T9/pivot/paper/preamble_empirical_v5.tex",
+      "sha256": "164676ba5f9a69ee31c0175838b55ae87f66a724cccf805f39ab5f41ea9811f3"
+    },
+    "paper/generated/coverage_v8_r2/receipt.json": {
+      "path": "/media/haoyi/T9/pivot/paper/generated/coverage_v8_r2/receipt.json",
+      "sha256": "e3195bb5117aafd41905f085b0179c6f7c5c00b2b80b5ceab81b790020035a8f"
+    },
+    "paper/data/coverage_v1/completion.json": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/completion.json",
+      "sha256": "0c0be0ed76824bb807db9c629e014524f544b8393cf3f036b9b0e3300e4d67ce"
+    },
+    "paper/data/coverage_v1/v8_tests.xml": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/v8_tests.xml",
+      "sha256": "db5b3e16dd16335c80864d4934eb8f1732a225e66a5eeb9ada69fe75cbafbbc8"
+    },
+    "paper/data/coverage_v1/v8_pdf_validation.json": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/v8_pdf_validation.json",
+      "sha256": "b521bb2fd64fb590fa9beba8e253649bb1fe3d47e59d5e7642268d172c84077c"
+    },
+    "docs/coverage_v8_results_and_story_20260906.md": {
+      "path": "/media/haoyi/T9/pivot/docs/coverage_v8_results_and_story_20260906.md",
+      "sha256": "5e9e83f811165e55e73680f46dde8a0551b17b2500c84071f032fd06cf380dca"
+    },
+    "paper/scripts/build_coverage_v8_assets.py": {
+      "path": "/media/haoyi/T9/pivot/paper/scripts/build_coverage_v8_assets.py",
+      "sha256": "7448b326f535bada332acd036ff4858f0c9449f8a2fea816d83a777123cc80e2"
+    },
+    "tests/test_coverage_v8_assets.py": {
+      "path": "/media/haoyi/T9/pivot/tests/test_coverage_v8_assets.py",
+      "sha256": "e6e60f0f5f35daebf41d6e61b33df13d37a203bd139eeb75d56fc9f609b89e67"
+    },
+    "paper/.build/empirical_v8/empirical_study_v8.log": {
+      "path": "/media/haoyi/T9/pivot/paper/.build/empirical_v8/empirical_study_v8.log",
+      "sha256": "a1050f3ea626a1e8fa896aafa72d47b001a3e7f9c47656418f8171835be1a9e2"
+    },
+    "paper/.build/empirical_v8/empirical_supplement_v8.log": {
+      "path": "/media/haoyi/T9/pivot/paper/.build/empirical_v8/empirical_supplement_v8.log",
+      "sha256": "f052867e2a7bdd59e57c530c3f2012247b35fd1648153abca12d61c9df839065"
+    }
+  },
+  "compilation": {
+    "command": "make -C paper current TECTONIC=/tmp/arrow-tex-MmqYnh/tectonic",
+    "returncode": 0
+  },
+  "scientific_structure": [
+    "controlled target/readout question",
+    "three-state explanation",
+    "target-by-coverage intervention",
+    "frozen transfer",
+    "fixed-combination implications"
+  ],
+  "scope": {
+    "new_heads_in_completed_coverage_study": 12,
+    "coverage_localizers": [
+      "MM-GDINO-T"
+    ],
+    "target_readout_localizers": [
+      "MM-GDINO-T",
+      "MDETR-R101"
+    ],
+    "new_training_this_revision": 0,
+    "new_model_scoring_this_revision": 0,
+    "new_bootstrap_this_revision": 0,
+    "finecops_test_reopened": false
+  },
+  "tests": {
+    "passed": 46,
+    "skipped": 0
+  },
+  "numeric_document_check": {
+    "six_decimal_values": 68,
+    "matched_source_values_or_exact_point_transformations": true
+  },
+  "visual_review": {
+    "main_pages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "supplement_pages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "remaining_supplement_reuses_verified_readout_assets": true,
+    "entire_supplement_fresh_visual_review": false
+  },
+  "known_warning": "Existing lineno.sty UTF-8 warning only; required PDF checks passed.",
+  "previous_versions_preserved": true,
+  "submission_ready": false,
+  "no_upload_performed": true
+}

@@ -1,0 +1,91 @@
+{
+  "schema": "arrow.paper.seed_explicit_v7_1_build/v1",
+  "status": "compiled_and_checked",
+  "pages": {
+    "main": 7,
+    "supplement": 19
+  },
+  "bindings": {
+    "paper/empirical_study_v7_1.tex": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_study_v7_1.tex",
+      "sha256": "2b714f73cbf1eb1f431d6b80259e5ef4b82e438ab8c686096591ff7878942fc8"
+    },
+    "paper/empirical_study_v7_1.pdf": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_study_v7_1.pdf",
+      "sha256": "a2083b84d2b5e90bfcb16b2626875429a1da751b4d186ac676f106121fd53ef7"
+    },
+    "paper/empirical_supplement_v7.pdf": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_supplement_v7.pdf",
+      "sha256": "6e63ceb50bba875c38cdef40e4dc746adb3c5a1110fa8c6f9b91cb4d65bec848"
+    },
+    "paper/generated/evidence_v7_seed_r1/receipt.json": {
+      "path": "/media/haoyi/T9/pivot/paper/generated/evidence_v7_seed_r1/receipt.json",
+      "sha256": "8bac16d276967bb4ed26ecb930437133d8577a7a0fd09beb33eab7e445262943"
+    },
+    "paper/data/coverage_v1/pdf_validation_v7_1.json": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/pdf_validation_v7_1.json",
+      "sha256": "163d0a216c4c865edb03425d5c92569716e9cda2b46dd145719281a6a1ffba80"
+    },
+    "paper/data/coverage_v1/local_tests.xml": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/local_tests.xml",
+      "sha256": "dc210a48ef3c821aa4d9d6fe6aa72bb01e7887a8966fb497c0bbe6425d6c06c1"
+    },
+    "paper/data/coverage_v1/preflight_tests.xml": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/preflight_tests.xml",
+      "sha256": "a17201a3a478dde362136dfd4a456931addcff91ce95907355497e7753ddc2bd"
+    },
+    "paper/data/coverage_v1/protocol.json": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/protocol.json",
+      "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+    },
+    "docs/confidence_coverage_v1_20260906.md": {
+      "path": "/media/haoyi/T9/pivot/docs/confidence_coverage_v1_20260906.md",
+      "sha256": "e38a6571151a991a30a0604a3351f0a6ff3fcebdcf578ba9c0e40eb0aa58c167"
+    }
+  },
+  "preserved_v7_pdfs": {
+    "main": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_study_v7.pdf",
+      "sha256": "e34b008ebec56c9509cd728e223591aefda1e288b3d7fb702d8bce50d2fd3455"
+    },
+    "supplement": {
+      "path": "/media/haoyi/T9/pivot/paper/empirical_supplement_v7.pdf",
+      "sha256": "6e63ceb50bba875c38cdef40e4dc746adb3c5a1110fa8c6f9b91cb4d65bec848"
+    }
+  },
+  "compilation": {
+    "command": "make -C paper empirical-v7-1 TECTONIC=/tmp/arrow-tex-MmqYnh/tectonic",
+    "returncode": 0
+  },
+  "figure_b": {
+    "display": "three paired seed trajectories; black diamonds for mean",
+    "image_CI_not_seed_variability": true,
+    "new_model_scoring": false,
+    "new_bootstrap": false
+  },
+  "coverage_experiment": {
+    "status": "training_in_progress",
+    "new_heads": 12,
+    "not_in_manuscript_results": true
+  },
+  "tests": {
+    "local": {
+      "passed": 40,
+      "skipped": 4
+    },
+    "remote_including_cuda_u1": {
+      "passed": 21,
+      "skipped": 0
+    }
+  },
+  "visual_review": {
+    "figure": true,
+    "main_pages": [
+      2,
+      4,
+      6
+    ],
+    "full_supplement_rereview": false
+  },
+  "submission_ready": false
+}

@@ -1,0 +1,147 @@
+{
+  "allowed_changes": [
+    "metadata_revision",
+    "negative_edit_level",
+    "raw_annotation_level",
+    "schema"
+  ],
+  "audits": {
+    "17": {
+      "all_other_fields_canonical_bitwise_identical": true,
+      "changed_edit_level_records": 8071,
+      "edit_level_changes": [
+        {
+          "from": "1",
+          "records": 112,
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "records": 7959,
+          "to": "None"
+        }
+      ],
+      "protected_projection_sha256": "24f1a877a78d641cd979e80f3dda684e767f6fece10c76903ca117585e844ba8"
+    },
+    "42": {
+      "all_other_fields_canonical_bitwise_identical": true,
+      "changed_edit_level_records": 8071,
+      "edit_level_changes": [
+        {
+          "from": "1",
+          "records": 112,
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "records": 7959,
+          "to": "None"
+        }
+      ],
+      "protected_projection_sha256": "88b57e9cee2df5468d14b64e4531790ba3144e838d003e67e3d45f28186852bb"
+    },
+    "73": {
+      "all_other_fields_canonical_bitwise_identical": true,
+      "changed_edit_level_records": 8071,
+      "edit_level_changes": [
+        {
+          "from": "1",
+          "records": 112,
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "records": 7959,
+          "to": "None"
+        }
+      ],
+      "protected_projection_sha256": "e299d43803a4749b8533400cd1534b33dca57872725da8045121132939ff8e92"
+    }
+  },
+  "description": "Unused diagnostic field only: negative_edit_level now comes from official negative_level; raw annotation level is stored separately.",
+  "localizer": "mdetr_r101_refcoco_ema",
+  "metric_consumed_fields_changed": false,
+  "metric_recompute": false,
+  "model_forward": false,
+  "new_record_schema": "arrow.confidence_readout.record/v2",
+  "official_negative_levels": [
+    {
+      "negative_edit_level": null,
+      "raw_annotation_level": 1,
+      "records": 7959
+    },
+    {
+      "negative_edit_level": 1,
+      "raw_annotation_level": 1,
+      "records": 958
+    },
+    {
+      "negative_edit_level": 2,
+      "raw_annotation_level": 1,
+      "records": 112
+    }
+  ],
+  "original_artifacts_retained": true,
+  "positive_and_parent_difficulty_changed": false,
+  "producer": {
+    "path": "/mnt/why/PIVOT/tools/reconcile_confidence_readout_metadata.py",
+    "sha256": "ec26e2b221691c64383c8fc3ca0d501e5ef825e93a75accee37b50b4c17b11aa"
+  },
+  "records": {
+    "17": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val_metadata_v2/seed17_records_metadata_v2.jsonl",
+      "sha256": "fa105f1a72af6668704dfc962b5ac8ed7ad008bd5e8046c360434abf1c5fe3a1"
+    },
+    "42": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val_metadata_v2/seed42_records_metadata_v2.jsonl",
+      "sha256": "6a8acd232ceb57d3dc1bdd266fa39b931c0bcb1e3dcdd250c89e1267f7325f72"
+    },
+    "73": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val_metadata_v2/seed73_records_metadata_v2.jsonl",
+      "sha256": "2fc26e52ca200149a91609faecb5fb31fe70ff3b25f9d29568fffca52ef77917"
+    }
+  },
+  "revision": "negative_edit_level_from_official_annotation/v1",
+  "sample_order_changed": false,
+  "schema": "arrow.confidence_readout.metadata_erratum/v1",
+  "scores_or_winner_diagnostics_changed": false,
+  "sources": {
+    "cache_index": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/index.jsonl",
+      "rows": 18455,
+      "sha256": "03cb08398b8d9aaa2a4127e90f29939f26c8a36356ea42682c1b1e5d67c8e96b"
+    },
+    "cache_manifest": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/cache/mdetr_r101_refcoco_ema_v2/val/manifest.json",
+      "sha256": "ca6dd84bbbd54dbf280daa6cf43e8420beaf5467d3c18c16533348b014fc035a"
+    },
+    "official_annotation": {
+      "path": "/mnt/why/PIVOT/data/FineCops-Ref/v1/raw/article_files/expression_all_val_set_coco_format.json",
+      "sha256": "ac0bd7e9b883c100001c5bd202fc9dc08c038e79e49d2bb1755836a43d97f832"
+    },
+    "original_evaluation_design": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val/evaluation_lock.json",
+      "sha256": "395309e7ef1f15ebec0076d722135de2d651d90701db487a178a4e6b334b746c"
+    },
+    "original_evaluation_postflight": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val/postflight.json",
+      "sha256": "75e765221b6674949273e529059140fd8690c4c8be31e7e40e8516bcb4ebdd1a"
+    },
+    "original_records": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val/seed17_records.jsonl",
+        "sha256": "9b558f0010707ebf4423d6f68d6a8fe240f2e4cfd822927628bbfafe97e5a118"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val/seed42_records.jsonl",
+        "sha256": "de95bf9f6f3496bf8555047cbc3e64aae18b8685580018a905fcd1444b7083a6"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mdetr_r101_refcoco_ema/finecops_val/seed73_records.jsonl",
+        "sha256": "82523c82f5c495fe0943a4042bc049a64f4927f2c0ab38d401ea1865c6dfb90a"
+      }
+    }
+  },
+  "status": "complete",
+  "threshold_fitting": false
+}

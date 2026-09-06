@@ -1,0 +1,113 @@
+{
+  "commands": {
+    "17": [
+      "/mnt/why/PIVOT/.venv-b32a1/bin/python",
+      "/mnt/why/PIVOT/tools/train_confidence_coverage_heads.py",
+      "--study-protocol",
+      "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+      "--localizer",
+      "mmgdino_positive",
+      "--train-cache",
+      "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/manifest.json",
+      "--val-cache",
+      "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+      "--seed",
+      "17",
+      "--device",
+      "cuda:0",
+      "--output",
+      "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed17"
+    ],
+    "42": [
+      "/mnt/why/PIVOT/.venv-b32a1/bin/python",
+      "/mnt/why/PIVOT/tools/train_confidence_coverage_heads.py",
+      "--study-protocol",
+      "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+      "--localizer",
+      "mmgdino_positive",
+      "--train-cache",
+      "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/manifest.json",
+      "--val-cache",
+      "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+      "--seed",
+      "42",
+      "--device",
+      "cuda:1",
+      "--output",
+      "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed42"
+    ],
+    "73": [
+      "/mnt/why/PIVOT/.venv-b32a1/bin/python",
+      "/mnt/why/PIVOT/tools/train_confidence_coverage_heads.py",
+      "--study-protocol",
+      "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+      "--localizer",
+      "mmgdino_positive",
+      "--train-cache",
+      "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/manifest.json",
+      "--val-cache",
+      "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+      "--seed",
+      "73",
+      "--device",
+      "cuda:2",
+      "--output",
+      "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed73"
+    ]
+  },
+  "finish_time_unix": 1788676494.968577,
+  "launcher": {
+    "path": "/mnt/why/PIVOT/tools/run_confidence_coverage_stage.py",
+    "sha256": "e43c461ef5297233669d65ac1875ab2958e13b4935d2bcb3a2743f5b7684c746"
+  },
+  "localizer": "mmgdino_positive",
+  "pid": 434796,
+  "protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+    "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+  },
+  "schema": "arrow.confidence_coverage.stage_launch/v1",
+  "start_time_unix": 1788675804.9047885,
+  "status": "complete",
+  "terminal": {
+    "17": {
+      "log": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/seed17.log",
+        "sha256": "d068f86863412940ffe17129aa92da22d0b0f3fb66b06c04106e241824b3e163"
+      },
+      "postflight": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed17/postflight.json",
+        "sha256": "892d294f6aaa017541b7b461d302c377bddf2c26bf6b4cef665d2bf73c79c240"
+      },
+      "returncode": 0
+    },
+    "42": {
+      "log": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/seed42.log",
+        "sha256": "1e4918f7ed0301ada15c482fbfe2e499f6d92385eca8d0804e217c5f1a5ace39"
+      },
+      "postflight": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed42/postflight.json",
+        "sha256": "8a02bd94e8038473dae01833aecd56dfa4329882f0601c16714d656003850253"
+      },
+      "returncode": 0
+    },
+    "73": {
+      "log": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/seed73.log",
+        "sha256": "3561fa37bd5574b7b52bdb6fe8fcbac47c6257b9923a13fbee04bb60ca60555b"
+      },
+      "postflight": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/heads/mmgdino_positive/seed73/postflight.json",
+        "sha256": "902ac192d3cec884b3f1b95394f8f8c70af00e639b8fdfbf3d202931461be3d7"
+      },
+      "returncode": 0
+    }
+  },
+  "training_metrics_selection": false,
+  "workers": {
+    "17": 434797,
+    "42": 434798,
+    "73": 434799
+  }
+}

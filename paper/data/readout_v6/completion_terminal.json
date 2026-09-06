@@ -1,0 +1,24 @@
+{
+  "command": [
+    "env",
+    "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1",
+    ".venv-b32a1/bin/python",
+    "tools/run_confidence_readout_completion.py",
+    "--protocol",
+    "outputs/arrow_confidence_readout_v6_20260905/protocol.json",
+    "--head-python",
+    ".venv-b32a1/bin/python",
+    "--mdetr-python",
+    ".venv-mdetr-readout-v6/bin/python",
+    "--mdetr-preparation",
+    "outputs/arrow_confidence_readout_v6_20260905/mdetr_preparation_v2.json",
+    "--supersedes",
+    "outputs/arrow_confidence_readout_v6_20260905/launches/completion_1788629992691853288/state.json"
+  ],
+  "finished_unix": 1788637619.4513834,
+  "pid": 425901,
+  "returncode": 0,
+  "schema": "arrow.confidence_readout.job/v1",
+  "started_unix": 1788632627.1755795,
+  "supervisor_pid": 425900
+}

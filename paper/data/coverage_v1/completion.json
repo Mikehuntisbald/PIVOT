@@ -1,0 +1,65 @@
+{
+  "analyses": {
+    "finecops_val": {
+      "command": [
+        "/mnt/why/PIVOT/.venv-b32a1/bin/python",
+        "/mnt/why/PIVOT/tools/evaluate_confidence_coverage.py",
+        "analyze",
+        "--protocol",
+        "outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+        "--surface",
+        "finecops_val"
+      ],
+      "result": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/analysis/finecops_val.json",
+        "sha256": "4a04e3cfa770954d4fe85d28c5266f44ce69823403e0a3f21a66a54f5f32cd21"
+      },
+      "returncode": 0
+    },
+    "gref_full": {
+      "command": [
+        "/mnt/why/PIVOT/.venv-b32a1/bin/python",
+        "/mnt/why/PIVOT/tools/evaluate_confidence_coverage.py",
+        "analyze",
+        "--protocol",
+        "outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+        "--surface",
+        "gref_full"
+      ],
+      "result": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/analysis/gref_full.json",
+        "sha256": "5f17640d90ad420f36dc0210d5db9e2c9d279665be8e0679b81f532a2e3bc015"
+      },
+      "returncode": 0
+    },
+    "gref_source_disjoint": {
+      "command": [
+        "/mnt/why/PIVOT/.venv-b32a1/bin/python",
+        "/mnt/why/PIVOT/tools/evaluate_confidence_coverage.py",
+        "analyze",
+        "--protocol",
+        "outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+        "--surface",
+        "gref_source_disjoint"
+      ],
+      "result": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/analysis/gref_source_disjoint.json",
+        "sha256": "a5576533bd3ca64d44887d548f206663c531ff54fc4f8ea7886eed0eeab639c3"
+      },
+      "returncode": 0
+    }
+  },
+  "detector_forwards": 0,
+  "finecops_test_access": false,
+  "new_heads": 12,
+  "protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+    "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+  },
+  "schema": "arrow.confidence_coverage.completion/v1",
+  "status": "complete",
+  "training_terminal": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/terminal.json",
+    "sha256": "98103498aaf6fa3893ae855a5b66f66820310e9fecbd6883a7cce3ddf5b9864a"
+  }
+}

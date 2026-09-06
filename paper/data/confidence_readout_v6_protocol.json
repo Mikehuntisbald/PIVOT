@@ -1,0 +1,339 @@
+{
+  "analysis_implementation": "separate append-only hash lock required before any new model scoring",
+  "bootstrap": {
+    "aggregation": "recompute each seed metric then equal-weight mean",
+    "fpr95_threshold": "recompute positive q05 inside every replicate",
+    "gref_strata": "TestA/TestB",
+    "interval": "exploratory paired 95 percent",
+    "iterations": 5000,
+    "rng": "PCG64",
+    "seed": 20260911,
+    "shared_draws": "all localizers, targets, readouts, combinations, and three seeds within surface",
+    "unit": "paired image cluster"
+  },
+  "claims": {
+    "G_to_S_intervention": [
+      "scored query",
+      "query competition",
+      "training gradient location"
+    ],
+    "acceptance": "all heads/seeds/evaluations complete regardless of winners",
+    "paper_order": [
+      "question",
+      "target-by-readout",
+      "three-state explanation",
+      "second-model scope",
+      "combination implications"
+    ],
+    "second_model": "within-model target/readout effect; lineage disclosed, not pure architecture comparison",
+    "spatial_correspondence": "hypothesis to test, not established cause"
+  },
+  "code": {
+    "tests/test_confidence_readout.py": {
+      "path": "/mnt/why/PIVOT/tests/test_confidence_readout.py",
+      "sha256": "013dfc12e7595fd35a7c3a0d894ffb94f60d662de30a25218e28ddeb6f42aa1b"
+    },
+    "tools/b32a1_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/b32a1_heads.py",
+      "sha256": "6f2421b22a755961808b27c292fd8a0698fb9547e06b2544fda4a0b1ae6c2fc8"
+    },
+    "tools/b32a1_metrics.py": {
+      "path": "/mnt/why/PIVOT/tools/b32a1_metrics.py",
+      "sha256": "892d12833ededfa0578f0ac626c06e631f58af216cbc2b09f92737d79622b675"
+    },
+    "tools/b32a1_objectives.py": {
+      "path": "/mnt/why/PIVOT/tools/b32a1_objectives.py",
+      "sha256": "3b1b3ea9c297416a2d9cc12d3645c6cdb3910bb2ad2d1ae1b69a7b5df71a321c"
+    },
+    "tools/confidence_readout.py": {
+      "path": "/mnt/why/PIVOT/tools/confidence_readout.py",
+      "sha256": "39c9c9e84dc669827602aa96835fe022766ed69f463b89f46ed977476b7715ce"
+    },
+    "tools/finecops_bce_l2_control.py": {
+      "path": "/mnt/why/PIVOT/tools/finecops_bce_l2_control.py",
+      "sha256": "182c9df9f74b93fe92281d6dd20b102095dd4a86a508b8df2a871be685794c92"
+    },
+    "tools/finecops_fixed_rank_targets.py": {
+      "path": "/mnt/why/PIVOT/tools/finecops_fixed_rank_targets.py",
+      "sha256": "3c654b9e302ab5655b7059e546442960f155d385319e63f28955867a4806adca"
+    },
+    "tools/lock_confidence_readout_study.py": {
+      "path": "/mnt/why/PIVOT/tools/lock_confidence_readout_study.py",
+      "sha256": "40e7d9eaf94ca5c06ecf7fdf152f62821e0e3f9f371e1917962d9b8331a2e1d7"
+    },
+    "tools/mmgdino_e5_ownership.py": {
+      "path": "/mnt/why/PIVOT/tools/mmgdino_e5_ownership.py",
+      "sha256": "4c68e5cfe426752ff9716186daf37406b795736a1388357d1d7671ed699877cb"
+    },
+    "tools/responsibility_isolation_cache.py": {
+      "path": "/mnt/why/PIVOT/tools/responsibility_isolation_cache.py",
+      "sha256": "916214c620e54c05b54c4ef2399de8aca4c8d8acccecb58f67cc3164fb464a6b"
+    },
+    "tools/train_confidence_readout_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/train_confidence_readout_heads.py",
+      "sha256": "8a3bb55eb45b5e482db295ca6050b84e970215b2a43f3dd97ecdfc4ec4fbcfc3"
+    },
+    "tools/train_finecops_bce_l2_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/train_finecops_bce_l2_heads.py",
+      "sha256": "0ad982801e8e1af096657cb006c57965ea51672ee268c634d80c4cfe11c0c5fd"
+    }
+  },
+  "combinations": {
+    "contrasts": [
+      "Native",
+      "global_max__exists",
+      "global_max__emit"
+    ],
+    "degenerate_fallback": "Native, with receipt",
+    "exists_source": "same-seed global_max__exists",
+    "fit": "all 83341 unique TRAIN positives per localizer/seed; population SD",
+    "interpretation": "success is setting/metric specific; failure of two fixed rules does not imply non-composability",
+    "native_boxes_unchanged": true,
+    "product": "log(max(s0,1e-6))+logsigmoid(z)",
+    "sigma_floor": 1e-12,
+    "sirc_style": "-log(max(1-s0,1e-6))-softplus(-(z-(mu-3*sigma))/sigma)"
+  },
+  "diagnostics": [
+    "native_selected_index",
+    "confidence_winner_index",
+    "max_logit",
+    "selected_logit",
+    "winner_native_box_iou",
+    "winner_gt_iou",
+    "native_gt_iou",
+    "C/W/N winner disagreement"
+  ],
+  "effects": {
+    "D_emit": "R(S,emit)-R(G,emit)",
+    "D_exists": "R(S,exists)-R(G,exists)",
+    "interaction": "D_emit-D_exists",
+    "interpretation": "effect magnitudes and precision; negative interaction alone does not establish emit repair",
+    "primary": "observed-mixture mixed AUGRC",
+    "report": "four raw cells, each seed, mean, sample SD, effect and paired interval"
+  },
+  "evaluation": {
+    "checkpoint_selection": false,
+    "finecops_test_read": false,
+    "finecops_val": {
+      "positive": 9426,
+      "text": 9029
+    },
+    "gref_audit": {
+      "path": "/mnt/why/PIVOT/data/gref_fixed_targets_v1/manifests/audit.json",
+      "sha256": "d1766584db2b8a6436f8c02b068758ae309544132644ee940742c6389da38260"
+    },
+    "gref_data": {
+      "path": "/mnt/why/PIVOT/data/gref_fixed_targets_v1/manifests/records.jsonl",
+      "sha256": "e7328bdcf0d3c36c5c5d8e010dfcc6bbe0a532108e70d2fc84cc1732a80babbf"
+    },
+    "gref_full": {
+      "images": 1500,
+      "no_target": 9121,
+      "positive": 11563
+    },
+    "gref_requires_all_18_heads_sealed": true,
+    "gref_source_disjoint": {
+      "images": 1277,
+      "no_target": 7716,
+      "positive": 9848
+    },
+    "localizer_traversals": "one per localizer, cached for all heads",
+    "mm_old_six_heads_and_native_bitwise_parity": true,
+    "multi_target": false,
+    "negative_image": false,
+    "secondary": [
+      "AURC",
+      "existence AUROC",
+      "FPR95 diagnostic",
+      "fixed-coverage error composition",
+      "Native P@1"
+    ],
+    "surfaces": [
+      "finecops_val",
+      "gref_full",
+      "gref_finecops_train_val_source_disjoint"
+    ],
+    "threshold_fitting": false
+  },
+  "finecops_test_state": {
+    "test_completion_receipt.json": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/test_completion_receipt.json",
+      "sha256": "82380bd0eef6e46bdb4da600a8338bbd39f18607d0c3e3d3e1c4a561fc646f59"
+    },
+    "test_consumed.json": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/test_consumed.json",
+      "sha256": "943ddb5c2f55080b3c50922e9ccad96f127c2345652ff3a56df4302e74f285d6"
+    }
+  },
+  "localizers": {
+    "mdetr_r101_refcoco_ema": {
+      "cache_status": "pending_before_head_training",
+      "checkpoint_md5": "3219e03af7709cd15ab0d0db521b9070",
+      "checkpoint_url": "https://zenodo.org/records/4721981/files/refcoco_resnet101_checkpoint.pth",
+      "correctness": "IoU >= 0.5 with own Native box, not upstream GIoU",
+      "native_score": "1 - softmax(pred_logits)[no_object]",
+      "new_arms": [
+        "global_max__exists",
+        "global_max__emit",
+        "native_selected__exists",
+        "native_selected__emit"
+      ],
+      "queries": 100,
+      "raw_weight_fallback": false,
+      "required_weight_key": "model_ema",
+      "selector": "official descending tuple(native_score, pixel_xyxy); original index for duplicate ties",
+      "upstream_commit": "ea09acc44ca067072c4b143b726447ee7ff66f5f"
+    },
+    "mmgdino_positive": {
+      "checkpoint": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/trunks/positive_only/epoch_5.pth",
+        "sha256": "4d9cc46cbea9af077fc1f48dc528e01b80f403d55dd00152df6007f6bdc15128"
+      },
+      "new_arms": [
+        "native_selected__exists",
+        "native_selected__emit"
+      ],
+      "queries": 900,
+      "reused_final": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/final_receipt.json",
+        "sha256": "ec3a1ab3c2fb21462eee8b496f4edf86a59e3e9ab413d07dc5a2bb84b5175e8c"
+      },
+      "reused_global_heads": {
+        "17": {
+          "checkpoint": {
+            "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed17/checkpoint_epoch5.pt",
+            "sha256": "38420b44ae8bc194e3df61f33bf76e3790b930335bd37471c94e664dece613a0"
+          },
+          "max_abs_confidence": {
+            "emit": 7.91906213760376,
+            "exists": 4.87925386428833
+          },
+          "rank_parity": true,
+          "records": {
+            "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed17/val_records.json",
+            "sha256": "555b55388d3a4ddcf59df583aeab681e6ed7fd8f2e7a137cabc02d84153a8cc1"
+          },
+          "updates": 12575
+        },
+        "42": {
+          "checkpoint": {
+            "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed42/checkpoint_epoch5.pt",
+            "sha256": "3edbeaab026a0ccc94a45a6536299a90b660a63c45971246c24fdb5b33cf118e"
+          },
+          "max_abs_confidence": {
+            "emit": 7.60955286026001,
+            "exists": 6.948659420013428
+          },
+          "rank_parity": true,
+          "records": {
+            "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed42/val_records.json",
+            "sha256": "de4b146698097974b87a79c8edd2085812a783d20625462c8f06110746051c78"
+          },
+          "updates": 12575
+        },
+        "73": {
+          "checkpoint": {
+            "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed73/checkpoint_epoch5.pt",
+            "sha256": "ddeb0355ec140797ba6cff62df7a54fd01271460886a9a59801729d2fad88c89"
+          },
+          "max_abs_confidence": {
+            "emit": 5.560455799102783,
+            "exists": 6.79314661026001
+          },
+          "rank_parity": true,
+          "records": {
+            "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed73/val_records.json",
+            "sha256": "2c1141b8930fd30e07e9d05cbf8632d7b55e568d59cd3dea8b457b9768d4dbf4"
+          },
+          "updates": 12575
+        }
+      },
+      "runtime": {
+        "checkpoint": {
+          "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/trunks/positive_only/epoch_5.pth",
+          "sha256": "4d9cc46cbea9af077fc1f48dc528e01b80f403d55dd00152df6007f6bdc15128"
+        },
+        "config": {
+          "path": "/mnt/why/PIVOT/config/b32a1_mmgdino_t_finecops_full_joint_4xb8_5e.py",
+          "sha256": "a5eb0caa9e457101d995815a75a6d82d04ef154a73c53e1b54c34321fd98a2fe"
+        },
+        "feature_dim": 256,
+        "frozen": true,
+        "mmdetection": {
+          "commit": "cfd5d3a985b0249de009b67d04f37263e11cdf3d",
+          "path": "/mnt/why/PIVOT/external/mmdetection"
+        },
+        "query_count": 900,
+        "query_feature": "decoder.hidden_states[-1]"
+      },
+      "selector": "native masked argmax; first maximum",
+      "train_cache": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/manifest.json",
+        "sha256": "23c1e61a33659fddbc153df1f7a13650d110df8c3caa3a17a0f5c2ab238120f0"
+      },
+      "val_cache": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+        "sha256": "c3d30772ed048730b228a35e217e128c17bc3935e2bccb274ec69cbd4ddec085"
+      }
+    }
+  },
+  "new_head_count": 18,
+  "question": "Why is supervising correct output insufficient, and what role does query readout play?",
+  "readout": {
+    "empty_candidate_mask": "reject",
+    "features": "FP16 cache, FP32 head",
+    "global_max": "max valid dense head logits",
+    "native_selected": "gather fixed Native-selected query after same dense head computation, in train and eval",
+    "no_target_gt": null,
+    "off_diagonal": "fixed-weight diagnostic only; path dependent, no unique spatial attribution",
+    "padding": false,
+    "scores_boxes": "FP32"
+  },
+  "schema": "arrow.confidence_readout.study_protocol/v1",
+  "seeds": [
+    17,
+    42,
+    73
+  ],
+  "status_at_lock": "mechanism_strengthening_in_progress_no_new_results",
+  "study_scope": "posthoc-motivated, prospectively frozen mechanism study; not virgin confirmation",
+  "three_state": {
+    "conditionals": "FineCops actual edited-negative parent pairs; gRef same-image only; comparable unconditional surface, attenuation, CI, counts",
+    "crossover": "report internal root with uncertainty and missing-root frequencies; not an AURC formula",
+    "difficulty": "positive or linked parent-positive difficulty, never substitute negative edit level",
+    "existence_identity": "AUC_E=a*U_CN+(1-a)*U_WN",
+    "null_interval_rule": "zero-crossing or wide CI means unresolved, not primarily image/difficulty-level causation",
+    "pairs": [
+      "C-W",
+      "C-N",
+      "W-N"
+    ],
+    "risk_identity": "DeltaAUGRC=-(1-pi)*a*((1-pi)*(1-a)*DeltaU_CW+pi*DeltaU_CN)"
+  },
+  "training": {
+    "architecture": "LayerNorm257 -> 128 -> 128 -> 1; GELU; zero output initialization",
+    "clip": 0.1,
+    "dtype": "deterministic_fp32",
+    "emit_class_rebalancing": false,
+    "epochs": 5,
+    "event_generator": "original _epoch_schedule; generate rank and confidence then skip rank events",
+    "initialization": "original make_heads factory including frozen rank initialization; no warm start",
+    "last_batch": {
+      "full_pair_batches": 2514,
+      "last_pairs": 3
+    },
+    "logit_l2": 0.001,
+    "lr": 0.0001,
+    "optimizer": "AdamW foreach=False",
+    "pair_batch": 32,
+    "source_weights": [
+      0.5,
+      0.5
+    ],
+    "trainable_parameters": 50179,
+    "trainable_tensors": 8,
+    "updates_per_head": 12575,
+    "wd": 0
+  },
+  "trunk_updates": 0
+}

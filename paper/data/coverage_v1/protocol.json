@@ -1,0 +1,242 @@
+{
+  "arms": [
+    "l1_uniform__exists",
+    "l1_uniform__emit",
+    "all_uniform__exists",
+    "all_uniform__emit"
+  ],
+  "bootstrap": {
+    "all_arms_and_seeds_same_draw": true,
+    "gref_strata": [
+      "testA",
+      "testB"
+    ],
+    "iterations": 5000,
+    "q05_each_replicate": true,
+    "rng": "PCG64",
+    "seed": 20260912,
+    "unit": "image_cluster"
+  },
+  "code": {
+    "tools/analyze_confidence_readout.py": {
+      "path": "/mnt/why/PIVOT/tools/analyze_confidence_readout.py",
+      "sha256": "85bdb6cc2199b1ea424742aed83534e7650df16ec2e7df6fea8a4a1e0f109774"
+    },
+    "tools/b32a1_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/b32a1_heads.py",
+      "sha256": "6f2421b22a755961808b27c292fd8a0698fb9547e06b2544fda4a0b1ae6c2fc8"
+    },
+    "tools/b32a1_metrics.py": {
+      "path": "/mnt/why/PIVOT/tools/b32a1_metrics.py",
+      "sha256": "892d12833ededfa0578f0ac626c06e631f58af216cbc2b09f92737d79622b675"
+    },
+    "tools/b32a1_objectives.py": {
+      "path": "/mnt/why/PIVOT/tools/b32a1_objectives.py",
+      "sha256": "3b1b3ea9c297416a2d9cc12d3645c6cdb3910bb2ad2d1ae1b69a7b5df71a321c"
+    },
+    "tools/confidence_coverage.py": {
+      "path": "/mnt/why/PIVOT/tools/confidence_coverage.py",
+      "sha256": "3ff579e1305251e7c1c833a56be736d621c03e652b6939ae1b59201ea1ffb800"
+    },
+    "tools/confidence_coverage_metrics.py": {
+      "path": "/mnt/why/PIVOT/tools/confidence_coverage_metrics.py",
+      "sha256": "a68879554e51ad8a7cef4504b74e03445ac62518a392f3e188eb6f8743494f83"
+    },
+    "tools/confidence_readout.py": {
+      "path": "/mnt/why/PIVOT/tools/confidence_readout.py",
+      "sha256": "39c9c9e84dc669827602aa96835fe022766ed69f463b89f46ed977476b7715ce"
+    },
+    "tools/confidence_readout_metrics.py": {
+      "path": "/mnt/why/PIVOT/tools/confidence_readout_metrics.py",
+      "sha256": "17c922f833c29155b01cdd870a2d4746b7fee7c5fc13c99773253a60e22ca946"
+    },
+    "tools/evaluate_confidence_coverage.py": {
+      "path": "/mnt/why/PIVOT/tools/evaluate_confidence_coverage.py",
+      "sha256": "015f2d08d152d4f8c09447f6885b7503f46bc0e7a98c54866d763e782de0d0a1"
+    },
+    "tools/evaluate_confidence_readout_cache.py": {
+      "path": "/mnt/why/PIVOT/tools/evaluate_confidence_readout_cache.py",
+      "sha256": "0e6b7b1244682fe43b739e3636b7254723c0dabb5168f4bca721c7f0ec05998b"
+    },
+    "tools/finecops_bce_l2_control.py": {
+      "path": "/mnt/why/PIVOT/tools/finecops_bce_l2_control.py",
+      "sha256": "182c9df9f74b93fe92281d6dd20b102095dd4a86a508b8df2a871be685794c92"
+    },
+    "tools/finecops_fixed_rank_targets.py": {
+      "path": "/mnt/why/PIVOT/tools/finecops_fixed_rank_targets.py",
+      "sha256": "3c654b9e302ab5655b7059e546442960f155d385319e63f28955867a4806adca"
+    },
+    "tools/grounding_confidence_ordering.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_confidence_ordering.py",
+      "sha256": "f2f3f025f64552132927fa99ca8ac1589a849efb6d3b6fb0a00054cffa18ae98"
+    },
+    "tools/grounding_emission_audit.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_emission_audit.py",
+      "sha256": "6609e39366c9c8a2f02729ca4557356ae5fa18726df064a3625730a6edb85a65"
+    },
+    "tools/grounding_generalized_risk_audit.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_generalized_risk_audit.py",
+      "sha256": "cff2f1513d11c1687e150ab731cbacee21935c4cd4b977c5958a960d98145ad9"
+    },
+    "tools/grounding_prevalence_audit.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_prevalence_audit.py",
+      "sha256": "01cf6a3152d01f4d61ed4b0777ccc86c99171c166cb60c82a24150c8c50029c6"
+    },
+    "tools/lock_confidence_coverage.py": {
+      "path": "/mnt/why/PIVOT/tools/lock_confidence_coverage.py",
+      "sha256": "3a6d7939b7590961cd92a8d688d58519630ab76b52bfc85b5187e61e39d25830"
+    },
+    "tools/mmgdino_e5_ownership.py": {
+      "path": "/mnt/why/PIVOT/tools/mmgdino_e5_ownership.py",
+      "sha256": "4c68e5cfe426752ff9716186daf37406b795736a1388357d1d7671ed699877cb"
+    },
+    "tools/responsibility_isolation_cache.py": {
+      "path": "/mnt/why/PIVOT/tools/responsibility_isolation_cache.py",
+      "sha256": "916214c620e54c05b54c4ef2399de8aca4c8d8acccecb58f67cc3164fb464a6b"
+    },
+    "tools/run_confidence_coverage_stage.py": {
+      "path": "/mnt/why/PIVOT/tools/run_confidence_coverage_stage.py",
+      "sha256": "e43c461ef5297233669d65ac1875ab2958e13b4935d2bcb3a2743f5b7684c746"
+    },
+    "tools/seal_confidence_readout_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/seal_confidence_readout_heads.py",
+      "sha256": "507d49375a1b8cd6700fc628ee68eeebd187a7709304e1c742ac15b5a6ae3fd1"
+    },
+    "tools/train_confidence_coverage_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/train_confidence_coverage_heads.py",
+      "sha256": "aec298a05d6d528aa4db1f33d976a18e1aed7602f96262c04a40a89f365c495b"
+    },
+    "tools/train_confidence_readout_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/train_confidence_readout_heads.py",
+      "sha256": "8a3bb55eb45b5e482db295ca6050b84e970215b2a43f3dd97ecdfc4ec4fbcfc3"
+    },
+    "tools/train_finecops_bce_l2_heads.py": {
+      "path": "/mnt/why/PIVOT/tools/train_finecops_bce_l2_heads.py",
+      "sha256": "0ad982801e8e1af096657cb006c57965ea51672ee268c634d80c4cfe11c0c5fd"
+    }
+  },
+  "evaluation": {
+    "all_12_heads_before_scoring": true,
+    "checkpoint_selection": false,
+    "finecops_test": false,
+    "multi_target": false,
+    "negative_image": false,
+    "new_detector_traversals": 0,
+    "surfaces": [
+      "finecops_val",
+      "gref_full",
+      "gref_source_disjoint"
+    ],
+    "threshold_fitting": false
+  },
+  "evaluation_caches": {
+    "finecops_val": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+      "sha256": "c3d30772ed048730b228a35e217e128c17bc3935e2bccb274ec69cbd4ddec085"
+    },
+    "gref_full": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/cache/mmgdino_positive/gref_testab/manifest.json",
+      "sha256": "9ab3a0845018aecf86bb87a3776445c3f3a5cb9ba88746a4f33c36f8b15f05f7"
+    }
+  },
+  "localizers": {
+    "mmgdino_positive": {
+      "checkpoint": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/trunks/positive_only/epoch_5.pth",
+        "sha256": "4d9cc46cbea9af077fc1f48dc528e01b80f403d55dd00152df6007f6bdc15128"
+      },
+      "train_cache": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/manifest.json",
+        "sha256": "23c1e61a33659fddbc153df1f7a13650d110df8c3caa3a17a0f5c2ab238120f0"
+      },
+      "val_cache": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+        "sha256": "c3d30772ed048730b228a35e217e128c17bc3935e2bccb274ec69cbd4ddec085"
+      }
+    }
+  },
+  "new_heads": 12,
+  "parent": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/protocol.json",
+    "sha256": "bc39843bd4694d80dee3e623bcb40f05f30f9df92083d5a3937dfcf1b4093a1e"
+  },
+  "positive_sampling": {
+    "cycle": "uniform permutation without replacement; continuous across five negative epochs",
+    "difficulty_counts": {
+      "1": 54015,
+      "2": 25282,
+      "3": 4044
+    },
+    "loss_pairing": "none; source-balanced BCE retained; batch co-occurrence is not a semantic pair",
+    "negative_presentations_per_head": 402255,
+    "paired_reference_unique_L1": 43979,
+    "pool_order": "sample_id lexical",
+    "positive_presentations_per_head": 402255,
+    "rng": "PCG64 SeedSequence([20260912, training_seed]); independent from legacy schedule"
+  },
+  "primary": {
+    "acceptance": "all seeds and surfaces regardless of winners; effect size and exploratory intervals",
+    "contrasts": [
+      "D_emit",
+      "D_exists",
+      "interaction",
+      "all_emit_minus_exists"
+    ],
+    "mechanism": [
+      "C-W",
+      "C-N",
+      "W-N",
+      "difficulty C-N",
+      "residual full-coverage target gap"
+    ],
+    "metric": "mixed_augrc",
+    "scope": "positive supervision population intervention; not pure difficulty-label causality"
+  },
+  "readout": "global_max",
+  "references": {
+    "finecops_val": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/seed17_records.jsonl",
+        "sha256": "f4a2d56fd66c58ad5a3ef4b75baf7f472f0c41f50a311f2c724624ad0fdaab74"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/seed42_records.jsonl",
+        "sha256": "3e52520a46787957cdd6baf3359baab9d6d3826aecb6bde61324ceae411851c8"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/seed73_records.jsonl",
+        "sha256": "68f944315106e8470e2309fab96fb9bb5a5ad5565026072bee03fa9263a1736c"
+      }
+    },
+    "gref_full": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/gref_full/seed17_records.jsonl",
+        "sha256": "4dd22e3fb3135bd50bedc7b55fbe0e1c2031f318c29ad70b0aa00b5eadf77445"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/gref_full/seed42_records.jsonl",
+        "sha256": "105d2c775e3ba13fd7319295c52797af196bff68652bf5f88d536b16e610fffc"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/gref_full/seed73_records.jsonl",
+        "sha256": "337fd202f8ca20ae39618f1644f8bdd86dcebc932e0834fbff4522963a2f2565"
+      }
+    }
+  },
+  "schema": "arrow.confidence_coverage.study_protocol/v1",
+  "seeds": [
+    17,
+    42,
+    73
+  ],
+  "training": {
+    "clip": 0.1,
+    "dtype": "deterministic_fp32",
+    "epochs": 5,
+    "logit_l2": 0.001,
+    "lr": 0.0001,
+    "pair_batch": 32,
+    "updates_per_head": 12575,
+    "wd": 0
+  }
+}

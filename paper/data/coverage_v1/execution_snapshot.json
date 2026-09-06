@@ -1,0 +1,33 @@
+{
+  "schema": "arrow.confidence_coverage.execution_snapshot/v1",
+  "observed_unix": 1788676762.9345222,
+  "status": "training_and_scoring_complete_bootstrap_running",
+  "protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/protocol.json",
+    "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+  },
+  "all_heads_sealed": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/all_heads_sealed.json",
+    "sha256": "8dccb0a1dba6e44beeaa7a9713e219fde99166eac6f2230bde9bf4d1dfa69a72"
+  },
+  "training_terminal": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/launches/mmgdino_positive_1788675804900691949/terminal.json",
+    "sha256": "98103498aaf6fa3893ae855a5b66f66820310e9fecbd6883a7cce3ddf5b9864a"
+  },
+  "evaluation_postflights": {
+    "finecops_val": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/finecops_val/postflight.json",
+      "sha256": "b834497f3eb28151e34f1a01d129063e8afb28d66e513ae3fe5cf3ab7afe3bcd"
+    },
+    "gref_full": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_coverage_v1_20260906/evaluation/gref_full/postflight.json",
+      "sha256": "1750bdc0917c3b294f2ad9c2b06cfcef151e3dc4e0e3062c084b7b20c2530c9f"
+    }
+  },
+  "bootstrap_progress": {
+    "gref_source_disjoint.bootstrap.log": "[COVERAGE-BOOTSTRAP] gref_source_disjoint 900/5000",
+    "finecops_val.bootstrap.log": "[COVERAGE-BOOTSTRAP] finecops_val 700/5000",
+    "gref_full.bootstrap.log": "[COVERAGE-BOOTSTRAP] gref_full 725/5000"
+  },
+  "completion_exists": false
+}

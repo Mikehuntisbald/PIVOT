@@ -1,0 +1,77 @@
+{
+  "localizer": "mmgdino_positive",
+  "schema": "arrow.confidence_readout.checkpoint_panel/v1",
+  "seeds": {
+    "17": {
+      "execution": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mmgdino_positive_1788625502478076720/terminal.json",
+        "sha256": "4dd025c28d9cb873ac3eca6195a60f6b3bac21e6a3d94dcfc5fdcc98bc4f2d25"
+      },
+      "legacy_global": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed17/checkpoint_epoch5.pt",
+        "sha256": "38420b44ae8bc194e3df61f33bf76e3790b930335bd37471c94e664dece613a0"
+      },
+      "legacy_records": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed17/val_records.json",
+        "sha256": "555b55388d3a4ddcf59df583aeab681e6ed7fd8f2e7a137cabc02d84153a8cc1"
+      },
+      "postflight": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed17/postflight.json",
+        "sha256": "639a5e02567f596589f4638c12f89620b29e978019c13f01b97ff054755ab53c"
+      },
+      "readout": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed17/checkpoint_epoch5.pt",
+        "sha256": "6a42282ffaee45f104243c4eb3f3d1851df0edb528cbf8f5abd6ac57d0371c32"
+      }
+    },
+    "42": {
+      "execution": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mmgdino_positive_1788625502478076720/terminal.json",
+        "sha256": "4dd025c28d9cb873ac3eca6195a60f6b3bac21e6a3d94dcfc5fdcc98bc4f2d25"
+      },
+      "legacy_global": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed42/checkpoint_epoch5.pt",
+        "sha256": "3edbeaab026a0ccc94a45a6536299a90b660a63c45971246c24fdb5b33cf118e"
+      },
+      "legacy_records": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed42/val_records.json",
+        "sha256": "de4b146698097974b87a79c8edd2085812a783d20625462c8f06110746051c78"
+      },
+      "postflight": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed42/postflight.json",
+        "sha256": "15e271d6292b40564fc12e0522adf44f981bdecb874303a7087f633a2a9a6916"
+      },
+      "readout": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed42/checkpoint_epoch5.pt",
+        "sha256": "306d501a4f9c7ad1fd059760eb7b34609e172970ac01fbcb19cdd6f7fa750d14"
+      }
+    },
+    "73": {
+      "execution": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mm_seed73_recovery/terminal.json",
+        "sha256": "14a5f5e617cd99b33f9487beef53613aa81dd00fef98758b89df54a8a332987b"
+      },
+      "legacy_global": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed73/checkpoint_epoch5.pt",
+        "sha256": "ddeb0355ec140797ba6cff62df7a54fd01271460886a9a59801729d2fad88c89"
+      },
+      "legacy_records": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_finecops_fixed_rank_targets_20260905/seed73/val_records.json",
+        "sha256": "2c1141b8930fd30e07e9d05cbf8632d7b55e568d59cd3dea8b457b9768d4dbf4"
+      },
+      "postflight": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed73/postflight.json",
+        "sha256": "a61d6d0c8f99132b59ef2dfaf02645f8451ca92845d98796a7508e1f19513e22"
+      },
+      "readout": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed73/checkpoint_epoch5.pt",
+        "sha256": "cbdbe602a8c27b772c168318262356cc710f33eb0a686c39ef97f5570e780969"
+      }
+    }
+  },
+  "study_protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/protocol.json",
+    "sha256": "bc39843bd4694d80dee3e623bcb40f05f30f9df92083d5a3937dfcf1b4093a1e"
+  },
+  "surface": "val"
+}

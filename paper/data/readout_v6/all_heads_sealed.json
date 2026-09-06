@@ -1,0 +1,74 @@
+{
+  "executions": {
+    "mdetr_r101_refcoco_ema": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mdetr_r101_refcoco_ema_1788631879891349648/terminal.json",
+        "sha256": "bbfaea84f7a4ccef5c0b21681bbeb2fef5a2ea7fb9d2e30c03c18ee841ff93f5"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mdetr_r101_refcoco_ema_1788631879891349648/terminal.json",
+        "sha256": "bbfaea84f7a4ccef5c0b21681bbeb2fef5a2ea7fb9d2e30c03c18ee841ff93f5"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mdetr_r101_refcoco_ema_1788631879891349648/terminal.json",
+        "sha256": "bbfaea84f7a4ccef5c0b21681bbeb2fef5a2ea7fb9d2e30c03c18ee841ff93f5"
+      }
+    },
+    "mmgdino_positive": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mmgdino_positive_1788625502478076720/terminal.json",
+        "sha256": "4dd025c28d9cb873ac3eca6195a60f6b3bac21e6a3d94dcfc5fdcc98bc4f2d25"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mmgdino_positive_1788625502478076720/terminal.json",
+        "sha256": "4dd025c28d9cb873ac3eca6195a60f6b3bac21e6a3d94dcfc5fdcc98bc4f2d25"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/launches/mm_seed73_recovery/terminal.json",
+        "sha256": "14a5f5e617cd99b33f9487beef53613aa81dd00fef98758b89df54a8a332987b"
+      }
+    }
+  },
+  "metric_selection": false,
+  "postflights": {
+    "mdetr_r101_refcoco_ema": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mdetr_r101_refcoco_ema/seed17/postflight.json",
+        "sha256": "0d3be2bb82b3d07f656356b22126cc59e6d6205e60480eb9d0f4c30071207725"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mdetr_r101_refcoco_ema/seed42/postflight.json",
+        "sha256": "eece3626a49564e51635548684767714e6cb8fe74464111d31a91727307c44ce"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mdetr_r101_refcoco_ema/seed73/postflight.json",
+        "sha256": "7991d70fc5374e622017f6617dc195dcd581831ca5ea3b19345d1362fb4f9723"
+      }
+    },
+    "mmgdino_positive": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed17/postflight.json",
+        "sha256": "639a5e02567f596589f4638c12f89620b29e978019c13f01b97ff054755ab53c"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed42/postflight.json",
+        "sha256": "15e271d6292b40564fc12e0522adf44f981bdecb874303a7087f633a2a9a6916"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/heads/mmgdino_positive/seed73/postflight.json",
+        "sha256": "a61d6d0c8f99132b59ef2dfaf02645f8451ca92845d98796a7508e1f19513e22"
+      }
+    }
+  },
+  "schema": "arrow.confidence_readout.all_heads_sealed/v1",
+  "sealer": {
+    "path": "/mnt/why/PIVOT/tools/seal_confidence_readout_heads.py",
+    "sha256": "507d49375a1b8cd6700fc628ee68eeebd187a7709304e1c742ac15b5a6ae3fd1"
+  },
+  "status": "complete",
+  "study_protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/protocol.json",
+    "sha256": "bc39843bd4694d80dee3e623bcb40f05f30f9df92083d5a3937dfcf1b4093a1e"
+  },
+  "trajectories": 18
+}

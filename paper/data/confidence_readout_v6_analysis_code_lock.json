@@ -1,0 +1,33 @@
+{
+  "code": {
+    "tools/analyze_confidence_readout.py": {
+      "path": "/mnt/why/PIVOT/tools/analyze_confidence_readout.py",
+      "sha256": "85bdb6cc2199b1ea424742aed83534e7650df16ec2e7df6fea8a4a1e0f109774"
+    },
+    "tools/confidence_readout_metrics.py": {
+      "path": "/mnt/why/PIVOT/tools/confidence_readout_metrics.py",
+      "sha256": "17c922f833c29155b01cdd870a2d4746b7fee7c5fc13c99773253a60e22ca946"
+    },
+    "tools/grounding_confidence_ordering.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_confidence_ordering.py",
+      "sha256": "f2f3f025f64552132927fa99ca8ac1589a849efb6d3b6fb0a00054cffa18ae98"
+    },
+    "tools/grounding_emission_audit.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_emission_audit.py",
+      "sha256": "6609e39366c9c8a2f02729ca4557356ae5fa18726df064a3625730a6edb85a65"
+    },
+    "tools/grounding_generalized_risk_audit.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_generalized_risk_audit.py",
+      "sha256": "cff2f1513d11c1687e150ab731cbacee21935c4cd4b977c5958a960d98145ad9"
+    },
+    "tools/grounding_prevalence_audit.py": {
+      "path": "/mnt/why/PIVOT/tools/grounding_prevalence_audit.py",
+      "sha256": "01cf6a3152d01f4d61ed4b0777ccc86c99171c166cb60c82a24150c8c50029c6"
+    }
+  },
+  "protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/protocol.json",
+    "sha256": "bc39843bd4694d80dee3e623bcb40f05f30f9df92083d5a3937dfcf1b4093a1e"
+  },
+  "schema": "arrow.confidence_readout.analysis_code_lock/v1"
+}

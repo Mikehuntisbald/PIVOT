@@ -1,0 +1,147 @@
+{
+  "allowed_changes": [
+    "metadata_revision",
+    "negative_edit_level",
+    "raw_annotation_level",
+    "schema"
+  ],
+  "audits": {
+    "17": {
+      "all_other_fields_canonical_bitwise_identical": true,
+      "changed_edit_level_records": 8071,
+      "edit_level_changes": [
+        {
+          "from": "1",
+          "records": 112,
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "records": 7959,
+          "to": "None"
+        }
+      ],
+      "protected_projection_sha256": "c0bdda12b2c7995c0f4e1c02ac5868d7d64177595a3f1993a97f2aa54ad596b1"
+    },
+    "42": {
+      "all_other_fields_canonical_bitwise_identical": true,
+      "changed_edit_level_records": 8071,
+      "edit_level_changes": [
+        {
+          "from": "1",
+          "records": 112,
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "records": 7959,
+          "to": "None"
+        }
+      ],
+      "protected_projection_sha256": "0bbd9e7e4ed2f0ce56948b37ef3025b497edf53b7a84daf9ffa4b4e91d0d828d"
+    },
+    "73": {
+      "all_other_fields_canonical_bitwise_identical": true,
+      "changed_edit_level_records": 8071,
+      "edit_level_changes": [
+        {
+          "from": "1",
+          "records": 112,
+          "to": "2"
+        },
+        {
+          "from": "1",
+          "records": 7959,
+          "to": "None"
+        }
+      ],
+      "protected_projection_sha256": "96ec82ac8ee8ea575d411c550998e8f339de3fea21f61352c2eb8385ead71d98"
+    }
+  },
+  "description": "Unused diagnostic field only: negative_edit_level now comes from official negative_level; raw annotation level is stored separately.",
+  "localizer": "mmgdino_positive",
+  "metric_consumed_fields_changed": false,
+  "metric_recompute": false,
+  "model_forward": false,
+  "new_record_schema": "arrow.confidence_readout.record/v2",
+  "official_negative_levels": [
+    {
+      "negative_edit_level": null,
+      "raw_annotation_level": 1,
+      "records": 7959
+    },
+    {
+      "negative_edit_level": 1,
+      "raw_annotation_level": 1,
+      "records": 958
+    },
+    {
+      "negative_edit_level": 2,
+      "raw_annotation_level": 1,
+      "records": 112
+    }
+  ],
+  "original_artifacts_retained": true,
+  "positive_and_parent_difficulty_changed": false,
+  "producer": {
+    "path": "/mnt/why/PIVOT/tools/reconcile_confidence_readout_metadata.py",
+    "sha256": "ec26e2b221691c64383c8fc3ca0d501e5ef825e93a75accee37b50b4c17b11aa"
+  },
+  "records": {
+    "17": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val_metadata_v2/seed17_records_metadata_v2.jsonl",
+      "sha256": "c50de781b3cf892e212abcdec63bc7f31cc50a2b1e6cadce04a6a01e10c5d5ef"
+    },
+    "42": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val_metadata_v2/seed42_records_metadata_v2.jsonl",
+      "sha256": "9a717cff19900d11255a815dee733a52a0385b50a7d72c0ddb5e824b4be05546"
+    },
+    "73": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val_metadata_v2/seed73_records_metadata_v2.jsonl",
+      "sha256": "5e3dd7f78ed616ca23c499f9f815e006bd861ea5d6aa658d5c3ef5940b660998"
+    }
+  },
+  "revision": "negative_edit_level_from_official_annotation/v1",
+  "sample_order_changed": false,
+  "schema": "arrow.confidence_readout.metadata_erratum/v1",
+  "scores_or_winner_diagnostics_changed": false,
+  "sources": {
+    "cache_index": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/index.jsonl",
+      "rows": 18455,
+      "sha256": "03cb08398b8d9aaa2a4127e90f29939f26c8a36356ea42682c1b1e5d67c8e96b"
+    },
+    "cache_manifest": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+      "sha256": "c3d30772ed048730b228a35e217e128c17bc3935e2bccb274ec69cbd4ddec085"
+    },
+    "official_annotation": {
+      "path": "/mnt/why/PIVOT/data/FineCops-Ref/v1/raw/article_files/expression_all_val_set_coco_format.json",
+      "sha256": "ac0bd7e9b883c100001c5bd202fc9dc08c038e79e49d2bb1755836a43d97f832"
+    },
+    "original_evaluation_design": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/evaluation_lock.json",
+      "sha256": "088ccc751e01d8971a9a0d5a405e53b70210b622bb6f98df8e81ef84394ab6c6"
+    },
+    "original_evaluation_postflight": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/postflight.json",
+      "sha256": "9b41439086a52e5a79f8da68db4dd01a8abd89a8e672288b3b45b89c45115514"
+    },
+    "original_records": {
+      "17": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/seed17_records.jsonl",
+        "sha256": "f4a2d56fd66c58ad5a3ef4b75baf7f472f0c41f50a311f2c724624ad0fdaab74"
+      },
+      "42": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/seed42_records.jsonl",
+        "sha256": "3e52520a46787957cdd6baf3359baab9d6d3826aecb6bde61324ceae411851c8"
+      },
+      "73": {
+        "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/evaluation/mmgdino_positive/finecops_val/seed73_records.jsonl",
+        "sha256": "68f944315106e8470e2309fab96fb9bb5a5ad5565026072bee03fa9263a1736c"
+      }
+    }
+  },
+  "status": "complete",
+  "threshold_fitting": false
+}

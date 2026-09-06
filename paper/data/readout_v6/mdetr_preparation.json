@@ -1,0 +1,76 @@
+{
+  "cache_dtype": "FP16 features, FP32 scores/boxes",
+  "extractor": {
+    "path": "/mnt/why/PIVOT/tools/extract_mdetr_readout_cache.py",
+    "sha256": "9c8ade542f774dfb3b31616a1dac1ac0feadd5aec374d929e4e730a643699aed"
+  },
+  "extractor_batch": 1,
+  "gref_forwards": 0,
+  "head_python": "/mnt/why/PIVOT/.venv-b32a1/bin/python",
+  "new_test_forwards": 0,
+  "runtime": {
+    "all_frozen": true,
+    "cache_features_dtype": "float16",
+    "checkpoint": {
+      "md5": "3219e03af7709cd15ab0d0db521b9070",
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/assets/refcoco_resnet101_checkpoint.pth",
+      "sha256": "0e390dbbcc275f708176faadf3d405d3fc2d4ddbf67c5578c7ff6671d48d6e7f"
+    },
+    "compatibility": [
+      {
+        "persistent_buffer": "transformer.text_encoder.embeddings.position_ids"
+      }
+    ],
+    "construction_only_adapters": [
+      "skip_resnet_pretrained_download",
+      "instantiate_roberta_config_then_strict_ema"
+    ],
+    "feature_dim": 256,
+    "localizer": "mdetr_r101_refcoco_ema",
+    "metric_note": "study uses IoU>=0.5; upstream RefExpEvaluator aggregates GIoU",
+    "model_dtype": "float32",
+    "native_sort": "score_then_pixel_xyxy_python_stable_descending",
+    "query_count": 100,
+    "schema": "arrow.confidence_readout.mdetr_runtime/v1",
+    "state_key": "model_ema",
+    "state_tensors": 921,
+    "strict_state_load": true,
+    "text_assets": {
+      "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/assets/roberta_base/receipt.json",
+      "sha256": "4d4a50039f187a3f3d83b64d1c3c943876d3565d839214a49452a54b31c0bcfe"
+    },
+    "text_attention": "eager",
+    "torch": "2.8.0+cu128",
+    "torchvision": "0.23.0+cu128",
+    "transformers": "4.40.2",
+    "upstream_commit": "ea09acc44ca067072c4b143b726447ee7ff66f5f",
+    "upstream_source_changed": false
+  },
+  "runtime_environment": {
+    "path": "/mnt/why/PIVOT/.venv-mdetr-readout-v6/runtime_receipt.json",
+    "sha256": "c456dd071b85a14f47bb902d46b0854313c051503d6919cd38e8b881f7b3d4d5"
+  },
+  "runtime_python": "/mnt/why/PIVOT/.venv-mdetr-readout-v6/bin/python",
+  "schema": "arrow.confidence_readout.mdetr_preparation/v1",
+  "shard_size": 128,
+  "smoke": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/assets/smoke_positive_v2.json",
+    "sha256": "b521f349e29c9740b09b9224b1452fd237a74c849c7d9728a650a12919f7156a"
+  },
+  "source_caches": {
+    "train": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/manifest.json",
+      "sha256": "23c1e61a33659fddbc153df1f7a13650d110df8c3caa3a17a0f5c2ab238120f0"
+    },
+    "val": {
+      "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+      "sha256": "c3d30772ed048730b228a35e217e128c17bc3935e2bccb274ec69cbd4ddec085"
+    }
+  },
+  "study_protocol": {
+    "path": "/mnt/why/PIVOT/outputs/arrow_confidence_readout_v6_20260905/protocol.json",
+    "sha256": "bc39843bd4694d80dee3e623bcb40f05f30f9df92083d5a3937dfcf1b4093a1e"
+  },
+  "upstream": "/mnt/why/PIVOT/external/mdetr",
+  "worker_count": 4
+}

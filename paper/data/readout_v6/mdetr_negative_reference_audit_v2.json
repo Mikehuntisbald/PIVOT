@@ -1,0 +1,108 @@
+{
+  "audit_code": {
+    "path": "/mnt/why/PIVOT/tools/recover_mdetr_negative_reference_cache.py",
+    "sha256": "7d0945c45cfd13becd3ad18b3ad22c727a2794af71578456e3bd24e281c7c522"
+  },
+  "benchmark_semantics_source": "https://aclanthology.org/2024.emnlp-main.864/",
+  "contract": "negative_annotation_reference_inactive/v1",
+  "new_labels_or_model_results_used": false,
+  "schema": "arrow.confidence_readout.negative_reference_audit/v1",
+  "sources": {
+    "train": {
+      "ambiguous_rows": 0,
+      "annotation": {
+        "path": "/mnt/why/PIVOT/data/FineCops-Ref/v1/raw/article_files/expression_all_train_set_coco_format.json",
+        "sha256": "496f4152eddc5f1bedfb9f901d2f02e61ac2c2b0e10394f365f7c2a7df6cd9f8"
+      },
+      "counts": {
+        "negative_text": 80451,
+        "positive": 83341,
+        "reference_equals_parent": 80451
+      },
+      "first_negative_in_source_order": {
+        "annotation_id": 188481,
+        "gt_boxes_after_adapter_shape": [
+          0,
+          4
+        ],
+        "parent_positive_id": 5087,
+        "sample_id": "finecops-train:188481",
+        "source_bbox_xywh_abs": [
+          204,
+          298,
+          72,
+          82
+        ]
+      },
+      "index": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/index.jsonl",
+        "rows": 163792,
+        "sha256": "e9ced1b91b78735fe5fd3449c41fb5aafda9f809502e4541e66951dfa7ae71bf"
+      },
+      "negative_types": {
+        "attribute": 20678,
+        "object": 29287,
+        "order": 10062,
+        "relation": 14825,
+        "swap_attr": 5599
+      },
+      "source_manifest": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/train/manifest.json",
+        "sha256": "23c1e61a33659fddbc153df1f7a13650d110df8c3caa3a17a0f5c2ab238120f0"
+      },
+      "source_parser": {
+        "path": "/mnt/why/PIVOT/tools/extract_b32a1_finecops_cache.py",
+        "sha256": "2594a7ccb703868bbb7652cca00b9ff21f8fc1e90a370f0d8b90af18dc5181cd"
+      }
+    },
+    "val": {
+      "ambiguous_rows": 0,
+      "annotation": {
+        "path": "/mnt/why/PIVOT/data/FineCops-Ref/v1/raw/article_files/expression_all_val_set_coco_format.json",
+        "sha256": "ac0bd7e9b883c100001c5bd202fc9dc08c038e79e49d2bb1755836a43d97f832"
+      },
+      "counts": {
+        "negative_text": 9029,
+        "positive": 9426,
+        "reference_equals_parent": 9029
+      },
+      "first_negative_in_source_order": {
+        "annotation_id": 188496,
+        "gt_boxes_after_adapter_shape": [
+          0,
+          4
+        ],
+        "parent_positive_id": 23988,
+        "sample_id": "finecops-val:188496",
+        "source_bbox_xywh_abs": [
+          1,
+          0,
+          384,
+          484
+        ]
+      },
+      "index": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/index.jsonl",
+        "rows": 18455,
+        "sha256": "03cb08398b8d9aaa2a4127e90f29939f26c8a36356ea42682c1b1e5d67c8e96b"
+      },
+      "negative_types": {
+        "attribute": 2344,
+        "object": 3308,
+        "order": 1070,
+        "relation": 1676,
+        "swap_attr": 631
+      },
+      "source_manifest": {
+        "path": "/mnt/why/PIVOT/outputs/b32a1_finecops_positive_trunk_factorized_20260904/formal_cache/val/manifest.json",
+        "sha256": "c3d30772ed048730b228a35e217e128c17bc3935e2bccb274ec69cbd4ddec085"
+      },
+      "source_parser": {
+        "path": "/mnt/why/PIVOT/tools/extract_b32a1_finecops_cache.py",
+        "sha256": "2594a7ccb703868bbb7652cca00b9ff21f8fc1e90a370f0d8b90af18dc5181cd"
+      }
+    }
+  },
+  "status": "passed",
+  "supervision": "kind=text always has E=0 and Y=0; annotation bbox is inactive parent-edit reference"
+}
