@@ -1,0 +1,17 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Fixed combinations on the same Native boxes. Mixed AUGRC $\times100$, and paired differences against all three prespecified references. Lower is better. Product and SIRC-style use Native and global-existence scores; only SIRC-style uses training-positive score statistics. No evaluation mixture, weight or threshold is fitted.}\label{tab:readout_combinations}
+\begin{tabular}{@{}lllcccc@{}}\toprule
+Localizer & Population & Score & AUGRC (SD) & $\Delta$ Native & $\Delta G/E$ & $\Delta G/Y$\\\midrule
+MM-GDINO-T & FineCops val & Product & \shortstack{26.62\\{\scriptsize (0.03)}} & \shortstack{-1.497\\{\scriptsize [-1.598, -1.398]}} & \shortstack{+0.386\\{\scriptsize [+0.286, +0.488]}} & \shortstack{+0.238\\{\scriptsize [+0.177, +0.302]}}\\
+MM-GDINO-T & FineCops val & SIRC-style & \shortstack{27.35\\{\scriptsize (0.02)}} & \shortstack{-0.758\\{\scriptsize [-0.821, -0.696]}} & \shortstack{+1.125\\{\scriptsize [+0.972, +1.280]}} & \shortstack{+0.977\\{\scriptsize [+0.865, +1.090]}}\\
+MM-GDINO-T & gRef source-disjoint & Product & \shortstack{28.48\\{\scriptsize (0.03)}} & \shortstack{-1.569\\{\scriptsize [-1.727, -1.407]}} & \shortstack{-0.196\\{\scriptsize [-0.282, -0.111]}} & \shortstack{-0.130\\{\scriptsize [-0.187, -0.074]}}\\
+MM-GDINO-T & gRef source-disjoint & SIRC-style & \shortstack{28.71\\{\scriptsize (0.01)}} & \shortstack{-1.338\\{\scriptsize [-1.482, -1.191]}} & \shortstack{+0.035\\{\scriptsize [-0.088, +0.157]}} & \shortstack{+0.101\\{\scriptsize [+0.040, +0.164]}}\\
+MDETR-R101 & FineCops val & Product & \shortstack{29.33\\{\scriptsize (0.18)}} & \shortstack{-0.831\\{\scriptsize [-0.999, -0.663]}} & \shortstack{-0.381\\{\scriptsize [-0.439, -0.321]}} & \shortstack{+0.485\\{\scriptsize [+0.385, +0.589]}}\\
+MDETR-R101 & FineCops val & SIRC-style & \shortstack{30.01\\{\scriptsize (0.00)}} & \shortstack{-0.146\\{\scriptsize [-0.159, -0.134]}} & \shortstack{+0.304\\{\scriptsize [+0.107, +0.493]}} & \shortstack{+1.170\\{\scriptsize [+1.038, +1.302]}}\\
+MDETR-R101 & gRef source-disjoint & Product & \shortstack{19.84\\{\scriptsize (0.46)}} & \shortstack{-1.291\\{\scriptsize [-1.485, -1.088]}} & \shortstack{-0.265\\{\scriptsize [-0.295, -0.237]}} & \shortstack{-0.076\\{\scriptsize [-0.170, +0.015]}}\\
+MDETR-R101 & gRef source-disjoint & SIRC-style & \shortstack{20.95\\{\scriptsize (0.03)}} & \shortstack{-0.184\\{\scriptsize [-0.204, -0.156]}} & \shortstack{+0.843\\{\scriptsize [+0.644, +1.039]}} & \shortstack{+1.031\\{\scriptsize [+0.881, +1.179]}}\\
+\bottomrule\end{tabular}
+\end{table*}

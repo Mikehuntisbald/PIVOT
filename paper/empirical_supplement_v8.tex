@@ -1,0 +1,269 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[review]{cvpr}
+\input{preamble_empirical_v5}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\def\paperID{*****}\def\confName{CVPR}\def\confYear{2027}
+\input{generated/readout_v6/publication_ready}
+\title{Confidence for Which Prediction?\\
+Supervision Coverage Shapes Grounding Reliability\\Supplementary Material}
+\author{Anonymous submission}
+\begin{document}\maketitle
+\renewcommand{\thesection}{\Alph{section}}
+
+\section{Two Intervention Blocks}
+The main paper combines a target-by-readout block and a target-by-positive-coverage
+block. They address different questions and retain separate fixed recipes and
+bootstrap draws. Both freeze the localizer and Native selection; confidence
+never selects a different output box.
+
+\paragraph{Target and readout.}
+For each of MM-GDINO-T and MDETR-R101, the four cells are Global/Selected
+readout crossed with existence/correct-output labels. Seeds 17/42/73 give
+24 heads in this matrix, including the six previously completed MM-GDINO
+global heads. Positive supervision consists only of parents of the 80,451
+negative-text training requests. These are 43,979 unique L1 positives.
+Full-positive caches and normalization passes must not be mistaken for
+full-positive supervision in this block.
+
+\paragraph{Target and positive coverage.}
+The additional 12 heads use MM-GDINO and Global-max only: L1-uniform or
+Full-uniform crossed with E/Y and the same three seeds. The complete
+L1 pool has 54,015 unique requests. Full adds 25,282 L2 and 4,044 L3 requests,
+for 83,341 in total. The original paired-L1 heads are scored references,
+not replacements for the new L1-uniform control.
+
+Every pool is sorted by sample identity before deterministic permutation
+cycles. A cycle is exhausted before the next begins, and the positive stream
+continues across the five negative-data epochs. Each head receives 402,255
+positive presentations: every L1-uniform example appears 7 or 8 times,
+every Full-uniform example 4 or 5 times. The total negative presentations
+remain 402,255, using exactly the original negative order for the matched seed.
+Within each coverage condition the E/Y positive stream is identical.
+No additional target-dependent balancing is applied.
+
+These batches contain 32 positives and 32 negatives, not 32 newly created
+semantic pairs. The loss averages the sources separately, with no paired
+margin, BatchNorm or cross-example attention. Thus a new positive need not be
+the original parent of the negative sharing its batch. The negatives retain
+their true parents in evaluation metadata.
+
+The new control addresses uniform weighting and previously omitted L1
+positives before comparing difficulty coverage. Broader coverage still changes
+the positive images, expressions and relative difficulty weights. The
+intervention identifies the effect of that specified positive population,
+not the isolated causal role of an official difficulty label.
+
+\section{Localizers and Head Training}
+\paragraph{MM-GDINO-T.}
+The localizer is the FineCops positive-source epoch-five artifact initialized
+from released MM-GDINO-T pretraining, not RefCOCO fine-tuning. Its preceding
+adaptation used all 83,341 positives, one GPU, physical batch 4 with accumulation 8,
+FP32 AdamW LR $2\times10^{-4}$, backbone multiplier 0.1, weight decay $10^{-4}$,
+clip 0.1 and epoch-three LR multiplier 0.1. The localizer seed was 20260902;
+deterministic training was disabled. No-flip multiscale resize/crop used the
+standard source recipe. Unmatched queries and permitted empty crops still
+provide background supervision during this earlier adaptation.
+
+Frozen extraction uses full expressions, 800/max1333 resizing, and all 900
+final-layer 256-d queries. Native scores are maximum sigmoid token scores;
+selection preserves the first maximum. The same cached tensors serve every
+coverage head. Native P@1 on FineCops validation is 77.360\%, and every
+confidence route leaves it unchanged.
+
+\paragraph{MDETR-R101.}
+The second localizer is the official RefCOCO R101 EMA release of MDETR
+\cite{kamath2021mdetr}. Only the required EMA weights are used. Official
+preprocessing produces 100 queries, with Native score
+$1-\operatorname{softmax}(\mathrm{logits})_{\mathrm{no\ object}}$.
+Selection follows descending score and pixel-xyxy tuple order, with the
+original index resolving duplicate tuples. Queries are not padded to 900.
+Correctness uses the selected box's IoU, not an upstream GIoU aggregate.
+Its FineCops Native P@1 is 65.563\%. The coverage intervention is not repeated
+on this localizer; it tests the scope of the target/readout effect.
+
+\paragraph{Heads and optimization.}
+Detached 256-d query features and the Native scalar form a 257-d input.
+LayerNorm, Linear(257,128), GELU, Linear(128,128), GELU and Linear(128,1)
+give 50,179 parameters in eight tensors. The final weight and bias start at zero.
+All compared heads use the original initialization factory before copying
+weights to their independent owners. Selected heads are not continued from
+Global checkpoints; coverage heads are not continued from paired-L1 heads.
+
+For positive logits $p_i$ and negative logits $n_i$,
+\begin{align}
+L={}&\tfrac12\overline{\mathrm{BCE}(p_i,y_i)}
++\tfrac12\overline{\mathrm{BCE}(n_i,0)}\nonumber\\
+&+\tfrac{10^{-3}}2\big(\overline{p_i^2}+\overline{n_i^2}\big).
+\end{align}
+E labels all positive requests one; Y labels them by the fixed Native
+IoU $\geq0.5$ event. AdamW uses LR $10^{-4}$, WD zero, clip 0.1 and deterministic
+FP32. Cached features are FP16; scores, boxes and head computation are FP32.
+Each negative epoch contains 2,514 full batches and one batch with three
+requests per source, giving 2,515 updates and 12,575 at the fixed endpoint.
+No checkpoint, learning rate, threshold or population is selected by evaluation
+results. Complete endpoints and their successful process exits precede scoring.
+
+\section{Evaluation Populations and Scope}
+FineCops validation contains 9,426 positives and 9,029 edited-text negatives
+on 3,567 images. Its positive levels are 6,097 L1, 2,884 L2 and 445 L3;
+the MM-GDINO correct/wrong counts are 5,506/591, 1,566/1,318 and 220/225.
+All 9,029 negatives have L1 positive parents, including repeated edits from
+4,946 unique parents. Difficulty comparisons use those parents' positive
+levels, never the edit's separate difficulty annotation.
+
+gRefCOCO TestA has 5,917 single-target positives and 4,448 no-targets;
+TestB has 5,646 and 4,673. The pooled 20,684 requests span 1,500 images.
+All 14,579 multi-target expressions are excluded: these results do not evaluate
+full zero-to-many-target GREC. The FineCops-source-disjoint sensitivity removes
+202 training-source and 21 validation-source images through VG--COCO identities
+or exact bytes. It retains 1,277 images,9,848 positives and 7,716 no-targets.
+Full and source-disjoint overlap. Neither this exclusion nor frozen transfer
+claims disjointness from all pretraining, MDETR's RefCOCO adaptation, or unknown
+near duplicates.
+
+No new FineCops Test or negative-image evaluation is performed. The readout
+study traverses each localizer once for gRef and reuses its cache. Coverage
+evaluation reuses the complete MM-GDINO cache without another detector
+traversal. The old Native boxes, scores, masks and correctness match
+record by record. No-target correctness and GT IoU are null, not fabricated
+negative boxes. Validation scoring preserves its original batches of 32;
+gRef preserves the original four-worker grouping for exact numerical parity.
+
+\section{Three-State Risk and Statistical Comparisons}
+Let $p_C=(1-\pi)a$, $p_W=(1-\pi)(1-a)$ and $p_N=\pi$.
+Pairwise AUROC gives half credit to ties. Then
+\begin{align}
+\mathrm{AUC}_E&=aU_{CN}+(1-a)U_{WN},\\
+\mathrm{AUGRC}&=p_Cp_W(1-U_{CW})+p_Cp_N(1-U_{CN})\nonumber\\
+&\quad+\tfrac12(p_W+p_N)^2.
+\end{align}
+Taking differences gives the main-paper identity. Its C/W and C/N terms are
+pairwise contributions to total-risk change, not individually equivalent to
+the wrong-box and no-target components of a selective-risk curve.
+
+For Full$-$L1 supervision on FineCops, Y's pairwise contributions are
+$+0.521$ (C/W) and $-0.853$ (C/N), summing to$-0.332$ AUGRC points.
+E's are $+1.526$ and $-0.609$, summing to$+0.916$.
+These are exact point decompositions of existing estimates, not newly
+bootstrapped component intervals or causal explained-variance shares.
+
+The primary coverage effects are
+$D_Y=R_{\mathrm{Full},Y}-R_{\mathrm{L1},Y}$,
+$D_E=R_{\mathrm{Full},E}-R_{\mathrm{L1},E}$ and $I=D_Y-D_E$.
+The absolute effects and residual Y$-$E gaps are reported along with the
+interaction; a negative interaction alone need not improve Y. The same
+definition with S/G describes the separate readout block.
+
+Each block uses 5,000 paired image-cluster bootstrap draws with PCG64:
+seed 20260911 for readout, 20260912 for coverage. Within each block and evaluation
+surface all arms and the three seeds receive the same draw; gRef is stratified
+by TestA/B. Metrics are recomputed per seed and averaged equally. The
+historical paired-L1 scores enter the coverage draws as fixed references;
+their point estimates reproduce the original results, but their intervals
+use the new draw sequence. Image uncertainty is conditional on those heads;
+sample SD and individual seed effects are reported separately. There is no
+$n=3$ t-test or resampling of trained seeds. Intervals are exploratory, with
+no deletion of undefined replicates.
+
+FPR95 recalculates positive q05 within every replicate and accepts equality.
+It is a diagnostic, not a fitted deployment threshold. AURC admits complete
+tie groups and integrates selective risk by trapezoids, extending the first
+nonempty group's risk to zero coverage. AUGRC instead starts at zero
+generalized risk and zero coverage. Both integrals and achieved fixed
+coverages are retained rather than assumed to select the same winner.
+
+For prevalence curves, positive and no-target conditional distributions are
+held fixed while their masses become $1-\pi$ and $\pi$. A crossover solves
+$(1-\pi)(1-a)\Delta U_{CW}+\pi\Delta U_{CN}=0$.
+The root of the mean effect is not the mean of seed roots. If any draw has
+no internal root, an unconditional root interval is not reported. A mean
+curve with no root is not a simultaneous statistical guarantee.
+
+\section{Conditioning, Readout Diagnostics and Combinations}
+Same-image analysis carries all eligible state pairs in an image; bootstrap
+multiplicity $m_i$ weights those pairs by $m_i$, not$m_i^2$. Its unconditional
+reference uses the same participating requests. Difficulty contributions
+partition within- and across-level pairs; they sum to the full AUROC but are
+not causal fractions. Same-level L2/L3 C/N comparisons are undefined because
+there are no corresponding negative parents. The cross-level contribution
+instead compares L2/L3 positives with the existing L1-parent negatives.
+
+Under paired-L1 MM-GDINO supervision, the L1 Y$-$E means improve both C/W
+and C/N, implying no internal AUGRC crossover for the fixed L1 mean
+population. That is an analytic consequence of existing means, not a new
+conditional risk interval. The subsequent coverage intervention changes the
+training population and is distinct from conditioning evaluation records.
+
+The readout block retains both Global and Selected logits at fixed weights,
+Native/confidence winner indices, winner-box overlap and GT IoUs. A different
+query index need not mean a different box. For a Selected-trained head,
+the Global winner is counterfactual, not the deployed readout. Inference-only
+switching and matched retraining follow different paths and do not define a
+unique spatial contribution. MDETR's FineCops Global-emission inference
+change is$+4.726,-0.061,+0.158$ across seeds, versus$-0.349,-0.075,-0.143$
+for matched retraining; the large inference mean has sample SD 2.703.
+
+The fixed combinations use the original paired-L1 Global-existence head.
+Product is$\log\max(s_0,10^{-6})+\log\sigma(z_E)$.
+SIRC-style \cite{xia2024sirc} is
+\begin{align}
+c_{\mathrm{SIRC}}={}&-\log\max(1-s_0,10^{-6})\nonumber\\
+&-\operatorname{softplus}\big(-(z_E-(\mu-3\sigma))/\sigma\big).
+\end{align}
+Mean and population SD use all 83,341 unique training positives for that
+localizer/seed; this normalization is not supervised head training.
+At SD$\leq10^{-12}$ the rule returns Native. No evaluation weights or
+thresholds are fitted. These controls are compared with Native and the
+original learned heads, not claimed to dominate the Full-coverage heads.
+
+\section{Coverage Results: Every Seed and Endpoint}
+The following tables report all new cells, original paired-L1 references,
+primary effects and secondary metrics. Main-text risk conclusions concern
+the observed mixtures. Crossover counts and conditional C/N tables retain
+the residual tradeoffs and empty comparison cells.
+\input{generated/coverage_v8_r2/supp_endpoints_finecops_val}
+\input{generated/coverage_v8_r2/supp_seeds_finecops_val}
+\input{generated/coverage_v8_r2/supp_effects_finecops_val}
+\input{generated/coverage_v8_r2/supp_endpoints_gref_source_disjoint}
+\input{generated/coverage_v8_r2/supp_seeds_gref_source_disjoint}
+\input{generated/coverage_v8_r2/supp_effects_gref_source_disjoint}
+\input{generated/coverage_v8_r2/supp_endpoints_gref_full}
+\input{generated/coverage_v8_r2/supp_seeds_gref_full}
+\input{generated/coverage_v8_r2/supp_effects_gref_full}
+\input{generated/coverage_v8_r2/supp_cn_difficulty}
+\input{generated/coverage_v8_r2/supp_crossovers}
+\FloatBarrier
+
+\section{Target/Readout and Combination Results}
+The paired-L1 block below is retained in full, including transfer effects,
+seed variability, fixed-weight cross-readouts and combination costs. Its
+Selected/Global contrasts should not be confused with the coverage block's
+Full/L1 contrasts. Winner geometry is descriptive; the matched four cells
+use their trained readouts.
+\input{generated/readout_v6/table_combinations}
+\input{generated/readout_v6/supp_seed_endpoints}
+\input{generated/readout_v6/supp_seed_effects}
+\input{generated/readout_v6/supp_complete_endpoints}
+\input{generated/readout_v6/supp_fixed_coverage}
+\input{generated/readout_v6/supp_cross_readouts}
+\input{generated/readout_v6/supp_condition_counts}
+\input{generated/readout_v6/supp_conditionals}
+\input{generated/readout_v6/supp_parent_pairs}
+\input{generated/readout_v6/supp_winner_geometry}
+\input{generated/readout_v6/supp_crossovers}
+\FloatBarrier
+
+\section{Reusable Evaluation}
+The released record interface stores sample/image identities, fixed Native
+correctness and the compared score slots. It supports state-pair AUROCs,
+complete-risk integrals, conditional comparisons and paired image resampling
+without rerunning a detector. Versioned source bindings keep the two studies
+and their frozen references distinct. Synthetic tests cover score ties,
+no-target semantics, exact risk/interaction identities, negative interactions
+without absolute Y gains, complete positive sampling, frozen ownership and
+replicate-wise q05. This is an implementation of the empirical study rather
+than an additional methodological novelty claim.
+
+{\small\bibliographystyle{ieeenat_fullname}\bibliography{references_empirical_v6}}
+\end{document}

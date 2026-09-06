@@ -1,0 +1,77 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Conditional effects and their uncertainty, AUROC $\times100$. Each cell is mean [paired 95\% CI], not a raw score AUROC. $Y:S-G$ is the emission readout effect; $G:Y-E$ is the global target effect. Image conditioning matches participating requests exactly. Level conditioning changes the available within-level pair composition (including the zero cells in the count table), not a difficulty-matched target distribution. An undefined interval is not zero effect or proof of attribution. Part 1.}\label{tab:supp_v6_conditionals_1}
+\begin{tabular}{@{}llllccc@{}}\toprule
+Localizer & Population & Effect & Condition & Comparable uncond. & Conditional & Uncond.$-$cond.\\\midrule
+MM-GDINO-T & FineCops val & $Y:S-G$ & Image CW & \shortstack{-0.405\\{\scriptsize [-0.822, +0.012]}} & \shortstack{+0.159\\{\scriptsize [-0.661, +0.916]}} & \shortstack{-0.565\\{\scriptsize [-1.219, +0.148]}}\\
+MM-GDINO-T & FineCops val & $Y:S-G$ & Level CW & \shortstack{-0.600\\{\scriptsize [-0.829, -0.372]}} & \shortstack{-0.591\\{\scriptsize [-0.889, -0.299]}} & \shortstack{-0.009\\{\scriptsize [-0.156, +0.138]}}\\
+MM-GDINO-T & FineCops val & $G:Y-E$ & Image CW & \shortstack{+8.854\\{\scriptsize [+7.523, +10.221]}} & \shortstack{+7.642\\{\scriptsize [+5.850, +9.421]}} & \shortstack{+1.211\\{\scriptsize [-0.222, +2.634]}}\\
+MM-GDINO-T & FineCops val & $G:Y-E$ & Level CW & \shortstack{+11.654\\{\scriptsize [+10.721, +12.641]}} & \shortstack{+6.940\\{\scriptsize [+5.993, +7.944]}} & \shortstack{+4.713\\{\scriptsize [+4.075, +5.363]}}\\
+MM-GDINO-T & FineCops val & $Y:S-G$ & Image CN & \shortstack{+0.241\\{\scriptsize [+0.129, +0.349]}} & \shortstack{+0.289\\{\scriptsize [+0.066, +0.512]}} & \shortstack{-0.048\\{\scriptsize [-0.231, +0.139]}}\\
+MM-GDINO-T & FineCops val & $Y:S-G$ & Level CN & \shortstack{+0.261\\{\scriptsize [+0.154, +0.366]}} & \shortstack{+0.216\\{\scriptsize [+0.112, +0.317]}} & \shortstack{+0.045\\{\scriptsize [-0.020, +0.109]}}\\
+MM-GDINO-T & FineCops val & $G:Y-E$ & Image CN & \shortstack{-1.700\\{\scriptsize [-2.002, -1.400]}} & \shortstack{-1.163\\{\scriptsize [-1.557, -0.760]}} & \shortstack{-0.537\\{\scriptsize [-0.877, -0.202]}}\\
+MM-GDINO-T & FineCops val & $G:Y-E$ & Level CN & \shortstack{-3.523\\{\scriptsize [-3.884, -3.166]}} & \shortstack{+0.224\\{\scriptsize [+0.024, +0.431]}} & \shortstack{-3.747\\{\scriptsize [-4.076, -3.434]}}\\
+MM-GDINO-T & FineCops val & $Y:S-G$ & Image WN & \shortstack{+0.397\\{\scriptsize [-0.016, +0.792]}} & \shortstack{+0.660\\{\scriptsize [-0.026, +1.326]}} & \shortstack{-0.263\\{\scriptsize [-0.854, +0.331]}}\\
+MM-GDINO-T & FineCops val & $Y:S-G$ & Level WN & \shortstack{+0.619\\{\scriptsize [+0.366, +0.863]}} & \shortstack{+0.220\\{\scriptsize [-0.117, +0.540]}} & \shortstack{+0.399\\{\scriptsize [+0.085, +0.719]}}\\
+MM-GDINO-T & FineCops val & $G:Y-E$ & Image WN & \shortstack{-12.753\\{\scriptsize [-14.160, -11.363]}} & \shortstack{-10.644\\{\scriptsize [-12.590, -8.700]}} & \shortstack{-2.109\\{\scriptsize [-3.612, -0.580]}}\\
+MM-GDINO-T & FineCops val & $G:Y-E$ & Level WN & \shortstack{-17.795\\{\scriptsize [-18.821, -16.781]}} & \shortstack{-8.720\\{\scriptsize [-9.994, -7.505]}} & \shortstack{-9.075\\{\scriptsize [-10.290, -7.813]}}\\
+MDETR-R101 & FineCops val & $Y:S-G$ & Image CW & \shortstack{+2.986\\{\scriptsize [+2.370, +3.600]}} & \shortstack{+2.712\\{\scriptsize [+1.668, +3.786]}} & \shortstack{+0.275\\{\scriptsize [-0.529, +1.106]}}\\
+MDETR-R101 & FineCops val & $Y:S-G$ & Level CW & \shortstack{+2.373\\{\scriptsize [+1.929, +2.839]}} & \shortstack{+2.586\\{\scriptsize [+2.093, +3.107]}} & \shortstack{-0.213\\{\scriptsize [-0.434, +0.000]}}\\
+MDETR-R101 & FineCops val & $G:Y-E$ & Image CW & \shortstack{+12.180\\{\scriptsize [+11.106, +13.269]}} & \shortstack{+11.752\\{\scriptsize [+10.280, +13.309]}} & \shortstack{+0.429\\{\scriptsize [-0.665, +1.493]}}\\
+MDETR-R101 & FineCops val & $G:Y-E$ & Level CW & \shortstack{+13.889\\{\scriptsize [+13.044, +14.743]}} & \shortstack{+13.660\\{\scriptsize [+12.738, +14.596]}} & \shortstack{+0.229\\{\scriptsize [-0.192, +0.661]}}\\
+MDETR-R101 & FineCops val & $Y:S-G$ & Image CN & \shortstack{+0.727\\{\scriptsize [+0.392, +1.066]}} & \shortstack{+0.924\\{\scriptsize [+0.410, +1.456]}} & \shortstack{-0.197\\{\scriptsize [-0.587, +0.206]}}\\
+MDETR-R101 & FineCops val & $Y:S-G$ & Level CN & \shortstack{+0.301\\{\scriptsize [-0.016, +0.622]}} & \shortstack{+0.834\\{\scriptsize [+0.514, +1.166]}} & \shortstack{-0.533\\{\scriptsize [-0.719, -0.349]}}\\
+\bottomrule\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Conditional effects and their uncertainty, AUROC $\times100$. Each cell is mean [paired 95\% CI], not a raw score AUROC. $Y:S-G$ is the emission readout effect; $G:Y-E$ is the global target effect. Image conditioning matches participating requests exactly. Level conditioning changes the available within-level pair composition (including the zero cells in the count table), not a difficulty-matched target distribution. An undefined interval is not zero effect or proof of attribution. Part 2.}\label{tab:supp_v6_conditionals_2}
+\begin{tabular}{@{}llllccc@{}}\toprule
+Localizer & Population & Effect & Condition & Comparable uncond. & Conditional & Uncond.$-$cond.\\\midrule
+MDETR-R101 & FineCops val & $G:Y-E$ & Image CN & \shortstack{+0.450\\{\scriptsize [-0.121, +1.027]}} & \shortstack{+1.307\\{\scriptsize [+0.509, +2.098]}} & \shortstack{-0.857\\{\scriptsize [-1.453, -0.265]}}\\
+MDETR-R101 & FineCops val & $G:Y-E$ & Level CN & \shortstack{+0.290\\{\scriptsize [-0.265, +0.857]}} & \shortstack{+2.195\\{\scriptsize [+1.647, +2.750]}} & \shortstack{-1.905\\{\scriptsize [-2.213, -1.595]}}\\
+MDETR-R101 & FineCops val & $Y:S-G$ & Image WN & \shortstack{-3.433\\{\scriptsize [-4.085, -2.798]}} & \shortstack{-2.772\\{\scriptsize [-3.850, -1.762]}} & \shortstack{-0.661\\{\scriptsize [-1.466, +0.165]}}\\
+MDETR-R101 & FineCops val & $Y:S-G$ & Level WN & \shortstack{-2.696\\{\scriptsize [-3.193, -2.211]}} & \shortstack{-3.157\\{\scriptsize [-3.834, -2.501]}} & \shortstack{+0.461\\{\scriptsize [+0.001, +0.954]}}\\
+MDETR-R101 & FineCops val & $G:Y-E$ & Image WN & \shortstack{-10.839\\{\scriptsize [-11.825, -9.875]}} & \shortstack{-9.608\\{\scriptsize [-11.090, -8.055]}} & \shortstack{-1.230\\{\scriptsize [-2.362, -0.072]}}\\
+MDETR-R101 & FineCops val & $G:Y-E$ & Level WN & \shortstack{-14.257\\{\scriptsize [-15.124, -13.406]}} & \shortstack{-13.524\\{\scriptsize [-14.635, -12.448]}} & \shortstack{-0.733\\{\scriptsize [-1.527, +0.055]}}\\
+MM-GDINO-T & gRef source-disjoint & $Y:S-G$ & Image CW & \shortstack{-0.378\\{\scriptsize [-0.672, -0.095]}} & \shortstack{-0.039\\{\scriptsize [-0.829, +0.750]}} & \shortstack{-0.340\\{\scriptsize [-1.047, +0.387]}}\\
+MM-GDINO-T & gRef source-disjoint & $G:Y-E$ & Image CW & \shortstack{+6.070\\{\scriptsize [+5.150, +6.975]}} & \shortstack{+3.920\\{\scriptsize [+2.668, +5.218]}} & \shortstack{+2.150\\{\scriptsize [+1.000, +3.341]}}\\
+MM-GDINO-T & gRef source-disjoint & $Y:S-G$ & Image CN & \shortstack{+0.036\\{\scriptsize [-0.114, +0.185]}} & \shortstack{+0.430\\{\scriptsize [+0.164, +0.701]}} & \shortstack{-0.394\\{\scriptsize [-0.607, -0.179]}}\\
+MM-GDINO-T & gRef source-disjoint & $G:Y-E$ & Image CN & \shortstack{-3.316\\{\scriptsize [-3.764, -2.885]}} & \shortstack{-4.266\\{\scriptsize [-4.832, -3.717]}} & \shortstack{+0.950\\{\scriptsize [+0.500, +1.404]}}\\
+MM-GDINO-T & gRef source-disjoint & $Y:S-G$ & Image WN & \shortstack{-0.258\\{\scriptsize [-0.529, +0.003]}} & \shortstack{-0.277\\{\scriptsize [-0.767, +0.196]}} & \shortstack{+0.019\\{\scriptsize [-0.384, +0.408]}}\\
+MM-GDINO-T & gRef source-disjoint & $G:Y-E$ & Image WN & \shortstack{-6.775\\{\scriptsize [-7.481, -6.061]}} & \shortstack{-5.456\\{\scriptsize [-6.318, -4.548]}} & \shortstack{-1.319\\{\scriptsize [-2.107, -0.578]}}\\
+MDETR-R101 & gRef source-disjoint & $Y:S-G$ & Image CW & \shortstack{-1.301\\{\scriptsize [-2.039, -0.532]}} & \shortstack{-1.616\\{\scriptsize [-2.740, -0.541]}} & \shortstack{+0.315\\{\scriptsize [-0.616, +1.282]}}\\
+MDETR-R101 & gRef source-disjoint & $G:Y-E$ & Image CW & \shortstack{+4.478\\{\scriptsize [+3.273, +5.734]}} & \shortstack{+7.087\\{\scriptsize [+5.545, +8.782]}} & \shortstack{-2.608\\{\scriptsize [-3.920, -1.291]}}\\
+MDETR-R101 & gRef source-disjoint & $Y:S-G$ & Image CN & \shortstack{-1.927\\{\scriptsize [-2.211, -1.634]}} & \shortstack{-1.540\\{\scriptsize [-1.914, -1.175]}} & \shortstack{-0.386\\{\scriptsize [-0.664, -0.111]}}\\
+MDETR-R101 & gRef source-disjoint & $G:Y-E$ & Image CN & \shortstack{-0.509\\{\scriptsize [-0.934, -0.098]}} & \shortstack{+1.155\\{\scriptsize [+0.680, +1.617]}} & \shortstack{-1.664\\{\scriptsize [-2.050, -1.278]}}\\
+MDETR-R101 & gRef source-disjoint & $Y:S-G$ & Image WN & \shortstack{-2.145\\{\scriptsize [-3.106, -1.217]}} & \shortstack{-2.150\\{\scriptsize [-3.233, -1.075]}} & \shortstack{+0.005\\{\scriptsize [-0.804, +0.855]}}\\
+MDETR-R101 & gRef source-disjoint & $G:Y-E$ & Image WN & \shortstack{-5.580\\{\scriptsize [-7.305, -4.013]}} & \shortstack{-5.044\\{\scriptsize [-6.793, -3.358]}} & \shortstack{-0.536\\{\scriptsize [-1.760, +0.681]}}\\
+\bottomrule\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Conditional effects and their uncertainty, AUROC $\times100$. Each cell is mean [paired 95\% CI], not a raw score AUROC. $Y:S-G$ is the emission readout effect; $G:Y-E$ is the global target effect. Image conditioning matches participating requests exactly. Level conditioning changes the available within-level pair composition (including the zero cells in the count table), not a difficulty-matched target distribution. An undefined interval is not zero effect or proof of attribution. Part 3.}\label{tab:supp_v6_conditionals_3}
+\begin{tabular}{@{}llllccc@{}}\toprule
+Localizer & Population & Effect & Condition & Comparable uncond. & Conditional & Uncond.$-$cond.\\\midrule
+MM-GDINO-T & gRef Full & $Y:S-G$ & Image CW & \shortstack{-0.286\\{\scriptsize [-0.559, -0.014]}} & \shortstack{-0.069\\{\scriptsize [-0.783, +0.641]}} & \shortstack{-0.217\\{\scriptsize [-0.846, +0.447]}}\\
+MM-GDINO-T & gRef Full & $G:Y-E$ & Image CW & \shortstack{+5.685\\{\scriptsize [+4.847, +6.520]}} & \shortstack{+3.905\\{\scriptsize [+2.740, +5.049]}} & \shortstack{+1.780\\{\scriptsize [+0.701, +2.839]}}\\
+MM-GDINO-T & gRef Full & $Y:S-G$ & Image CN & \shortstack{+0.077\\{\scriptsize [-0.067, +0.211]}} & \shortstack{+0.375\\{\scriptsize [+0.116, +0.629]}} & \shortstack{-0.299\\{\scriptsize [-0.500, -0.094]}}\\
+MM-GDINO-T & gRef Full & $G:Y-E$ & Image CN & \shortstack{-3.276\\{\scriptsize [-3.676, -2.861]}} & \shortstack{-4.199\\{\scriptsize [-4.727, -3.663]}} & \shortstack{+0.923\\{\scriptsize [+0.523, +1.342]}}\\
+MM-GDINO-T & gRef Full & $Y:S-G$ & Image WN & \shortstack{-0.244\\{\scriptsize [-0.485, +0.000]}} & \shortstack{-0.348\\{\scriptsize [-0.792, +0.085]}} & \shortstack{+0.104\\{\scriptsize [-0.250, +0.453]}}\\
+MM-GDINO-T & gRef Full & $G:Y-E$ & Image WN & \shortstack{-6.524\\{\scriptsize [-7.173, -5.869]}} & \shortstack{-5.531\\{\scriptsize [-6.309, -4.721]}} & \shortstack{-0.993\\{\scriptsize [-1.692, -0.298]}}\\
+MDETR-R101 & gRef Full & $Y:S-G$ & Image CW & \shortstack{-1.217\\{\scriptsize [-1.916, -0.546]}} & \shortstack{-1.552\\{\scriptsize [-2.567, -0.611]}} & \shortstack{+0.335\\{\scriptsize [-0.450, +1.193]}}\\
+MDETR-R101 & gRef Full & $G:Y-E$ & Image CW & \shortstack{+4.117\\{\scriptsize [+2.833, +5.388]}} & \shortstack{+6.620\\{\scriptsize [+5.146, +8.235]}} & \shortstack{-2.503\\{\scriptsize [-3.693, -1.282]}}\\
+MDETR-R101 & gRef Full & $Y:S-G$ & Image CN & \shortstack{-1.946\\{\scriptsize [-2.205, -1.669]}} & \shortstack{-1.689\\{\scriptsize [-2.013, -1.342]}} & \shortstack{-0.257\\{\scriptsize [-0.508, -0.009]}}\\
+MDETR-R101 & gRef Full & $G:Y-E$ & Image CN & \shortstack{-0.534\\{\scriptsize [-0.914, -0.138]}} & \shortstack{+1.051\\{\scriptsize [+0.593, +1.497]}} & \shortstack{-1.585\\{\scriptsize [-1.933, -1.227]}}\\
+MDETR-R101 & gRef Full & $Y:S-G$ & Image WN & \shortstack{-2.245\\{\scriptsize [-3.087, -1.451]}} & \shortstack{-2.116\\{\scriptsize [-3.190, -1.050]}} & \shortstack{-0.129\\{\scriptsize [-0.975, +0.733]}}\\
+MDETR-R101 & gRef Full & $G:Y-E$ & Image WN & \shortstack{-5.285\\{\scriptsize [-6.869, -3.778]}} & \shortstack{-4.958\\{\scriptsize [-6.420, -3.450]}} & \shortstack{-0.328\\{\scriptsize [-1.447, +0.778]}}\\
+\bottomrule\end{tabular}
+\end{table*}

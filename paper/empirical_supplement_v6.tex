@@ -1,0 +1,362 @@
+% V6 supplement: controlled readout study only. Historical results remain in
+% the repository and sealed v5, not in this study's scientific evidence chain.
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[review]{cvpr}
+\input{preamble_empirical_v5}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\def\paperID{*****}\def\confName{CVPR}\def\confYear{2027}
+\input{generated/readout_v6/publication_ready}
+\title{Confidence for Which Prediction?\\
+Supervision Targets and Query Readout in Visual Grounding\\
+Supplementary Material}
+\author{Anonymous submission}
+\begin{document}\maketitle
+\renewcommand{\thesection}{\Alph{section}}
+
+\section{What Is Controlled}
+Within each frozen localizer, the experiment crosses two labels
+(target existence and correct Native emission) with two query readouts
+(global max and Native-selected query). The output box, query features,
+native scores, head parameterization, initialization and sample schedule
+are unchanged within each comparison.
+The readout intervention jointly changes the scored query, competition
+among queries, and the location of training gradients. It is not a
+single-factor manipulation of geometric correspondence.
+
+The MM-GDINO global heads are the original fixed-target endpoints.
+The six selected MM-GDINO heads and twelve MDETR heads are new, all
+trained with seeds 17/42/73 to the same fixed endpoint. No original
+checkpoint or record is rewritten, and no result selects the subsequent
+model matrix. The three seeds refer to confidence heads, not independent
+localizer fine-tuning runs.
+
+\section{Localizers, Native Selection and Data Lineage}
+\subsection{MM-GDINO-T}
+The frozen model is the FineCops positive-source epoch-five artifact
+initialized directly from the released MM-GDINO-T pretrain, not from a
+RefCOCO-finetuned checkpoint. Its original fine-tuning used one GPU,
+physical batch four and accumulation eight for effective batch 32.
+The directory's historical batch label is not a statement that the
+trunk used physical batch 32.
+
+The 83,341 positive-source rows were optimized with ordinary FP32 AdamW:
+LR $2\times10^{-4}$, backbone multiplier 0.1, weight decay $10^{-4}$,
+gradient clipping 0.1 and epoch-three LR multiplier 0.1. The seed was
+20260902 with deterministic training disabled and no frozen detector
+modules. No-flip multiscale resize used short sides 480--800 and max 1333,
+or an intermediate 400/500/600 resize, an absolute-range crop allowing
+empty crops, and the final multiscale resize.
+Positive-source does not mean the absence of background supervision:
+unmatched queries and permissible empty crops retain negative signals.
+
+We reuse the fixed epoch-five weights checked through frozen
+runtime/candidate parity, rather than training another localizer.
+The current study does not reopen FineCops Test.
+
+Frozen extraction uses the full expression, single-image inference,
+800/max1333 resize, and all 900 final-layer 256-d queries. Native scores
+are maximum sigmoid token scores; the maximum Native-score query wins,
+with the original lowest-index tie rule.
+
+\subsection{MDETR-R101}
+The second localizer is the official RefCOCO R101 EMA release of
+MDETR \cite{kamath2021mdetr}. The pinned implementation and weights are
+bound by the study manifests. The required checkpoint key is
+\texttt{model\_ema}; missing EMA does not trigger fallback to raw weights.
+This is a RefCOCO-adapted second representation, not a
+FineCops-matched architecture-only comparison.
+
+The complete expression and official preprocessing produce 100
+256-d query features. Native score is
+$1-\operatorname{softmax}(\mathrm{pred\_logits})_{\rm no\ object}$.
+Selection preserves the official descending score--pixel-xyxy tuple
+ordering; completely duplicated tuples retain the lowest original query
+index. Candidates are neither padded to 900 nor postprocessed with a new
+NMS or confidence threshold.
+Correctness is recomputed from MDETR's own selected box using IoU
+at least 0.5. An upstream evaluator's GIoU aggregate is not substituted
+for this study's IoU metric.
+
+\subsection{Populations and image overlap}
+FineCops train contains 83,341 unique positive-source requests and 80,451
+paired negative-text requests. Every paired positive parent is L1:
+the 80,451 confidence pairs reference 43,979 unique L1 positives.
+No L2/L3 positive enters either target's head loss, despite being present
+in the frozen cache. The full 83,341-positive pool used for SIRC
+normalization must not be described as full positive head-supervision
+coverage. MM-GDINO's earlier positive-source trunk adaptation did use
+the full positive population.
+Validation includes 9,426 positives and 9,029 text negatives on 3,567 images.
+Those validation negatives reference 4,946 unique positive parents,
+also all L1; the validation positive population nevertheless spans L1--L3.
+No new head is evaluated on FineCops Test or negative-image perturbations.
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\caption{Positive-request coverage by original expression difficulty.
+Pair counts include repeated parents; unique-positive counts do not.
+SIRC normalization sees every training positive but supplies no head-loss
+updates.}
+\label{tab:v6_positive_coverage}
+\begin{tabular}{@{}p{.52\columnwidth}rrr@{}}\toprule
+Population & L1 & L2 & L3\\\midrule
+Train unique positives & 54,015 & 25,282 & 4,044\\
+Train unique head-loss parents & 43,979 & 0 & 0\\
+Train confidence pairs & 80,451 & 0 & 0\\
+Train positives outside head loss & 10,036 & 25,282 & 4,044\\
+Val positives & 6,097 & 2,884 & 445\\
+Val unique negative parents & 4,946 & 0 & 0\\
+Val negative/parent pairs & 9,029 & 0 & 0\\\bottomrule
+\end{tabular}
+\end{table}
+
+Thus 10,036 other L1 positives and all 29,326 L2/L3 training positives
+receive no confidence-head loss. Generating a permutation over all
+positives does not change this: those are rank events, and the head
+trainer skips every rank event. Only the confidence-pair events update
+the heads. The complete unique-positive pool enters SIRC score-statistic
+normalization, which is separate from supervised optimization.
+
+This boundary is shared by all target/readout arms and both localizers.
+It does not invalidate the label intervention on its fixed sampled
+source, but it prevents an inference that the heads were directly taught
+correctness on the full training difficulty range or that evaluation
+complexity is matched. The observed effects can include generalization
+outside positive head-loss coverage; these data do not identify coverage
+as the sole or causal explanation of any performance difference.
+
+gRefCOCO TestA contains 5,917 single-target positives and 4,448 no-targets;
+TestB contains 5,646 and 4,673. Their pooled surface has 20,684 requests
+on 1,500 images. All 14,579 multi-target expressions are excluded,
+so this is not full zero-to-many-target GREC.
+The source-disjoint sensitivity excludes FineCops training and validation
+source images through VG--COCO identities or exact bytes: 202 train
+and 21 validation images are removed, leaving 1,277 images,
+9,848 positives and 7,716 no-targets.
+Global pretraining exposure and near duplicates remain unenumerated.
+Full and source-disjoint overlap and are not independent benchmarks.
+MDETR is RefCOCO-adapted, and gRefCOCO is built on COCO imagery.
+The current FineCops-source exclusion is not a separate image-disjointness
+audit of MDETR's complete pretraining/adaptation lineage.
+
+The mechanism protocol was locked before new readout training/evaluation,
+but motivated by earlier results on previously investigated benchmarks.
+This is an exploratory mechanism study with a prospectively fixed recipe,
+not a virgin held-out confirmation or an image-disjoint zero-shot claim.
+
+\section{Head Architecture, Optimization and Resume}
+For every valid query, the head input is the detached 256-d feature
+concatenated with the detached Native score. LayerNorm(257), Linear(257,128),
+GELU, Linear(128,128), GELU and Linear(128,1), including biases, give
+50,179 parameters in eight tensors. The final weight and bias start at zero.
+The original factory creates the full historical shell before copying
+initialization to each arm, retaining its random-number consumption.
+No selected head is initialized from a trained global endpoint.
+
+The fixed training score is $c_G$ or $c_S$ in both the loss and matched
+inference. If $p_i,n_i$ denote paired source logits,
+\begin{align}
+L={}&\tfrac12\overline{\mathrm{BCE}(p_i,y_i)}
+   +\tfrac12\overline{\mathrm{BCE}(n_i,0)}\nonumber\\
+   &+\tfrac{10^{-3}}2\big(\overline{p_i^2}+\overline{n_i^2}\big).
+\end{align}
+Existence sets $y_i=1$ on every sampled positive parent; emission uses fixed
+Native correctness. Neither target changes source weights, sample
+frequency or target-dependent class balance. A target logit is an
+ordering score, not an asserted calibrated conditional probability.
+
+AdamW uses LR $10^{-4}$, zero weight decay, gradient clip 0.1 and
+deterministic FP32, with 32 pairs per update. The original event generator
+draws the rank permutation first, then the confidence permutation;
+rank events are generated and skipped rather than removed from its RNG
+history. Each epoch has 2,514 full batches and one three-pair batch,
+giving 2,515 updates per epoch and 12,575 after five epochs.
+Both readouts compute full dense logits before max or gather.
+The skipped rank events provide neither rank nor confidence supervision
+to the unpaired L1 or L2/L3 positives.
+
+Independent optimizer states, model parameters, RNG state and population/
+code bindings are serialized at every epoch. Tests cover equality of the
+legacy global trajectory and serialized interrupted/resumed trajectories.
+Frozen rank tensors stay bitwise unchanged; selected loss has no gradient
+on unselected dense logits, and neither head has an autograd connection
+to the frozen query source or Native scores. No AMP scaler or skipped
+optimizer update is used.
+
+\section{Inference Groups and Geometry Diagnostics}
+Cached features are FP16; Native scores and boxes are FP32. Heads cast
+features to FP32, keeping this precision boundary identical to training.
+The val evaluator preserves contiguous batches of 32 and its final batch
+of 23. gRef preserves the original four-worker source-index-modulo-four
+assignment, 32-request head batches and final batch of 19 per worker.
+This grouping matters for exact score reproduction even when output
+differences from another grouping would be numerically tiny.
+
+Every gRef localizer is traversed once and cached for all heads.
+The complete 18-head endpoint gate precedes any new transfer scoring.
+Old MM-GDINO global logits and Native query/box/hash records must match
+bitwise. No-target has null correctness and GT IoU; it never acquires
+a fabricated box label. Confidence never changes Native geometry.
+
+For each trained head we save its global maximum and selected-query logit,
+the confidence winner and Native indices, their box IoU, and both GT IoUs
+where a true target exists. Different indices can have similar boxes.
+Throughout the winner tables, \emph{winner} means the \emph{global}
+argmax of that head's dense logits. It supplies deployed confidence
+for $G$; for $S$ it is only a counterfactual diagnostic.
+Matched $S$ deployment always reads the Native-selected query, so
+its actual readout-index disagreement is identically zero.
+Conversely, a Native-wrong request can have a correct confidence-winning
+query, supporting existence evidence without certifying its emitted box.
+The tables report these events descriptively, not as uniquely attributable
+causal fractions.
+
+\section{Three-State Risk Identities}
+Let $C,W,N$ denote correct emission, wrong positive localization and
+no-target, with masses
+$p_C=(1-\pi)a$, $p_W=(1-\pi)(1-a)$ and $p_N=\pi$.
+With half credit for score ties,
+\begin{equation}
+\mathrm{AUC}_E=aU_{CN}+(1-a)U_{WN}.
+\end{equation}
+For generalized-risk integration starting at $(0,0)$,
+\begin{align}
+\mathrm{AUGRC}
+={}&p_Cp_W(1-U_{CW})+p_Cp_N(1-U_{CN})\nonumber\\
+&+\tfrac12(p_W+p_N)^2.
+\end{align}
+The last term is fixed within a localizer/population. Taking differences
+therefore yields the main-paper identity without a $W/N$ term.
+The identity holds with tied scores and fractional request weights.
+All-correct and all-failure AUGRC limits are 0 and $1/2$; all-tied
+AUGRC is half the failure rate. We report AUGRC and AURC multiplied
+by 100, despite their different ranges.
+
+The fixed prior grid is $\{0,.1,.25,.5,.75,.9,1\}$. Every draw separately
+normalizes positive and no-target request masses to $1-\pi$ and $\pi$.
+Observed-mixture analysis instead retains the image draw's empirical
+class proportions. Mixing endpoint integrals linearly would not
+reconstruct the reweighted ranking curve.
+
+For AURC, entire equal-score groups are admitted together. Trapezoids
+integrate selective risk between successive achieved coverages, extending
+the first nonempty group's risk to zero coverage. AUGRC instead starts
+at zero generalized risk and zero coverage. At requested coverages
+10/25/50/75/90/100\%, the boundary tie group is retained and the achieved
+coverage is reported. Wrong-box and no-target contributions sum exactly
+under both integrals. These are curve diagnostics, not selected
+deployment thresholds.
+
+For score differences $\Delta U_{CW}$ and $\Delta U_{CN}$, an interior
+AUGRC crossing solves
+$(1-\pi)(1-a)\Delta U_{CW}+\pi\Delta U_{CN}=0$.
+We solve for the equal-seed mean risk difference, not the average of
+per-seed roots. If any replicate has no interior crossing, an
+unconditional interior-root interval is not reported.
+Interior-only intervals are explicitly conditional and accompanied
+by counts of every other root status.
+
+\section{Conditional Comparisons and Uncertainty}
+Same-image pairwise AUROCs include all eligible state pairs within
+participating images. Under an image draw of multiplicity $m_i$, those
+within-copy pairs contribute $m_i$, not $m_i^2$. Their comparable
+unconditional analysis uses precisely the same participating requests.
+This permits a paired attenuation contrast without silently replacing
+the evaluation population.
+
+FineCops negative records point to their actual positive parents.
+Parent-pair wins are reported separately when the parent is Native-correct
+or Native-wrong. For difficulty conditioning, negative records inherit
+the \emph{original positive expression's} level; their edit level is
+kept separate and never treated as positive-expression difficulty.
+All original negative parents are L1 in both train and validation.
+Consequently, same-level $C/N$ and $W/N$ conditioning has only an L1
+surface; no L2/L3 negatives are invented. Cross-level comparisons with
+L2/L3 positives also cross the positive head-supervision boundary.
+The comparable-unconditional difficulty score includes all requests
+with an original-positive level, whereas the same-level score includes
+only available within-level state pairs. Their contrast changes pair
+composition; unlike the same-image analysis, it must not be described
+as holding the full target distribution matched. Per-level high/low
+state counts explicitly expose the zero cells.
+gRef has same-image analysis but no fabricated edited-expression parent.
+
+AUROC can be decomposed into within-level and across-level pair
+contributions. Their sum is exact, but a contribution share is not
+causal explained variance. A conditional interval spanning zero
+does not establish that a whole effect disappears; attenuation
+needs both a meaningful magnitude and sufficient precision.
+Undefined comparisons remain undefined rather than becoming zero.
+
+The 5,000 paired image-cluster bootstrap uses PCG64 seed 20260911.
+The same draw covers every localizer, arm, combination and head seed
+on a surface; gRef is stratified by TestA/B. Metrics are recomputed
+per seed and equally averaged. Seed sample SD is reported separately,
+with no $n=3$ t-test. An undefined draw invalidates the affected
+interval; draws are never silently deleted.
+Diagnostic FPR95 recomputes the positive q05 in each replicate,
+accepting equality. No deployment threshold is fitted.
+
+\section{Fixed Combination Controls}
+Product uses $\log\max(s_0,10^{-6})+\log\sigma(z_E)$.
+SIRC-style \cite{xia2024sirc} uses the prespecified rule in the main
+paper with mean and population SD estimated on all 83,341 unique
+training positives. Pair-expanded duplicates, validation requests
+and gRef requests are rejected by its fitting interface.
+Each localizer/seed has its own bound score-statistics artifact;
+the same statistics are reused unchanged across evaluation surfaces.
+If the SD is at most $10^{-12}$, the rule returns Native and records
+the degeneration.
+
+The combinations are evaluated against Native, global existence
+and global emission, retaining any cost relative to another reference.
+These controls test two particular score constructions, not optimal
+fusion or impossibility of combining existence and localization
+information. Neither alters localization or claims calibrated probability.
+
+\section{Complete Numeric Results}
+The following tables print the prespecified endpoint, seed and core
+mechanism summaries. The full machine-readable analyses additionally
+retain every fixed-prior, parent-pair and frozen-weight alternate-readout
+contrast. Printed conditioning tables focus on the absolute emission
+readout change and the global target contrast, showing comparable
+unconditional and conditional estimates as well as their paired
+difference. Count tables expose each comparison's population.
+The frozen-weight cross-readout table reports both matched/alternate
+risks and their paired difference; these off-diagonal diagnostics
+never replace the matched four-cell matrix.
+The compact FineCops 50/90\%-coverage table reports achieved request
+coverage and both accepted-error components. Its error probabilities
+are conditional on acceptance, not counts or fractions of the full
+request population; they must not be confused with generalized risk.
+\input{generated/readout_v6/supp_seed_endpoints}
+\input{generated/readout_v6/supp_seed_effects}
+\input{generated/readout_v6/supp_complete_endpoints}
+\input{generated/readout_v6/supp_fixed_coverage}
+\input{generated/readout_v6/supp_cross_readouts}
+\input{generated/readout_v6/supp_condition_counts}
+\input{generated/readout_v6/supp_conditionals}
+\input{generated/readout_v6/supp_parent_pairs}
+\input{generated/readout_v6/supp_winner_geometry}
+\input{generated/readout_v6/supp_crossovers}
+
+\section{Reusable Evaluation Deliverable}
+The record interface contains sample/image/stratum identities,
+localizer-specific fixed-box correctness, score slots and query-winner
+diagnostics. Source bindings keep checkpoint, cache, initialization,
+sample order and pairing explicit. Evaluation and statistics remain
+separate: producing a complete score panel does not choose a model.
+
+Synthetic tests cover the two-target/two-readout gradients, exact
+interaction algebra, same-image multiplicities, state-risk identities,
+absent crossover roots, source-disjoint subsets, score ties,
+replicate q05 recalculation and combination-statistics provenance.
+The tool can evaluate other localizers and scores from saved records.
+Its role is a reusable implementation of the study, not an additional
+general novelty claim.
+
+\FloatBarrier
+{\small\bibliographystyle{ieeenat_fullname}\bibliography{references_empirical_v6}}
+\end{document}

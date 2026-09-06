@@ -1,0 +1,25 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{FineCops val error composition at requested coverage 50/90\%. Achieved coverage is the equal-seed mean fraction of all requests retained, in percent; the boundary tie group is accepted in full. W, N and mixed are conditional error probabilities among accepted requests, $\times100$, with paired image-cluster 95\% intervals. They are not counts or failure rates divided by all requests. W+N=mixed before display rounding. No deployment threshold is fitted; all other coverages/surfaces remain in the full analysis JSON.}\label{tab:supp_v6_fixed_coverage}
+\begin{tabular}{@{}llccccc@{}}\toprule
+Localizer & Head & Requested (\%) & Achieved (\%) & W$\mid$accept & N$\mid$accept & Failure$\mid$accept\\\midrule
+MM-GDINO-T & $G/E$ & 50 & 50.003 & \shortstack{8.44\\{\scriptsize [7.67, 9.25]}} & \shortstack{41.46\\{\scriptsize [40.45, 42.40]}} & \shortstack{49.90\\{\scriptsize [48.97, 50.76]}}\\
+MM-GDINO-T & $G/E$ & 90 & 90.003 & \shortstack{12.00\\{\scriptsize [11.25, 12.77]}} & \shortstack{45.26\\{\scriptsize [44.33, 46.13]}} & \shortstack{57.25\\{\scriptsize [56.50, 57.95]}}\\
+MM-GDINO-T & $G/Y$ & 50 & 50.003 & \shortstack{3.55\\{\scriptsize [3.13, 4.03]}} & \shortstack{46.81\\{\scriptsize [45.95, 47.65]}} & \shortstack{50.36\\{\scriptsize [49.53, 51.23]}}\\
+MM-GDINO-T & $G/Y$ & 90 & 90.003 & \shortstack{11.04\\{\scriptsize [10.34, 11.80]}} & \shortstack{46.35\\{\scriptsize [45.45, 47.20]}} & \shortstack{57.39\\{\scriptsize [56.68, 58.08]}}\\
+MM-GDINO-T & $S/E$ & 50 & 50.003 & \shortstack{8.41\\{\scriptsize [7.67, 9.19]}} & \shortstack{41.45\\{\scriptsize [40.47, 42.39]}} & \shortstack{49.87\\{\scriptsize [48.92, 50.73]}}\\
+MM-GDINO-T & $S/E$ & 90 & 90.003 & \shortstack{11.98\\{\scriptsize [11.23, 12.76]}} & \shortstack{45.25\\{\scriptsize [44.34, 46.13]}} & \shortstack{57.23\\{\scriptsize [56.50, 57.93]}}\\
+MM-GDINO-T & $S/Y$ & 50 & 50.003 & \shortstack{3.83\\{\scriptsize [3.38, 4.36]}} & \shortstack{46.45\\{\scriptsize [45.56, 47.28]}} & \shortstack{50.28\\{\scriptsize [49.43, 51.14]}}\\
+MM-GDINO-T & $S/Y$ & 90 & 90.003 & \shortstack{10.85\\{\scriptsize [10.13, 11.58]}} & \shortstack{46.69\\{\scriptsize [45.80, 47.53]}} & \shortstack{57.54\\{\scriptsize [56.81, 58.21]}}\\
+MDETR-R101 & $G/E$ & 50 & 50.003 & \shortstack{15.38\\{\scriptsize [14.52, 16.25]}} & \shortstack{41.06\\{\scriptsize [40.09, 42.02]}} & \shortstack{56.44\\{\scriptsize [55.49, 57.40]}}\\
+MDETR-R101 & $G/E$ & 90 & 90.003 & \shortstack{17.74\\{\scriptsize [16.97, 18.55]}} & \shortstack{46.35\\{\scriptsize [45.46, 47.20]}} & \shortstack{64.09\\{\scriptsize [63.35, 64.81]}}\\
+MDETR-R101 & $G/Y$ & 50 & 50.003 & \shortstack{9.04\\{\scriptsize [8.38, 9.78]}} & \shortstack{44.52\\{\scriptsize [43.55, 45.43]}} & \shortstack{53.56\\{\scriptsize [52.67, 54.44]}}\\
+MDETR-R101 & $G/Y$ & 90 & 90.003 & \shortstack{16.29\\{\scriptsize [15.54, 17.07]}} & \shortstack{47.34\\{\scriptsize [46.49, 48.19]}} & \shortstack{63.63\\{\scriptsize [62.89, 64.37]}}\\
+MDETR-R101 & $S/E$ & 50 & 50.003 & \shortstack{14.76\\{\scriptsize [13.86, 15.66]}} & \shortstack{40.98\\{\scriptsize [39.94, 41.99]}} & \shortstack{55.74\\{\scriptsize [54.74, 56.69]}}\\
+MDETR-R101 & $S/E$ & 90 & 90.003 & \shortstack{17.52\\{\scriptsize [16.74, 18.32]}} & \shortstack{46.45\\{\scriptsize [45.58, 47.31]}} & \shortstack{63.97\\{\scriptsize [63.22, 64.69]}}\\
+MDETR-R101 & $S/Y$ & 50 & 50.003 & \shortstack{8.02\\{\scriptsize [7.34, 8.72]}} & \shortstack{44.91\\{\scriptsize [43.96, 45.88]}} & \shortstack{52.94\\{\scriptsize [52.02, 53.86]}}\\
+MDETR-R101 & $S/Y$ & 90 & 90.003 & \shortstack{15.78\\{\scriptsize [15.02, 16.56]}} & \shortstack{47.68\\{\scriptsize [46.81, 48.50]}} & \shortstack{63.46\\{\scriptsize [62.71, 64.17]}}\\
+\bottomrule\end{tabular}
+\end{table*}

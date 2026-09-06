@@ -1,0 +1,28 @@
+{
+  "generator": {
+    "path": "/media/haoyi/T9/pivot/paper/scripts/build_evidence_v7_seed_assets.py",
+    "sha256": "7eaff848d1a5945b97183ea0a186dd7ac25355f4c55b0a5d5e25d92f8abb46e0"
+  },
+  "new_bootstrap": false,
+  "new_model_scoring": false,
+  "outputs": {
+    "figure1_evidence.pdf": "18ef8d08f96d6b71fd45fc929d1b251a735eaccc061a0a335a70cd800bb370e2",
+    "figure1_evidence.svg": "7d04b49e69dc488c185ed0153ae139811462cb1b1bc69d56f10a8dea0062aeaa",
+    "seed_effects.json": "1940aca4d9abc127f604f94f1ceef0b71395d60f88e3b45c154a29817dc95dfa"
+  },
+  "schema": "arrow.paper.evidence_v7_seed_assets/v1",
+  "sources": {
+    "finecops_val": {
+      "path": "/media/haoyi/T9/pivot/paper/data/readout_v6/finecops_val.json",
+      "sha256": "91a088208d0a2786f9a07de2d9248ffb0a273c0e78c32f5de7990e4acc03196d"
+    },
+    "gref_full": {
+      "path": "/media/haoyi/T9/pivot/paper/data/readout_v6/gref_full.json",
+      "sha256": "7d8c2b9db2fdf90b9e9b9218383afef4a51b17089763ca85f87742963b33c5f9"
+    },
+    "gref_source_disjoint": {
+      "path": "/media/haoyi/T9/pivot/paper/data/readout_v6/gref_finecops_train_val_source_disjoint.json",
+      "sha256": "33cbd5765b6cf06dcc11fb21545aeb0456f839d0c5c586baf47122baccb674fd"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{The MM-GDINO FineCops global target effect changes across difficulty comparisons. All numbers are emission-minus-existence AUROC points with existing paired image intervals. L1 uses 6,097 positive requests and the same 9,029 no-target requests. The final two rows are weighted contributions to the full C/N effect, not conditional AUROCs.}\label{tab:coverage}
+\begin{tabular}{@{}lcc@{}}\toprule
+Comparison & $\Delta U_{CW}$ & $\Delta U_{CN}$\\\midrule
+Full positive population & \shortstack{+11.654\\{\scriptsize [+10.721, +12.641]}} & \shortstack{-3.523\\{\scriptsize [-3.884, -3.166]}}\\
+L1 positive population & \shortstack{+7.085\\{\scriptsize [+6.023, +8.236]}} & \shortstack{+0.224\\{\scriptsize [+0.024, +0.431]}}\\
+\midrule
+Within-level contribution & -- & \shortstack{+0.169\\{\scriptsize [+0.019, +0.326]}}\\
+Cross-level contribution & -- & \shortstack{-3.692\\{\scriptsize [-4.019, -3.384]}}\\
+\bottomrule\end{tabular}
+\end{table*}

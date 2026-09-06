@@ -1,0 +1,379 @@
+% Seed-explicit editorial revision. Coverage training is separate and has no results in this manuscript.
+\documentclass[10pt,twocolumn,letterpaper]{article}
+\usepackage[review]{cvpr}
+\input{preamble_empirical_v5}
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
+\def\paperID{*****}\def\confName{CVPR}\def\confYear{2027}
+\input{generated/readout_v6/publication_ready}
+\input{generated/evidence_v7_r2/numbers}
+\title{Confidence for Which Prediction?\\
+Supervision, Readout, and Coverage in Visual Grounding}
+\author{Anonymous submission}
+\begin{document}\maketitle
+\begin{abstract}
+Supervising a grounding confidence head to recognize correct outputs seems
+more direct than teaching it only whether a referent exists. Yet the same
+label change can have opposite reliability consequences. We study two
+frozen grounders with matched heads and training, preserving every output
+box. On FineCops validation, correct-output supervision changes mixed
+AUGRC by $+0.149$ points for MM-GDINO and $-0.866$ for MDETR, despite
+improving correct-versus-wrong-box ranking in both. Reading the emitted
+query does not remove the MM-GDINO tradeoff; changing readout only at
+inference can differ from matched retraining, with substantial seed variation. Three-state analysis
+locates the MM-GDINO loss in comparisons involving complex positives
+outside the head's L1 supervision coverage. Within L1, both comparisons
+needed for successful-output ranking improve. Frozen transfer and fixed
+score combinations reveal when these findings extend or change. The
+results motivate inspecting which success/failure comparisons supervision
+changes, and how those comparisons relate to training coverage.
+\end{abstract}
+
+\begin{figure*}[t]
+\centering\includegraphics[width=\textwidth]{generated/evidence_v7_seed_r1/figure1_evidence.pdf}
+\caption{\textbf{From an endpoint difference to an explanation to investigate.}
+All panels use FineCops validation with fixed Native output boxes.
+(a) Changing existence labels to correct-emission labels raises complete
+risk on MM-GDINO and lowers it on MDETR. (b) For MDETR emission confidence,
+paired lines show all three seed effects relative to the same-seed G-trained/G-deployed
+head. The inference-only mean is driven by seed 17; matched retraining improves
+all three seeds. Diamonds denote means, not additional runs. (c) MM-GDINO's correct-output/no-target ($C/N$) target effect changes
+sign within L1, the only positive difficulty level supplying head-loss supervision.
+Panels (a,b) show AUGRC differences, where lower is better; (c) shows
+AUROC differences, where positive means a larger pairwise AUROC.
+Intervals in (a,c) resample images for the fixed three-head mean; they do not
+measure training-seed variability. Panel (b) displays seeds directly. The L1 comparison
+is not a training-coverage intervention.}
+\label{fig:evidence}
+\end{figure*}
+
+\section{Introduction}
+A visual grounder returning a box can fail in two ways: the requested
+referent is absent, or it exists but the chosen box is wrong. Generalized
+grounding makes both failures observable rather than guaranteeing a valid
+referent for every expression \cite{he2023grec,liu2023gres,liu2024finecops}.
+A confidence score used to retain reliable outputs must rank correct
+localizations above both failure types.
+
+The natural training target is therefore \emph{correct emission}: the
+referent exists and the emitted box is correct. If a score accurately
+estimated that success probability on the target population, ranking by
+it would favor successes at fixed coverage under equal failure costs.
+The empirical question concerns the finite heads we actually learn:
+\emph{why can a more directly relevant supervision target still produce
+worse complete-output ranking?}
+
+We isolate the label change by fixing the localizer, its output boxes,
+head architecture, initialization, requests and optimization. Existence
+and correct-emission heads differ only in the label assigned to
+present-but-wrong requests. The consequences differ across two frozen
+grounders. On FineCops validation, MM-GDINO's emission head improves
+correct-versus-wrong-box ordering but increases complete risk. MDETR's
+emission head improves that ordering and decreases complete risk. Both
+lose existence AUROC. An existence metric alone therefore obscures the
+comparison that determines whether reliable outputs were helped.
+
+One grounding-specific explanation is a mismatch between the emitted box
+and the query supplying confidence. A Native score selects a box, but a
+global maximum over learned query logits may read another query. We test
+this explanation by training the same heads with a Native-selected-query
+readout. The MM-GDINO risk disadvantage survives. On MDETR,
+inference-only switching has a large adverse effect for one seed, whereas
+matched retraining gives smaller improvements in all three seeds. Reading the emitted query is consequently not a
+sufficient condition for resolving the observed reliability tradeoff.
+
+The stronger explanatory lead is \emph{which requests receive supervision}.
+The confidence loss uses 80,451 pairs drawn from 43,979 unique L1 positive
+parents, while validation also includes L2/L3 expressions. Within L1,
+MM-GDINO emission supervision improves both correct/wrong and correct/no-target
+comparisons. Its full-population correct/no-target loss lies in the
+cross-difficulty contribution involving L2/L3 positives and L1-parent
+negatives. Coverage and complex-expression generalization thus enter the
+main finding: the aggregate tradeoff does not characterize even all
+difficulty strata of this one localizer.
+
+Our contribution is a controlled empirical account of a supervision change
+and the success/failure comparisons it alters. Matched and frozen-weight
+readout controls test a concrete explanation; three-state decomposition
+exposes a supervision-coverage boundary. Frozen transfer and simple score
+combinations then test practical consequences. A record-only evaluator
+accompanies the study so these comparisons can be applied to other fixed
+grounders. The experiment identifies the label effect under a fixed
+training source; testing coverage as its cause remains a distinct question.
+
+\section{Related Work}
+\paragraph{Grounding and prediction quality.}
+Grounding DINO \cite{liu2025groundingdino} and MDETR
+\cite{kamath2021mdetr} provide language-conditioned queries and boxes.
+GREC/gRefCOCO add absent and multiple referents
+\cite{he2023grec,liu2023gres}; FineCops evaluates compositional positives
+and negative expressions/images \cite{liu2024finecops}.
+Localization-aware scores in detection \cite{li2020gfl} and learned
+reject options \cite{geifman2019selectivenet} connect confidence to
+prediction quality. We retain each grounder's Native box and study the
+confidence assigned to that fixed prediction.
+
+\paragraph{Joint failure detection and score combination.}
+Distinguishing invalid inputs and detecting wrong predictions are established
+as different problems \cite{jaeger2023failure}. OpenMix
+\cite{zhu2023openmix} and SCOD \cite{narasimhan2024scod} study joint
+failure detection; SIRC analyzes confidence combination and changing
+failure mixtures \cite{xia2024sirc}. AUGRC provides a generalized-risk
+view of selective prediction \cite{traub2024augrc}. These works supply
+the broader framework for our three states and population-dependent
+score preferences. Our independent evidence comes from a matched label
+intervention, query-readout controls, and difficulty/same-image structure
+within visual grounding. The SIRC-style score is a fixed control using
+training statistics, rather than a newly proposed estimator.
+
+\paragraph{Generalization and operating points.}
+Calibration and its stability under distribution shift concern the
+interpretation of score values and thresholds
+\cite{guo2017calibration,ovadia2019trust}. Here the primary outcome is
+ordering fixed outputs by success. Frozen-head transfer tests a learned
+ordering on another request population; no evaluation threshold is fitted.
+Training support is also explicit, so performance on complex expressions
+can be distinguished from the pair population supplying head supervision.
+
+\section{Matched Study}
+\subsection{Fixed predictions and two targets}
+For image--expression request $(I,e)$, a frozen localizer supplies query
+features $q_j$, Native scores $s_j^0$ and boxes $b_j$. The Native selector
+chooses $j^*$ and emits $b^*=b_{j^*}$, preserving its original tie rule.
+We distinguish $C$ (referent present, Native IoU $\geq0.5$), $W$ (present
+but wrong), and $N$ (no target). Existence target $E$ is one on $C,W$;
+emission target $Y$ is one only on $C$. No-target has no fabricated GT.
+
+Every head computes dense logits $z_j=h([q_j;s_j^0])$ from detached
+inputs. The two readouts are
+\begin{equation}
+c_G=\max_{j\in\mathcal V}z_j,\qquad c_S=z_{j^*}.
+\end{equation}
+Both training and matched inference use the declared readout. We also
+retain the alternate reading of each fixed head. Thus inference-only
+switching and matched retraining are separately observed. Retraining S
+changes query competition and gradient locations along with the readout;
+it starts from the original initialization, not the trained G endpoint.
+Confidence never selects the output box.
+
+\subsection{Localizers, training and coverage}
+The first localizer is a five-epoch positive-source FineCops MM-GDINO-T
+artifact with 900 256-d queries. The second is the official RefCOCO
+MDETR-R101 EMA model with 100 256-d queries and Native score
+$1-p_{\text{no-object}}$. Each model supplies its own correctness labels.
+Their architectures, adaptation and Native accuracies differ; comparisons
+of target/readout effects are made \emph{within} each localizer.
+
+All heads have LayerNorm(257), GELU MLP
+$257\!\rightarrow\!128\!\rightarrow\!128\!\rightarrow\!1$,
+50,179 parameters/eight tensors and zero-initialized final output.
+Seeds 17/42/73 share initialization and request order across matched arms.
+Five epochs give 12,575 updates, batch 32 pairs, deterministic FP32,
+AdamW LR $10^{-4}$, WD zero and clip 0.1. The two sources each contribute
+half the mean BCE, plus source-averaged logit L2 with weight $10^{-3}$.
+Emission labels receive no additional reweighting. Cached features are
+FP16; Native scores/boxes and head computation are FP32. Six MM-GDINO
+global heads are reused, with exact record parity; six selected MM-GDINO
+and twelve MDETR heads complete the matrix without localizer updates.
+
+The 80,451 confidence pairs use 43,979 unique L1 positive parents;
+no L2/L3 positive enters the head loss. The complete 83,341-positive
+training cache supplies later combination statistics, not additional
+supervision. MM-GDINO's earlier trunk adaptation did use the full positive
+source. In validation, all 9,029 text negatives also have L1 parents,
+while positives span all three levels. These coverage facts are shared
+by every target/readout arm.
+
+\subsection{Populations, endpoints and uncertainty}
+FineCops validation has 9,426 positives and 9,029 text negatives.
+Frozen transfer uses gRefCOCO TestA/B: 11,563 single-target positives,
+9,121 no-target requests and 1,500 images. All 14,579 multi-target
+expressions are excluded. Removing FineCops train/val source images
+through VG--COCO identities or exact bytes leaves 1,277 images,
+9,848 positives and 7,716 no-targets. This sensitivity is not disjoint
+from all pretraining or MDETR's RefCOCO lineage. Full and source-disjoint
+surfaces overlap. FineCops Test and negative images are not evaluated anew.
+
+Mixed AUGRC, integrating $\Pr(Y=0,c\geq t)$ over coverage, is the primary
+complete-output metric. We retain AURC, pairwise AUROCs, Native P@1,
+fixed-coverage error composition and diagnostic FPR95. Risk and AUROC
+differences below are multiplied by 100. The 5,000 paired image-cluster
+draws use PCG64 seed 20260911, shared across all scores, localizers and
+head seeds on a surface; gRef draws are stratified by TestA/B. Metrics
+are recomputed per seed, then equally averaged. Intervals describe the
+fixed three-head mean under image resampling; sample SD separately
+describes head-seed variation. Every FPR95 replicate recomputes positive
+q05. This is a post-hoc-motivated study with a prospectively fixed recipe,
+without checkpoint selection or deployment-threshold fitting.
+
+\section{Same Supervision, Opposite Risk Results}
+The global emission-minus-existence change on FineCops is
+\FCMMRisk{} AUGRC points for MM-GDINO, but \FCMDRisk{} for MDETR.
+Both improve correct-versus-wrong-box AUROC, by 11.654 and 13.889
+points respectively, and both lose existence AUROC. Matched training
+and fixed outputs make this a directly observed supervision effect, yet the
+complete-risk direction is localizer-dependent (Fig.~\ref{fig:evidence}a).
+Native P@1 is 77.36\% and 65.56\%, respectively, and remains unchanged
+for every confidence route.
+
+\section{Does Reading the Output Query Resolve It?}
+\input{generated/readout_v6/table_target_readout}
+Selected readout changes MM-GDINO emission risk by \MMReadoutChange{};
+the emission-minus-existence disadvantage remains
+\MMSelectedTargetRisk{}. Thus the FineCops tradeoff persists even
+when confidence reads the actual emitted query. On MDETR, selected
+readout changes emission risk by \MDReadoutChange{}, while existence
+improves by a similar amount. Table~\ref{tab:readout_matrix} retains both
+absolute effects $D_Y=R_{S,Y}-R_{G,Y}$, $D_E=R_{S,E}-R_{G,E}$, and
+$I=D_Y-D_E$. FineCops interactions are \MMInteraction{} and
+\MDInteraction{}: neither resolves an emission-specific readout advantage.
+
+\input{generated/evidence_v7_r2/table_cross_readout}
+\paragraph{Re-reading is different from retraining.}
+MDETR's globally trained emission head incurs \MDInferenceChange{}
+AUGRC points when only its inference reading changes to Selected.
+The seed effects are $+4.726$, $-0.061$, and $+0.158$ for seeds
+17/42/73 (sample SD $2.703$): seed 17 drives the large mean.
+Matched training/deployment of Selected instead changes risk by
+\MDReadoutChange{} relative to the same G/G reference
+(Table~\ref{tab:cross_readout}), with seed effects $-0.349$, $-0.075$,
+and $-0.143$. Figure~\ref{fig:evidence}(b) shows these paired effects;
+the narrow image interval for the mean is not evidence of low training-seed
+variability. These interventions distinguish an inference change from a
+retrained system along a specified path, rather than uniquely decomposing
+spatial and optimization contributions.
+
+Winner geometry confirms that the two decisions sometimes use different
+evidence. MM-GDINO's global-emission winner agrees with Native's query
+on about 95\% of $C$ and 82\% of $W$; about 9\% of Native-wrong
+positives have a spatially correct confidence winner. The supplement
+reports box overlap and all alternate readouts. For an S-trained head,
+the global winner is a counterfactual diagnostic; deployed S always
+reads Native.
+
+\section{Which Comparisons Determine Complete Risk?}
+\input{generated/readout_v6/table_three_states}
+Let $U_{CW},U_{CN},U_{WN}$ denote pairwise AUROCs with half credit
+for ties, and $a=\Pr(C\mid E=1)$. Existence AUROC decomposes as
+\begin{equation}
+\operatorname{AUC}_E=aU_{CN}+(1-a)U_{WN}.
+\end{equation}
+The $W/N$ term orders two failures. Complete success ranking instead
+depends on $C/W$ and $C/N$. At no-target prior $\pi$, fixed predictions
+give the identity
+\begin{align}
+\Delta R=-(1-\pi)a\big[&(1-\pi)(1-a)\Delta U_{CW}\nonumber\\
+ &+\pi\Delta U_{CN}\big].\label{eq:augrc}
+\end{align}
+Here $R$ is AUGRC, not AURC. Prior reweighting holds class-conditional
+requests fixed. Interior crossover roots and their absence are reported
+in the supplement.
+
+On MM-GDINO FineCops, emission supervision improves $C/W$ by 11.654
+points but changes $C/N$ by \AllCN{}. Their observed-mixture risk
+contributions are $-0.532$ and $+0.681$ points, summing to $+0.149$.
+On MDETR, $C/W$ improves by 13.889 points while the $C/N$ change,
+$+0.290$ [$-0.265,+0.857$], is small and unresolved. The corresponding
+contributions are $-0.818$ and $-0.047$, summing to $-0.866$.
+MDETR's large $W/N$ loss reduces existence AUROC without directly
+increasing complete risk. These comparisons explain why the same
+existence-metric direction has different endpoint consequences.
+
+The distinction also appears among accepted requests. At approximately
+50\% coverage on MM-GDINO FineCops, changing from global existence to
+global emission reduces the accepted wrong-box fraction from 8.44\% to
+3.55\%, but raises the accepted no-target fraction from 41.46\% to
+46.81\%. Both denominators are accepted requests. The two failure
+components, rather than a single validity AUROC, identify the cost.
+
+\section{Supervision Coverage and Generalization}
+\input{generated/evidence_v7_r2/table_coverage}
+\paragraph{The full-population loss is not the L1 result.}
+Table~\ref{tab:coverage} identifies a sharper boundary than a generic
+population-dependence statement. Within L1, MM-GDINO's global target
+change improves $C/W$ by \LoneCW{} and $C/N$ by \LoneCN{}.
+The full-population $C/N$ decrease comprises a within-level contribution
+of \WithinCN{} and a cross-level contribution of \AcrossCN{}.
+Since every negative parent is L1, the latter compares L2/L3 correct
+positives against L1-parent no-target requests. These complex positives
+are outside the positive difficulty support of the confidence loss.
+
+\paragraph{An analytic consequence of the existing means.}
+Restrict the positive population to L1, retaining the existing no-target
+requests. Then $C=5{,}506$, $W=591$, and $a_1=5{,}506/6{,}097$.
+Both point differences, $\Delta U_{CW}^{(1)}=0.070846$ and
+$\Delta U_{CN}^{(1)}=0.002238$, are positive. Equation~\ref{eq:augrc}
+therefore gives $\Delta R_1(\pi)<0$ for every $0\leq\pi<1$, with
+equality at the all-no-target endpoint. The fixed equal-seed mean curve
+has no internal prior reversal on this conditional population.
+This is a post-hoc analytic implication of the reported pairwise means:
+no L1 risk bootstrap, new curve interval or simultaneous statistical
+guarantee has been computed.
+
+The negative comparison also persists within images. Its $C/N$ change
+is \SameImageCN{}, versus \ComparableCN{} without conditioning on
+the same participating requests. Thus it is not solely a cross-image
+ordering effect. Difficulty conditioning changes the available state
+pairs; it is not an image-matched or exactly distribution-matched
+intervention. Together, these observations prioritize supervision coverage
+and complex-expression generalization as the next explanation to test.
+They do not identify coverage as the cause: no arm changed which difficulty
+levels received supervision. Positive difficulty and negative edit level
+are kept distinct, and gRef uses same-image comparisons rather than
+fabricated edited-expression pairs.
+
+\input{generated/readout_v6/table_combinations}
+\paragraph{Frozen transfer tests the learned design.}
+MDETR's Selected emission head, which improved FineCops risk, worsens
+gRef source-disjoint risk by \MDTransferReadout{}; the loss is positive
+in all three head seeds. Full TestA/B gives the same direction.
+Its mean target effect and interaction are more seed-sensitive, with
+opposite signs across heads. Their image intervals concern the fixed
+three-head average, not training a fresh head. For MM-GDINO source-disjoint,
+emission's AURC advantage is resolved but its primary AUGRC comparison
+is not. All seeds, both gRef surfaces and both integrals remain reported.
+
+\section{Can Simple Combinations Alleviate the Tradeoff?}
+We close with two fixed combinations of Native score $s_0$ and the
+same-seed global-existence logit $z_E$:
+\begin{align}
+c_{\rm product}&=\log\max(s_0,10^{-6})+\log\sigma(z_E),\\
+c_{\rm SIRC}&=-\log\max(1-s_0,10^{-6})\nonumber\\
+&\quad-\operatorname{softplus}(-(z_E-(\mu-3\sigma_E))/\sigma_E).
+\end{align}
+The SIRC-style control \cite{xia2024sirc} uses mean and population SD
+on all 83,341 unique training positives; at $\sigma_E\leq10^{-12}$
+it falls back to Native. No evaluation-set weight or threshold is fitted.
+
+On MM-GDINO gRef source-disjoint, Product improves over Native,
+global existence and global emission; the last difference is
+\MMTransferProduct{} AUGRC points. On FineCops, however, it loses
+to both learned MM-GDINO heads despite improving over Native.
+For MDETR it improves over Native and existence, but loses to emission
+on FineCops; the emission comparison is unresolved on source-disjoint
+gRef, though favorable on Full. Table~\ref{tab:readout_combinations}
+shows these costs beside the gains. These fixed combinations demonstrate
+that learned information can be combined profitably in some settings;
+they neither define a new method contribution nor dominate every reference.
+
+\section{Discussion and Conclusion}
+The study replaces a generic supervision conflict with a more specific
+question: \emph{which successful-output comparisons changed, on which
+part of the request population?} Reading the emitted query is not a
+sufficient repair, and inference re-reading can behave differently from
+matched training. Three-state analysis reveals that MM-GDINO's negative
+effect is concentrated in comparisons involving complex positives beyond
+the head's L1 supervision support, even though the within-L1 success
+comparisons improve. A coverage-controlled intervention is the natural
+next test of that explanation, rather than a conclusion of these data.
+
+The evidence is bounded by two fixed localizers, three head seeds,
+negative-text/single-no-target requests and previously investigated
+benchmarks. Localizer lineage, complete GREC, negative images and
+calibrated operating points remain separate scopes. Within these bounds,
+the controls, decomposition, transfer and combination results connect
+an endpoint difference to concrete evidence useful for confidence design.
+
+\FloatBarrier
+{\small\bibliographystyle{ieeenat_fullname}\bibliography{references_empirical_v6}}
+\end{document}

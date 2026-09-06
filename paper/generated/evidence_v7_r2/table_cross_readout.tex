@@ -1,0 +1,12 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Two ways to read the Native-selected query on MDETR FineCops. Both changes reference the G-trained/G-deployed emission head. Matched S is trained from the same original initialization, not continued from G. Risk is mixed AUGRC times 100; endpoint cells show seed mean (sample SD), differences show paired image intervals for the fixed three-head mean.}\label{tab:cross_readout}
+\begin{tabular}{@{}llcc@{}}\toprule
+Training & Inference & Risk (SD) & Change from G/G\\\midrule
+Global & Global & \shortstack{28.84\\{\scriptsize (0.13)}} & --\\
+Global & Selected & \shortstack{30.45\\{\scriptsize (2.83)}} & \shortstack{+1.608\\{\scriptsize [+1.513, +1.698]}}\\
+Selected & Selected & \shortstack{28.65\\{\scriptsize (0.02)}} & \shortstack{-0.189\\{\scriptsize [-0.257, -0.122]}}\\
+\bottomrule\end{tabular}
+\end{table*}

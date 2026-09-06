@@ -1,0 +1,14 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{FineCops C/N changes: full AUROC, L1-conditional AUROC and weighted within/cross-level contributions. The last two columns sum to the first, not to the conditional column. All N parents are L1; cross-level means L2/L3 C against those N. Conditional L2/L3 same-level C/N is undefined, not zero.}\label{tab:coverage_cn_difficulty}
+\begin{tabular}{@{}lcccc@{}}\toprule
+Contrast & Full $C/N$ & L1 $C/N$ & Within contribution & Cross contribution\\\midrule
+Full$-$L1, Y & \shortstack{+4.412\\{\scriptsize [+3.956, +4.885]}} & \shortstack{-1.019\\{\scriptsize [-1.294, -0.746]}} & \shortstack{-0.770\\{\scriptsize [-0.976, -0.561]}} & \shortstack{+5.182\\{\scriptsize [+4.789, +5.592]}}\\
+Full$-$L1, E & \shortstack{+3.153\\{\scriptsize [+2.494, +3.841]}} & \shortstack{-3.793\\{\scriptsize [-4.296, -3.287]}} & \shortstack{-2.864\\{\scriptsize [-3.240, -2.481]}} & \shortstack{+6.017\\{\scriptsize [+5.544, +6.507]}}\\
+Interaction & \shortstack{+1.259\\{\scriptsize [+0.846, +1.667]}} & \shortstack{+2.774\\{\scriptsize [+2.418, +3.141]}} & \shortstack{+2.094\\{\scriptsize [+1.826, +2.372]}} & \shortstack{-0.835\\{\scriptsize [-1.118, -0.564]}}\\
+L1: Y$-$E & \shortstack{-3.587\\{\scriptsize [-3.948, -3.239]}} & \shortstack{+0.112\\{\scriptsize [-0.076, +0.304]}} & \shortstack{+0.085\\{\scriptsize [-0.057, +0.228]}} & \shortstack{-3.671\\{\scriptsize [-4.006, -3.365]}}\\
+Full: Y$-$E & \shortstack{-2.327\\{\scriptsize [-2.948, -1.730]}} & \shortstack{+2.886\\{\scriptsize [+2.420, +3.357]}} & \shortstack{+2.179\\{\scriptsize [+1.831, +2.531]}} & \shortstack{-4.506\\{\scriptsize [-4.936, -4.087]}}\\
+\bottomrule\end{tabular}
+\end{table*}

@@ -1,0 +1,13 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Target and readout under paired-L1 supervision on FineCops validation. Risk is mixed AUGRC $\times100$ (mean, sample SD); target effects are Y$-$E with paired 95\% intervals. Lower risk and higher pairwise AUROC are better. Each confidence route preserves its localizer's Native boxes.}\label{tab:initial_readout}
+\begin{tabular}{@{}llccccc@{}}\toprule
+Localizer & Read & Risk E & Risk Y & $\Delta$ risk & $\Delta U_{CW}$ & $\Delta U_{CN}$\\\midrule
+MM-GDINO-T & G & \shortstack{26.23\\{\scriptsize (0.07)}} & \shortstack{26.38\\{\scriptsize (0.04)}} & \shortstack{+0.149\\{\scriptsize [+0.058, +0.235]}} & \shortstack{+11.654\\{\scriptsize [+10.721, +12.641]}} & \shortstack{-3.523\\{\scriptsize [-3.884, -3.166]}}\\
+MM-GDINO-T & S & \shortstack{26.20\\{\scriptsize (0.07)}} & \shortstack{26.36\\{\scriptsize (0.04)}} & \shortstack{+0.159\\{\scriptsize [+0.077, +0.241]}} & \shortstack{+10.724\\{\scriptsize [+9.850, +11.606]}} & \shortstack{-3.359\\{\scriptsize [-3.700, -3.019]}}\\
+MDETR-R101 & G & \shortstack{29.71\\{\scriptsize (0.27)}} & \shortstack{28.84\\{\scriptsize (0.13)}} & \shortstack{-0.866\\{\scriptsize [-0.988, -0.745]}} & \shortstack{+13.889\\{\scriptsize [+13.044, +14.743]}} & \shortstack{+0.290\\{\scriptsize [-0.265, +0.857]}}\\
+MDETR-R101 & S & \shortstack{29.52\\{\scriptsize (0.28)}} & \shortstack{28.65\\{\scriptsize (0.02)}} & \shortstack{-0.864\\{\scriptsize [-0.993, -0.737]}} & \shortstack{+14.622\\{\scriptsize [+13.664, +15.565]}} & \shortstack{+0.017\\{\scriptsize [-0.577, +0.618]}}\\
+\bottomrule\end{tabular}
+\end{table*}

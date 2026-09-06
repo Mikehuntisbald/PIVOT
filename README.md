@@ -1,15 +1,44 @@
 # ARROW
 
+> **Current research manuscript:** [Confidence for Which Prediction?](paper/empirical_study_v8.pdf)
+> — supervision coverage shapes grounding reliability.
+> [Paper/build entrypoint](paper/README.md) ·
+> [v7 revision](docs/evidence_v7_revision_20260906.md) ·
+> [Coverage experiment and seed-explicit Figure 1](docs/confidence_coverage_v1_20260906.md) ·
+> [Completed coverage results and v8 story](docs/coverage_v8_results_and_story_20260906.md) ·
+> [v6 results](docs/readout_v6_final_results_20260906.md) ·
+> [Record-only reproduction](docs/readout_v6_reproduction.md) ·
+> [Readiness and remaining limitations](docs/empirical_submission_readiness_20260905.md).
+>
+> The sealed ARROW-U2 method and its experimental lineage below are retained.
+> They are not evidence that hard isolation universally improves accuracy.
+
+The v8 manuscript integrates the completed 12-head coverage intervention and
+three paired image-cluster analyses. At fixed localization and training budget,
+broader positive supervision reduces correct-output-head risk but increases
+existence-head risk. Three-state comparisons explain which ranking abilities
+improve and which deteriorate; frozen transfer tests this response. Readout
+controls, explicit seed variation and fixed score combinations support this
+single argument. Historical drafts, model weights and experimental evidence
+remain preserved, and FineCops Test has not been reopened.
+
+## Historical method implementation
+
 **Responsibility-Isolated Admission, Ranking, and Abstention for Visual
 Grounding**
+
+ARROW expands to **Admission, Ranking, and Rejection with Ownership-Separated
+Weights for Reliable Visual Grounding**. The line above is the earlier method
+paper subtitle; the expansion is retained by the release manifest and public
+artifact ABI.
 
 ARROW separates three decisions that a grounding model should not force into
 one score: which candidates are category-compatible, which compatible instance
 best matches the full expression, and whether any prediction should be emitted.
 
-> **Paper model:** `ARROW-U2`
+> **Sealed historical method model:** `ARROW-U2`
 >
-> **Current paper implementation:** `U2-v5`
+> **Sealed method implementation:** `U2-v5`
 >
 > **Repository lineage:** `PIVOT` (legacy implementation and schema namespace)
 
@@ -17,9 +46,9 @@ best matches the full expression, and whether any prediction should be emitted.
   <img src="paper/figures/fig2_method_ownership.svg" width="96%" alt="ARROW-U2 responsibility-isolated admission, ranking, and abstention architecture">
 </p>
 
-## What is the paper model?
+## Historical method model
 
-`ARROW-U2` is the only name used for the complete paper model:
+`ARROW-U2` names the complete historical method model:
 
 ```text
 full expression + image
@@ -40,8 +69,8 @@ not separate paper models.
 
 | Public term | Meaning | Repository identifier |
 | --- | --- | --- |
-| **ARROW** | Project and paper method | Public name |
-| **ARROW-U2** | Complete sealed paper model | `U2-v5 A / A5+C3` |
+| **ARROW** | Project and historical method | Public name |
+| **ARROW-U2** | Complete sealed historical method model | `U2-v5 A / A5+C3` |
 | **ARROW-V** | Visual-support Admission interface | support-patch route |
 | **ARROW-T** | Canonical-text Admission control | text-cue route |
 | **ARROW-N** | Category-agnostic mechanism control | learned-null route |
@@ -52,7 +81,7 @@ or reproduction-only identifiers. They are not alternative names for the
 paper model. See the [ARROW-U2 model card](docs/arrow_u2_model_card.md) for the
 complete ownership and naming contract.
 
-## Main results
+## Historical method results
 
 All results use sealed checkpoints and committed receipts. No external
 benchmark was used to choose a checkpoint, Admission margin, or confidence

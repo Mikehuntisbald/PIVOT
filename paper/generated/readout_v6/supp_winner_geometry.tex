@@ -1,0 +1,101 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Dense-logit global-winner geometry, $\times100$; seed-mean rates/IoU, not causal spatial contributions. For G-trained heads this winner supplies matched confidence. For S-trained heads it is only a counterfactual diagnostic: matched S deployment always reads the Native query and has zero readout-index disagreement. Winner-correct is shown only for Native-wrong positives. Part 1.}\label{tab:supp_v6_winner_geometry_1}
+\begin{tabular}{@{}llllcccc@{}}\toprule
+Localizer & Population & Head & State & Requests & Query differs & Box IoU & Winner correct\\\midrule
+MM-GDINO-T & FineCops val & $G/E$ & C & 7292 & 7.94 & 93.94 & --\\
+MM-GDINO-T & FineCops val & $G/E$ & W & 2134 & 29.94 & 72.01 & 14.18\\
+MM-GDINO-T & FineCops val & $G/E$ & N & 9029 & 10.40 & 92.79 & --\\
+MM-GDINO-T & FineCops val & $G/Y$ & C & 7292 & 4.85 & 96.71 & --\\
+MM-GDINO-T & FineCops val & $G/Y$ & W & 2134 & 18.20 & 83.25 & 8.83\\
+MM-GDINO-T & FineCops val & $G/Y$ & N & 9029 & 6.65 & 96.13 & --\\
+MM-GDINO-T & FineCops val & $S/E$ & C & 7292 & 48.04 & 84.23 & --\\
+MM-GDINO-T & FineCops val & $S/E$ & W & 2134 & 66.67 & 55.43 & 16.59\\
+MM-GDINO-T & FineCops val & $S/E$ & N & 9029 & 66.60 & 78.92 & --\\
+MM-GDINO-T & FineCops val & $S/Y$ & C & 7292 & 59.94 & 86.40 & --\\
+MM-GDINO-T & FineCops val & $S/Y$ & W & 2134 & 84.88 & 60.79 & 17.37\\
+MM-GDINO-T & FineCops val & $S/Y$ & N & 9029 & 72.06 & 82.22 & --\\
+MDETR-R101 & FineCops val & $G/E$ & C & 6180 & 72.21 & 42.33 & --\\
+MDETR-R101 & FineCops val & $G/E$ & W & 3246 & 81.91 & 31.42 & 8.93\\
+MDETR-R101 & FineCops val & $G/E$ & N & 9029 & 77.17 & 36.64 & --\\
+MDETR-R101 & FineCops val & $G/Y$ & C & 6180 & 58.14 & 63.87 & --\\
+MDETR-R101 & FineCops val & $G/Y$ & W & 3246 & 62.62 & 53.96 & 8.88\\
+MDETR-R101 & FineCops val & $G/Y$ & N & 9029 & 58.45 & 60.37 & --\\
+MDETR-R101 & FineCops val & $S/E$ & C & 6180 & 41.49 & 69.26 & --\\
+MDETR-R101 & FineCops val & $S/E$ & W & 3246 & 65.10 & 48.61 & 17.74\\
+MDETR-R101 & FineCops val & $S/E$ & N & 9029 & 57.25 & 56.50 & --\\
+MDETR-R101 & FineCops val & $S/Y$ & C & 6180 & 15.72 & 89.32 & --\\
+MDETR-R101 & FineCops val & $S/Y$ & W & 3246 & 54.64 & 55.69 & 19.42\\
+MDETR-R101 & FineCops val & $S/Y$ & N & 9029 & 32.62 & 75.15 & --\\
+\bottomrule\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Dense-logit global-winner geometry, $\times100$; seed-mean rates/IoU, not causal spatial contributions. For G-trained heads this winner supplies matched confidence. For S-trained heads it is only a counterfactual diagnostic: matched S deployment always reads the Native query and has zero readout-index disagreement. Winner-correct is shown only for Native-wrong positives. Part 2.}\label{tab:supp_v6_winner_geometry_2}
+\begin{tabular}{@{}llllcccc@{}}\toprule
+Localizer & Population & Head & State & Requests & Query differs & Box IoU & Winner correct\\\midrule
+MM-GDINO-T & gRef source-disjoint & $G/E$ & C & 5519 & 15.14 & 86.57 & --\\
+MM-GDINO-T & gRef source-disjoint & $G/E$ & W & 4329 & 33.65 & 69.90 & 10.98\\
+MM-GDINO-T & gRef source-disjoint & $G/E$ & N & 7716 & 34.37 & 70.80 & --\\
+MM-GDINO-T & gRef source-disjoint & $G/Y$ & C & 5519 & 8.61 & 92.61 & --\\
+MM-GDINO-T & gRef source-disjoint & $G/Y$ & W & 4329 & 22.58 & 80.74 & 8.39\\
+MM-GDINO-T & gRef source-disjoint & $G/Y$ & N & 7716 & 23.52 & 81.38 & --\\
+MM-GDINO-T & gRef source-disjoint & $S/E$ & C & 5519 & 55.92 & 63.45 & --\\
+MM-GDINO-T & gRef source-disjoint & $S/E$ & W & 4329 & 77.99 & 43.94 & 12.10\\
+MM-GDINO-T & gRef source-disjoint & $S/E$ & N & 7716 & 88.02 & 40.75 & --\\
+MM-GDINO-T & gRef source-disjoint & $S/Y$ & C & 5519 & 70.22 & 70.72 & --\\
+MM-GDINO-T & gRef source-disjoint & $S/Y$ & W & 4329 & 92.22 & 52.96 & 16.01\\
+MM-GDINO-T & gRef source-disjoint & $S/Y$ & N & 7716 & 92.12 & 52.06 & --\\
+MDETR-R101 & gRef source-disjoint & $G/E$ & C & 8073 & 71.09 & 46.48 & --\\
+MDETR-R101 & gRef source-disjoint & $G/E$ & W & 1775 & 80.11 & 34.12 & 10.35\\
+MDETR-R101 & gRef source-disjoint & $G/E$ & N & 7716 & 77.06 & 38.10 & --\\
+MDETR-R101 & gRef source-disjoint & $G/Y$ & C & 8073 & 66.26 & 63.31 & --\\
+MDETR-R101 & gRef source-disjoint & $G/Y$ & W & 1775 & 62.25 & 57.50 & 8.30\\
+MDETR-R101 & gRef source-disjoint & $G/Y$ & N & 7716 & 63.57 & 60.09 & --\\
+MDETR-R101 & gRef source-disjoint & $S/E$ & C & 8073 & 32.08 & 78.03 & --\\
+MDETR-R101 & gRef source-disjoint & $S/E$ & W & 1775 & 64.09 & 50.90 & 17.71\\
+MDETR-R101 & gRef source-disjoint & $S/E$ & N & 7716 & 56.70 & 56.49 & --\\
+MDETR-R101 & gRef source-disjoint & $S/Y$ & C & 8073 & 19.08 & 87.00 & --\\
+MDETR-R101 & gRef source-disjoint & $S/Y$ & W & 1775 & 51.55 & 59.35 & 11.44\\
+MDETR-R101 & gRef source-disjoint & $S/Y$ & N & 7716 & 37.61 & 71.66 & --\\
+\bottomrule\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Dense-logit global-winner geometry, $\times100$; seed-mean rates/IoU, not causal spatial contributions. For G-trained heads this winner supplies matched confidence. For S-trained heads it is only a counterfactual diagnostic: matched S deployment always reads the Native query and has zero readout-index disagreement. Winner-correct is shown only for Native-wrong positives. Part 3.}\label{tab:supp_v6_winner_geometry_3}
+\begin{tabular}{@{}llllcccc@{}}\toprule
+Localizer & Population & Head & State & Requests & Query differs & Box IoU & Winner correct\\\midrule
+MM-GDINO-T & gRef Full & $G/E$ & C & 6469 & 15.22 & 86.46 & --\\
+MM-GDINO-T & gRef Full & $G/E$ & W & 5094 & 33.08 & 70.46 & 10.89\\
+MM-GDINO-T & gRef Full & $G/E$ & N & 9121 & 34.13 & 71.00 & --\\
+MM-GDINO-T & gRef Full & $G/Y$ & C & 6469 & 8.69 & 92.49 & --\\
+MM-GDINO-T & gRef Full & $G/Y$ & W & 5094 & 22.01 & 81.18 & 8.24\\
+MM-GDINO-T & gRef Full & $G/Y$ & N & 9121 & 23.31 & 81.47 & --\\
+MM-GDINO-T & gRef Full & $S/E$ & C & 6469 & 55.72 & 63.43 & --\\
+MM-GDINO-T & gRef Full & $S/E$ & W & 5094 & 77.76 & 44.13 & 12.05\\
+MM-GDINO-T & gRef Full & $S/E$ & N & 9121 & 87.64 & 40.92 & --\\
+MM-GDINO-T & gRef Full & $S/Y$ & C & 6469 & 70.06 & 70.48 & --\\
+MM-GDINO-T & gRef Full & $S/Y$ & W & 5094 & 92.08 & 52.91 & 15.61\\
+MM-GDINO-T & gRef Full & $S/Y$ & N & 9121 & 92.02 & 52.16 & --\\
+MDETR-R101 & gRef Full & $G/E$ & C & 9463 & 71.11 & 46.38 & --\\
+MDETR-R101 & gRef Full & $G/E$ & W & 2100 & 80.03 & 34.32 & 10.29\\
+MDETR-R101 & gRef Full & $G/E$ & N & 9121 & 76.98 & 38.19 & --\\
+MDETR-R101 & gRef Full & $G/Y$ & C & 9463 & 66.28 & 63.29 & --\\
+MDETR-R101 & gRef Full & $G/Y$ & W & 2100 & 62.37 & 57.42 & 8.30\\
+MDETR-R101 & gRef Full & $G/Y$ & N & 9121 & 63.59 & 59.98 & --\\
+MDETR-R101 & gRef Full & $S/E$ & C & 9463 & 32.31 & 77.86 & --\\
+MDETR-R101 & gRef Full & $S/E$ & W & 2100 & 62.90 & 51.92 & 17.37\\
+MDETR-R101 & gRef Full & $S/E$ & N & 9121 & 56.45 & 56.56 & --\\
+MDETR-R101 & gRef Full & $S/Y$ & C & 9463 & 19.05 & 87.02 & --\\
+MDETR-R101 & gRef Full & $S/Y$ & W & 2100 & 50.24 & 60.50 & 11.48\\
+MDETR-R101 & gRef Full & $S/Y$ & N & 9121 & 37.60 & 71.56 & --\\
+\bottomrule\end{tabular}
+\end{table*}

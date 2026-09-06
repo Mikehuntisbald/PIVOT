@@ -1,0 +1,22 @@
+{
+  "image_ci_is_not_training_seed_uncertainty": true,
+  "inference_only_sample_sd": 2.7027288262338183,
+  "new_bootstrap": false,
+  "per_seed": {
+    "17": {
+      "inference_only": 4.725805834794916,
+      "matched_retraining": -0.3493547647625994
+    },
+    "42": {
+      "inference_only": -0.06092216813019524,
+      "matched_retraining": -0.0747481499038749
+    },
+    "73": {
+      "inference_only": 0.15766469671005257,
+      "matched_retraining": -0.14313331519317796
+    }
+  },
+  "reference": "same-seed G-trained/G-deployed emission head",
+  "schema": "arrow.paper.readout_seed_display/v1",
+  "unit": "AUGRC points"
+}

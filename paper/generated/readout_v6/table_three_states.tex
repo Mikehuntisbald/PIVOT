@@ -1,0 +1,17 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{The same existence-AUROC change need not imply the same output-risk change. Emission-minus-existence effects $\times100$ [paired 95\% CI]; positive denotes larger AUROC, negative denotes lower AUGRC. $C/W$ tests localized correctness, $C/N$ tests successful outputs against absent targets, and $W/N$ compares two failures. The first two determine fixed-population AUGRC, whereas existence AUROC also includes the third. Readout contrasts and gRef Full are retained in Table~\ref{tab:readout_matrix} and the complete analysis.}\label{tab:readout_states}
+\begin{tabular}{@{}lllccccc@{}}\toprule
+Localizer & Population & Readout & $C/W$ & $C/N$ & $W/N$ & Existence & AUGRC\\\midrule
+MM-GDINO-T & FineCops val & $G$ & \shortstack{+11.654\\{\scriptsize [+10.721, +12.641]}} & \shortstack{-3.523\\{\scriptsize [-3.884, -3.166]}} & \shortstack{-17.795\\{\scriptsize [-18.821, -16.781]}} & \shortstack{-6.754\\{\scriptsize [-7.211, -6.308]}} & \shortstack{+0.149\\{\scriptsize [+0.058, +0.235]}}\\
+MM-GDINO-T & FineCops val & $S$ & \shortstack{+10.724\\{\scriptsize [+9.850, +11.606]}} & \shortstack{-3.359\\{\scriptsize [-3.700, -3.019]}} & \shortstack{-16.823\\{\scriptsize [-17.738, -15.898]}} & \shortstack{-6.408\\{\scriptsize [-6.827, -5.984]}} & \shortstack{+0.159\\{\scriptsize [+0.077, +0.241]}}\\
+MM-GDINO-T & gRef source-disjoint & $G$ & \shortstack{+6.533\\{\scriptsize [+5.605, +7.467]}} & \shortstack{-3.184\\{\scriptsize [-3.635, -2.751]}} & \shortstack{-7.204\\{\scriptsize [-7.895, -6.501]}} & \shortstack{-4.951\\{\scriptsize [-5.398, -4.511]}} & \shortstack{-0.066\\{\scriptsize [-0.178, +0.043]}}\\
+MM-GDINO-T & gRef source-disjoint & $S$ & \shortstack{+6.056\\{\scriptsize [+5.198, +6.931]}} & \shortstack{-3.270\\{\scriptsize [-3.706, -2.853]}} & \shortstack{-7.774\\{\scriptsize [-8.476, -7.074]}} & \shortstack{-5.250\\{\scriptsize [-5.706, -4.806]}} & \shortstack{-0.018\\{\scriptsize [-0.127, +0.090]}}\\
+MDETR-R101 & FineCops val & $G$ & \shortstack{+13.889\\{\scriptsize [+13.044, +14.743]}} & \shortstack{+0.290\\{\scriptsize [-0.265, +0.857]}} & \shortstack{-14.257\\{\scriptsize [-15.124, -13.406]}} & \shortstack{-4.719\\{\scriptsize [-5.271, -4.165]}} & \shortstack{-0.866\\{\scriptsize [-0.988, -0.745]}}\\
+MDETR-R101 & FineCops val & $S$ & \shortstack{+14.622\\{\scriptsize [+13.664, +15.565]}} & \shortstack{+0.017\\{\scriptsize [-0.577, +0.618]}} & \shortstack{-15.673\\{\scriptsize [-16.619, -14.698]}} & \shortstack{-5.386\\{\scriptsize [-5.977, -4.774]}} & \shortstack{-0.864\\{\scriptsize [-0.993, -0.737]}}\\
+MDETR-R101 & gRef source-disjoint & $G$ & \shortstack{+6.204\\{\scriptsize [+5.153, +7.325]}} & \shortstack{-0.493\\{\scriptsize [-0.917, -0.082]}} & \shortstack{-7.990\\{\scriptsize [-9.622, -6.478]}} & \shortstack{-1.844\\{\scriptsize [-2.322, -1.395]}} & \shortstack{-0.189\\{\scriptsize [-0.291, -0.083]}}\\
+MDETR-R101 & gRef source-disjoint & $S$ & \shortstack{+4.992\\{\scriptsize [+3.774, +6.338]}} & \shortstack{-1.211\\{\scriptsize [-1.707, -0.698]}} & \shortstack{-7.151\\{\scriptsize [-8.950, -5.463]}} & \shortstack{-2.281\\{\scriptsize [-2.833, -1.738]}} & \shortstack{+0.013\\{\scriptsize [-0.119, +0.138]}}\\
+\bottomrule\end{tabular}
+\end{table*}

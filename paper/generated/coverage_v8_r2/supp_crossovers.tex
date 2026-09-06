@@ -1,0 +1,15 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Y$-$E AUGRC crossover in no-target prior. Class-conditional requests remain fixed. An unconditional root interval is given only when all 5,000 replicates have an interior root; missing roots are not imputed. A mean curve without a root does not imply a uniform confidence guarantee.}\label{tab:coverage_roots}
+\begin{tabular}{@{}llccc@{}}\toprule
+Population & Supervision & Mean root & 95\% CI & Interior draws\\\midrule
+FineCops val & L1 & 0.434 & [0.401, 0.467] & 5000/5,000\\
+FineCops val & Full & 0.769 & [0.721, 0.819] & 5000/5,000\\
+gRef source-disjoint & L1 & 0.525 & [0.471, 0.580] & 5000/5,000\\
+gRef source-disjoint & Full & none & -- & 1275/5,000\\
+gRef Full & L1 & 0.516 & [0.464, 0.569] & 5000/5,000\\
+gRef Full & Full & none & -- & 1390/5,000\\
+\bottomrule\end{tabular}
+\end{table*}

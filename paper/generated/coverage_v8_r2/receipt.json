@@ -1,0 +1,69 @@
+{
+  "generator": {
+    "path": "/media/haoyi/T9/pivot/paper/scripts/build_coverage_v8_assets.py",
+    "sha256": "7448b326f535bada332acd036ff4858f0c9449f8a2fea816d83a777123cc80e2"
+  },
+  "new_bootstrap": false,
+  "new_training_or_scoring": false,
+  "outputs": {
+    "figure1_study.pdf": "86af5b5b5d8fb53fd8e01baee47f376b44615c65667c347628a02ec099f1a371",
+    "figure1_study.svg": "6f6bc5b499081f5bb5edd199cb49926f1b84b65b062a69acb1b2e93d14117323",
+    "figure2_crossover.pdf": "46acb59c87c62d26191436b967e978e3c1b8c713b38c6ea7dd08f083fd00acb2",
+    "figure2_crossover.svg": "60692946be6680322c1d1fe97e53c7969fdeb34b7419cc382e369ad74f4116e1",
+    "numbers.tex": "3bcb6fce82efaaad41e5897004390f1a43608b0620bb19fabf1b6dcdd2a22584",
+    "risk_decomposition.json": "02f0c88448b7ade9dcb59926e559fb407c9dbf4b3c2e26a70a3e2142c2e1f0e7",
+    "supp_cn_difficulty.tex": "de4aad693541e8ee4ad3c4ed02bcfad917256071f372eff5389c4ab99c9cfaaf",
+    "supp_crossovers.tex": "7a4b9102b3dbf1fc7c95a361c87ce4ddd833436074d7e3a28ce9760aef4c93d2",
+    "supp_effects_finecops_val.tex": "c35cd66d8fbf1f863a9cc0d21f3254dbdd0ddfeabfe2867b83f43636f0135108",
+    "supp_effects_gref_full.tex": "d4ec98034c09d30b4a4e3306a49fe0e348c34e27ab76148ac15140975aec80af",
+    "supp_effects_gref_source_disjoint.tex": "0a867f57de20d45dc3c621b67f380d7cc1602efe822493d537db40568c1d2e93",
+    "supp_endpoints_finecops_val.tex": "c7ff93b4803e8d38c3a3d0a8cc91e0354b863b848e0ce606633b55e878da4852",
+    "supp_endpoints_gref_full.tex": "76cf64d1e48faef28d32be1d35ed496835d59db16512d1ccaa2e7205eff4ea5a",
+    "supp_endpoints_gref_source_disjoint.tex": "ef8b50088b962e9faa60bac822aea5dacb8e806a6c9cb4f7274014ad23a32615",
+    "supp_seeds_finecops_val.tex": "fd8b67ad62204c384281e392c71cb50336495410b3f671974f938a3bdd5cf249",
+    "supp_seeds_gref_full.tex": "26b458fd7ea6f93e28007734b531136488966df34e1726c23c358fd7ac511952",
+    "supp_seeds_gref_source_disjoint.tex": "2dfc1eb3a692249d28df38b6d2a18d88265620f08eba5067d294e7b58ed7ab9d",
+    "table_coverage.tex": "76dad76f98a0dcf5267eec2e3bf4c6714f50cd5661be90261dc182314c207e94",
+    "table_readout.tex": "92206da7f51abe6bc6f7d467acbe6c0f6f251e9767154ab00a1c952c781a47db",
+    "table_states.tex": "807a5c496408de5b8eba2b8bc9655e9a1cad8245b2cf357bcf3e1a87fcb253e1"
+  },
+  "schema": "arrow.paper.coverage_v8_assets/v1",
+  "sources": {
+    "coverage_completion": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/completion.json",
+      "sha256": "0c0be0ed76824bb807db9c629e014524f544b8393cf3f036b9b0e3300e4d67ce"
+    },
+    "coverage_finecops_val": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/analysis/finecops_val.json",
+      "sha256": "4a04e3cfa770954d4fe85d28c5266f44ce69823403e0a3f21a66a54f5f32cd21"
+    },
+    "coverage_gref_full": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/analysis/gref_full.json",
+      "sha256": "5f17640d90ad420f36dc0210d5db9e2c9d279665be8e0679b81f532a2e3bc015"
+    },
+    "coverage_gref_source_disjoint": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/analysis/gref_source_disjoint.json",
+      "sha256": "a5576533bd3ca64d44887d548f206663c531ff54fc4f8ea7886eed0eeab639c3"
+    },
+    "coverage_protocol": {
+      "path": "/media/haoyi/T9/pivot/paper/data/coverage_v1/protocol.json",
+      "sha256": "f208df694a6ca6eef256de38f463b641e08f422fcd77c1dc380f4859c0150843"
+    },
+    "finecops_val": {
+      "path": "/media/haoyi/T9/pivot/paper/data/readout_v6/finecops_val.json",
+      "sha256": "91a088208d0a2786f9a07de2d9248ffb0a273c0e78c32f5de7990e4acc03196d"
+    },
+    "gref_full": {
+      "path": "/media/haoyi/T9/pivot/paper/data/readout_v6/gref_full.json",
+      "sha256": "7d8c2b9db2fdf90b9e9b9218383afef4a51b17089763ca85f87742963b33c5f9"
+    },
+    "gref_source_disjoint": {
+      "path": "/media/haoyi/T9/pivot/paper/data/readout_v6/gref_finecops_train_val_source_disjoint.json",
+      "sha256": "33cbd5765b6cf06dcc11fb21545aeb0456f839d0c5c586baf47122baccb674fd"
+    },
+    "readout_seed_display": {
+      "path": "/media/haoyi/T9/pivot/paper/generated/evidence_v7_seed_r1/receipt.json",
+      "sha256": "8bac16d276967bb4ed26ecb930437133d8577a7a0fd09beb33eab7e445262943"
+    }
+  }
+}

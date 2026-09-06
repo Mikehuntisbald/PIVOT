@@ -1,0 +1,54 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Same-image state comparisons: exact participating images, requests and within-image pairs. The conditional and comparable-unconditional estimates use these same participating requests; bootstrap image multiplicity applies once to each within-copy pair.}\label{tab:supp_v6_image_counts}
+\begin{tabular}{@{}lllrrr@{}}\toprule
+Localizer & Population & State pair & Images & Requests & Within-image pairs\\\midrule
+MM-GDINO-T & FineCops val & CW & 835 & 3943 & 5016\\
+MM-GDINO-T & FineCops val & CN & 2344 & 14749 & 32776\\
+MM-GDINO-T & FineCops val & WN & 624 & 4040 & 6110\\
+MDETR-R101 & FineCops val & CW & 1177 & 5340 & 6921\\
+MDETR-R101 & FineCops val & CN & 2194 & 13350 & 26598\\
+MDETR-R101 & FineCops val & WN & 1088 & 7322 & 12288\\
+MM-GDINO-T & gRef source-disjoint & CW & 1044 & 8322 & 15552\\
+MM-GDINO-T & gRef source-disjoint & CN & 1215 & 12871 & 33120\\
+MM-GDINO-T & gRef source-disjoint & WN & 1103 & 10979 & 25726\\
+MDETR-R101 & gRef source-disjoint & CW & 584 & 5198 & 8744\\
+MDETR-R101 & gRef source-disjoint & CN & 1266 & 15723 & 48801\\
+MDETR-R101 & gRef source-disjoint & WN & 593 & 5326 & 10045\\
+MM-GDINO-T & gRef Full & CW & 1232 & 9808 & 18448\\
+MM-GDINO-T & gRef Full & CN & 1430 & 15171 & 39160\\
+MM-GDINO-T & gRef Full & WN & 1299 & 12973 & 30428\\
+MDETR-R101 & gRef Full & CW & 692 & 6166 & 10397\\
+MDETR-R101 & gRef Full & CN & 1488 & 18517 & 57647\\
+MDETR-R101 & gRef Full & WN & 702 & 6351 & 11941\\
+\bottomrule\end{tabular}
+\end{table*}
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{FineCops original-positive-difficulty counts. High/low states are the first/second state in the pair label. Zero low-state counts at L2/L3 expose the absence of same-level no-target comparisons; these cells are not assigned an AUROC. Images overlap across levels/state comparisons.}\label{tab:supp_v6_difficulty_counts}
+\begin{tabular}{@{}lllrrr@{}}\toprule
+Localizer & State pair & Level & High-state requests & Low-state requests & Images\\\midrule
+MM-GDINO-T & CW & L1 & 5506 & 591 & 2710\\
+MM-GDINO-T & CW & L2 & 1566 & 1318 & 1332\\
+MM-GDINO-T & CW & L3 & 220 & 225 & 269\\
+MM-GDINO-T & CN & L1 & 5506 & 9029 & 2686\\
+MM-GDINO-T & CN & L2 & 1566 & 0 & 966\\
+MM-GDINO-T & CN & L3 & 220 & 0 & 168\\
+MM-GDINO-T & WN & L1 & 591 & 9029 & 2458\\
+MM-GDINO-T & WN & L2 & 1318 & 0 & 805\\
+MM-GDINO-T & WN & L3 & 225 & 0 & 167\\
+MDETR-R101 & CW & L1 & 4581 & 1516 & 2710\\
+MDETR-R101 & CW & L2 & 1393 & 1491 & 1332\\
+MDETR-R101 & CW & L3 & 206 & 239 & 269\\
+MDETR-R101 & CN & L1 & 4581 & 9029 & 2673\\
+MDETR-R101 & CN & L2 & 1393 & 0 & 909\\
+MDETR-R101 & CN & L3 & 206 & 0 & 157\\
+MDETR-R101 & WN & L1 & 1516 & 9029 & 2476\\
+MDETR-R101 & WN & L2 & 1491 & 0 & 889\\
+MDETR-R101 & WN & L3 & 239 & 0 & 172\\
+\bottomrule\end{tabular}
+\end{table*}

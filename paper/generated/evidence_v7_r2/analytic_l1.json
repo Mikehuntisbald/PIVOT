@@ -1,0 +1,71 @@
+{
+  "analytic_l1": {
+    "a": 0.9030670821715597,
+    "at_pi_one": 0.0,
+    "cn_coefficient": -0.0020214722013073053,
+    "conditioning": "fixed L1-positive and existing no-target class-conditional populations",
+    "cw_coefficient": -0.00620166420572297,
+    "delta_u_cn": 0.0022384518727516602,
+    "delta_u_cw": 0.07084626339025324,
+    "formula": "(1-pi)*((1-pi)*cw_coefficient+pi*cn_coefficient)",
+    "interior_root": null,
+    "new_bootstrap_replicates": 0,
+    "risk_ci95": null,
+    "role": "analytic_point_estimate_consequence",
+    "simultaneous_curve_guarantee": false,
+    "status": "strictly_lower_mean_risk_for_0_le_pi_lt_1"
+  },
+  "l1_pairwise_effects": {
+    "difficulty_cn_level1": {
+      "ci95": [
+        0.00024417265181678747,
+        0.004314056047179034
+      ],
+      "definition": {
+        "global_max__emit": 1.0,
+        "global_max__exists": -1.0
+      },
+      "mean": 0.0022384518727516602,
+      "sample_sd": 0.0015528130162709398,
+      "undefined_replicates": 0
+    },
+    "difficulty_cw_level1": {
+      "ci95": [
+        0.060227829086889645,
+        0.08236067699791798
+      ],
+      "definition": {
+        "global_max__emit": 1.0,
+        "global_max__exists": -1.0
+      },
+      "mean": 0.07084626339025324,
+      "sample_sd": 0.007454029413093538,
+      "undefined_replicates": 0
+    }
+  },
+  "l1_per_seed_pairwise_point_effects": {
+    "17": {
+      "difficulty_cn_level1": 0.000474748657683155,
+      "difficulty_cw_level1": 0.062272014593524494
+    },
+    "42": {
+      "difficulty_cn_level1": 0.0034000202841576455,
+      "difficulty_cw_level1": 0.07578473076287184
+    },
+    "73": {
+      "difficulty_cn_level1": 0.0028405866764141807,
+      "difficulty_cw_level1": 0.07448204481436338
+    }
+  },
+  "l1_population": {
+    "C": 5506,
+    "N": 9029,
+    "W": 591,
+    "positive": 6097
+  },
+  "new_bootstrap_replicates": 0,
+  "new_model_forwards": 0,
+  "new_risk_estimation": false,
+  "new_training_updates": 0,
+  "schema": "arrow.paper.evidence_v7_facts/v1"
+}

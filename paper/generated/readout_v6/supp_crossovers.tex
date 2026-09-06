@@ -1,0 +1,27 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{AUGRC crossover prior (percent). Interior-only intervals are conditional summaries; non-interior replicates remain counted out of 5,000. Part 1.}\label{tab:supp_v6_crossovers_1}
+\begin{tabular}{@{}lllllccc@{}}\toprule
+Localizer & Population & Contrast & Prior & Root status & All-draw CI & Interior-only CI & Interior draws\\\midrule
+MM-GDINO-T & FineCops val & global\_emit\_minus\_exists & 42.82 & interior & [39.32, 46.40] & [39.32, 46.40] & 5000\\
+MM-GDINO-T & FineCops val & selected\_emit\_minus\_exists & 41.95 & interior & [38.57, 45.56] & [38.57, 45.56] & 5000\\
+MM-GDINO-T & FineCops val & D\_emit & 34.23 & interior & [21.42, 51.00] & [21.42, 51.00] & 5000\\
+MDETR-R101 & FineCops val & global\_emit\_minus\_exists & -- & no interior root & -- & [91.11, 99.88] & 759\\
+MDETR-R101 & FineCops val & selected\_emit\_minus\_exists & -- & no interior root & -- & [88.00, 99.80] & 2372\\
+MDETR-R101 & FineCops val & D\_emit & -- & no interior root & -- & [76.87, 99.86] & 157\\
+MM-GDINO-T & gRef source-disjoint & global\_emit\_minus\_exists & 47.42 & interior & [41.70, 53.26] & [41.70, 53.26] & 5000\\
+MM-GDINO-T & gRef source-disjoint & selected\_emit\_minus\_exists & 44.87 & interior & [39.16, 50.57] & [39.16, 50.57] & 5000\\
+MM-GDINO-T & gRef source-disjoint & D\_emit & 80.20 & interior & -- & [22.13, 97.92] & 3419\\
+MDETR-R101 & gRef source-disjoint & global\_emit\_minus\_exists & 69.42 & interior & -- & [53.22, 91.37] & 4955\\
+MDETR-R101 & gRef source-disjoint & selected\_emit\_minus\_exists & 42.63 & interior & [31.18, 58.77] & [31.18, 58.77] & 5000\\
+MDETR-R101 & gRef source-disjoint & D\_emit & -- & no interior root & -- & [1.28, 1.28] & 1\\
+MM-GDINO-T & gRef Full & global\_emit\_minus\_exists & 46.28 & interior & [40.79, 51.82] & [40.79, 51.82] & 5000\\
+MM-GDINO-T & gRef Full & selected\_emit\_minus\_exists & 44.30 & interior & [38.88, 49.77] & [38.88, 49.77] & 5000\\
+MM-GDINO-T & gRef Full & D\_emit & 61.97 & interior & -- & [13.87, 96.12] & 4282\\
+MDETR-R101 & gRef Full & global\_emit\_minus\_exists & 66.71 & interior & -- & [51.55, 88.32] & 4973\\
+MDETR-R101 & gRef Full & selected\_emit\_minus\_exists & 42.99 & interior & [31.46, 58.63] & [31.46, 58.63] & 5000\\
+MDETR-R101 & gRef Full & D\_emit & -- & no interior root & -- & -- & 0\\
+\bottomrule\end{tabular}
+\end{table*}

@@ -1,0 +1,98 @@
+{
+  "finecops_val": {
+    "D_emit": {
+      "cn_pair_contribution": -0.008528894095911807,
+      "cw_pair_contribution": 0.005213676788382255,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.003315217307529552
+    },
+    "D_exists": {
+      "cn_pair_contribution": -0.0060944360206714645,
+      "cw_pair_contribution": 0.015256627876531701,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": 0.009162191855860237
+    },
+    "all_emit_minus_exists": {
+      "cn_pair_contribution": 0.004498957841000157,
+      "cw_pair_contribution": -0.015598694636121265,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.011099736795121107
+    },
+    "interaction": {
+      "cn_pair_contribution": -0.0024344580752403413,
+      "cw_pair_contribution": -0.010042951088149447,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.01247740916338979
+    },
+    "l1_emit_minus_exists": {
+      "cn_pair_contribution": 0.0069334159162404985,
+      "cw_pair_contribution": -0.00555574354797182,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": 0.0013776723682686785
+    }
+  },
+  "gref_full": {
+    "D_emit": {
+      "cn_pair_contribution": -0.0020007201993255353,
+      "cw_pair_contribution": 0.0004306794522202997,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.0015700407471052357
+    },
+    "D_exists": {
+      "cn_pair_contribution": 0.0020096237024828023,
+      "cw_pair_contribution": 0.008246235685348484,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": 0.010255859387831287
+    },
+    "all_emit_minus_exists": {
+      "cn_pair_contribution": -0.00023733844950947337,
+      "cw_pair_contribution": -0.012924986664106634,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.013162325113616107
+    },
+    "interaction": {
+      "cn_pair_contribution": -0.004010343901808338,
+      "cw_pair_contribution": -0.007815556233128185,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.011825900134936522
+    },
+    "l1_emit_minus_exists": {
+      "cn_pair_contribution": 0.003773005452298864,
+      "cw_pair_contribution": -0.005109430430978448,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.001336424978679584
+    }
+  },
+  "gref_source_disjoint": {
+    "D_emit": {
+      "cn_pair_contribution": -0.002047210437807968,
+      "cw_pair_contribution": 0.0005085105421271975,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.0015386998956807706
+    },
+    "D_exists": {
+      "cn_pair_contribution": 0.0020580907108618787,
+      "cw_pair_contribution": 0.008375159201317962,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": 0.01043324991217984
+    },
+    "all_emit_minus_exists": {
+      "cn_pair_contribution": -0.00026679819073965714,
+      "cw_pair_contribution": -0.013278517762405842,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.013545315953145499
+    },
+    "interaction": {
+      "cn_pair_contribution": -0.004105301148669847,
+      "cw_pair_contribution": -0.007866648659190763,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.01197194980786061
+    },
+    "l1_emit_minus_exists": {
+      "cn_pair_contribution": 0.0038385029579301897,
+      "cw_pair_contribution": -0.0054118691032150786,
+      "role": "exact point decomposition; not a new interval or causal fraction",
+      "sum": -0.0015733661452848888
+    }
+  }
+}

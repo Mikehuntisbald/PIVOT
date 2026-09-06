@@ -1,0 +1,15 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{True edited-negative/positive-parent pair wins on FineCops, $\times100$. Raw columns are equal-seed mean pair wins; effects include paired image-cluster 95\% intervals. C/W refers to the parent's Native correctness. Pair counts repeat positive parents; C/W image counts may overlap. These are diagnostic pair wins, not official Recall@1.}\label{tab:supp_v6_parent_pairs}
+\begin{tabular}{@{}llcccccc@{}}\toprule
+Localizer & Parent & Pairs (images) & $G/E$ & $G/Y$ & $S/Y$ & $G:Y-E$ & $Y:S-G$\\\midrule
+MM-GDINO-T & all & \shortstack{9029\\(2433)} & 67.09 & 66.60 & 66.42 & \shortstack{-0.495\\{\scriptsize [-0.986, -0.027]}} & \shortstack{-0.174\\{\scriptsize [-0.563, +0.196]}}\\
+MM-GDINO-T & C & \shortstack{8136\\(2303)} & 67.99 & 67.76 & 67.52 & \shortstack{-0.229\\{\scriptsize [-0.651, +0.208]}} & \shortstack{-0.234\\{\scriptsize [-0.606, +0.134]}}\\
+MM-GDINO-T & W & \shortstack{893\\(348)} & 58.94 & 56.03 & 56.40 & \shortstack{-2.912\\{\scriptsize [-5.905, +0.000]}} & \shortstack{+0.373\\{\scriptsize [-1.407, +2.114]}}\\
+MDETR-R101 & all & \shortstack{9029\\(2433)} & 64.52 & 62.83 & 62.96 & \shortstack{-1.683\\{\scriptsize [-2.562, -0.823]}} & \shortstack{+0.126\\{\scriptsize [-0.557, +0.811]}}\\
+MDETR-R101 & C & \shortstack{6675\\(2092)} & 66.78 & 67.92 & 69.20 & \shortstack{+1.144\\{\scriptsize [+0.187, +2.068]}} & \shortstack{+1.283\\{\scriptsize [+0.548, +2.026]}}\\
+MDETR-R101 & W & \shortstack{2354\\(845)} & 58.11 & 48.41 & 45.26 & \shortstack{-9.700\\{\scriptsize [-11.789, -7.615]}} & \shortstack{-3.158\\{\scriptsize [-4.789, -1.644]}}\\
+\bottomrule\end{tabular}
+\end{table*}

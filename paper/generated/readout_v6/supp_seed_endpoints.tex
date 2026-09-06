@@ -1,0 +1,61 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Mixed AUGRC by seed, $\times100$. Native repeats one frozen prediction route, not three localizer training seeds. Part 1.}\label{tab:supp_v6_seed_endpoints_1}
+\begin{tabular}{@{}lllccc@{}}\toprule
+Localizer & Population & Score & Seed 17 & Seed 42 & Seed 73\\\midrule
+MM-GDINO-T & FineCops val & Native & 28.11 & 28.11 & 28.11\\
+MM-GDINO-T & FineCops val & $G/E$ & 26.17 & 26.31 & 26.21\\
+MM-GDINO-T & FineCops val & $G/Y$ & 26.36 & 26.42 & 26.35\\
+MM-GDINO-T & FineCops val & $S/E$ & 26.12 & 26.27 & 26.20\\
+MM-GDINO-T & FineCops val & $S/Y$ & 26.32 & 26.40 & 26.35\\
+MM-GDINO-T & FineCops val & Product & 26.62 & 26.64 & 26.59\\
+MM-GDINO-T & FineCops val & SIRC-style & 27.37 & 27.36 & 27.34\\
+MDETR-R101 & FineCops val & Native & 30.16 & 30.16 & 30.16\\
+MDETR-R101 & FineCops val & $G/E$ & 29.65 & 30.00 & 29.47\\
+MDETR-R101 & FineCops val & $G/Y$ & 28.98 & 28.74 & 28.79\\
+MDETR-R101 & FineCops val & $S/E$ & 29.54 & 29.78 & 29.23\\
+MDETR-R101 & FineCops val & $S/Y$ & 28.64 & 28.67 & 28.65\\
+MDETR-R101 & FineCops val & Product & 29.25 & 29.53 & 29.20\\
+MDETR-R101 & FineCops val & SIRC-style & 30.01 & 30.01 & 30.01\\
+MM-GDINO-T & gRef source-disjoint & Native & 30.05 & 30.05 & 30.05\\
+MM-GDINO-T & gRef source-disjoint & $G/E$ & 28.61 & 28.76 & 28.66\\
+MM-GDINO-T & gRef source-disjoint & $G/Y$ & 28.61 & 28.65 & 28.57\\
+MM-GDINO-T & gRef source-disjoint & $S/E$ & 28.53 & 28.75 & 28.67\\
+MM-GDINO-T & gRef source-disjoint & $S/Y$ & 28.58 & 28.67 & 28.65\\
+MM-GDINO-T & gRef source-disjoint & Product & 28.49 & 28.52 & 28.45\\
+MM-GDINO-T & gRef source-disjoint & SIRC-style & 28.72 & 28.72 & 28.70\\
+MDETR-R101 & gRef source-disjoint & Native & 21.13 & 21.13 & 21.13\\
+MDETR-R101 & gRef source-disjoint & $G/E$ & 20.57 & 20.23 & 19.52\\
+MDETR-R101 & gRef source-disjoint & $G/Y$ & 19.54 & 20.30 & 19.91\\
+\bottomrule\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Mixed AUGRC by seed, $\times100$. Native repeats one frozen prediction route, not three localizer training seeds. Part 2.}\label{tab:supp_v6_seed_endpoints_2}
+\begin{tabular}{@{}lllccc@{}}\toprule
+Localizer & Population & Score & Seed 17 & Seed 42 & Seed 73\\\midrule
+MDETR-R101 & gRef source-disjoint & $S/E$ & 20.29 & 20.51 & 20.23\\
+MDETR-R101 & gRef source-disjoint & $S/Y$ & 20.41 & 20.37 & 20.28\\
+MDETR-R101 & gRef source-disjoint & Product & 20.26 & 19.90 & 19.36\\
+MDETR-R101 & gRef source-disjoint & SIRC-style & 20.97 & 20.92 & 20.96\\
+MM-GDINO-T & gRef Full & Native & 30.24 & 30.24 & 30.24\\
+MM-GDINO-T & gRef Full & $G/E$ & 28.72 & 28.88 & 28.77\\
+MM-GDINO-T & gRef Full & $G/Y$ & 28.75 & 28.80 & 28.70\\
+MM-GDINO-T & gRef Full & $S/E$ & 28.65 & 28.87 & 28.78\\
+MM-GDINO-T & gRef Full & $S/Y$ & 28.71 & 28.80 & 28.77\\
+MM-GDINO-T & gRef Full & Product & 28.62 & 28.65 & 28.58\\
+MM-GDINO-T & gRef Full & SIRC-style & 28.87 & 28.86 & 28.85\\
+MDETR-R101 & gRef Full & Native & 21.27 & 21.27 & 21.27\\
+MDETR-R101 & gRef Full & $G/E$ & 20.71 & 20.37 & 19.66\\
+MDETR-R101 & gRef Full & $G/Y$ & 19.70 & 20.49 & 20.07\\
+MDETR-R101 & gRef Full & $S/E$ & 20.46 & 20.68 & 20.42\\
+MDETR-R101 & gRef Full & $S/Y$ & 20.57 & 20.55 & 20.46\\
+MDETR-R101 & gRef Full & Product & 20.41 & 20.05 & 19.50\\
+MDETR-R101 & gRef Full & SIRC-style & 21.11 & 21.06 & 21.10\\
+\bottomrule\end{tabular}
+\end{table*}

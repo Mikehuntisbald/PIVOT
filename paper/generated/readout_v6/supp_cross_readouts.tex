@@ -1,0 +1,43 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Frozen weights, alternate inference readout: mixed AUGRC $\times100$. Matched and alternate values are seed mean (sample SD); differences use paired 95\% intervals. Every row keeps Native boxes fixed. These off-diagonal readings diagnose the training/deployment readout contract; they are not substituted for the matched four-cell matrix. Part 1.}\label{tab:supp_v6_cross_readouts_1}
+\begin{tabular}{@{}llllccc@{}}\toprule
+Localizer & Population & Trained head & Alternate read & Matched (SD) & Alternate (SD) & Alt.$-$matched [CI]\\\midrule
+MM-GDINO-T & FineCops val & $G/Y$ & $S$ & \shortstack{26.38\\{\scriptsize (0.04)}} & \shortstack{26.44\\{\scriptsize (0.03)}} & \shortstack{+0.058\\{\scriptsize [+0.019, +0.097]}}\\
+MM-GDINO-T & FineCops val & $G/E$ & $S$ & \shortstack{26.23\\{\scriptsize (0.07)}} & \shortstack{26.25\\{\scriptsize (0.05)}} & \shortstack{+0.016\\{\scriptsize [-0.030, +0.061]}}\\
+MM-GDINO-T & FineCops val & $S/Y$ & $G$ & \shortstack{26.36\\{\scriptsize (0.04)}} & \shortstack{28.38\\{\scriptsize (0.17)}} & \shortstack{+2.029\\{\scriptsize [+1.876, +2.179]}}\\
+MM-GDINO-T & FineCops val & $S/E$ & $G$ & \shortstack{26.20\\{\scriptsize (0.07)}} & \shortstack{27.70\\{\scriptsize (0.49)}} & \shortstack{+1.506\\{\scriptsize [+1.365, +1.645]}}\\
+MDETR-R101 & FineCops val & $G/Y$ & $S$ & \shortstack{28.84\\{\scriptsize (0.13)}} & \shortstack{30.45\\{\scriptsize (2.83)}} & \shortstack{+1.608\\{\scriptsize [+1.513, +1.698]}}\\
+MDETR-R101 & FineCops val & $G/E$ & $S$ & \shortstack{29.71\\{\scriptsize (0.27)}} & \shortstack{32.51\\{\scriptsize (2.87)}} & \shortstack{+2.799\\{\scriptsize [+2.642, +2.952]}}\\
+MDETR-R101 & FineCops val & $S/Y$ & $G$ & \shortstack{28.65\\{\scriptsize (0.02)}} & \shortstack{29.09\\{\scriptsize (0.08)}} & \shortstack{+0.435\\{\scriptsize [+0.371, +0.495]}}\\
+MDETR-R101 & FineCops val & $S/E$ & $G$ & \shortstack{29.52\\{\scriptsize (0.28)}} & \shortstack{29.97\\{\scriptsize (0.24)}} & \shortstack{+0.449\\{\scriptsize [+0.361, +0.532]}}\\
+MM-GDINO-T & gRef source-disjoint & $G/Y$ & $S$ & \shortstack{28.61\\{\scriptsize (0.04)}} & \shortstack{28.62\\{\scriptsize (0.04)}} & \shortstack{+0.012\\{\scriptsize [-0.010, +0.036]}}\\
+MM-GDINO-T & gRef source-disjoint & $G/E$ & $S$ & \shortstack{28.68\\{\scriptsize (0.08)}} & \shortstack{28.57\\{\scriptsize (0.08)}} & \shortstack{-0.105\\{\scriptsize [-0.139, -0.069]}}\\
+MM-GDINO-T & gRef source-disjoint & $S/Y$ & $G$ & \shortstack{28.63\\{\scriptsize (0.05)}} & \shortstack{30.50\\{\scriptsize (0.23)}} & \shortstack{+1.866\\{\scriptsize [+1.672, +2.059]}}\\
+MM-GDINO-T & gRef source-disjoint & $S/E$ & $G$ & \shortstack{28.65\\{\scriptsize (0.11)}} & \shortstack{29.91\\{\scriptsize (0.30)}} & \shortstack{+1.260\\{\scriptsize [+1.117, +1.400]}}\\
+MDETR-R101 & gRef source-disjoint & $G/Y$ & $S$ & \shortstack{19.92\\{\scriptsize (0.38)}} & \shortstack{22.77\\{\scriptsize (3.43)}} & \shortstack{+2.853\\{\scriptsize [+2.740, +2.963]}}\\
+MDETR-R101 & gRef source-disjoint & $G/E$ & $S$ & \shortstack{20.11\\{\scriptsize (0.54)}} & \shortstack{24.47\\{\scriptsize (3.53)}} & \shortstack{+4.362\\{\scriptsize [+4.173, +4.542]}}\\
+MDETR-R101 & gRef source-disjoint & $S/Y$ & $G$ & \shortstack{20.35\\{\scriptsize (0.06)}} & \shortstack{20.25\\{\scriptsize (0.11)}} & \shortstack{-0.109\\{\scriptsize [-0.167, -0.049]}}\\
+MDETR-R101 & gRef source-disjoint & $S/E$ & $G$ & \shortstack{20.34\\{\scriptsize (0.15)}} & \shortstack{20.40\\{\scriptsize (0.01)}} & \shortstack{+0.057\\{\scriptsize [-0.010, +0.128]}}\\
+MM-GDINO-T & gRef Full & $G/Y$ & $S$ & \shortstack{28.75\\{\scriptsize (0.05)}} & \shortstack{28.77\\{\scriptsize (0.05)}} & \shortstack{+0.017\\{\scriptsize [-0.006, +0.040]}}\\
+MM-GDINO-T & gRef Full & $G/E$ & $S$ & \shortstack{28.79\\{\scriptsize (0.08)}} & \shortstack{28.70\\{\scriptsize (0.09)}} & \shortstack{-0.095\\{\scriptsize [-0.126, -0.063]}}\\
+\bottomrule\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Frozen weights, alternate inference readout: mixed AUGRC $\times100$. Matched and alternate values are seed mean (sample SD); differences use paired 95\% intervals. Every row keeps Native boxes fixed. These off-diagonal readings diagnose the training/deployment readout contract; they are not substituted for the matched four-cell matrix. Part 2.}\label{tab:supp_v6_cross_readouts_2}
+\begin{tabular}{@{}llllccc@{}}\toprule
+Localizer & Population & Trained head & Alternate read & Matched (SD) & Alternate (SD) & Alt.$-$matched [CI]\\\midrule
+MM-GDINO-T & gRef Full & $S/Y$ & $G$ & \shortstack{28.76\\{\scriptsize (0.05)}} & \shortstack{30.61\\{\scriptsize (0.22)}} & \shortstack{+1.851\\{\scriptsize [+1.680, +2.024]}}\\
+MM-GDINO-T & gRef Full & $S/E$ & $G$ & \shortstack{28.76\\{\scriptsize (0.11)}} & \shortstack{30.02\\{\scriptsize (0.29)}} & \shortstack{+1.254\\{\scriptsize [+1.125, +1.377]}}\\
+MDETR-R101 & gRef Full & $G/Y$ & $S$ & \shortstack{20.09\\{\scriptsize (0.39)}} & \shortstack{22.92\\{\scriptsize (3.37)}} & \shortstack{+2.834\\{\scriptsize [+2.735, +2.935]}}\\
+MDETR-R101 & gRef Full & $G/E$ & $S$ & \shortstack{20.25\\{\scriptsize (0.53)}} & \shortstack{24.62\\{\scriptsize (3.52)}} & \shortstack{+4.369\\{\scriptsize [+4.202, +4.533]}}\\
+MDETR-R101 & gRef Full & $S/Y$ & $G$ & \shortstack{20.53\\{\scriptsize (0.06)}} & \shortstack{20.42\\{\scriptsize (0.11)}} & \shortstack{-0.105\\{\scriptsize [-0.159, -0.053]}}\\
+MDETR-R101 & gRef Full & $S/E$ & $G$ & \shortstack{20.52\\{\scriptsize (0.14)}} & \shortstack{20.55\\{\scriptsize (0.03)}} & \shortstack{+0.034\\{\scriptsize [-0.027, +0.097]}}\\
+\bottomrule\end{tabular}
+\end{table*}

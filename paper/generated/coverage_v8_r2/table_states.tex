@@ -1,0 +1,13 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Which comparisons change when supervision expands from L1 to Full? Full$-$L1 effects $\times100$ [paired 95\% CI]. $C/W$ and $C/N$ determine complete risk; $W/N$ compares two failures but contributes to existence AUROC. The target-specific absolute changes separate improvement in Y from degradation in E.}\label{tab:coverage_states}
+\begin{tabular}{@{}llccccc@{}}\toprule
+Population & Target & $\Delta U_{CW}$ & $\Delta U_{CN}$ & $\Delta U_{WN}$ & $\Delta\mathrm{AUC}_E$ & $\Delta$ risk\\\midrule
+FineCops val & Y & \shortstack{-11.411\\{\scriptsize [-12.237, -10.582]}} & \shortstack{+4.412\\{\scriptsize [+3.956, +4.885]}} & \shortstack{+18.281\\{\scriptsize [+17.300, +19.286]}} & \shortstack{+7.552\\{\scriptsize [+7.039, +8.076]}} & \shortstack{-0.332\\{\scriptsize [-0.436, -0.235]}}\\
+FineCops val & E & \shortstack{-33.392\\{\scriptsize [-35.041, -31.809]}} & \shortstack{+3.153\\{\scriptsize [+2.494, +3.841]}} & \shortstack{+27.359\\{\scriptsize [+25.965, +28.812]}} & \shortstack{+8.633\\{\scriptsize [+7.895, +9.408]}} & \shortstack{+0.916\\{\scriptsize [+0.755, +1.078]}}\\
+gRef source-disjoint & Y & \shortstack{-0.657\\{\scriptsize [-1.201, -0.118]}} & \shortstack{+1.483\\{\scriptsize [+1.202, +1.757]}} & \shortstack{+2.115\\{\scriptsize [+1.766, +2.472]}} & \shortstack{+1.761\\{\scriptsize [+1.518, +2.015]}} & \shortstack{-0.154\\{\scriptsize [-0.223, -0.083]}}\\
+gRef source-disjoint & E & \shortstack{-10.814\\{\scriptsize [-11.955, -9.698]}} & \shortstack{-1.491\\{\scriptsize [-1.947, -1.045]}} & \shortstack{+3.189\\{\scriptsize [+2.659, +3.743]}} & \shortstack{+0.566\\{\scriptsize [+0.187, +0.959]}} & \shortstack{+1.043\\{\scriptsize [+0.917, +1.169]}}\\
+\bottomrule\end{tabular}
+\end{table*}

@@ -1,0 +1,16 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{FineCops val: complete coverage-block endpoints, mean (sample SD), all $\times100$. Paired-L1 is the reused reference, not the new L1-uniform control. FPR95 is diagnostic; no deployment threshold is fitted.}\label{tab:coverage_endpoints_finecops_val}
+\begin{tabular}{@{}lccccccc@{}}\toprule
+Score & AUGRC & $U_{CW}$ & $U_{CN}$ & $U_{WN}$ & $\mathrm{AUC}_E$ & AURC & FPR95\\\midrule
+Native & \shortstack{28.11\\{\scriptsize (0.00)}} & \shortstack{83.28\\{\scriptsize (0.00)}} & \shortstack{53.16\\{\scriptsize (0.00)}} & \shortstack{18.71\\{\scriptsize (0.00)}} & \shortstack{45.36\\{\scriptsize (0.00)}} & \shortstack{54.57\\{\scriptsize (0.00)}} & \shortstack{96.09\\{\scriptsize (0.00)}}\\
+Paired-L1 E & \shortstack{26.23\\{\scriptsize (0.07)}} & \shortstack{68.89\\{\scriptsize (1.99)}} & \shortstack{66.30\\{\scriptsize (0.27)}} & \shortstack{50.05\\{\scriptsize (2.09)}} & \shortstack{62.62\\{\scriptsize (0.65)}} & \shortstack{47.39\\{\scriptsize (0.25)}} & \shortstack{80.11\\{\scriptsize (0.13)}}\\
+Paired-L1 Y & \shortstack{26.38\\{\scriptsize (0.04)}} & \shortstack{80.55\\{\scriptsize (0.40)}} & \shortstack{62.78\\{\scriptsize (0.12)}} & \shortstack{32.26\\{\scriptsize (0.56)}} & \shortstack{55.87\\{\scriptsize (0.09)}} & \shortstack{47.69\\{\scriptsize (0.17)}} & \shortstack{85.73\\{\scriptsize (0.22)}}\\
+L1-uniform E & \shortstack{25.88\\{\scriptsize (0.06)}} & \shortstack{67.08\\{\scriptsize (4.22)}} & \shortstack{68.53\\{\scriptsize (1.29)}} & \shortstack{53.78\\{\scriptsize (5.81)}} & \shortstack{65.19\\{\scriptsize (2.31)}} & \shortstack{46.15\\{\scriptsize (0.13)}} & \shortstack{80.41\\{\scriptsize (0.99)}}\\
+L1-uniform Y & \shortstack{26.02\\{\scriptsize (0.04)}} & \shortstack{79.24\\{\scriptsize (0.63)}} & \shortstack{64.94\\{\scriptsize (0.37)}} & \shortstack{35.03\\{\scriptsize (1.28)}} & \shortstack{58.17\\{\scriptsize (0.58)}} & \shortstack{46.27\\{\scriptsize (0.06)}} & \shortstack{86.11\\{\scriptsize (0.24)}}\\
+Full-uniform E & \shortstack{26.80\\{\scriptsize (0.23)}} & \shortstack{33.69\\{\scriptsize (3.08)}} & \shortstack{71.68\\{\scriptsize (0.47)}} & \shortstack{81.14\\{\scriptsize (2.00)}} & \shortstack{73.82\\{\scriptsize (0.11)}} & \shortstack{52.80\\{\scriptsize (0.84)}} & \shortstack{78.03\\{\scriptsize (0.20)}}\\
+Full-uniform Y & \shortstack{25.69\\{\scriptsize (0.02)}} & \shortstack{67.83\\{\scriptsize (1.38)}} & \shortstack{69.35\\{\scriptsize (0.30)}} & \shortstack{53.31\\{\scriptsize (1.82)}} & \shortstack{65.72\\{\scriptsize (0.63)}} & \shortstack{45.82\\{\scriptsize (0.10)}} & \shortstack{81.78\\{\scriptsize (0.55)}}\\
+\bottomrule\end{tabular}
+\end{table*}

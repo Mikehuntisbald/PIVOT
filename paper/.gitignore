@@ -24,3 +24,14 @@
 /supplement/*.toc
 /validation_report.json
 /validation_static_report.json
+/.build/
+/.submission/
+
+# Explicitly reviewed empirical releases; other local renderings stay ignored.
+!/empirical_study_v6.pdf
+!/empirical_supplement_v6.pdf
+!/empirical_study_v7.pdf
+!/empirical_supplement_v7.pdf
+!/empirical_study_v7_1.pdf
+!/empirical_study_v8.pdf
+!/empirical_supplement_v8.pdf

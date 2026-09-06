@@ -1,0 +1,12 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Positive supervision coverage changes target preference with fixed MM-GDINO boxes, Global-max readout and training budget. The four risk cells show mean (sample SD), and differences show paired 95\% intervals, all $\times100$. $D_Y=R_{\mathrm{Full},Y}-R_{\mathrm{L1},Y}$, $D_E=R_{\mathrm{Full},E}-R_{\mathrm{L1},E}$, $I=D_Y-D_E$. gRef uses frozen heads; its two populations overlap.}\label{tab:coverage_matrix}
+\begin{tabular}{@{}lccccccc@{}}\toprule
+Population & L1 E & L1 Y & Full E & Full Y & $D_Y$ & $D_E$ & $I$\\\midrule
+FineCops val & \shortstack{25.88\\{\scriptsize (0.06)}} & \shortstack{26.02\\{\scriptsize (0.04)}} & \shortstack{26.80\\{\scriptsize (0.23)}} & \shortstack{25.69\\{\scriptsize (0.02)}} & \shortstack{-0.332\\{\scriptsize [-0.436, -0.235]}} & \shortstack{+0.916\\{\scriptsize [+0.755, +1.078]}} & \shortstack{-1.248\\{\scriptsize [-1.366, -1.138]}}\\
+gRef source-disjoint & \shortstack{28.65\\{\scriptsize (0.04)}} & \shortstack{28.49\\{\scriptsize (0.04)}} & \shortstack{29.69\\{\scriptsize (0.12)}} & \shortstack{28.33\\{\scriptsize (0.07)}} & \shortstack{-0.154\\{\scriptsize [-0.223, -0.083]}} & \shortstack{+1.043\\{\scriptsize [+0.917, +1.169]}} & \shortstack{-1.197\\{\scriptsize [-1.306, -1.088]}}\\
+gRef Full & \shortstack{28.75\\{\scriptsize (0.04)}} & \shortstack{28.62\\{\scriptsize (0.05)}} & \shortstack{29.78\\{\scriptsize (0.12)}} & \shortstack{28.46\\{\scriptsize (0.07)}} & \shortstack{-0.157\\{\scriptsize [-0.222, -0.091]}} & \shortstack{+1.026\\{\scriptsize [+0.907, +1.141]}} & \shortstack{-1.183\\{\scriptsize [-1.281, -1.081]}}\\
+\bottomrule\end{tabular}
+\end{table*}

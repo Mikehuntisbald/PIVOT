@@ -1,0 +1,17 @@
+\begin{table*}[t]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Target by readout with unchanged Native boxes. Mixed AUGRC $\times100$ (lower is better). The four cells show seed mean (sample SD); effects show mean [paired 95\% CI]. $D_Y=R_{S,Y}-R_{G,Y}$, $D_E=R_{S,E}-R_{G,E}$, and $I=D_Y-D_E$. The gRef surfaces overlap and are not independent replications.}\label{tab:readout_matrix}
+\begin{tabular}{@{}llccccccc@{}}\toprule
+Localizer & Population & $G/E$ & $G/Y$ & $S/E$ & $S/Y$ & $D_Y$ & $D_E$ & $I$\\\midrule
+MM-GDINO-T & FineCops val & \shortstack{26.23\\{\scriptsize (0.07)}} & \shortstack{26.38\\{\scriptsize (0.04)}} & \shortstack{26.20\\{\scriptsize (0.07)}} & \shortstack{26.36\\{\scriptsize (0.04)}} & \shortstack{-0.023\\{\scriptsize [-0.048, +0.003]}} & \shortstack{-0.034\\{\scriptsize [-0.068, +0.000]}} & \shortstack{+0.011\\{\scriptsize [-0.016, +0.038]}}\\
+MM-GDINO-T & gRef source-disjoint & \shortstack{28.68\\{\scriptsize (0.08)}} & \shortstack{28.61\\{\scriptsize (0.04)}} & \shortstack{28.65\\{\scriptsize (0.11)}} & \shortstack{28.63\\{\scriptsize (0.05)}} & \shortstack{+0.022\\{\scriptsize [-0.013, +0.057]}} & \shortstack{-0.027\\{\scriptsize [-0.060, +0.007]}} & \shortstack{+0.049\\{\scriptsize [+0.013, +0.085]}}\\
+MM-GDINO-T & gRef Full & \shortstack{28.79\\{\scriptsize (0.08)}} & \shortstack{28.75\\{\scriptsize (0.05)}} & \shortstack{28.76\\{\scriptsize (0.11)}} & \shortstack{28.76\\{\scriptsize (0.05)}} & \shortstack{+0.011\\{\scriptsize [-0.021, +0.045]}} & \shortstack{-0.025\\{\scriptsize [-0.055, +0.006]}} & \shortstack{+0.037\\{\scriptsize [+0.003, +0.069]}}\\
+\addlinespace[3pt]
+MDETR-R101 & FineCops val & \shortstack{29.71\\{\scriptsize (0.27)}} & \shortstack{28.84\\{\scriptsize (0.13)}} & \shortstack{29.52\\{\scriptsize (0.28)}} & \shortstack{28.65\\{\scriptsize (0.02)}} & \shortstack{-0.189\\{\scriptsize [-0.257, -0.122]}} & \shortstack{-0.191\\{\scriptsize [-0.285, -0.094]}} & \shortstack{+0.001\\{\scriptsize [-0.091, +0.088]}}\\
+MDETR-R101 & gRef source-disjoint & \shortstack{20.11\\{\scriptsize (0.54)}} & \shortstack{19.92\\{\scriptsize (0.38)}} & \shortstack{20.34\\{\scriptsize (0.15)}} & \shortstack{20.35\\{\scriptsize (0.06)}} & \shortstack{+0.437\\{\scriptsize [+0.363, +0.507]}} & \shortstack{+0.236\\{\scriptsize [+0.137, +0.332]}} & \shortstack{+0.201\\{\scriptsize [+0.108, +0.292]}}\\
+MDETR-R101 & gRef Full & \shortstack{20.25\\{\scriptsize (0.53)}} & \shortstack{20.09\\{\scriptsize (0.39)}} & \shortstack{20.52\\{\scriptsize (0.14)}} & \shortstack{20.53\\{\scriptsize (0.06)}} & \shortstack{+0.440\\{\scriptsize [+0.373, +0.506]}} & \shortstack{+0.268\\{\scriptsize [+0.176, +0.356]}} & \shortstack{+0.172\\{\scriptsize [+0.085, +0.259]}}\\
+\addlinespace[3pt]
+\bottomrule\end{tabular}
+\end{table*}
